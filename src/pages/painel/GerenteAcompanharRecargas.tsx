@@ -674,6 +674,34 @@ export default function GerenteAcompanharRecargas() {
                             <span className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wide", meta.cls)}>
                               <meta.Icon className="h-3 w-3" />
                               {meta.label}
+                              {s === "manual_limite_atingido" && (() => {
+                                const startMs = m.updated_at ? Date.parse(m.updated_at) : Date.parse(m.created_at);
+                                const endsAt = (isFinite(startMs) ? startMs : nowTick) + 24 * 60 * 60 * 1000;
+                                const remaining = Math.max(0, endsAt - nowTick);
+                                if (remaining <= 0) {
+                                  return (
+                                    <button
+                                      onClick={() => askConfirm({
+                                        title: "Continuar pedido?",
+                                        description: `O pedido ${m.provider_pedido_id.slice(0,8)} voltará para Pedido Iniciado para retomada do envio.`,
+                                        confirmLabel: "Continuar",
+                                        onConfirm: () => setManualStatus(m, "manual_iniciado", { force: true }),
+                                      })}
+                                      className="ml-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300 hover:bg-emerald-500/30"
+                                    >
+                                      Continuar
+                                    </button>
+                                  );
+                                }
+                                const hh = String(Math.floor(remaining / 3_600_000)).padStart(2, "0");
+                                const mm = String(Math.floor((remaining % 3_600_000) / 60_000)).padStart(2, "0");
+                                const ss = String(Math.floor((remaining % 60_000) / 1000)).padStart(2, "0");
+                                return (
+                                  <span className="ml-1 rounded-full bg-orange-500/20 px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-orange-200">
+                                    {hh}:{mm}:{ss}
+                                  </span>
+                                );
+                              })()}
                             </span>
                             {isFail && m.notes && (
                               <span className="max-w-[180px] truncate text-[10px] text-red-500/80" title={m.notes}>{m.notes}</span>
