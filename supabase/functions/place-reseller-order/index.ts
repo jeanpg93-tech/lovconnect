@@ -44,6 +44,19 @@ Deno.serve(async (req) => {
       .select("id,is_active").eq("user_id", user.id).maybeSingle();
     if (!reseller || !reseller.is_active) return json({ error: "Apenas revendedores ativos" }, 403);
 
+    // Bloqueia geração quando houver vendas da loja aguardando saldo
+    {
+      const { data: hasPending } = await svc.rpc("has_pending_storefront_orders", {
+        _reseller_id: reseller.id,
+      });
+      if (hasPending) {
+        return json({
+          error: "Você tem vendas da loja aguardando saldo. Regularize seu saldo antes de gerar novas licenças.",
+          code: "PENDING_BALANCE",
+        }, 409);
+      }
+    }
+
     const body = await req.json().catch(() => ({}));
     const extension_id = body.extension_id ? String(body.extension_id) : null;
     const is_test = body.is_test === true;
