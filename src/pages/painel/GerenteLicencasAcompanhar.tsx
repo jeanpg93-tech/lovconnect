@@ -162,15 +162,22 @@ export default function GerenteLicencasAcompanhar() {
               "Content-Type": "application/json",
             },
           });
-          const data = await r.json().catch(() => ({}));
-          return { data, error: r.ok ? null : { message: data?.error || `HTTP ${r.status}` } };
+          if (!r.ok) {
+            const body = await r.text();
+            let parsed = {};
+            try { parsed = JSON.parse(body); } catch { parsed = { error: body }; }
+            return { data: parsed, error: { message: (parsed as any).error || `HTTP ${r.status}` } };
+          }
+          const data = await r.json();
+          return { data, error: null };
         } catch (e: any) {
+          console.error(`[fetchFn] Error for ${path}:`, e);
           return { data: null, error: { message: e?.message || "network error" } };
         }
       };
       const [
-        { data: providerData, error: providerError },
-        { data: lovaxData, error: lovaxError },
+        resProvider,
+        resLovax,
         { data: resellersData },
         { data: apiKeysData },
         { data: dbOrdersData },
@@ -188,8 +195,13 @@ export default function GerenteLicencasAcompanhar() {
           .not("license_key", "is", null),
       ]);
 
-      if ((providerError || providerData?.error) && (lovaxError || lovaxData?.error)) {
-        toast.error(providerError?.message || providerData?.error || lovaxError?.message || lovaxData?.error || "Erro ao carregar licenças");
+      const providerData = resProvider?.data;
+      const providerError = resProvider?.error;
+      const lovaxData = resLovax?.data;
+      const lovaxError = resLovax?.error;
+
+      if (providerError && lovaxError) {
+        toast.error(`Erro ao carregar: ${providerError.message} / ${lovaxError.message}`);
         setLoading(false);
         return;
       }
