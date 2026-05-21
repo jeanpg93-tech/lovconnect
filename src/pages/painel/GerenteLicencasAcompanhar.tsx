@@ -127,12 +127,14 @@ export default function GerenteLicencasAcompanhar() {
     open: boolean;
     type: "revoke" | "delete" | "reset";
     key: string;
+    method: DeliveryMethod;
     title: string;
     description: string;
   }>({
     open: false,
     type: "revoke",
     key: "",
+    method: "flow",
     title: "",
     description: "",
   });
