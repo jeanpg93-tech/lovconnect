@@ -90,8 +90,8 @@ export default function RevendedorCarteira() {
                     className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4 flex items-center gap-2"
                   >
                     <t.icon className="h-3.5 w-3.5" />
-                    <span className="hidden xs:inline sm:inline">{t.label}</span>
-                    <span className="xs:hidden sm:hidden">
+                    <span className="hidden sm:inline">{t.label}</span>
+                    <span className="sm:hidden">
                       {t.key === "saldo" ? "Saldo" : t.key === "niveis" ? "Níveis" : "Ranking"}
                     </span>
                   </TabsTrigger>
