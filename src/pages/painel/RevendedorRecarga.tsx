@@ -50,6 +50,7 @@ import {
   UserCircle,
   Hand,
   ListChecks
+  ,FileDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -857,9 +858,11 @@ export default function RevendedorRecargas() {
 
                   <div className="relative flex flex-wrap gap-3 pt-2">
                     <Button variant="outline" className="h-11 px-5 rounded-xl text-xs font-bold" asChild>
-                      <Link to="/painel/revendedor/api">Documentação</Link>
+                      <a href="/docs/apis-revendedor.pdf" target="_blank" rel="noopener noreferrer">
+                        <FileDown className="h-3.5 w-3.5 mr-2" /> Baixar PDF
+                      </a>
                     </Button>
-                    <Button className="h-11 px-5 rounded-xl bg-primary text-white text-xs font-bold" onClick={() => toast.success("Endpoint Copiado!")}>
+                    <Button className="h-11 px-5 rounded-xl bg-primary text-white text-xs font-bold" onClick={() => { navigator.clipboard?.writeText("https://api.revendovable.com/v1/recharge"); toast.success("Endpoint Copiado!"); }}>
                       <Copy className="h-3.5 w-3.5 mr-2" /> Endpoint
                     </Button>
                   </div>
@@ -918,6 +921,11 @@ export default function RevendedorRecargas() {
                   </div>
 
                   <div className="relative flex flex-wrap gap-3 pt-2">
+                    <Button variant="outline" className="h-11 px-5 rounded-xl text-xs font-bold border-amber-500/40 text-amber-600 hover:bg-amber-500/10 hover:text-amber-600" asChild>
+                      <a href="/docs/apis-revendedor.pdf" target="_blank" rel="noopener noreferrer">
+                        <FileDown className="h-3.5 w-3.5 mr-2" /> Baixar PDF
+                      </a>
+                    </Button>
                     <Button className="h-11 px-5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-500/90" asChild>
                       <Link to="/painel/revendedor/avisos">
                         <MessageCircle className="h-3.5 w-3.5 mr-2" /> Falar com gerente
