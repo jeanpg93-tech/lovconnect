@@ -617,7 +617,7 @@ export default function GerenteAcompanharRecargas() {
                     const STATUS_MAP: Record<string, { label: string; cls: string; Icon: any }> = {
                       manual_pendente: { label: "Pendente", cls: "bg-amber-500/15 text-amber-500 border-amber-500/40", Icon: Clock },
                       manual_aceito: { label: "Aceito/config", cls: "bg-blue-500/15 text-blue-400 border-blue-500/40", Icon: Hand },
-                      manual_iniciado: { label: "Config/start", cls: "bg-cyan-500/15 text-cyan-400 border-cyan-500/40", Icon: Wrench },
+                      manual_iniciado: { label: "Pedido Iniciado", cls: "bg-cyan-500/15 text-cyan-400 border-cyan-500/40", Icon: Wrench },
                       manual_concluido: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/40", Icon: CheckCircle2 },
                       manual_entregue: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/40", Icon: CheckCircle2 },
                       manual_sem_sucesso: { label: "Sem sucesso", cls: "bg-red-500/15 text-red-500 border-red-500/40", Icon: AlertTriangle },
