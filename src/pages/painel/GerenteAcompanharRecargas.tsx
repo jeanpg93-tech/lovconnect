@@ -706,6 +706,15 @@ export default function GerenteAcompanharRecargas() {
                                   )
                                 )}
                                 {s === "manual_iniciado" && (
+                                  <>
+                                  <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-orange-500 hover:text-orange-600" title="Marcar Limite diário atingido" onClick={() => askConfirm({
+                                    title: "Marcar Limite diário?",
+                                    description: `O pedido ${m.provider_pedido_id.slice(0,8)} ficará em Limite atingido até o limite diário liberar.`,
+                                    confirmLabel: "Marcar limite",
+                                    onConfirm: () => setManualStatus(m, "manual_limite_atingido"),
+                                  })}>
+                                    <Clock className="h-3.5 w-3.5" />
+                                  </Button>
                                   <Button size="sm" className="h-7 px-2 text-xs" onClick={() => askConfirm({
                                     title: "Concluir pedido?",
                                     description: `Confirmar entrega do pedido ${m.provider_pedido_id.slice(0,8)}. Esta ação finaliza o pedido.`,
@@ -714,8 +723,19 @@ export default function GerenteAcompanharRecargas() {
                                   })}>
                                     <CheckCircle2 className="mr-1 h-3 w-3" /> Concluído
                                   </Button>
+                                  </>
                                 )}
-                                {(s === "manual_aceito" || s === "manual_iniciado") && (
+                                {s === "manual_limite_atingido" && (
+                                  <Button size="sm" className="h-7 px-2 text-xs" onClick={() => askConfirm({
+                                    title: "Concluir pedido?",
+                                    description: `Confirmar entrega do pedido ${m.provider_pedido_id.slice(0,8)}. Esta ação finaliza o pedido.`,
+                                    confirmLabel: "Concluir",
+                                    onConfirm: () => setManualStatus(m, "manual_concluido", { notes: null, force: true }),
+                                  })}>
+                                    <CheckCircle2 className="mr-1 h-3 w-3" /> Concluído
+                                  </Button>
+                                )}
+                                {(s === "manual_aceito" || s === "manual_iniciado" || s === "manual_limite_atingido") && (
                                   <Button
                                     size="sm"
                                     variant="ghost"
