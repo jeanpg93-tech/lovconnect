@@ -54,10 +54,7 @@ export default function AppLayout() {
       <div className="flex min-h-screen w-full bg-background text-foreground">
         <AppSidebar />
         <div className="flex flex-1 flex-col min-w-0 pb-28 md:pb-0">
-          <main
-            className="relative flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden md:pt-6"
-            style={{ paddingTop: "calc(env(safe-area-inset-top) + 4.5rem)" }}
-          >
+          <main className="relative flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden pt-[calc(env(safe-area-inset-top)+4.5rem)] md:!pt-6">
             <div className="pointer-events-none absolute inset-0 bg-grid bg-grid-fade opacity-40" />
             <div className="relative">
               <PanelRoutes />
