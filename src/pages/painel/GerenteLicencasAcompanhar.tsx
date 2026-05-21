@@ -196,10 +196,10 @@ export default function GerenteLicencasAcompanhar() {
         supabase.from("resellers").select("id, display_name, user_id"),
         supabase.from("reseller_api_keys").select("id, label, reseller_id"),
         supabase.from("orders")
-          .select("id, license_key, reseller_id, api_key_id, price_cents")
+          .select("id, license_key, reseller_id, api_key_id, price_cents, license_type, status, created_at, is_test")
           .not("license_key", "is", null),
         supabase.from("storefront_orders")
-          .select("license_key, reseller_id, price_cents")
+          .select("id, license_key, reseller_id, price_cents, license_type, status, created_at, buyer_name")
           .not("license_key", "is", null),
       ]);
 
@@ -244,13 +244,13 @@ export default function GerenteLicencasAcompanhar() {
       });
       setApiKeys(keysMap);
 
-      const ordersMap: Record<string, { id: string; reseller_id: string; api_key_id: string | null; price_cents: number | null }> = {};
+      const ordersMap: Record<string, any> = {};
       (dbOrdersData ?? []).forEach((o: any) => {
-        ordersMap[o.license_key] = { id: o.id, reseller_id: o.reseller_id, api_key_id: o.api_key_id, price_cents: o.price_cents ?? null };
+        ordersMap[o.license_key] = o;
       });
-      const storefrontMap: Record<string, { reseller_id: string; price_cents: number | null }> = {};
+      const storefrontMap: Record<string, any> = {};
       (storefrontData ?? []).forEach((o: any) => {
-        storefrontMap[o.license_key] = { reseller_id: o.reseller_id, price_cents: o.price_cents ?? null };
+        storefrontMap[o.license_key] = o;
       });
 
       // Carrega quais orders já foram estornados (kind license_purchase_refund)
@@ -369,7 +369,67 @@ export default function GerenteLicencasAcompanhar() {
         };
       });
 
-      setOrders([...list, ...lovaxList]);
+      // Local orders (manual / storefront) whose license_key isn't returned by provider/lovax usage
+      const seenKeys = new Set<string>([...list, ...lovaxList].map((r) => r.license_key));
+      const localOnly: OrderRow[] = [];
+      (dbOrdersData ?? []).forEach((o: any) => {
+        if (!o.license_key || seenKeys.has(o.license_key)) return;
+        const userId = o.reseller_id ? resellerToUser[o.reseller_id] : null;
+        const email = (userId && emailMap[userId]) || null;
+        localOnly.push({
+          id: o.license_key,
+          license_id: o.id,
+          license_key: o.license_key,
+          display_name: undefined,
+          license_type: o.license_type,
+          status: o.status,
+          created_at: o.created_at,
+          expires_at: null,
+          lifetime: o.license_type === "lifetime",
+          days: null,
+          is_test: !!o.is_test,
+          reseller_id: o.reseller_id ?? null,
+          api_key_id: o.api_key_id ?? null,
+          customer_id: null,
+          client_id: null,
+          price_cents: o.price_cents ?? null,
+          creator_email: email,
+          source: o.api_key_id ? "api" : "manual",
+          method: "flow",
+          full_data: o,
+        });
+        seenKeys.add(o.license_key);
+      });
+      (storefrontData ?? []).forEach((o: any) => {
+        if (!o.license_key || seenKeys.has(o.license_key)) return;
+        const userId = o.reseller_id ? resellerToUser[o.reseller_id] : null;
+        const email = (userId && emailMap[userId]) || null;
+        localOnly.push({
+          id: o.license_key,
+          license_id: o.id,
+          license_key: o.license_key,
+          display_name: o.buyer_name ?? undefined,
+          license_type: o.license_type,
+          status: o.status === "paid" ? "active" : o.status,
+          created_at: o.created_at,
+          expires_at: null,
+          lifetime: o.license_type === "lifetime",
+          days: null,
+          is_test: false,
+          reseller_id: o.reseller_id ?? null,
+          api_key_id: null,
+          customer_id: null,
+          client_id: null,
+          price_cents: o.price_cents ?? null,
+          creator_email: email,
+          source: "storefront",
+          method: "flow",
+          full_data: o,
+        });
+        seenKeys.add(o.license_key);
+      });
+
+      setOrders([...list, ...lovaxList, ...localOnly]);
     } catch (e: any) {
       toast.error(e.message || "Erro de conexão");
     } finally {
