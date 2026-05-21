@@ -48,6 +48,7 @@ type Storefront = {
   show_credits?: boolean;
   show_extensions?: boolean;
   show_free_trial?: boolean;
+  extension_method?: "flow" | "lovax" | null;
 };
 
 
