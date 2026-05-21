@@ -472,7 +472,7 @@ export default function RevendedorRecargas() {
                   Limite de uso
                 </TabsTrigger>
                 <TabsTrigger value="api" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-sm transition-all px-4">
-                  API
+                  API's
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -811,59 +811,118 @@ export default function RevendedorRecargas() {
             </TabsContent>
 
             <TabsContent value="api" className="animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
-              <div className="rounded-xl border border-border bg-card p-8 md:p-12 space-y-12">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-bold">API para Desenvolvedores</h3>
-                    <p className="text-muted-foreground text-sm max-w-md">Integre sua operação via Webhooks e REST.</p>
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* API Automática */}
+                <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-8 space-y-8 transition-all hover:border-primary/40">
+                  <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+                  <div className="relative flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
+                        <Zap className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Automática</span>
+                        <h3 className="font-display text-2xl font-bold tracking-tight">API Automática</h3>
+                      </div>
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">Online</span>
                   </div>
-                  <div className="flex flex-wrap gap-3">
-                    <Button variant="outline" className="h-12 px-6 rounded-lg text-sm font-semibold" asChild>
+
+                  <p className="relative text-sm text-muted-foreground font-medium leading-relaxed">
+                    Integre sua operação via Webhooks e REST. Recargas processadas em tempo real, sem intervenção humana.
+                  </p>
+
+                  <div className="relative space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-primary" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">URL de Produção</span>
+                    </div>
+                    <div className="p-4 rounded-xl bg-secondary border border-border font-mono text-xs break-all">
+                      POST https://api.revendovable.com/v1/recharge
+                    </div>
+                  </div>
+
+                  <div className="relative grid grid-cols-2 gap-3">
+                    <div className="p-4 rounded-xl border border-border bg-background/40 space-y-1.5">
+                      <Cpu className="h-4 w-4 text-primary" />
+                      <div className="text-xs font-bold">Baixa Latência</div>
+                      <p className="text-[10px] text-muted-foreground">Resposta &lt; 200ms.</p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-border bg-background/40 space-y-1.5">
+                      <Lock className="h-4 w-4 text-primary" />
+                      <div className="text-xs font-bold">AES-256</div>
+                      <p className="text-[10px] text-muted-foreground">Transações criptografadas.</p>
+                    </div>
+                  </div>
+
+                  <div className="relative flex flex-wrap gap-3 pt-2">
+                    <Button variant="outline" className="h-11 px-5 rounded-xl text-xs font-bold" asChild>
                       <Link to="/painel/revendedor/api">Documentação</Link>
                     </Button>
-                    <Button className="h-12 px-6 rounded-lg bg-primary text-white text-sm font-semibold" onClick={() => toast.success("Endpoint Copiado!")}>
-                      <Copy className="h-4 w-4 mr-2" /> Endpoint
+                    <Button className="h-11 px-5 rounded-xl bg-primary text-white text-xs font-bold" onClick={() => toast.success("Endpoint Copiado!")}>
+                      <Copy className="h-3.5 w-3.5 mr-2" /> Endpoint
                     </Button>
                   </div>
                 </div>
 
-                <div className="grid lg:grid-cols-2 gap-12">
-                  <div className="space-y-6">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Globe className="h-4 w-4 text-primary" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">URL de Produção</span>
+                {/* API Manual (Gerente) */}
+                <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-8 space-y-8 transition-all hover:border-amber-500/40">
+                  <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+                  <div className="relative flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/30">
+                        <MessageCircle className="h-6 w-6" />
                       </div>
-                      <div className="p-4 rounded-lg bg-secondary border border-border font-mono text-xs break-all">
-                        POST https://api.revendovable.com/v1/recharge
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">Manual</span>
+                        <h3 className="font-display text-2xl font-bold tracking-tight">API Manual</h3>
                       </div>
                     </div>
+                    <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">Suporte</span>
+                  </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 rounded-lg border border-border space-y-2">
-                        <Cpu className="h-4 w-4 text-primary" />
-                        <div className="text-xs font-semibold">Baixa Latência</div>
-                        <p className="text-[10px] text-muted-foreground">Resposta em menos de 200ms.</p>
-                      </div>
-                      <div className="p-4 rounded-lg border border-border space-y-2">
-                        <Lock className="h-4 w-4 text-primary" />
-                        <div className="text-xs font-semibold">Segurança AES-256</div>
-                        <p className="text-[10px] text-muted-foreground">Transações criptografadas.</p>
-                      </div>
+                  <p className="relative text-sm text-muted-foreground font-medium leading-relaxed">
+                    Atendimento humano fornecido diretamente pelo seu gerente. Ideal para pedidos personalizados, fora do padrão ou em alto volume.
+                  </p>
+
+                  <div className="relative space-y-3">
+                    <div className="flex items-center gap-2">
+                      <ShieldAlert className="h-4 w-4 text-amber-500" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Como funciona</span>
+                    </div>
+                    <ul className="space-y-2.5">
+                      {[
+                        "Envie o pedido com plano e quantidade ao seu gerente",
+                        "Confirme o pagamento via PIX direto com o time",
+                        "Receba a confirmação da entrega em até 24h"
+                      ].map((step, i) => (
+                        <li key={i} className="flex items-start gap-3 p-3 rounded-xl bg-background/40 border border-border">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500/15 text-amber-500 text-[10px] font-black">{i + 1}</span>
+                          <span className="text-xs font-medium text-foreground/90 leading-relaxed">{step}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="relative grid grid-cols-2 gap-3">
+                    <div className="p-4 rounded-xl border border-border bg-background/40 space-y-1.5">
+                      <CheckCircle2 className="h-4 w-4 text-amber-500" />
+                      <div className="text-xs font-bold">Atendimento humano</div>
+                      <p className="text-[10px] text-muted-foreground">Direto com gerente.</p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-border bg-background/40 space-y-1.5">
+                      <Sparkles className="h-4 w-4 text-amber-500" />
+                      <div className="text-xs font-bold">Sob demanda</div>
+                      <p className="text-[10px] text-muted-foreground">Pedidos personalizados.</p>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Request Exemplo</span>
-                    <pre className="p-6 rounded-lg bg-secondary font-mono text-xs leading-relaxed border border-border overflow-x-auto">
-{`{
-  "auth_token": "sk_rev_...",
-  "payload": {
-    "plan": "recharge-500",
-    "target": "usr_99a"
-  }
-}`}
-                    </pre>
+                  <div className="relative flex flex-wrap gap-3 pt-2">
+                    <Button className="h-11 px-5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-500/90" asChild>
+                      <Link to="/painel/revendedor/avisos">
+                        <MessageCircle className="h-3.5 w-3.5 mr-2" /> Falar com gerente
+                      </Link>
+                    </Button>
                   </div>
                 </div>
               </div>
