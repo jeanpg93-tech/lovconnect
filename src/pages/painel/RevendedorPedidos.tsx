@@ -488,28 +488,27 @@ export default function RevendedorPedidos() {
         <div className="flex h-32 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : extensions.length === 0 ? (
+      ) : availableMethods.length === 0 ? (
         <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center backdrop-blur-xl">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-zinc-600">
             <Package className="h-8 w-8" />
           </div>
-          <p className="text-sm font-medium text-zinc-500">Você ainda não tem extensões liberadas.</p>
+          <p className="text-sm font-medium text-zinc-500">O gerente ainda não definiu preços de licenças.</p>
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Extension submenu — pill nav per extension */}
           <div className="flex flex-col gap-3">
             <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 pl-1">
-              Escolha a extensão para gerar licenças
+              Escolha o método para gerar licenças
             </Label>
             <div className="flex flex-wrap items-center gap-2">
-              {extensions.map((e) => {
-                const active = e.id === selectedExtId;
+              {availableMethods.map((m) => {
+                const active = m === selectedMethod;
                 return (
                   <button
-                    key={e.id}
+                    key={m}
                     type="button"
-                    onClick={() => setSelectedExtId(e.id)}
+                    onClick={() => setSelectedMethod(m)}
                     className={cn(
                       "group inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all",
                       active
@@ -518,191 +517,108 @@ export default function RevendedorPedidos() {
                     )}
                   >
                     <Puzzle className={cn("h-3.5 w-3.5", active ? "text-black" : "text-primary")} />
-                    <span>{e.name}</span>
+                    <span>{METHOD_LABEL[m]}</span>
                   </button>
                 );
               })}
-              {selectedExtId && (() => {
-              const hasPartner = plans.some((p) => partnerOverrides[`${selectedExtId}|${p.license_type}`] !== undefined);
-              const hasCustom = plans.some((p) => resellerPrices[`${selectedExtId}|${p.license_type}`] > 0);
-              if (hasPartner || hasCustom) {
-                return (
-                    <Badge variant="outline" className="h-7 border-primary/30 bg-primary/10 px-3 text-[10px] font-bold text-primary uppercase animate-pulse">
-                      ✨ Benefícios Exclusivos Ativos
-                    </Badge>
-                );
-              }
-              return null;
-              })()}
             </div>
           </div>
 
-          {plans.length === 0 ? (
-            <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center backdrop-blur-xl">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-zinc-600">
-                <ShoppingCart className="h-8 w-8" />
-              </div>
-              <p className="text-sm font-medium text-zinc-500">Nenhum plano disponível para esta extensão.</p>
-            </div>
-          ) : (
-          /* Pricing Grid - Mobile optimized */
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {plans.map((p) => {
-              const { price: final, base, source } = computePrice(p, selectedExtId);
-              const currentIdx = tier ? allTiers.findIndex((x) => x.id === tier.id) : -1;
-              const upcomingTiers = currentIdx >= 0 ? allTiers.slice(currentIdx + 1) : allTiers;
-              const isOpen = !!expanded[p.license_type];
-              const showStrike = source !== "partner" && discountPct > 0;
-              
+          {(() => {
+            const packs = PACKS_BY_METHOD[selectedMethod];
+            const visible = packs.filter((pk) => getCostCents(selectedMethod, pk.id) > 0);
+            if (visible.length === 0) {
               return (
-                <Card 
-                  key={p.license_type}
-                  className={cn(
-                    "group relative overflow-hidden border-white/5 bg-[#161618] transition-all hover:border-primary/30 hover:shadow-[0_0_30px_rgba(var(--primary),0.05)]",
-                    source === "partner" && "border-primary/20 bg-gradient-to-br from-primary/[0.03] to-transparent",
-                    source === "reseller" && "border-blue-500/20 bg-gradient-to-br from-blue-500/[0.03] to-transparent"
-                  )}
-                >
-                  {/* Glassmorphism Effect on Hover */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                  
-                  <div className="relative p-4 sm:p-5">
-                    {/* Layout Mobile: Horizontal | Layout Desktop: Vertical */}
-                    <div className="flex flex-row items-center justify-between gap-4 sm:flex-col sm:items-stretch sm:justify-start sm:gap-0">
-                      
-                      {/* Info Section */}
-                      <div className="flex flex-1 flex-col sm:mb-6">
-                        <div className="flex items-center gap-2">
-                          <div className={cn(
-                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/5 text-zinc-400 ring-1 ring-white/10 transition-colors group-hover:bg-primary/10 group-hover:text-primary group-hover:ring-primary/20 sm:hidden",
-                            source === "partner" && "bg-primary/10 text-primary ring-primary/20"
-                          )}>
-                            <KeyRound className="h-4 w-4" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <h3 className="font-display text-sm font-bold tracking-tight text-white sm:text-lg sm:font-black">
-                              {p.label ?? FALLBACK_LABEL[p.license_type] ?? p.license_type}
-                            </h3>
-                            {source === "partner" && (
-                              <div className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 ring-1 ring-primary/20 sm:hidden">
-                                <Sparkles className="h-2.5 w-2.5 text-primary" />
-                                <span className="text-[8px] font-bold text-primary uppercase">Partner</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 sm:block">
-                          {p.license_type}
-                        </p>
-                        
-                        {/* Price Section Mobile */}
-                        <div className="mt-2 space-y-1 sm:hidden">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Preço Venda</span>
-                            <div className="flex items-baseline gap-1.5">
-                              <span className="font-display text-lg font-black text-white">{fmt(final)}</span>
-                              {showStrike && base !== final && (
-                                <span className="text-[10px] font-medium text-zinc-500 line-through">{fmt(base)}</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between border-t border-white/5 pt-1">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Custo</span>
-                            <span className="font-mono text-[10px] font-bold text-primary">{fmt(final)}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Price Section Desktop */}
-                      <div className="hidden flex-col sm:mb-6 sm:flex">
-                        <div className="space-y-3">
-                          <div>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Preço Sugerido</span>
-                            <div className="flex items-baseline gap-2">
-                              <span className="font-display text-3xl font-black tracking-tight text-white">{fmt(final)}</span>
-                              {showStrike && base !== final && (
-                                <span className="text-sm font-medium text-zinc-500 line-through">{fmt(base)}</span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="rounded-lg bg-white/5 p-2 ring-1 ring-white/10">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Custo Total</span>
-                              <span className="font-mono text-xs font-bold text-primary">{fmt(final)}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex items-center gap-2">
-                          {source === "partner" ? (
-                            <Badge className="bg-primary text-[10px] font-black text-black uppercase">
-                              Preço Partner
-                            </Badge>
-                          ) : discountPct > 0 ? (
-                            <span className="text-[10px] font-bold text-primary">
-                              -{discountPct}% de desconto aplicado
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      {/* Buy Button */}
-                      <Button
-                        onClick={() => openOrder(p, false)}
-                        className={cn(
-                          "relative h-11 px-6 font-bold transition-all sm:h-12 sm:w-full overflow-hidden",
-                          source === "partner" 
-                            ? "bg-primary text-black hover:bg-primary/90 shadow-[0_10px_20px_-10px_rgba(var(--primary),0.5)]" 
-                            : "bg-white/5 text-white hover:bg-primary hover:text-black"
-                        )}
-                      >
-                        <div className="relative flex items-center justify-center gap-2">
-                          <ShoppingCart className="h-4 w-4" />
-                          <span className="text-xs uppercase tracking-widest sm:text-sm">Comprar</span>
-                        </div>
-                      </Button>
-                    </div>
-
-                    {source !== "partner" && upcomingTiers.length > 0 && (
-                      <div className="mt-4 space-y-2 border-t border-white/5 pt-4">
-                        <button
-                          onClick={() => setExpanded({ ...expanded, [p.license_type]: !isOpen })}
-                          className="flex w-full items-center justify-center gap-2 text-[9px] font-bold uppercase tracking-widest text-zinc-500 transition-colors hover:text-primary"
-                        >
-                          Tabela de Descontos
-                          <ChevronDown className={cn("h-3 w-3 transition-transform duration-300", isOpen && "rotate-180")} />
-                        </button>
-                        
-                        {isOpen && (
-                          <div className="space-y-2 rounded-xl bg-black/20 p-3 ring-1 ring-white/5 animate-in fade-in zoom-in-95 duration-300">
-                            {upcomingTiers.map((nt) => {
-                              const ntPrice = Math.round(base * (1 - Number(nt.discount_percent) / 100));
-                              return (
-                                <div key={nt.id} className="flex items-center justify-between text-[10px]">
-                                  <div className="flex items-center gap-2 text-zinc-400">
-                                    <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: nt.color }} />
-                                    <span>{nt.name}</span>
-                                  </div>
-                                  <span className="font-mono font-bold text-white">{fmt(ntPrice)}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center backdrop-blur-xl">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-zinc-600">
+                    <ShoppingCart className="h-8 w-8" />
                   </div>
-                </Card>
+                  <p className="text-sm font-medium text-zinc-500">Nenhum preço definido para este método no seu nível.</p>
+                </div>
               );
-            })}
-          </div>
-          )}
+            }
+            return (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                {visible.map((pk) => {
+                  const cost = getCostCents(selectedMethod, pk.id);
+                  const sale = getSaleCents(selectedMethod, pk.id);
+                  const displayPrice = sale ?? cost;
+                  const showSale = !!sale;
+                  return (
+                    <Card key={pk.id} className="group relative overflow-hidden border-white/5 bg-[#161618] transition-all hover:border-primary/30 hover:shadow-[0_0_30px_rgba(var(--primary),0.05)]">
+                      <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                      <div className="relative p-4 sm:p-5">
+                        <div className="flex flex-row items-center justify-between gap-4 sm:flex-col sm:items-stretch sm:justify-start sm:gap-0">
+                          <div className="flex flex-1 flex-col sm:mb-6">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/5 text-zinc-400 ring-1 ring-white/10 sm:hidden">
+                                <KeyRound className="h-4 w-4" />
+                              </div>
+                              <h3 className="font-display text-sm font-bold tracking-tight text-white sm:text-lg sm:font-black">
+                                {pk.label}
+                              </h3>
+                            </div>
+                            <p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 sm:block mt-1">
+                              {pk.desc}
+                            </p>
+                            <div className="mt-2 space-y-1 sm:hidden">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">{showSale ? "Venda" : "Preço"}</span>
+                                <span className="font-display text-lg font-black text-white">{fmt(displayPrice)}</span>
+                              </div>
+                              <div className="flex items-center justify-between border-t border-white/5 pt-1">
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Custo</span>
+                                <span className="font-mono text-[10px] font-bold text-primary">{fmt(cost)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="hidden flex-col sm:mb-6 sm:flex">
+                            <div className="space-y-3">
+                              <div>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{showSale ? "Preço de venda" : "Preço sugerido"}</span>
+                                <div className="flex items-baseline gap-2">
+                                  <span className="font-display text-3xl font-black tracking-tight text-white">{fmt(displayPrice)}</span>
+                                </div>
+                              </div>
+                              <div className="rounded-lg bg-white/5 p-2 ring-1 ring-white/10">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Custo (seu nível)</span>
+                                  <span className="font-mono text-xs font-bold text-primary">{fmt(cost)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => {
+                              setOpenMethodCtx({ method: selectedMethod, pack: pk, cost_cents: cost });
+                              setIsTest(false);
+                              setOpen({
+                                license_type: `${selectedMethod}_${pk.id}`,
+                                label: `${METHOD_LABEL[selectedMethod]} · ${pk.label}`,
+                                price_cents: cost,
+                                cost_cents: cost,
+                                is_active: true,
+                              });
+                            }}
+                            className="relative h-11 px-6 font-bold transition-all sm:h-12 sm:w-full overflow-hidden bg-white/5 text-white hover:bg-primary hover:text-black"
+                          >
+                            <div className="relative flex items-center justify-center gap-2">
+                              <ShoppingCart className="h-4 w-4" />
+                              <span className="text-xs uppercase tracking-widest sm:text-sm">Gerar</span>
+                            </div>
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 
-          </TabsContent>
+                    </TabsContent>
 
           <TabsContent value="instructions" className="animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
             <div className="space-y-6">
