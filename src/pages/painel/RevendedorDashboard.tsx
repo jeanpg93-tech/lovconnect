@@ -58,7 +58,6 @@ import {
 } from "recharts";
 import { format, subDays, startOfDay, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import wizardHero from "@/assets/wizard-hero.png";
 
 const fmtBRL = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -368,7 +367,7 @@ export default function RevendedorDashboard() {
           style={{ background: "radial-gradient(circle, hsl(var(--primary) / 0.35), transparent 65%)" }}
         />
 
-        <div className="relative grid gap-6 p-6 md:p-10 lg:grid-cols-[1.3fr_1fr] lg:items-center">
+        <div className="relative grid gap-6 p-6 md:p-10">
           {/* Lado esquerdo: título + filtros + mini stats */}
           <div className="space-y-6">
             <div className="flex items-center gap-3 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
@@ -427,24 +426,6 @@ export default function RevendedorDashboard() {
                   {stats.activeLicenses} licenças ativas
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Lado direito: mago flutuando */}
-          <div className="relative flex justify-center lg:justify-end">
-            <div className="relative">
-              {/* glow embaixo do mago */}
-              <div
-                className="absolute inset-x-8 bottom-2 h-8 rounded-[50%] opacity-70 blur-2xl"
-                style={{ background: "radial-gradient(ellipse, hsl(var(--primary) / 0.6), transparent 70%)" }}
-              />
-              <img
-                src={wizardHero}
-                alt="Mago Revendovable"
-                className="relative w-full max-w-[260px] md:max-w-[340px] h-auto object-contain animate-wizard-float drop-shadow-[0_20px_40px_hsl(var(--primary)/0.45)]"
-                loading="eager"
-              />
-
             </div>
           </div>
         </div>
