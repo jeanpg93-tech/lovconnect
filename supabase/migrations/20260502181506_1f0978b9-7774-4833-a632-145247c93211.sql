@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.increment_evolution_messages_sent(uuid) FROM PUBLIC, anon, authenticated;

@@ -1,0 +1,1 @@
+CREATE POLICY "Gerente atualiza todas keys" ON public.reseller_api_keys FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'gerente'::public.app_role)) WITH CHECK (public.has_role(auth.uid(), 'gerente'::public.app_role));

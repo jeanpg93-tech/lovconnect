@@ -1,0 +1,1 @@
+ALTER TABLE public.resellers ADD COLUMN test_keys_per_day_override integer;

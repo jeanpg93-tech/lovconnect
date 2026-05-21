@@ -1,0 +1,475 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+
+const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+
+function mapTypeToProviderBody(type: string): Record<string, unknown> {
+  switch (type) {
+    case "pro_1d": return { days: 1 };
+    case "pro_7d": return { days: 7 };
+    case "pro_15d": return { days: 15 };
+    case "pro_30d": return { days: 30 };
+    case "lifetime": return { lifetime: true };
+    default: return { days: 30 };
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  try {
+    const payload = await req.json().catch(() => ({}));
+    console.log("misticpay-webhook payload", JSON.stringify(payload));
+
+    const txId = String(payload?.transactionId ?? "");
+    const status = String(payload?.status ?? "").toUpperCase();
+    const type = String(payload?.transactionType ?? "").toUpperCase();
+    if (!txId) return json({ ok: false, reason: "missing transactionId" }, 200);
+
+    if (type && type !== "DEPOSITO") {
+      return json({ ok: true, ignored: "non-deposit" });
+    }
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Try recharge intent first
+    const { data: intent } = await admin
+      .from("recharge_intents")
+      .select("*")
+      .eq("provider_transaction_id", txId)
+      .maybeSingle();
+
+    if (intent) {
+      if (intent.status === "paid") return json({ ok: true, already: true });
+
+      if (status === "COMPLETO") {
+        const total = Number(intent.amount_cents) + Number(intent.bonus_cents ?? 0);
+        const { error: credErr } = await admin.rpc("credit_reseller_balance", {
+          _reseller_id: intent.reseller_id,
+          _amount_cents: total,
+          _kind: "recharge",
+          _description: `Recarga MisticPay${intent.bonus_cents ? ` (+ bônus ${intent.bonus_cents / 100} BRL)` : ""}`,
+          _reference_id: intent.id,
+        });
+        if (credErr) {
+          console.error("credit error", credErr);
+          return json({ ok: false, error: credErr.message }, 500);
+        }
+        // Soma o valor da recarga (sem bônus) ao total gasto p/ progresso de nível
+        await admin.rpc("add_reseller_spent", {
+          _reseller_id: intent.reseller_id,
+          _amount_cents: Number(intent.amount_cents),
+        });
+
+        // Comissão de indicação (se houver indicador)
+        try {
+          const { data: ref } = await admin
+            .from("reseller_referrals")
+            .select("id, referrer_reseller_id")
+            .eq("referred_reseller_id", intent.reseller_id)
+            .maybeSingle();
+          if (ref?.referrer_reseller_id) {
+            const { data: tier } = await admin.rpc("get_reseller_tier", {
+              _reseller_id: ref.referrer_reseller_id,
+            });
+            const tierRow: any = Array.isArray(tier) ? tier[0] : tier;
+            const pct = Number(tierRow?.referral_commission_percent ?? 0);
+            if (pct > 0) {
+              const commission = Math.floor((Number(intent.amount_cents) * pct) / 100);
+              if (commission > 0) {
+                await admin.rpc("credit_reseller_balance", {
+                  _reseller_id: ref.referrer_reseller_id,
+                  _amount_cents: commission,
+                  _kind: "referral_commission",
+                  _description: `Comissão de indicação (${pct}% sobre R$ ${(Number(intent.amount_cents) / 100).toFixed(2)})`,
+                  _reference_id: intent.id,
+                });
+                await admin.rpc("add_referral_commission", {
+                  _referral_id: ref.id,
+                  _amount_cents: commission,
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("referral commission failed", e);
+        }
+
+        await admin.from("recharge_intents").update({
+          status: "paid",
+          paid_at: new Date().toISOString(),
+          raw_response: payload,
+        }).eq("id", intent.id);
+        return json({ ok: true, kind: "recharge" });
+      }
+
+      if (status === "FALHA" || status === "CANCELADO") {
+        await admin.from("recharge_intents").update({
+          status: "failed",
+          raw_response: payload,
+        }).eq("id", intent.id);
+        return json({ ok: true });
+      }
+      return json({ ok: true, status });
+    }
+
+    // Otherwise try storefront order
+    const { data: storeOrder } = await admin
+      .from("storefront_orders")
+      .select("*")
+      .eq("provider_transaction_id", txId)
+      .maybeSingle();
+
+    if (!storeOrder) {
+      // Try direct sale (checkout from manager)
+      const { data: directSale } = await admin
+        .from("direct_sales")
+        .select("*")
+        .eq("provider_transaction_id", txId)
+        .maybeSingle();
+
+      if (directSale) {
+        if (directSale.status === "paid") return json({ ok: true, already: true });
+        
+        // MisticPay status check - common values are "COMPLETO", "PAID", or "SUCCESS"
+        const isPaid = status === "COMPLETO" || status === "PAID" || status === "SUCCESS";
+        
+        if (isPaid) {
+          await admin.from("direct_sales").update({
+            status: "paid",
+            updated_at: new Date().toISOString(),
+            raw_response: payload
+          }).eq("id", directSale.id);
+          
+          console.log(`[webhook] Venda direta ${directSale.id} marcada como paga`);
+          return json({ ok: true, kind: "direct_sale" });
+        }
+
+        if (status === "FALHA" || status === "CANCELADO" || status === "FAILED") {
+          await admin.from("direct_sales").update({ status: "failed" }).eq("id", directSale.id);
+          return json({ ok: true });
+        }
+        return json({ ok: true, status });
+      }
+
+      console.warn("no intent/order/sale for tx", txId);
+      return json({ ok: false, reason: "not found" }, 200);
+    }
+
+    if (storeOrder.status === "completed" || storeOrder.status === "paid") {
+      return json({ ok: true, already: true });
+    }
+
+    if (status === "FALHA" || status === "CANCELADO") {
+      await admin.from("storefront_orders").update({
+        status: "failed",
+        raw_response: payload,
+      }).eq("id", storeOrder.id);
+      return json({ ok: true });
+    }
+
+    if (status !== "COMPLETO") {
+      return json({ ok: true, status });
+    }
+
+    if (storeOrder.product_type === "credits" || storeOrder.product_type === "recharge" || storeOrder.license_type === "credits") {
+      await admin.from("storefront_orders").update({
+        status: "completed",
+        paid_at: new Date().toISOString(),
+        raw_response: payload,
+      }).eq("id", storeOrder.id);
+
+      try {
+        await admin.from("orders").insert({
+          reseller_id: storeOrder.reseller_id,
+          client_id: null,
+          customer_id: null,
+          extension_id: null,
+          license_type: "credits",
+          product_type: "credits",
+          credit_amount: storeOrder.credit_amount,
+          price_cents: Number(storeOrder.price_cents ?? 0),
+          status: "completed",
+          is_test: false,
+          provider_response: payload,
+          notes: `Venda da Loja • ${storeOrder.buyer_name} • ${storeOrder.credit_amount ?? 0} créditos • Recebido R$ ${(Number(storeOrder.price_cents) / 100).toFixed(2)}`,
+        });
+      } catch (e) {
+        console.warn("orders insert (storefront credits) failed", e);
+      }
+
+      return json({ ok: true, kind: "storefront_credits" });
+    }
+
+    // Mark paid then provision
+    await admin.from("storefront_orders").update({
+      status: "paid",
+      paid_at: new Date().toISOString(),
+      raw_response: payload,
+    }).eq("id", storeOrder.id);
+
+    // CUSTO DO REVENDEDOR — mesma lógica do place-reseller-order:
+    // 1) reseller_extension_price_overrides (Partners) — prioridade máxima
+    // 2) tier_extension_prices (preço fixo do nível) — ignora desconto% e piso global
+    // 3) reseller_extension_prices (override por extensão) + desconto do nível + piso global
+    // 4) pricing_plans.price_cents + desconto do nível + piso global
+    let cost_cents = 0;
+    {
+      let tier_price_override = 0;
+
+      if (storeOrder.extension_id) {
+        const { data: partnerRow } = await admin
+          .from("reseller_extension_price_overrides")
+          .select("price_cents,is_active")
+          .eq("reseller_id", storeOrder.reseller_id)
+          .eq("extension_id", storeOrder.extension_id)
+          .eq("license_type", storeOrder.license_type)
+          .maybeSingle();
+        if (partnerRow && partnerRow.is_active && partnerRow.price_cents >= 0) {
+          tier_price_override = Number(partnerRow.price_cents);
+        }
+      } else {
+        // Pacote global da loja (extension_id NULL): aplica o MENOR override
+        // de Partners ativo do revendedor para esse license_type, se existir.
+        const { data: partnerRows } = await admin
+          .from("reseller_extension_price_overrides")
+          .select("price_cents,is_active")
+          .eq("reseller_id", storeOrder.reseller_id)
+          .eq("license_type", storeOrder.license_type)
+          .eq("is_active", true);
+        if (partnerRows && partnerRows.length > 0) {
+          const min = Math.min(...partnerRows.map((r: any) => Number(r.price_cents)).filter((n: number) => n >= 0));
+          if (Number.isFinite(min)) tier_price_override = min;
+        }
+      }
+
+      const { data: tierRow } = await admin.rpc("get_reseller_tier", {
+        _reseller_id: storeOrder.reseller_id,
+      });
+      const tier: any = Array.isArray(tierRow) ? tierRow[0] : tierRow;
+
+      if (tier_price_override === 0 && tier?.id && storeOrder.extension_id) {
+        const { data: tep } = await admin
+          .from("tier_extension_prices")
+          .select("price_cents,is_active")
+          .eq("tier_id", tier.id)
+          .eq("extension_id", storeOrder.extension_id)
+          .eq("license_type", storeOrder.license_type)
+          .maybeSingle();
+        if (tep && tep.is_active && tep.price_cents >= 0) {
+          tier_price_override = Number(tep.price_cents);
+        }
+      }
+
+      if (tier_price_override > 0) {
+        cost_cents = tier_price_override;
+      } else {
+        let base_price_cents = 0;
+        let min_price_cents = 0;
+
+        // Busca preço customizado do revendedor (global ou por extensão)
+        const { data: overrideRow } = await admin.from("reseller_extension_prices")
+          .select("price_cents,is_active")
+          .eq("reseller_id", storeOrder.reseller_id)
+          .eq("license_type", storeOrder.license_type)
+          .or(storeOrder.extension_id ? `extension_id.eq.${storeOrder.extension_id},extension_id.is.null` : 'extension_id.is.null')
+          .eq("is_active", true)
+          .order("extension_id", { ascending: false });
+
+        if (overrideRow && overrideRow.length > 0 && overrideRow[0].price_cents > 0) {
+          base_price_cents = Number(overrideRow[0].price_cents);
+        }
+
+        const { data: planRow } = await admin
+          .from("pricing_plans")
+          .select("price_cents,min_price_cents")
+          .eq("license_type", storeOrder.license_type)
+          .maybeSingle();
+
+        if (base_price_cents === 0 && planRow) {
+          base_price_cents = Number(planRow.price_cents ?? 0);
+        }
+        min_price_cents = Number(planRow?.min_price_cents ?? 0);
+
+        if (base_price_cents > 0) {
+          const discountPct = Number(tier?.discount_percent ?? 0);
+          const discounted = Math.round(base_price_cents * (1 - discountPct / 100));
+          cost_cents = Math.max(0, min_price_cents, discounted);
+        }
+      }
+    }
+
+    if (cost_cents > 0) {
+      const { error: debitErr } = await admin.rpc("force_debit_reseller_balance", {
+        _reseller_id: storeOrder.reseller_id,
+        _amount_cents: cost_cents,
+        _kind: "order_debit",
+        _description: `Venda Loja: ${storeOrder.license_type}`,
+        _reference_id: storeOrder.id,
+      });
+
+      if (debitErr) {
+        console.error("[webhook] Failed to debit reseller balance", debitErr);
+      } else {
+        await admin.rpc("add_reseller_spent", {
+          _reseller_id: storeOrder.reseller_id,
+          _amount_cents: cost_cents,
+        });
+      }
+    }
+
+    // Generate license via provider
+    const { data: cfg } = await admin.from("provider_settings")
+      .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
+    const base = cfg?.base_url ?? DEFAULT_PROVIDER_BASE;
+
+    if (!apiKey) {
+      await admin.from("storefront_orders").update({
+        status: "failed",
+        error_message: "Provedor não configurado",
+      }).eq("id", storeOrder.id);
+      return json({ ok: false, error: "no provider api key" }, 500);
+    }
+
+    let providerData: any = null;
+    try {
+      const r = await fetch(`${base}/generate-license`, {
+        method: "POST",
+        headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...mapTypeToProviderBody(storeOrder.license_type),
+          display_name: storeOrder.buyer_name,
+        }),
+      });
+      const txt = await r.text();
+      try { providerData = JSON.parse(txt); } catch { providerData = { raw: txt }; }
+      if (!r.ok) {
+        await admin.from("storefront_orders").update({
+          status: "failed",
+          error_message: `Provedor retornou ${r.status}`,
+          raw_response: providerData,
+        }).eq("id", storeOrder.id);
+        
+        // REYCLE/REFUND if provider failed
+        if (cost_cents > 0) {
+          await admin.rpc("credit_reseller_balance", {
+            _reseller_id: storeOrder.reseller_id,
+            _amount_cents: cost_cents,
+            _kind: "order_refund",
+            _description: `Estorno (falha provedor): ${storeOrder.id}`,
+            _reference_id: storeOrder.id,
+          });
+        }
+        return json({ ok: false, error: "provider failed" }, 502);
+      }
+    } catch (e) {
+      await admin.from("storefront_orders").update({
+        status: "failed",
+        error_message: e instanceof Error ? e.message : "erro provedor",
+      }).eq("id", storeOrder.id);
+      return json({ ok: false, error: "provider error" }, 502);
+    }
+
+    const license_key =
+      providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
+
+    await admin.from("storefront_orders").update({
+      status: "completed",
+      license_key,
+    }).eq("id", storeOrder.id);
+
+    // upsert customer for the reseller
+    let customer_id: string | null = null;
+    try {
+      const { data: existing } = await admin
+        .from("reseller_customers")
+        .select("id")
+        .eq("reseller_id", storeOrder.reseller_id)
+        .eq("whatsapp", storeOrder.buyer_whatsapp)
+        .maybeSingle();
+      if (existing) {
+        customer_id = existing.id;
+      } else {
+        const { data: created } = await admin.from("reseller_customers").insert({
+          reseller_id: storeOrder.reseller_id,
+          whatsapp: storeOrder.buyer_whatsapp,
+          display_name: storeOrder.buyer_name,
+        }).select("id").single();
+        customer_id = created?.id ?? null;
+      }
+    } catch (e) {
+      console.warn("customer upsert failed", e);
+    }
+
+    // Registra também em `orders` para aparecer no dashboard / licenças geradas
+    try {
+      await admin.from("orders").insert({
+        reseller_id: storeOrder.reseller_id,
+        client_id: null,
+        customer_id,
+        extension_id: storeOrder.extension_id,
+        license_type: storeOrder.license_type,
+        price_cents: cost_cents, // custo para o revendedor (mesma base do painel)
+        status: "completed",
+        is_test: false,
+        license_key,
+        provider_response: providerData,
+        notes: `Venda da Loja • ${storeOrder.buyer_name} • Recebido R$ ${(Number(storeOrder.price_cents) / 100).toFixed(2)}`,
+      });
+    } catch (e) {
+      console.warn("orders insert (storefront) failed", e);
+    }
+
+    // Send WhatsApp via Evolution (best-effort)
+    if (license_key) {
+      try {
+        const EVO_URL = (Deno.env.get("EVOLUTION_BASE_URL") ?? "").replace(/\/+$/, "");
+        const EVO_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
+        const { data: integ } = await admin
+          .from("reseller_integrations")
+          .select("connection_status, instance_name, evolution_message_template")
+          .eq("reseller_id", storeOrder.reseller_id)
+          .maybeSingle();
+        const tpl = integ?.evolution_message_template ||
+          "Olá {nome}! ✅ Sua licença {tipo} foi gerada.\n\n🔑 Chave: {chave}\n\nGuarde com cuidado.";
+        if (EVO_URL && EVO_KEY && integ?.connection_status === "connected" && integ.instance_name) {
+          const message = String(tpl)
+            .replaceAll("{nome}", storeOrder.buyer_name)
+            .replaceAll("{chave}", license_key)
+            .replaceAll("{tipo}", storeOrder.license_type);
+          const number = storeOrder.buyer_whatsapp.startsWith("55")
+            ? storeOrder.buyer_whatsapp
+            : `55${storeOrder.buyer_whatsapp}`;
+          await fetch(
+            `${EVO_URL}/message/sendText/${encodeURIComponent(integ.instance_name)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", apikey: EVO_KEY },
+              body: JSON.stringify({ number, text: message }),
+            },
+          ).then((r) => {
+            if (r.ok) admin.rpc("increment_evolution_messages_sent", { _reseller_id: storeOrder.reseller_id });
+          }).catch(() => {});
+        }
+      } catch (e) {
+        console.warn("evolution send failed", e);
+      }
+    }
+
+    return json({ ok: true, kind: "storefront_order" });
+  } catch (e) {
+    console.error("webhook error", e);
+    return json({ ok: false, error: String(e?.message ?? e) }, 500);
+  }
+});
+
+function json(b: unknown, status = 200) {
+  return new Response(JSON.stringify(b), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}

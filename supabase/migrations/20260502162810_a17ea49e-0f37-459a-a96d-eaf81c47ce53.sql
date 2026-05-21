@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.debit_reseller_balance(UUID,BIGINT,TEXT,TEXT,UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.credit_reseller_balance(UUID,BIGINT,TEXT,TEXT,UUID) FROM PUBLIC, anon, authenticated;

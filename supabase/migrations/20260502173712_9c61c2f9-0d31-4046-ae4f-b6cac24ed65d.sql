@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ALTER COLUMN extension_id DROP NOT NULL;

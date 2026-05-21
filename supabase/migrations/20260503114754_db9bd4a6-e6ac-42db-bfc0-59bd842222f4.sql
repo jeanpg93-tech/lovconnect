@@ -1,0 +1,1 @@
+ALTER TABLE public.extensions ADD COLUMN IF NOT EXISTS changelog TEXT;

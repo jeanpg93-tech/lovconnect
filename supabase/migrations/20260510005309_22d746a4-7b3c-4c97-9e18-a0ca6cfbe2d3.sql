@@ -1,0 +1,2 @@
+UPDATE public.provider_credit_orders SET status='cancelado', updated_at=now() WHERE pedido_id IN ('79319625-cca0-459a-a002-0625940a53a9','afd1ece5-7b05-4f7a-80dc-a2138127832b','c35329de-0f28-4f88-b40e-a047f2e3e24d');
+UPDATE public.provider_credit_orders SET status='avaliado', updated_at=now() WHERE pedido_id='7156bdd3-2635-4dc7-a69a-81013cb618ae';

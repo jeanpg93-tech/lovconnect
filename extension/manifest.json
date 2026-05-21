@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Main Lovable",
+  "version": "4.3",
+  "description": "Extensão premium com validação de licença, modo plano e automação inteligente.",
+  "permissions": ["storage", "activeTab", "scripting", "tabs", "sidePanel"],
+  "host_permissions": [
+    "https://*.lovable.dev/*",
+    "https://api.lovable.dev/*",
+    "https://lovable.dev/*",
+    "https://echnvnfamojrwdemcjmu.supabase.co/*",
+    "https://ynvrijkuampxpsmshftm.supabase.co/*"
+  ],
+  "action": {},
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{
+    "matches": [
+      "https://*.lovable.dev/*",
+      "https://lovable.dev/*",
+      "https://api.lovable.dev/*"
+    ],
+    "js": ["hwFingerprint.js", "content-templates.js", "content.js"],
+    "css": ["floating.css"],
+    "run_at": "document_start"
+  }],
+  "web_accessible_resources": [{
+    "resources": ["pageHook.js"],
+    "matches": ["https://*.lovable.dev/*", "https://lovable.dev/*"]
+  }]
+}

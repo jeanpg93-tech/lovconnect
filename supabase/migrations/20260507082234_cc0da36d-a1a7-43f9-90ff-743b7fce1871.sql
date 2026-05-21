@@ -1,0 +1,1 @@
+ALTER TABLE public.reseller_balances DROP CONSTRAINT IF EXISTS balance_non_negative;
