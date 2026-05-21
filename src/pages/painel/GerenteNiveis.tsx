@@ -214,14 +214,14 @@ export default function GerenteNiveis() {
         <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-primary/20 via-background to-background p-8 border border-primary/10 shadow-2xl mb-8">
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[100px]" />
           <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-3">
+            <div className="space-y-3 flex flex-col items-center justify-center w-full">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary border border-primary/20">
                 <Crown className="h-3 w-3 animate-pulse" /> Gestão de Elite
               </div>
-              <h1 className="font-display text-4xl font-black tracking-tight md:text-5xl lg:text-6xl">
+              <h1 className="font-display text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-center">
                 Níveis de <span className="text-primary">Carreira</span>
               </h1>
-              <p className="max-w-md text-sm font-medium text-muted-foreground leading-relaxed">
+              <p className="max-w-md text-sm font-medium text-muted-foreground leading-relaxed text-center">
                 Configure as patentes, benefícios e acompanhe a evolução dos seus revendedores em tempo real.
               </p>
             </div>
@@ -241,7 +241,7 @@ export default function GerenteNiveis() {
               </div>
               <div>
                 <h3 className="font-display text-2xl font-black tracking-tight">Estrutura de Patentes</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Configuração de benefícios e requisitos</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Configuração de benefícios e requisitos</p>
               </div>
             </div>
 
