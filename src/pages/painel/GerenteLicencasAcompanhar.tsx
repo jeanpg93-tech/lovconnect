@@ -290,7 +290,7 @@ export default function GerenteLicencasAcompanhar() {
         };
       });
 
-      const lovaxUsage = (lovaxData?.usage ?? []) as any[];
+      const lovaxUsage = ((lovaxData as any)?.usage ?? []) as any[];
       const lovaxList: OrderRow[] = lovaxUsage.map((u: any) => {
         const local = ordersMap[u.license_key];
         const sf = storefrontMap[u.license_key];
