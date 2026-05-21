@@ -249,15 +249,18 @@ export default function GerenteRevendedores() {
   });
 
   const rankedResellers = useMemo(() => {
+    const HIDDEN = new Set(["jeanpg.93"]);
     return monthlyRanking
       .map(item => {
         const reseller = resellers.find(r => r.id === item.reseller_id);
         return { 
           id: item.reseller_id, 
           display_name: reseller?.display_name || "Desconhecido",
+          slug: (reseller as any)?.slug as string | undefined,
           total_spent_cents: item.total_spent_cents 
         };
       })
+      .filter(r => !HIDDEN.has(r.display_name.toLowerCase()) && !HIDDEN.has((r.slug ?? "").toLowerCase()))
       .sort((a, b) => b.total_spent_cents - a.total_spent_cents);
   }, [monthlyRanking, resellers]);
 
