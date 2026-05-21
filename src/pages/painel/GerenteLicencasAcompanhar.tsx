@@ -894,6 +894,29 @@ export default function GerenteLicencasAcompanhar() {
                       </div>
 
                       <div className="flex items-center justify-between pt-2 gap-1 overflow-x-auto pb-1 scrollbar-none">
+                        {(() => {
+                          const info = refundInfo[o.license_key];
+                          if (!info) return null;
+                          if (info.refunded) {
+                            return (
+                              <span className="inline-flex items-center justify-center gap-1 h-9 px-2 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 text-[9px] font-bold uppercase shrink-0">
+                                <Undo2 className="h-3 w-3" /> Estornado
+                              </span>
+                            );
+                          }
+                          if (!isCancelable(o)) return null;
+                          return (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-9 flex-1 bg-white/5 text-rose-500 hover:bg-rose-500/10"
+                              onClick={() => openRefundLicense(o)}
+                              title="Estornar"
+                            >
+                              <Undo2 className="h-4 w-4" />
+                            </Button>
+                          );
+                        })()}
                         <Button
                           variant="ghost"
                           size="sm"
