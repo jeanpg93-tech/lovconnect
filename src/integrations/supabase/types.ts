@@ -1177,6 +1177,39 @@ export type Database = {
         }
         Relationships: []
       }
+      refund_requests: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          kind: string
+          notes: string | null
+          reference_id: string
+          reseller_id: string
+          status: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          kind: string
+          notes?: string | null
+          reference_id: string
+          reseller_id: string
+          status?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          notes?: string | null
+          reference_id?: string
+          reseller_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       reseller_api_idempotency: {
         Row: {
           api_key_id: string
