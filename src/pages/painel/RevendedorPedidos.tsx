@@ -86,6 +86,7 @@ const TRIAL_PLAN: Plan = {
 };
 
 export default function RevendedorPedidos() {
+  const { hasPending: pendingBalance, count: pendingCount } = usePendingStorefrontCharges();
   const { user } = useAuth();
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
