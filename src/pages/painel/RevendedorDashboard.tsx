@@ -467,36 +467,36 @@ export default function RevendedorDashboard() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
               <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-emerald-500/40">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-emerald-500/10 blur-2xl" />
-                <div className="relative flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
                   <TrendingUp className="h-3 w-3 text-emerald-500" /> Hoje
                 </div>
-                <div className="relative mt-2 font-display text-2xl font-black text-emerald-500">
+                <div className="relative mt-2 font-display font-black text-emerald-500 text-xl">
                   {fmtBRL(today.cents)}
                 </div>
                 <div className="relative text-[10px] text-muted-foreground mt-0.5">{today.count} pedidos</div>
               </div>
               <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-primary/40">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-primary/10 blur-2xl" />
-                <div className="relative flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
                   <Wallet className="h-3 w-3 text-primary" /> Saldo
                 </div>
-                <div className="relative mt-2 font-display text-2xl font-black">{fmtBRL(balance)}</div>
+                <div className="relative mt-2 font-display font-black text-xl">{fmtBRL(balance)}</div>
                 <div className="relative text-[10px] text-muted-foreground mt-0.5">disponível</div>
               </div>
               <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-blue-500/40">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-blue-500/10 blur-2xl" />
-                <div className="relative flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
                   <Users className="h-3 w-3 text-blue-500" /> Rede
                 </div>
-                <div className="relative mt-2 font-display text-2xl font-black">{stats.clients}</div>
+                <div className="relative mt-2 font-display font-black text-xl">{stats.clients}</div>
                 <div className="relative text-[10px] text-muted-foreground mt-0.5">clientes</div>
               </div>
               <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-amber-500/40">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-amber-500/10 blur-2xl" />
-                <div className="relative flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
                   <ShieldCheck className="h-3 w-3 text-amber-500" /> Licenças
                 </div>
-                <div className="relative mt-2 font-display text-2xl font-black">{stats.activeLicenses}</div>
+                <div className="relative mt-2 font-display font-black text-xl">{stats.activeLicenses}</div>
                 <div className="relative text-[10px] text-muted-foreground mt-0.5">ativas</div>
               </div>
             </div>
