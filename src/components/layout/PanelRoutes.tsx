@@ -44,6 +44,7 @@ const RevendedorDashboard = lazy(() => import("@/pages/painel/RevendedorDashboar
 const RevendedorClientes = lazy(() => import("@/pages/painel/RevendedorClientes"));
 const RevendedorLicencas = lazy(() => import("@/pages/painel/RevendedorLicencas"));
 const RevendedorExtensoes = lazy(() => import("@/pages/painel/RevendedorExtensoes"));
+const RevendedorPrecos = lazy(() => import("@/pages/painel/RevendedorPrecos"));
 const RevendedorPedidos = lazy(() => import("@/pages/painel/RevendedorPedidos"));
 const RevendedorAdicionarSaldo = lazy(() => import("@/pages/painel/RevendedorAdicionarSaldo"));
 const RevendedorCarteira = lazy(() => import("@/pages/painel/RevendedorCarteira"));
