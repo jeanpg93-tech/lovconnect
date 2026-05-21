@@ -45,6 +45,7 @@ type OrderData = {
   statusLabel?: string;
   manual?: boolean;
   errorMessage?: string | null;
+  managerNotes?: string | null;
   createdAt?: string;
   updatedAt?: string;
   creditos?: number;
