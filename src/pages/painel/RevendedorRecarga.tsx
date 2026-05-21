@@ -676,18 +676,18 @@ export default function RevendedorRecargas() {
             </TabsContent>
 
             <TabsContent value="rules" className="animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
-              <div className="space-y-8">
+              <div className="space-y-5 sm:space-y-8">
                 {/* Alerta principal */}
-                <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-destructive/30 bg-gradient-to-br from-destructive/10 via-destructive/5 to-transparent p-5 sm:p-6 md:p-8">
+                <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-destructive/30 bg-gradient-to-br from-destructive/10 via-destructive/5 to-transparent p-4 sm:p-6 md:p-8">
                   <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-destructive/20 blur-3xl pointer-events-none" />
-                  <div className="relative flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-destructive text-white shadow-lg shadow-destructive/30">
-                      <AlertTriangle className="h-6 w-6" />
+                  <div className="relative flex items-start gap-3 sm:gap-4">
+                    <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-destructive text-white shadow-lg shadow-destructive/30">
+                      <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive">Atenção</span>
-                      <h3 className="font-display text-2xl md:text-3xl font-bold tracking-tight">Verifique os requisitos antes de continuar</h3>
-                      <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-2xl">
+                      <h3 className="font-display text-lg sm:text-2xl md:text-3xl font-bold tracking-tight leading-tight">Verifique os requisitos antes de continuar</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed max-w-2xl">
                         Contas com determinados planos <span className="font-bold text-foreground">Pro</span> e <span className="font-bold text-foreground">Business</span> são compatíveis com nosso sistema de recarga de créditos. Confira abaixo os planos aceitos atualmente.
                       </p>
                     </div>
@@ -695,15 +695,15 @@ export default function RevendedorRecargas() {
                 </div>
 
                 {/* Planos compatíveis */}
-                <div className="rounded-3xl border border-border bg-card overflow-hidden">
-                  <div className="flex items-center justify-between gap-4 p-6 border-b border-border">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
-                        <CheckCircle2 className="h-5 w-5" />
+                <div className="rounded-2xl sm:rounded-3xl border border-border bg-card overflow-hidden">
+                  <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-border">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+                        <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
                       </div>
-                      <div>
-                        <h3 className="text-lg font-bold tracking-tight">Planos compatíveis</h3>
-                        <p className="text-[11px] text-muted-foreground font-medium">Valores mensais aceitos no sistema</p>
+                      <div className="min-w-0">
+                        <h3 className="text-sm sm:text-lg font-bold tracking-tight">Planos compatíveis</h3>
+                        <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">Valores mensais aceitos no sistema</p>
                       </div>
                     </div>
                     <span className="hidden md:inline-flex px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider">Aceitos</span>
@@ -722,54 +722,54 @@ export default function RevendedorRecargas() {
                       { plan: "Business — 400 créditos", price: "$200/mês", tag: "Business" },
                       { plan: "Business — 5.000 créditos", price: "$2.250/mês", tag: "Business" },
                     ].map((p, i) => (
-                      <div key={i} className="bg-card p-5 flex items-center justify-between gap-3 hover:bg-secondary/40 transition-colors">
-                        <div className="min-w-0">
+                      <div key={i} className="bg-card p-3.5 sm:p-5 flex items-center justify-between gap-3 hover:bg-secondary/40 transition-colors">
+                        <div className="min-w-0 flex-1">
                           <span className={cn(
                             "inline-block px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider mb-1.5",
                             p.tag === "Pro" && "bg-primary/10 text-primary",
                             p.tag === "Business" && "bg-blue-500/10 text-blue-500",
                             p.tag === "Free" && "bg-muted text-muted-foreground"
                           )}>{p.tag}</span>
-                          <p className="text-sm font-bold tracking-tight truncate">{p.plan}</p>
+                          <p className="text-[13px] sm:text-sm font-bold tracking-tight truncate">{p.plan}</p>
                         </div>
-                        <span className={cn("text-sm font-black tracking-tight whitespace-nowrap", p.accent ?? "text-foreground")}>{p.price}</span>
+                        <span className={cn("text-[13px] sm:text-sm font-black tracking-tight whitespace-nowrap shrink-0", p.accent ?? "text-foreground")}>{p.price}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Limite diário */}
-                <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-6 md:p-8 space-y-6">
+                <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Zap className="h-5 w-5" />
+                    <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold tracking-tight">Limite diário de recarga</h3>
-                      <p className="text-[11px] text-muted-foreground font-medium">Quantos créditos cada plano libera por dia</p>
+                    <div className="min-w-0">
+                      <h3 className="text-sm sm:text-lg font-bold tracking-tight">Limite diário de recarga</h3>
+                      <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">Quantos créditos cada plano libera por dia</p>
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     {[
                       { plan: "Pro — 20 créditos", limit: "200", unit: "créditos/dia", icon: MousePointer2, tag: "Pro" },
                       { plan: "Pro — 200 créditos ou superior", limit: "1.000", unit: "créditos/dia", icon: BarChart3, tag: "Pro+" },
                       { plan: "Business — qualquer plano", limit: "2.000", unit: "créditos/dia", icon: Network, tag: "Business" },
                     ].map((r, i) => (
-                      <div key={i} className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 p-5 hover:border-primary/40 transition-all">
+                      <div key={i} className="group relative overflow-hidden rounded-xl sm:rounded-2xl border border-border bg-background/60 p-4 sm:p-5 hover:border-primary/40 transition-all">
                         <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/5 blur-2xl group-hover:bg-primary/10 transition-colors" />
-                        <div className="relative space-y-4">
+                        <div className="relative space-y-3 sm:space-y-4">
                           <div className="flex items-center justify-between">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                               <r.icon className="h-4 w-4" />
                             </div>
                             <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-black uppercase tracking-wider">{r.tag}</span>
                           </div>
                           <div>
-                            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">{r.plan}</p>
-                            <div className="flex items-baseline gap-1.5">
-                              <span className="font-display text-3xl font-black tracking-tighter">{r.limit}</span>
-                              <span className="text-[11px] font-bold text-muted-foreground">{r.unit}</span>
+                            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 sm:mb-2 leading-tight">{r.plan}</p>
+                            <div className="flex items-baseline gap-1.5 flex-wrap">
+                              <span className="font-display text-2xl sm:text-3xl font-black tracking-tighter">{r.limit}</span>
+                              <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground">{r.unit}</span>
                             </div>
                           </div>
                         </div>
@@ -779,31 +779,31 @@ export default function RevendedorRecargas() {
                 </div>
 
                 {/* Importante + Confirmação */}
-                <div className="grid lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-2 rounded-2xl sm:rounded-3xl border border-amber-500/30 bg-amber-500/5 p-5 sm:p-6 md:p-8">
-                    <div className="flex items-start gap-4">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500">
-                        <ShieldAlert className="h-5 w-5" />
+                <div className="grid lg:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="lg:col-span-2 rounded-2xl sm:rounded-3xl border border-amber-500/30 bg-amber-500/5 p-4 sm:p-6 md:p-8">
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-amber-500/15 text-amber-500">
+                        <ShieldAlert className="h-4 w-4 sm:h-5 sm:w-5" />
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-1.5 min-w-0">
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">Importante</span>
-                        <h4 className="text-base font-bold tracking-tight">Pedidos acima do limite diário</h4>
-                        <p className="text-sm text-muted-foreground font-medium leading-relaxed">
+                        <h4 className="text-sm sm:text-base font-bold tracking-tight leading-tight">Pedidos acima do limite diário</h4>
+                        <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed">
                           Pedidos realizados acima do limite diário do seu plano serão entregues automaticamente <span className="font-bold text-foreground">no dia seguinte, após 24 horas exatas</span>.
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl sm:rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-5 sm:p-6 md:p-8 flex flex-col justify-between gap-4">
+                  <div className="rounded-2xl sm:rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-4 sm:p-6 md:p-8 flex flex-col justify-between gap-3 sm:gap-4">
                     <div className="flex items-center gap-3">
-                      <Sparkles className="h-5 w-5 text-primary" />
+                      <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Pronto pra começar</span>
                     </div>
-                    <p className="text-sm font-bold tracking-tight leading-snug">
+                    <p className="text-xs sm:text-sm font-bold tracking-tight leading-snug">
                       Ao continuar, você confirma que leu e concorda com as regras acima.
                     </p>
-                    <p className="text-[11px] text-muted-foreground font-medium">
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">
                       Qualquer dúvida, estamos à disposição 🚀
                     </p>
                   </div>
