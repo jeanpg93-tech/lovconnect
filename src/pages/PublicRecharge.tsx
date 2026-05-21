@@ -539,6 +539,41 @@ export default function PublicRecharge() {
           )}
 
           {/* Card principal */}
+          {isManualFailed && (
+            <div className="relative overflow-hidden rounded-2xl border border-rose-400/40 bg-gradient-to-br from-rose-500/20 via-red-500/10 to-rose-500/5 p-5 sm:p-6 shadow-xl shadow-rose-900/30 animate-fade-in">
+              <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-rose-500/20 blur-3xl" />
+              <div className="relative flex items-start gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-rose-500/20 ring-1 ring-rose-400/50">
+                  <AlertCircle className="h-6 w-6 text-rose-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-rose-200">Pedido sem sucesso</span>
+                  </div>
+                  <p className="mt-1 text-sm font-semibold text-rose-50 leading-snug">
+                    Não foi possível concluir esta recarga.
+                  </p>
+                  <div className="mt-3 rounded-xl border border-rose-400/30 bg-rose-950/40 p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-rose-300/80">Mensagem do gerente</div>
+                    <p className="mt-1 text-sm text-rose-50 leading-snug whitespace-pre-wrap break-words">
+                      {order.managerNotes?.trim() || order.errorMessage?.trim() || "O gerente não deixou observações. Entre em contato com o suporte para mais detalhes."}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => { setRefreshing(true); loadOrder(false); }}
+                    disabled={refreshing}
+                    className="mt-3 w-full border-rose-400/30 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+                  >
+                    {refreshing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                    Atualizar status
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isManualFailed && (
           <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-amber-400/50 via-orange-400/20 to-amber-400/50 shadow-2xl shadow-amber-900/30">
             <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] bg-zinc-950/85 backdrop-blur-xl p-5 sm:p-6 space-y-5">
               <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-amber-500/20 blur-3xl" />
