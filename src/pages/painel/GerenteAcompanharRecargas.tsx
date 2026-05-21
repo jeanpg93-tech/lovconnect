@@ -61,6 +61,32 @@ export default function GerenteAcompanharRecargas() {
   const [failReason, setFailReason] = useState<string>("");
   const [failCustom, setFailCustom] = useState<string>("");
   const [timeRange, setTimeRange] = useState<"hoje" | "7d" | "14d" | "30d">("hoje");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => void | Promise<void>;
+  } | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
+  const askConfirm = (data: {
+    title: string;
+    description: string;
+    confirmLabel?: string;
+    variant?: "default" | "destructive";
+    onConfirm: () => void | Promise<void>;
+  }) => {
+    setConfirmData({
+      title: data.title,
+      description: data.description,
+      confirmLabel: data.confirmLabel ?? "Confirmar",
+      variant: data.variant,
+      onConfirm: data.onConfirm,
+    });
+    setConfirmOpen(true);
+  };
 
   const FAIL_REASONS = [
     "Cliente não aceitou o convite no workspace",
