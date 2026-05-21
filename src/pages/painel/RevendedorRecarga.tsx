@@ -471,8 +471,8 @@ export default function RevendedorRecargas() {
       </div>
 
       {/* Conteúdo das Abas */}
-      <section className="px-4 py-20 -mt-10">
-        <div className="container mx-auto max-w-7xl">
+      <section className="px-2 sm:px-4 py-20 -mt-10">
+        <div className="container mx-auto max-w-7xl px-0 sm:px-4">
           <Tabs defaultValue="plans" className="space-y-12" id="plans-tabs">
             <div className="flex justify-center border-b border-border">
               <TabsList className="bg-transparent h-12 gap-2 sm:gap-8 px-0 w-full sm:w-auto justify-start sm:justify-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
