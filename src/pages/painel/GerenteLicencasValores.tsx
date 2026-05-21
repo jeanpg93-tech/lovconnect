@@ -9,14 +9,28 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type Method = "flow" | "lovax";
-type PackId = "1d" | "7d" | "30d" | "lifetime";
+type PackId = "1d" | "7d" | "30d" | "90d" | "365d" | "lifetime";
 
-const PACKAGES: { id: PackId; label: string; desc: string; icon: typeof Calendar }[] = [
+type Pack = { id: PackId; label: string; desc: string; icon: typeof Calendar };
+
+const BASE_PACKAGES: Pack[] = [
   { id: "1d", label: "1 dia", desc: "Acesso por 24 horas", icon: Calendar },
   { id: "7d", label: "7 dias", desc: "Acesso semanal", icon: Calendar },
   { id: "30d", label: "30 dias", desc: "Acesso mensal", icon: Calendar },
   { id: "lifetime", label: "Vitalício", desc: "Acesso permanente", icon: InfinityIcon },
 ];
+
+const PACKAGES_BY_METHOD: Record<Method, Pack[]> = {
+  flow: BASE_PACKAGES,
+  lovax: [
+    { id: "1d", label: "1 dia", desc: "Acesso por 24 horas", icon: Calendar },
+    { id: "7d", label: "7 dias", desc: "Acesso semanal", icon: Calendar },
+    { id: "30d", label: "30 dias", desc: "Acesso mensal", icon: Calendar },
+    { id: "90d", label: "90 dias", desc: "Acesso trimestral", icon: Calendar },
+    { id: "365d", label: "365 dias", desc: "Acesso anual", icon: Calendar },
+    { id: "lifetime", label: "Vitalício", desc: "Acesso permanente", icon: InfinityIcon },
+  ],
+};
 
 const METHODS: { id: Method; label: string; desc: string; icon: typeof Zap; accent: string }[] = [
   { id: "flow", label: "MétodoFlow", desc: "Tabela de preços do fluxo padrão", icon: Zap, accent: "text-primary" },
@@ -24,12 +38,13 @@ const METHODS: { id: Method; label: string; desc: string; icon: typeof Zap; acce
 ];
 
 const STORAGE_KEY = "licencas.valores";
-const DEFAULTS: Record<Method, Record<PackId, number>> = {
+type PriceMap = Record<Method, Partial<Record<PackId, number>>>;
+const DEFAULTS: PriceMap = {
   flow: { "1d": 5, "7d": 25, "30d": 80, lifetime: 250 },
-  lovax: { "1d": 6, "7d": 30, "30d": 95, lifetime: 290 },
+  lovax: { "1d": 6, "7d": 30, "30d": 95, "90d": 240, "365d": 780, lifetime: 290 },
 };
 
-function loadPrices(): Record<Method, Record<PackId, number>> {
+function loadPrices(): PriceMap {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULTS;
@@ -44,7 +59,7 @@ function loadPrices(): Record<Method, Record<PackId, number>> {
 }
 
 export default function GerenteLicencasValores() {
-  const [prices, setPrices] = useState<Record<Method, Record<PackId, number>>>(DEFAULTS);
+  const [prices, setPrices] = useState<PriceMap>(DEFAULTS);
 
   useEffect(() => {
     setPrices(loadPrices());
@@ -64,9 +79,14 @@ export default function GerenteLicencasValores() {
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">
+        Estes são os preços exibidos para os revendedores em cada método de entrega.
+      </p>
+      <div className="grid gap-4 lg:grid-cols-2">
       {METHODS.map((meta) => {
         const Icon = meta.icon;
+        const packages = PACKAGES_BY_METHOD[meta.id];
         return (
           <Card key={meta.id} className="overflow-hidden border-border/60">
             <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4">
@@ -87,7 +107,7 @@ export default function GerenteLicencasValores() {
               </Badge>
             </CardHeader>
             <CardContent className="space-y-3">
-              {PACKAGES.map((pkg) => {
+              {packages.map((pkg) => {
                 const PIcon = pkg.icon;
                 return (
                   <div
@@ -109,7 +129,7 @@ export default function GerenteLicencasValores() {
                         type="number"
                         min={0}
                         step="0.01"
-                        value={prices[meta.id][pkg.id]}
+                        value={prices[meta.id][pkg.id] ?? 0}
                         onChange={(e) => update(meta.id, pkg.id, e.target.value)}
                         className="h-9"
                       />
@@ -125,6 +145,7 @@ export default function GerenteLicencasValores() {
           </Card>
         );
       })}
+      </div>
     </div>
   );
 }
