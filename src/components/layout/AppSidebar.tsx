@@ -6,7 +6,6 @@ import {
   Package,
   Users,
   Store,
-  ShieldCheck,
   LogOut,
   Moon,
   Sun,
@@ -75,7 +74,6 @@ const groupsByRole: Record<AppRole, Group[]> = {
     { label: "Operação", items: [
       { title: "Aprovações", url: "/painel/gerente/aprovacoes", icon: UserCheck },
       { title: "Avisos", url: "/painel/gerente/avisos", icon: Megaphone },
-      { title: "Usuários", url: "/painel/gerente/usuarios", icon: ShieldCheck },
       { title: "Ações Especiais", url: "/painel/gerente/acoes-especiais", icon: Sparkles },
     ]},
     { label: "Rede", items: [
