@@ -102,6 +102,9 @@ export default function RevendedorPedidos() {
   const [resellerSalePrices, setResellerSalePrices] = useState<Record<string, number>>({});
   const [availableMethods, setAvailableMethods] = useState<MethodId[]>([]);
   const [selectedMethod, setSelectedMethod] = useState<MethodId>("flow");
+  // Método habilitado pelo gerente (compartilhado via app_settings).
+  // Apenas esse método pode ser usado para gerar licenças.
+  const [enabledMethod, setEnabledMethod] = useState<MethodId | null>(null);
 
   const [open, setOpen] = useState<Plan | null>(null);
   // contexto da compra atual quando é via método/pack
@@ -131,7 +134,7 @@ export default function RevendedorPedidos() {
     const sinceToday = todayStart.toISOString();
     const [
       { data: pl }, { data: cs }, { data: os }, { data: t }, { data: tiers }, { data: ts }, { count: testCount },
-      { data: licSetting }, { data: salePrices },
+      { data: licSetting }, { data: salePrices }, { data: deliverySetting },
     ] = await Promise.all([
       supabase.from("pricing_plans").select("license_type,label,price_cents,cost_cents,min_price_cents,is_active").eq("is_active", true),
       supabase.from("profiles").select("id,email,display_name").eq("reseller_id", r.id),
@@ -144,6 +147,8 @@ export default function RevendedorPedidos() {
       supabase.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
       // Preço de venda do revendedor (sale price) por método/pack
       supabase.from("reseller_license_prices").select("method,pack_id,price_cents").eq("reseller_id", r.id),
+      // Método de entrega habilitado pelo gerente
+      supabase.from("app_settings").select("value").eq("key", "licencas.delivery.method").maybeSingle(),
     ]);
     const sorted = ((pl ?? []) as Plan[])
       .filter(p => ORDER.includes(p.license_type))
@@ -160,7 +165,16 @@ export default function RevendedorPedidos() {
     setLicValores(valores as any);
     const methods = (Object.keys(valores).filter((m) => m === "flow" || m === "lovax") as MethodId[]);
     setAvailableMethods(methods);
-    setSelectedMethod((cur) => (methods.includes(cur) ? cur : (methods[0] ?? "flow")));
+
+    const enabledRaw = (deliverySetting?.value as any)?.method;
+    const enabled: MethodId | null =
+      enabledRaw === "flow" || enabledRaw === "lovax" ? enabledRaw : null;
+    setEnabledMethod(enabled);
+    // Força a seleção para o método habilitado (se houver e estiver disponível)
+    setSelectedMethod((cur) => {
+      if (enabled && methods.includes(enabled)) return enabled;
+      return methods.includes(cur) ? cur : (methods[0] ?? "flow");
+    });
 
     const saleMap: Record<string, number> = {};
     (salePrices ?? []).forEach((row: any) => {
