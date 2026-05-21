@@ -100,10 +100,11 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Carteira", url: "/painel/revendedor/carteira", icon: Wallet },
       { title: "Indique e ganhe", url: "/painel/revendedor/indicacoes", icon: Gift },
     ]},
-    { label: "Vender", items: [
+    { label: "Minhas vendas", items: [
       { title: "Comprar Recargas", url: "/painel/revendedor/pedidos", icon: ShoppingCart },
       { title: "Minhas Vendas", url: "/painel/revendedor/licencas", icon: ShoppingBag },
       { title: "Minha Loja", url: "/painel/revendedor/loja", icon: Store, badge: "store-status" },
+      { title: "Precificação", url: "/painel/revendedor/extensoes", icon: Tag },
     ]},
     { label: "Configurar", items: [
       { title: "Preços de Extensões", url: "/painel/revendedor/extensoes", icon: Tag },
