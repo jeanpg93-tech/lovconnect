@@ -367,6 +367,24 @@ export default function PublicRecharge() {
             </p>
           </div>
 
+          {/* Card Workspace (acima do pedido) */}
+          {order.workspaceName && (
+            <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-amber-400/50 via-orange-400/20 to-amber-400/50 shadow-xl shadow-amber-900/20">
+              <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] bg-zinc-950/85 backdrop-blur-xl p-4 sm:p-5">
+                <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-500/20 blur-3xl" />
+                <div className="relative flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/30">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-300">Workspace</div>
+                    <div className="text-base sm:text-lg font-bold text-white mt-0.5 break-all">{order.workspaceName}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Card principal */}
           <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-amber-400/50 via-orange-400/20 to-amber-400/50 shadow-2xl shadow-amber-900/30">
             <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] bg-zinc-950/85 backdrop-blur-xl p-5 sm:p-6 space-y-5">
@@ -390,21 +408,6 @@ export default function PublicRecharge() {
                   {order.statusLabel ?? mStatus}
                 </span>
               </div>
-
-              {/* Workspace destaque */}
-              {order.workspaceName && (
-                <div className="relative rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-200">
-                      <Sparkles className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-300">Workspace</div>
-                      <div className="text-base font-bold text-white mt-0.5 break-all">{order.workspaceName}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Stages */}
               <div className="relative space-y-3">
