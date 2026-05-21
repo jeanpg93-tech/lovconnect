@@ -638,8 +638,8 @@ export default function RevendedorRecargas() {
                 </div>
               )}
 
-              {/* FAQ Section */}
-              <div className="mt-32 space-y-16">
+              {/* FAQ Section - apenas mobile */}
+              <div className="mt-32 space-y-16 md:hidden">
                 <div className="text-center space-y-3">
                   <h3 className="text-4xl font-bold tracking-tighter">Ficou com alguma dúvida?</h3>
                   <p className="text-muted-foreground text-sm font-medium max-w-xl mx-auto">Tudo o que você precisa saber para escalar sua operação Lovable.</p>
