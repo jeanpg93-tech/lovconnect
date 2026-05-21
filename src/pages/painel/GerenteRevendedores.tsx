@@ -459,8 +459,10 @@ export default function GerenteRevendedores() {
                   <div key={r.id} className="p-4 space-y-4 border-b border-white/5 bg-white/5 rounded-xl mb-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-bold text-foreground">{r.display_name}</h3>
+                        <h3 className="font-bold text-foreground">{firstLastName(prof?.display_name)}</h3>
+                        <p className="text-[11px] text-muted-foreground">@{r.display_name}</p>
                         <p className="text-xs text-muted-foreground">{prof?.email ?? "—"}</p>
+                        <p className="text-[11px] text-muted-foreground font-mono">{formatPhoneBR(prof?.phone)}</p>
                       </div>
                       <div className="text-right">
                         <span className="font-mono font-bold text-primary block">{formatBRL(balance)}</span>
