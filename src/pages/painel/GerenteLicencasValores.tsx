@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Sparkles, Save, Calendar, Infinity as InfinityIcon } from "lucide-react";
+import { Zap, Sparkles, Save, Calendar, Infinity as InfinityIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+type Tier = { id: string; name: string; color: string; sort_order: number; is_hidden: boolean };
 
 type Method = "flow" | "lovax";
 type PackId = "1d" | "7d" | "30d" | "90d" | "365d" | "lifetime";
@@ -38,39 +40,48 @@ const METHODS: { id: Method; label: string; desc: string; icon: typeof Zap; acce
 ];
 
 const STORAGE_KEY = "licencas.valores";
-type PriceMap = Record<Method, Partial<Record<PackId, number>>>;
-const DEFAULTS: PriceMap = {
-  flow: { "1d": 5, "7d": 25, "30d": 80, lifetime: 250 },
-  lovax: { "1d": 6, "7d": 30, "30d": 95, "90d": 240, "365d": 780, lifetime: 290 },
-};
+// prices[method][packId][tierId] = price in BRL
+type PriceMap = Record<Method, Partial<Record<PackId, Record<string, number>>>>;
+const EMPTY: PriceMap = { flow: {}, lovax: {} };
 
 function loadPrices(): PriceMap {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULTS;
+    if (!raw) return EMPTY;
     const parsed = JSON.parse(raw);
     return {
-      flow: { ...DEFAULTS.flow, ...(parsed.flow ?? {}) },
-      lovax: { ...DEFAULTS.lovax, ...(parsed.lovax ?? {}) },
+      flow: parsed.flow ?? {},
+      lovax: parsed.lovax ?? {},
     };
   } catch {
-    return DEFAULTS;
+    return EMPTY;
   }
 }
 
 export default function GerenteLicencasValores() {
-  const [prices, setPrices] = useState<PriceMap>(DEFAULTS);
+  const [prices, setPrices] = useState<PriceMap>(EMPTY);
+  const [tiers, setTiers] = useState<Tier[]>([]);
+  const [loadingTiers, setLoadingTiers] = useState(true);
 
   useEffect(() => {
     setPrices(loadPrices());
+    (async () => {
+      const { data } = await supabase
+        .from("reseller_tiers")
+        .select("id,name,color,sort_order,is_hidden")
+        .eq("is_active", true)
+        .order("sort_order");
+      setTiers(((data ?? []) as Tier[]).filter((t) => !t.is_hidden));
+      setLoadingTiers(false);
+    })();
   }, []);
 
-  const update = (m: Method, p: PackId, value: string) => {
+  const update = (m: Method, p: PackId, tierId: string, value: string) => {
     const num = Number(value);
-    setPrices((prev) => ({
-      ...prev,
-      [m]: { ...prev[m], [p]: Number.isFinite(num) ? num : 0 },
-    }));
+    setPrices((prev) => {
+      const pkg = { ...(prev[m]?.[p] ?? {}), [tierId]: Number.isFinite(num) ? num : 0 };
+      return { ...prev, [m]: { ...prev[m], [p]: pkg } };
+    });
   };
 
   const save = (m: Method) => {
@@ -81,7 +92,8 @@ export default function GerenteLicencasValores() {
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">
-        Estes são os preços exibidos para os revendedores em cada método de entrega.
+        Defina o preço de cada pacote por nível de revendedor. Esses valores são exibidos
+        para os revendedores conforme o nível em que estão.
       </p>
       <div className="grid gap-4 lg:grid-cols-2">
       {METHODS.map((meta) => {
@@ -107,37 +119,62 @@ export default function GerenteLicencasValores() {
               </Badge>
             </CardHeader>
             <CardContent className="space-y-3">
-              {packages.map((pkg) => {
+              {loadingTiers && (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                </div>
+              )}
+              {!loadingTiers && tiers.length === 0 && (
+                <div className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+                  Nenhum nível ativo. Crie níveis em Gerenciar Níveis para definir preços.
+                </div>
+              )}
+              {!loadingTiers && tiers.length > 0 && packages.map((pkg) => {
                 const PIcon = pkg.icon;
                 return (
                   <div
                     key={pkg.id}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3"
+                    className="space-y-2 rounded-xl border border-border bg-muted/30 p-3"
                   >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground">
-                      <PIcon className="h-4 w-4" />
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground">
+                        <PIcon className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm">{pkg.label}</div>
+                        <p className="text-xs text-muted-foreground">{pkg.desc}</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm">{pkg.label}</div>
-                      <p className="text-xs text-muted-foreground">{pkg.desc}</p>
-                    </div>
-                    <div className="w-32 shrink-0">
-                      <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Preço (R$)
-                      </Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={prices[meta.id][pkg.id] ?? 0}
-                        onChange={(e) => update(meta.id, pkg.id, e.target.value)}
-                        className="h-9"
-                      />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {tiers.map((tier) => (
+                        <div key={tier.id} className="rounded-lg border border-border/60 bg-background/60 p-2">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: tier.color }}
+                            />
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+                              {tier.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">R$</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={prices[meta.id]?.[pkg.id]?.[tier.id] ?? 0}
+                              onChange={(e) => update(meta.id, pkg.id, tier.id, e.target.value)}
+                              className="h-8"
+                            />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
               })}
-              <Button onClick={() => save(meta.id)} className="w-full">
+              <Button onClick={() => save(meta.id)} className="w-full" disabled={loadingTiers || tiers.length === 0}>
                 <Save className="mr-2 h-4 w-4" />
                 Salvar preços do {meta.label}
               </Button>
