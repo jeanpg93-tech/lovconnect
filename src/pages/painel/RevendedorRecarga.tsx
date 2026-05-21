@@ -79,6 +79,13 @@ import {
 } from "@/components/ui/accordion";
 import { BuyCreditsFlowModal } from "@/components/painel/BuyCreditsFlowModal";
 import { useRechargeSettings } from "@/hooks/useRechargeSettings";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel";
 
 const formatBRL = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
