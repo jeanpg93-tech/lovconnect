@@ -712,6 +712,29 @@ export default function GerenteLicencasAcompanhar() {
                           </TableCell>
                           <TableCell className="text-right pr-6">
                             <div className="flex items-center justify-end gap-2">
+                              {(() => {
+                                const info = refundInfo[o.license_key];
+                                if (!info) return null;
+                                if (info.refunded) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sky-400" title="Já estornado">
+                                      <Undo2 className="h-2.5 w-2.5" /> Estornado
+                                    </span>
+                                  );
+                                }
+                                if (!isCancelable(o)) return null;
+                                return (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-rose-500 hover:bg-rose-500/10"
+                                    onClick={() => openRefundLicense(o)}
+                                    title={`Estornar (${(info.price_cents/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})})`}
+                                  >
+                                    <Undo2 className="h-4 w-4" />
+                                  </Button>
+                                );
+                              })()}
                               <Button
                                 variant="ghost"
                                 size="icon"
