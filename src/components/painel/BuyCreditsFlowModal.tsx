@@ -110,6 +110,7 @@ export function BuyCreditsFlowModal({
   const [workspaceName, setWorkspaceName] = useState("");
   const [savingMeta, setSavingMeta] = useState(false);
   const [policyOpen, setPolicyOpen] = useState(false);
+  const [confirmWorkspaceOpen, setConfirmWorkspaceOpen] = useState(false);
 
   const MANUAL_BOT_EMAIL = "recarga@lovconnect.store";
 
