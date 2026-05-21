@@ -28,7 +28,7 @@ const Auth = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [invalidCodeOpen, setInvalidCodeOpen] = useState(false);
   const [whatIsCodeOpen, setWhatIsCodeOpen] = useState(false);
-  const supportWhatsappUrl = "https://wa.me/5543996877745?text=Olá,%20preciso%20de%20um%20código%20de%20afiliado%20para%20me%20cadastrar.";
+  const supportWhatsappUrl = "https://wa.me/5511936183472?text=Olá,%20preciso%20de%20um%20código%20de%20afiliado%20para%20me%20cadastrar.";
 
   useEffect(() => {
     if (!authLoading && user && !isSyncing) {
