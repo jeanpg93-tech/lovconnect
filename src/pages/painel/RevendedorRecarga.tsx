@@ -677,7 +677,7 @@ export default function RevendedorRecargas() {
             <TabsContent value="rules" className="animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
               <div className="space-y-8">
                 {/* Alerta principal */}
-                <div className="relative overflow-hidden rounded-3xl border border-destructive/30 bg-gradient-to-br from-destructive/10 via-destructive/5 to-transparent p-6 md:p-8">
+                <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-destructive/30 bg-gradient-to-br from-destructive/10 via-destructive/5 to-transparent p-5 sm:p-6 md:p-8">
                   <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-destructive/20 blur-3xl pointer-events-none" />
                   <div className="relative flex items-start gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-destructive text-white shadow-lg shadow-destructive/30">
@@ -738,7 +738,7 @@ export default function RevendedorRecargas() {
                 </div>
 
                 {/* Limite diário */}
-                <div className="rounded-3xl border border-border bg-card p-6 md:p-8 space-y-6">
+                <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-6 md:p-8 space-y-6">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <Zap className="h-5 w-5" />
@@ -779,7 +779,7 @@ export default function RevendedorRecargas() {
 
                 {/* Importante + Confirmação */}
                 <div className="grid lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-2 rounded-3xl border border-amber-500/30 bg-amber-500/5 p-6 md:p-8">
+                  <div className="lg:col-span-2 rounded-2xl sm:rounded-3xl border border-amber-500/30 bg-amber-500/5 p-5 sm:p-6 md:p-8">
                     <div className="flex items-start gap-4">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500">
                         <ShieldAlert className="h-5 w-5" />
@@ -794,7 +794,7 @@ export default function RevendedorRecargas() {
                     </div>
                   </div>
 
-                  <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-6 md:p-8 flex flex-col justify-between gap-4">
+                  <div className="rounded-2xl sm:rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-5 sm:p-6 md:p-8 flex flex-col justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-5 w-5 text-primary" />
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Pronto pra começar</span>
