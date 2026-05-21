@@ -740,7 +740,7 @@ export default function PublicRecharge() {
 
         {/* Footer */}
         <div className="pt-2 text-center text-[11px] text-zinc-500">
-          Esta página atualiza automaticamente a cada 12s
+          Esta página atualiza automaticamente em tempo real
         </div>
       </div>
 
