@@ -190,6 +190,46 @@ export default function RevendedorRecargas() {
   const activeMode = rechargeSettings.active_mode;
   const buyDisabled = rechargeSettings.maintenance_enabled;
 
+  // Histórico de recargas (PIX)
+  type RechargeRow = {
+    id: string;
+    amount_cents: number;
+    bonus_cents: number | null;
+    status: string;
+    provider: string | null;
+    provider_transaction_id: string | null;
+    paid_at: string | null;
+    created_at: string;
+  };
+  const [resellerId, setResellerId] = useState<string | null>(null);
+  const [recentRecharges, setRecentRecharges] = useState<RechargeRow[]>([]);
+  const [allRecharges, setAllRecharges] = useState<RechargeRow[] | null>(null);
+  const [loadingAllRecharges, setLoadingAllRecharges] = useState(false);
+  const [reSearch, setReSearch] = useState("");
+  const [reStatusFilter, setReStatusFilter] = useState<string>("all");
+
+  const loadRecentRecharges = async (rid: string) => {
+    const { data } = await supabase
+      .from("recharge_intents")
+      .select("id,amount_cents,bonus_cents,status,provider,provider_transaction_id,paid_at,created_at")
+      .eq("reseller_id", rid)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setRecentRecharges((data ?? []) as RechargeRow[]);
+  };
+  const loadAllRecharges = async () => {
+    if (!resellerId) return;
+    setLoadingAllRecharges(true);
+    const { data } = await supabase
+      .from("recharge_intents")
+      .select("id,amount_cents,bonus_cents,status,provider,provider_transaction_id,paid_at,created_at")
+      .eq("reseller_id", resellerId)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    setAllRecharges((data ?? []) as RechargeRow[]);
+    setLoadingAllRecharges(false);
+  };
+
   const openBuyModal = (plan: ApiPlan) => {
     if (rechargeSettings.maintenance_enabled) {
       toast.warning(rechargeSettings.maintenance_message);
