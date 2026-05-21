@@ -422,7 +422,7 @@ Deno.serve(async (req) => {
     }
 
     if (cost_cents > 0) {
-      const { error: debitErr } = await admin.rpc("force_debit_reseller_balance", {
+      const { data: debitOk } = await admin.rpc("debit_reseller_balance", {
         _reseller_id: storeOrder.reseller_id,
         _amount_cents: cost_cents,
         _kind: "order_debit",
@@ -430,14 +430,27 @@ Deno.serve(async (req) => {
         _reference_id: storeOrder.id,
       });
 
-      if (debitErr) {
-        console.error("[webhook] Failed to debit reseller balance", debitErr);
-      } else {
-        await admin.rpc("add_reseller_spent", {
-          _reseller_id: storeOrder.reseller_id,
-          _amount_cents: cost_cents,
+      if (!debitOk) {
+        // Sem saldo → coloca em espera, não chama provedor
+        await admin.from("storefront_orders").update({
+          status: "awaiting_balance",
+          cost_cents,
+        }).eq("id", storeOrder.id);
+
+        await admin.from("pending_storefront_charges").insert({
+          order_id: storeOrder.id,
+          reseller_id: storeOrder.reseller_id,
+          cost_cents,
+          product_type: "license",
         });
+
+        return json({ ok: true, kind: "storefront_order_awaiting_balance" });
       }
+
+      await admin.rpc("add_reseller_spent", {
+        _reseller_id: storeOrder.reseller_id,
+        _amount_cents: cost_cents,
+      });
     }
 
     let providerData: any = null;
