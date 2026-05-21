@@ -1018,6 +1018,13 @@ export default function GerenteLicencasAcompanhar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <RefundSaleDialog
+        open={refundDialogOpen}
+        onOpenChange={setRefundDialogOpen}
+        data={refundData}
+        onSuccess={() => { load(); }}
+      />
     </PageContainer>
   );
 }
