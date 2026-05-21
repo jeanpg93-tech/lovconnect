@@ -90,8 +90,9 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Todas as Licenças", url: "/painel/gerente/todas-licencas", icon: KeyRound },
       { title: "Upload Extensão", url: "/painel/gerente/upload-extensao", icon: Package },
     ]},
-    { label: "Recargas", items: [
+    { label: "Gestão produtos", items: [
       { title: "Gerenciar Recargas", url: "/painel/gerente/recargas", icon: Coins },
+      { title: "Gerenciar Licenças", url: "/painel/gerente/todas-licencas", icon: KeyRound },
     ]},
   ],
   revendedor: [
