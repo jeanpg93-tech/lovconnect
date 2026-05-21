@@ -156,34 +156,6 @@ export default function RevendedorTransacoes() {
 
   return (
     <PageContainer>
-      <PageHeader 
-        title="Minhas Transações" 
-        description="Histórico detalhado de toda a movimentação financeira da sua conta."
-        icon={History}
-      />
-
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4 mb-8">
-        <div className="rounded-2xl border border-border bg-card/40 p-4 flex flex-col justify-between relative overflow-hidden group">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold relative z-10">
-            <TrendingUp className="h-3.5 w-3.5 text-emerald-500" /> Entradas hoje
-          </div>
-          <div className="mt-2 font-display text-2xl md:text-3xl font-bold text-emerald-500 relative z-10">{formatBRL(stats.entradas)}</div>
-          <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:opacity-10 transition-opacity">
-            <TrendingUp className="h-12 w-12 text-emerald-500 rotate-12" />
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card/40 p-4 flex flex-col justify-between relative overflow-hidden group">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold relative z-10">
-            <TrendingDown className="h-3.5 w-3.5 text-rose-500" /> Saídas hoje
-          </div>
-          <div className="mt-2 font-display text-2xl md:text-3xl font-bold text-rose-500 relative z-10">{formatBRL(stats.saidas)}</div>
-          <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:opacity-10 transition-opacity">
-            <TrendingDown className="h-12 w-12 text-rose-500 rotate-12" />
-          </div>
-        </div>
-      </div>
-
       <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background backdrop-blur-md">
         <div className="p-4 border-b border-white/5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1">
