@@ -673,39 +673,6 @@ export default function RevendedorRecargas() {
                 })()
               )}
 
-              {/* FAQ Section - apenas mobile */}
-              <div className="mt-32 space-y-16 md:hidden">
-                <div className="text-center space-y-3">
-                  <h3 className="text-4xl font-bold tracking-tighter">Ficou com alguma dúvida?</h3>
-                  <p className="text-muted-foreground text-sm font-medium max-w-xl mx-auto">Tudo o que você precisa saber para escalar sua operação Lovable.</p>
-                </div>
-
-                <div className="max-w-3xl mx-auto">
-                  <Accordion type="single" collapsible className="w-full space-y-3">
-                    {[
-                      { q: "Como funciona o abastecimento?", a: "Integração via MisticPay (D+0). Confirmou o PIX, o saldo cai na hora." },
-                      { q: "Quais as taxas de revenda?", a: "Sem taxas mensais. Você lucra na diferença entre o custo do pacote e o valor de venda." },
-                      { q: "É possível automatizar via API?", a: "Sim, documentação completa na aba API para integração via Webhooks." }
-                    ].map((item, i) => (
-                      <AccordionItem key={i} value={`item-${i}`} className="border border-border bg-card/40 backdrop-blur-sm rounded-2xl px-6 overflow-hidden">
-                        <AccordionTrigger className="hover:no-underline font-bold text-sm text-left py-4">{item.q}</AccordionTrigger>
-                        <AccordionContent className="text-sm text-muted-foreground font-medium pb-4 leading-relaxed">
-                          {item.a}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </div>
-
-                {/* Footer Section Style */}
-                <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary to-primary/80 p-6 sm:p-10 md:p-16 text-white text-center space-y-5 sm:space-y-8 shadow-lg shadow-primary/20">
-                   <h2 className="text-2xl sm:text-4xl md:text-6xl font-bold tracking-tighter">Movimentando milhões de <br className="hidden sm:inline" /> transações todos os dias.</h2>
-                   <p className="text-white/80 text-sm sm:text-lg md:text-xl font-medium max-w-2xl mx-auto">Sem surpresas, sem letras miúdas. Aqui o preço é fixo e previsível em todas as suas operações.</p>
-                   <Button className="h-12 sm:h-16 px-8 sm:px-12 rounded-xl sm:rounded-2xl bg-white text-primary font-bold hover:bg-zinc-100 transition-all">
-                      Abrir conta agora
-                   </Button>
-                </div>
-              </div>
             </TabsContent>
 
             <TabsContent value="rules" className="animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
