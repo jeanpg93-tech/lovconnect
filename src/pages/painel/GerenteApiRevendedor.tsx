@@ -2,6 +2,8 @@ import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { Button } from "@/components/ui/button";
 import { KeyRound, Copy, BookOpen, Shield, Zap, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useRef } from "react";
+import CopyAllDocsButton from "@/components/api/CopyAllDocsButton";
 
 const BASE_URL = "https://lojinhalovable.com/api/v1/revenda";
 
@@ -26,6 +28,7 @@ function DocBlock({ title, body }: { title: string; body: string }) {
 }
 
 export default function GerenteApiRevendedor() {
+  const docsRef = useRef<HTMLDivElement>(null);
   return (
     <PageContainer>
       <PageHeader
@@ -36,8 +39,10 @@ export default function GerenteApiRevendedor() {
         }
         description="Documentação oficial da API de recargas de recargas para revendedores."
         icon={KeyRound}
+        actions={<CopyAllDocsButton containerRef={docsRef} fileName="api-revendedor.md" />}
       />
 
+      <div ref={docsRef} className="space-y-4">
       {/* Onboarding */}
       <div className="rounded-2xl border border-border bg-card/60 p-6 backdrop-blur-sm">
         <h3 className="font-display text-base font-semibold flex items-center gap-2">
