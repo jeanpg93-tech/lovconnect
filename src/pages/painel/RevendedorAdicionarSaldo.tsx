@@ -609,64 +609,8 @@ export default function RevendedorAdicionarSaldo() {
         </div>
       )}
 
-      {/* Movimentações */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
-        <div className="flex items-center justify-between border-b border-border px-5 py-3">
-          <div className="font-display text-sm font-semibold">Últimas movimentações</div>
-          <span className="rounded-full border border-border bg-background/50 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            {txs.length} registros
-          </span>
-        </div>
-        {loading ? (
-          <div className="flex h-24 items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          </div>
-        ) : txs.length === 0 ? (
-          <div className="p-10 text-center">
-            <Wallet className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
-            <div className="text-sm text-muted-foreground">Nenhuma movimentação ainda.</div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-2.5 text-left">Data</th>
-                  <th className="px-4 py-2.5 text-left">Tipo</th>
-                  <th className="px-4 py-2.5 text-left">Descrição</th>
-                  <th className="px-4 py-2.5 text-right">Valor</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {txs.map((t) => {
-                  const meta = KIND_META[t.kind] ?? { label: t.kind, cls: "bg-muted text-muted-foreground border-border", icon: Zap };
-                  const Icon = meta.icon;
-                  const positive = t.amount_cents >= 0;
-                  return (
-                    <tr key={t.id} className="hover:bg-muted/20">
-                      <td className="whitespace-nowrap px-4 py-2.5 text-xs text-muted-foreground">
-                        {new Date(t.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider", meta.cls)}>
-                          <Icon className="h-3 w-3" /> {meta.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-muted-foreground">{t.description ?? "—"}</td>
-                      <td className={cn(
-                        "whitespace-nowrap px-4 py-2.5 text-right font-mono font-semibold tabular-nums",
-                        positive ? "text-emerald-400" : "text-rose-400",
-                      )}>
-                        {positive ? "+" : ""}{fmt(t.amount_cents)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Movimentações — usando a tela completa de Transações */}
+      <RevendedorTransacoes />
     </div>
   );
 }
