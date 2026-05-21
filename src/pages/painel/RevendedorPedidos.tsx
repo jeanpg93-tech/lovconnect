@@ -472,24 +472,39 @@ export default function RevendedorPedidos() {
             <div className="flex flex-wrap items-center gap-2">
               {availableMethods.map((m) => {
                 const active = m === selectedMethod;
+                const disabled = !!enabledMethod && m !== enabledMethod;
                 return (
                   <button
                     key={m}
                     type="button"
-                    onClick={() => setSelectedMethod(m)}
+                    onClick={() => { if (!disabled) setSelectedMethod(m); }}
+                    disabled={disabled}
+                    title={disabled ? "Método desabilitado pelo gerente no momento" : undefined}
                     className={cn(
                       "group inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all",
                       active
                         ? "border-primary/40 bg-primary text-black shadow-[0_0_20px_rgba(var(--primary),0.25)]"
-                        : "border-white/10 bg-white/[0.03] text-zinc-400 hover:border-primary/30 hover:text-white"
+                        : disabled
+                          ? "border-white/5 bg-white/[0.02] text-zinc-600 cursor-not-allowed opacity-60"
+                          : "border-white/10 bg-white/[0.03] text-zinc-400 hover:border-primary/30 hover:text-white"
                     )}
                   >
-                    <Puzzle className={cn("h-3.5 w-3.5", active ? "text-black" : "text-primary")} />
+                    <Puzzle className={cn("h-3.5 w-3.5", active ? "text-black" : disabled ? "text-zinc-600" : "text-primary")} />
                     <span>{METHOD_LABEL[m]}</span>
+                    {disabled && (
+                      <span className="ml-1 rounded-full border border-white/10 bg-white/5 px-1.5 py-px text-[8px] font-bold uppercase tracking-wider text-zinc-500">
+                        Indisponível
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
+            {enabledMethod && (
+              <p className="pl-1 text-[10px] text-zinc-500">
+                Apenas o método <span className="font-bold text-zinc-300">{METHOD_LABEL[enabledMethod]}</span> está habilitado pelo gerente no momento.
+              </p>
+            )}
           </div>
 
           {(() => {
