@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, StatCard } from "@/components/painel/PageHeader";
 import {
@@ -729,8 +730,11 @@ export default function GerenteDashboard() {
                                 ? { bg: "bg-sky-500/15", text: "text-sky-600", border: "border-sky-500/40", ring: "ring-1 ring-sky-500/30 shadow-[0_0_0_3px_hsl(var(--background))]" }
                                 : { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/20", ring: "" };
                           const Arrow = isIn ? ArrowDownLeft : ArrowUpRight;
+                          const targetHref = isSaleLike
+                            ? "/painel/gerente/todas-licencas"
+                            : "/painel/gerente/recargas";
                           return (
-                             <div key={m.id} className={`group/item flex items-center justify-between rounded-xl sm:rounded-2xl border ${tone.border} bg-background/40 p-2 sm:p-3 hover:bg-background transition-all ${isApiOrder ? "bg-fuchsia-500/[0.04]" : isSaleLike ? "bg-sky-500/[0.04]" : ""}`}>
+                             <Link key={m.id} to={targetHref} className={`group/item flex items-center justify-between rounded-xl sm:rounded-2xl border ${tone.border} bg-background/40 p-2 sm:p-3 hover:bg-background hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all ${isApiOrder ? "bg-fuchsia-500/[0.04]" : isSaleLike ? "bg-sky-500/[0.04]" : ""}`}>
                                <div className="flex items-center gap-3 text-left min-w-0">
                                  <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border ${tone.bg} ${tone.text} ${tone.border}`}>
                                    <Arrow className="h-4 w-4" strokeWidth={2.5} />
@@ -770,7 +774,7 @@ export default function GerenteDashboard() {
                                 </div>
                                 <div className="text-[9px] text-muted-foreground">{fmtDate(m.created_at)}</div>
                               </div>
-                            </div>
+                            </Link>
                           );
                         })}
                       </div>
