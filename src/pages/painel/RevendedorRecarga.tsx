@@ -354,7 +354,7 @@ export default function RevendedorRecargas() {
       <div className="px-1 sm:px-4 mb-12">
         <div className="container mx-auto max-w-7xl px-0 sm:px-4">
           <div className={cn(
-            "relative overflow-hidden rounded-2xl sm:rounded-3xl border p-3 sm:p-8 md:p-12 bg-gradient-to-br",
+            "relative overflow-hidden rounded-2xl sm:rounded-3xl border p-3 sm:p-8 md:p-12 bg-gradient-to-br text-center",
             activeMode === "automatico"
               ? "border-primary/20 from-card via-card to-primary/5"
               : "border-amber-500/20 from-card via-card to-amber-500/5"
@@ -371,7 +371,7 @@ export default function RevendedorRecargas() {
 
             <div className="relative grid gap-10 lg:grid-cols-[1fr_auto] lg:items-center">
               <div className="space-y-6">
-                <div className="flex items-center gap-3">
+                <div className="gap-3 flex items-center justify-center">
                   <div className={cn(
                     "flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg",
                     activeMode === "automatico"
@@ -422,7 +422,7 @@ export default function RevendedorRecargas() {
               </div>
 
               {/* Status badge column */}
-              <div className="lg:border-l lg:border-border lg:pl-10 flex lg:flex-col items-center gap-4">
+              <div className="lg:border-l lg:border-border lg:pl-10 lg:flex-col gap-4 flex items-center justify-center">
                 <div className="relative">
                   <div className={cn(
                     "absolute inset-0 rounded-full blur-xl animate-pulse",
