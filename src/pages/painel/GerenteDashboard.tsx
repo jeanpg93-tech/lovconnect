@@ -718,9 +718,11 @@ export default function GerenteDashboard() {
                           const isStoreSale = m.kind === "order_debit" && /venda\s*loja/i.test(desc);
                           const isApiOrder = m.kind === "order_debit" && !isStoreSale;
                           const isCreditPurchase = m.kind === "credit_purchase";
+                          const isLicensePurchase = m.kind === "license_purchase";
                           const isManualCredit = m.kind === "manual_credit";
                           const isRecharge = m.kind === "recharge";
-                          const isSaleLike = isStoreSale || isCreditPurchase || isApiOrder;
+                          const isSaleLike = isStoreSale || isCreditPurchase || isApiOrder || isLicensePurchase;
+                          const isLicenseRoute = isLicensePurchase || isApiOrder || (isStoreSale && !isCreditPurchase);
                           // Tom: entrada=verde, venda/compra=azul (destaque), outras saídas=vermelho
                           const tone = isIn
                             ? { bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20", ring: "" }
@@ -730,9 +732,11 @@ export default function GerenteDashboard() {
                                 ? { bg: "bg-sky-500/15", text: "text-sky-600", border: "border-sky-500/40", ring: "ring-1 ring-sky-500/30 shadow-[0_0_0_3px_hsl(var(--background))]" }
                                 : { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/20", ring: "" };
                           const Arrow = isIn ? ArrowDownLeft : ArrowUpRight;
-                          const targetHref = isSaleLike
+                          const targetHref = isLicenseRoute
                             ? "/painel/gerente/todas-licencas"
-                            : "/painel/gerente/recargas";
+                            : isCreditPurchase
+                              ? "/painel/gerente/recargas"
+                              : "/painel/gerente/recargas";
                           return (
                              <Link key={m.id} to={targetHref} className={`group/item flex items-center justify-between rounded-xl sm:rounded-2xl border ${tone.border} bg-background/40 p-2 sm:p-3 hover:bg-background hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all ${isApiOrder ? "bg-fuchsia-500/[0.04]" : isSaleLike ? "bg-sky-500/[0.04]" : ""}`}>
                                <div className="flex items-center gap-3 text-left min-w-0">
