@@ -656,7 +656,9 @@ export default function GerenteAcompanharRecargas() {
                         <td className="px-4 py-3 text-xs text-muted-foreground">{m.credits} recargas</td>
                         <td className="px-4 py-3 text-xs">
                           {m.workspace_name ? (
-                            <span className="font-medium text-foreground">{m.workspace_name}</span>
+                            <code className="inline-flex items-center rounded-md border border-border/60 bg-muted/50 px-1.5 py-0.5 font-mono text-[11px] text-foreground/90">
+                              {m.workspace_name}
+                            </code>
                           ) : (
                             <span className="text-muted-foreground">— aguardando convite</span>
                           )}
