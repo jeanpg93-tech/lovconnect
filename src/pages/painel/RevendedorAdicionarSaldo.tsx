@@ -375,7 +375,7 @@ export default function RevendedorAdicionarSaldo() {
             </div>
           )}
 
-          <div className="mt-6 grid gap-3 grid-cols-2">
+          <div className="mt-6 grid gap-3 grid-cols-2 lg:grid-cols-4">
             {tiers.map((t) => {
               const isCurrent = currentTier?.id === t.id;
               const reached = totalSpentCents >= t.min_spent_cents;
