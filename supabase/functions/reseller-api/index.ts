@@ -17,6 +17,17 @@ const corsHeaders = {
 const ALLOWED_TYPES = ["pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
 const DEFAULT_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
 
+const UNIFIED_METHODS = ["flow", "lovax"];
+const UNIFIED_PACKS = ["1d", "7d", "30d", "90d", "365d", "lifetime"];
+const PACK_LABEL: Record<string, string> = {
+  "1d": "1 Dia", "7d": "7 Dias", "30d": "30 Dias",
+  "90d": "90 Dias", "365d": "1 Ano", "lifetime": "Vitalícia",
+};
+const genUnifiedKey = (method: string, pack: string) => {
+  const rnd = crypto.randomUUID().replace(/-/g, "").toUpperCase().slice(0, 16);
+  return `${method.toUpperCase()}-${pack.toUpperCase()}-${rnd}`;
+};
+
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
   switch (type) {
     case "pro_1d": return { days: 1 };
