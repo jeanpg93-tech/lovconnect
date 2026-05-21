@@ -768,13 +768,13 @@ export default function GerenteAcompanharRecargas() {
                                   </>
                                 )}
                                 {s === "manual_limite_atingido" && (
-                                  <Button size="sm" className="h-7 px-2 text-xs" onClick={() => askConfirm({
-                                    title: "Concluir pedido?",
-                                    description: `Confirmar entrega do pedido ${m.provider_pedido_id.slice(0,8)}. Esta ação finaliza o pedido.`,
-                                    confirmLabel: "Concluir",
-                                    onConfirm: () => setManualStatus(m, "manual_concluido", { notes: null, force: true }),
+                                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => askConfirm({
+                                    title: "Retomar pedido?",
+                                    description: `O pedido ${m.provider_pedido_id.slice(0,8)} voltará para Pedido Iniciado para continuar o envio.`,
+                                    confirmLabel: "Retomar",
+                                    onConfirm: () => setManualStatus(m, "manual_iniciado", { force: true }),
                                   })}>
-                                    <CheckCircle2 className="mr-1 h-3 w-3" /> Concluído
+                                    <Wrench className="mr-1 h-3 w-3" /> Iniciado
                                   </Button>
                                 )}
                                 {(s === "manual_aceito" || s === "manual_iniciado" || s === "manual_limite_atingido") && (
