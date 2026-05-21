@@ -1744,6 +1744,44 @@ export type Database = {
         }
         Relationships: []
       }
+      reseller_license_prices: {
+        Row: {
+          created_at: string
+          id: string
+          method: string
+          pack_id: string
+          price_cents: number
+          reseller_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          method: string
+          pack_id: string
+          price_cents?: number
+          reseller_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          method?: string
+          pack_id?: string
+          price_cents?: number
+          reseller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_license_prices_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reseller_referrals: {
         Row: {
           affiliate_code: string

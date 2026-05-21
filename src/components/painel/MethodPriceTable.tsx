@@ -57,20 +57,27 @@ export default function MethodPriceTable({ method }: { method: Method }) {
         .eq("user_id", user.id)
         .maybeSingle();
       setResellerId(r?.id ?? null);
-      const overrideKey = r ? `licencas.revendedor.${r.id}.${method}` : null;
       const [{ data: setting }, { data: tierData }, ovRes] = await Promise.all([
         supabase.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
         r ? supabase.rpc("get_reseller_tier", { _reseller_id: r.id }) : Promise.resolve({ data: null }),
-        overrideKey
-          ? supabase.from("app_settings").select("value").eq("key", overrideKey).maybeSingle()
-          : Promise.resolve({ data: null } as any),
+        r
+          ? supabase
+              .from("reseller_license_prices")
+              .select("pack_id, price_cents")
+              .eq("reseller_id", r.id)
+              .eq("method", method)
+          : Promise.resolve({ data: [] } as any),
       ]);
       const value = (setting?.value ?? { flow: {}, lovax: {} }) as PriceMap;
       setPrices({ flow: value.flow ?? {}, lovax: value.lovax ?? {} });
       const t = Array.isArray(tierData) ? tierData[0] : tierData;
       setTier(t);
-      const ovValue = ((ovRes as any)?.data?.value ?? {}) as Partial<Record<PackId, number>>;
-      setOverrides(ovValue);
+      const rows = ((ovRes as any)?.data ?? []) as { pack_id: string; price_cents: number }[];
+      const ovMap: Partial<Record<PackId, number>> = {};
+      rows.forEach((row) => {
+        ovMap[row.pack_id as PackId] = row.price_cents / 100;
+      });
+      setOverrides(ovMap);
       setLoading(false);
     })();
   }, [user, method]);
@@ -79,15 +86,29 @@ export default function MethodPriceTable({ method }: { method: Method }) {
     if (!resellerId) return;
     setSaving(true);
     const next = { ...overrides };
+    let error: any = null;
     if (newValue === null || !Number.isFinite(newValue) || newValue <= 0) {
       delete next[pkgId];
+      ({ error } = await supabase
+        .from("reseller_license_prices")
+        .delete()
+        .eq("reseller_id", resellerId)
+        .eq("method", method)
+        .eq("pack_id", pkgId));
     } else {
       next[pkgId] = newValue;
+      ({ error } = await supabase
+        .from("reseller_license_prices")
+        .upsert(
+          {
+            reseller_id: resellerId,
+            method,
+            pack_id: pkgId,
+            price_cents: Math.round(newValue * 100),
+          },
+          { onConflict: "reseller_id,method,pack_id" },
+        ));
     }
-    const key = `licencas.revendedor.${resellerId}.${method}`;
-    const { error } = await supabase
-      .from("app_settings")
-      .upsert({ key, value: next as any }, { onConflict: "key" });
     setSaving(false);
     if (error) {
       toast.error(`Erro ao salvar: ${error.message}`);
