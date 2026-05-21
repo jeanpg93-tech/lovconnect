@@ -69,13 +69,18 @@ Deno.serve(async (req) => {
     .sort((a, b) => a.min_spent_cents - b.min_spent_cents)
     .at(-1);
 
-  // Para CRÉDITOS: se o nível for "Partner", puxar do nível "Black"
+  // Para CRÉDITOS: se o nível for "Partner", usa preços do nível "Ouro" como fallback
+  // (mesma regra usada na tela /painel/gerente/partners).
+  // Overrides individuais em reseller_credit_prices continuam tendo prioridade no front.
   const isPartner = (currentTier?.name ?? "").toLowerCase().includes("partner");
-  const blackTier = allTiers.find((t) => t.name.toLowerCase().includes("black"));
+  const ouroTier =
+    allTiers.find((t) => t.name.toLowerCase() === "ouro") ??
+    allTiers.find((t) => t.name.toLowerCase().includes("ouro")) ??
+    allTiers.find((t) => t.name.toLowerCase().includes("black"));
 
   let effectiveTierId: string | null;
-  if (isPartner && blackTier) {
-    effectiveTierId = blackTier.id;
+  if (isPartner && ouroTier) {
+    effectiveTierId = ouroTier.id;
   } else if (currentTier?.is_hidden) {
     effectiveTierId = equivalentVisibleTier?.id ?? visibleTiers[0]?.id ?? null;
   } else {
