@@ -539,16 +539,16 @@ export default function RevendedorDashboard() {
           { label: "Ativas", count: stats.activeLicenses, cents: null, icon: ShieldCheck, color: "text-purple-500", bg: "bg-purple-500/5" }
         ].map((item, i) => (
           <div key={i} className="rounded-2xl border border-border bg-card p-4 transition-all duration-300 hover:shadow-sm">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="gap-2 mb-2 flex items-center justify-start">
               <div className={cn("p-1.5 rounded-lg", item.bg, item.color)}>
                 <item.icon className="h-3.5 w-3.5" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">{item.label}</span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground text-center">{item.label}</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-black">{item.count}</span>
+              <span className="text-xl font-black text-left">{item.count}</span>
               {item.cents !== null && (
-                <span className="text-[10px] font-bold text-muted-foreground">{fmtBRL(item.cents)}</span>
+                <span className="text-[10px] font-bold text-muted-foreground text-left">{fmtBRL(item.cents)}</span>
               )}
             </div>
           </div>
