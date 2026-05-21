@@ -5,6 +5,11 @@ const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/function
 
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
   switch (type) {
+    case "1d": return { days: 1 };
+    case "7d": return { days: 7 };
+    case "30d": return { days: 30 };
+    case "90d": return { days: 90 };
+    case "365d": return { days: 365 };
     case "pro_1d": return { days: 1 };
     case "pro_7d": return { days: 7 };
     case "pro_15d": return { days: 15 };
