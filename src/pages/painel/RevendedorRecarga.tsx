@@ -469,7 +469,7 @@ export default function RevendedorRecargas() {
                   Planos
                 </TabsTrigger>
                 <TabsTrigger value="rules" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-sm transition-all px-4">
-                  Performance
+                  Limite de uso
                 </TabsTrigger>
                 <TabsTrigger value="api" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-sm transition-all px-4">
                   API
@@ -674,60 +674,136 @@ export default function RevendedorRecargas() {
             </TabsContent>
 
             <TabsContent value="rules" className="animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
-              <div className="grid lg:grid-cols-2 gap-12">
-                <div className="group relative rounded-3xl border border-border bg-card p-1 overflow-hidden transition-all hover:border-primary/30">
-                  <div className="bg-primary/10 p-12 space-y-8 rounded-[3.8rem]">
-                    <div className="flex items-center gap-6 text-left">
-                      <div className="h-16 w-16 rounded-3xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
-                        <CheckCircle2 className="h-8 w-8" />
-                      </div>
-                      <div>
-                        <h3 className="font-display text-4xl font-bold tracking-tight">Venda com Segurança</h3>
-                        <p className="text-primary/60 font-bold  text-[10px] ">Métodos 100% Homologados</p>
-                      </div>
+              <div className="space-y-8">
+                {/* Alerta principal */}
+                <div className="relative overflow-hidden rounded-3xl border border-destructive/30 bg-gradient-to-br from-destructive/10 via-destructive/5 to-transparent p-6 md:p-8">
+                  <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-destructive/20 blur-3xl pointer-events-none" />
+                  <div className="relative flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-destructive text-white shadow-lg shadow-destructive/30">
+                      <AlertTriangle className="h-6 w-6" />
                     </div>
-
-                    <div className="grid gap-4 text-left">
-                    {[
-                      { plan: "Elite (20 Lovable)", limit: "200 envios/dia", icon: MousePointer2 },
-                      { plan: "Master (200 Lovable +)", limit: "1.000 envios/dia", icon: BarChart3 },
-                      { plan: "Enterprise Plan", limit: "2.000 envios/dia", icon: Network }
-                    ].map((rule, i) => (
-                        <div key={i} className="flex items-center justify-between p-6 rounded-3xl bg-white/50 dark:bg-black/20 border border-white dark:border-white/5 backdrop-blur-sm group-hover:scale-[1.02] transition-transform">
-                          <div className="flex items-center gap-4 text-left">
-                            <rule.icon className="h-5 w-5 text-primary opacity-60" />
-                            <span className="font-bold text-sm tracking-tight">{rule.plan}</span>
-                          </div>
-                          <div className="px-4 py-2 rounded-2xl bg-primary/10 text-primary dark:text-primary font-bold text-[10px] ">
-                            {rule.limit}
-                          </div>
-                        </div>
-                      ))}
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive">Atenção</span>
+                      <h3 className="font-display text-2xl md:text-3xl font-bold tracking-tight">Verifique os requisitos antes de continuar</h3>
+                      <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-2xl">
+                        Contas com determinados planos <span className="font-bold text-foreground">Pro</span> e <span className="font-bold text-foreground">Business</span> são compatíveis com nosso sistema de recarga de créditos. Confira abaixo os planos aceitos atualmente.
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border bg-card p-8 space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center">
-                      <ShieldAlert className="h-5 w-5" />
+                {/* Planos compatíveis */}
+                <div className="rounded-3xl border border-border bg-card overflow-hidden">
+                  <div className="flex items-center justify-between gap-4 p-6 border-b border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+                        <CheckCircle2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold tracking-tight">Planos compatíveis</h3>
+                        <p className="text-[11px] text-muted-foreground font-medium">Valores mensais aceitos no sistema</p>
+                      </div>
                     </div>
-                    <h3 className="text-xl font-semibold">Zona de Risco</h3>
+                    <span className="hidden md:inline-flex px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider">Aceitos</span>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border">
                     {[
-                      { title: "Standard 100 Lovable", desc: "Instabilidade Crítica" },
-                      { title: "Planos High (400+)", desc: "Incompatível com Buffer" },
-                      { title: "Contas Compartilhadas", desc: "Bloqueio Automático" }
-                    ].map((ban, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-destructive/5 border border-destructive/10">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-destructive">{ban.title}</span>
-                          <span className="text-[10px] text-muted-foreground">{ban.desc}</span>
+                      { plan: "Plano Free", price: "Gratuito", tag: "Free", accent: "text-muted-foreground" },
+                      { plan: "Pro — 20 créditos", price: "$5/mês", tag: "Pro" },
+                      { plan: "Pro — 200 créditos", price: "$50/mês", tag: "Pro" },
+                      { plan: "Pro — 400 créditos", price: "$100/mês", tag: "Pro" },
+                      { plan: "Pro — 800 créditos", price: "$200/mês", tag: "Pro" },
+                      { plan: "Pro — 10.000 créditos", price: "$2.250/mês", tag: "Pro" },
+                      { plan: "Business — 100 créditos", price: "$50/mês", tag: "Business" },
+                      { plan: "Business — 200 créditos", price: "$100/mês", tag: "Business" },
+                      { plan: "Business — 400 créditos", price: "$200/mês", tag: "Business" },
+                      { plan: "Business — 5.000 créditos", price: "$2.250/mês", tag: "Business" },
+                    ].map((p, i) => (
+                      <div key={i} className="bg-card p-5 flex items-center justify-between gap-3 hover:bg-secondary/40 transition-colors">
+                        <div className="min-w-0">
+                          <span className={cn(
+                            "inline-block px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider mb-1.5",
+                            p.tag === "Pro" && "bg-primary/10 text-primary",
+                            p.tag === "Business" && "bg-blue-500/10 text-blue-500",
+                            p.tag === "Free" && "bg-muted text-muted-foreground"
+                          )}>{p.tag}</span>
+                          <p className="text-sm font-bold tracking-tight truncate">{p.plan}</p>
+                        </div>
+                        <span className={cn("text-sm font-black tracking-tight whitespace-nowrap", p.accent ?? "text-foreground")}>{p.price}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Limite diário */}
+                <div className="rounded-3xl border border-border bg-card p-6 md:p-8 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Zap className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold tracking-tight">Limite diário de recarga</h3>
+                      <p className="text-[11px] text-muted-foreground font-medium">Quantos créditos cada plano libera por dia</p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {[
+                      { plan: "Pro — 20 créditos", limit: "200", unit: "créditos/dia", icon: MousePointer2, tag: "Pro" },
+                      { plan: "Pro — 200 créditos ou superior", limit: "1.000", unit: "créditos/dia", icon: BarChart3, tag: "Pro+" },
+                      { plan: "Business — qualquer plano", limit: "2.000", unit: "créditos/dia", icon: Network, tag: "Business" },
+                    ].map((r, i) => (
+                      <div key={i} className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 p-5 hover:border-primary/40 transition-all">
+                        <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/5 blur-2xl group-hover:bg-primary/10 transition-colors" />
+                        <div className="relative space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                              <r.icon className="h-4 w-4" />
+                            </div>
+                            <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-black uppercase tracking-wider">{r.tag}</span>
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">{r.plan}</p>
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="font-display text-3xl font-black tracking-tighter">{r.limit}</span>
+                              <span className="text-[11px] font-bold text-muted-foreground">{r.unit}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Importante + Confirmação */}
+                <div className="grid lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2 rounded-3xl border border-amber-500/30 bg-amber-500/5 p-6 md:p-8">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500">
+                        <ShieldAlert className="h-5 w-5" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">Importante</span>
+                        <h4 className="text-base font-bold tracking-tight">Pedidos acima do limite diário</h4>
+                        <p className="text-sm text-muted-foreground font-medium leading-relaxed">
+                          Pedidos realizados acima do limite diário do seu plano serão entregues automaticamente <span className="font-bold text-foreground">no dia seguinte, após 24 horas exatas</span>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-6 md:p-8 flex flex-col justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Pronto pra começar</span>
+                    </div>
+                    <p className="text-sm font-bold tracking-tight leading-snug">
+                      Ao continuar, você confirma que leu e concorda com as regras acima.
+                    </p>
+                    <p className="text-[11px] text-muted-foreground font-medium">
+                      Qualquer dúvida, estamos à disposição 🚀
+                    </p>
                   </div>
                 </div>
               </div>
