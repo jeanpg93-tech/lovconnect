@@ -177,6 +177,9 @@ export default function PublicRecharge() {
   const [tutorialStep, setTutorialStep] = useState(0);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [providerAlert, setProviderAlert] = useState<{ enabled: boolean; message: string; eta_minutes: number | null } | null>(null);
+  const [workspaceInput, setWorkspaceInput] = useState("");
+  const [submittingWorkspace, setSubmittingWorkspace] = useState(false);
+  const [workspaceSaved, setWorkspaceSaved] = useState(false);
 
   // Carrega aviso de lentidão do provedor
   useEffect(() => {
