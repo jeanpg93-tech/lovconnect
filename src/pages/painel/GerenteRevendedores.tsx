@@ -179,7 +179,7 @@ export default function GerenteRevendedores() {
       reseller_id: balanceDialog.id,
       kind: cents > 0 ? "manual_credit" : "manual_debit",
       amount_cents: cents,
-      description: balanceDescription.trim() || (cents > 0 ? "Crédito manual pelo gerente" : "Débito manual pelo gerente"),
+      description: balanceDescription.trim() || (cents > 0 ? "Recarga manual pelo gerente" : "Débito manual pelo gerente"),
     });
     setBalanceSaving(false);
     setBalancesByReseller(prev => ({ ...prev, [balanceDialog.id]: newBalance }));

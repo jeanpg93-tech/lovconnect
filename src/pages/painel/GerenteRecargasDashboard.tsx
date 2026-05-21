@@ -186,7 +186,7 @@ export default function GerenteRecargasDashboard() {
     {
       label: "Saldo Disponível",
       value: saldo != null ? `R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—",
-      hint: "Crédito atual no provedor",
+      hint: "Recarga atual no provedor",
       icon: Wallet,
       gradient: "from-primary/20 via-primary/5 to-transparent",
       ring: "ring-primary/20",

@@ -228,7 +228,7 @@ export default function RevendedorAdicionarSaldo() {
                 Recarregar agora
               </div>
               <div className="mt-0.5 text-xs text-muted-foreground">
-                Crédito instantâneo após confirmação do PIX.
+                Recarga instantâneo após confirmação do PIX.
               </div>
             </div>
           </div>

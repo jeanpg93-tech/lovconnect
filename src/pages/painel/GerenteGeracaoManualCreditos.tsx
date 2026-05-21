@@ -503,7 +503,7 @@ export default function GerenteGeracaoManualCreditos() {
                       </span>
                       {precoPorCredito != null && (
                         <span className="text-[11px] text-muted-foreground">
-                          ~ {fmtBRL(precoPorCredito)} / crédito
+                          ~ {fmtBRL(precoPorCredito)} / recarga
                         </span>
                       )}
                     </div>

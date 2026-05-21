@@ -340,7 +340,7 @@ export default function GerenteDashboard() {
     const pagedRecent = merged.slice((orderPage - 1) * ITEMS_PER_PAGE, orderPage * ITEMS_PER_PAGE);
     setRecentOrders(pagedRecent);
 
-    // Movimentações de crédito (entradas e saídas) do sistema inteiro
+    // Movimentações de recarga (entradas e saídas) do sistema inteiro
     const movesData: any[] = (creditMovesRes as any)?.data ?? [];
     const moveResIds = [...new Set(movesData.map((m: any) => m.reseller_id).filter(Boolean))];
     const missingMoveIds = moveResIds.filter((id) => !rMap.has(id));
@@ -586,7 +586,7 @@ export default function GerenteDashboard() {
                 {providerBalance}
               </div>
               <div className="mt-1 text-[10px] text-muted-foreground">
-                crédito disponível para recargas
+                recarga disponível para recargas
               </div>
             </div>
           </div>
@@ -653,7 +653,7 @@ export default function GerenteDashboard() {
                   <ShoppingCart className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="font-display text-base sm:text-lg font-bold tracking-tight">Movimentações de Crédito</h3>
+                  <h3 className="font-display text-base sm:text-lg font-bold tracking-tight">Movimentações de Recarga</h3>
                   <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">entradas e saídas do sistema</p>
                 </div>
               </div>
@@ -700,7 +700,7 @@ export default function GerenteDashboard() {
                       deposit: "Depósito", recharge: "Recargas", bonus: "Bônus", refund: "Estorno",
                       adjustment: "Ajuste", license_purchase: "Compra licença", credit_purchase: "Compra recargas",
                       order: "Pedido", debit: "Débito", order_debit: "Pedido",
-                      manual_credit: "Crédito manual", credit_purchase_refund: "Estorno compra",
+                      manual_credit: "Recarga manual", credit_purchase_refund: "Estorno compra",
                       credit_recharge_api: "Recargas API",
                     };
                     return groups.map((g) => (

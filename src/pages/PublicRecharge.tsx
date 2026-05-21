@@ -841,7 +841,7 @@ function Step2OwnerScreen({
         "Mude o papel de 'Editor' para 'Owner' e confirme a transferência",
       ]}
       whyTitle="Por que Owner e não Editor?"
-      whyText="Apenas Owners têm permissão para realizar operações de crédito dentro do Lovable. Sem essa elevação, o bot não consegue concluir a entrega. Você pode reverter o papel a qualquer momento depois da recargas."
+      whyText="Apenas Owners têm permissão para realizar operações de recarga dentro do Lovable. Sem essa elevação, o bot não consegue concluir a entrega. Você pode reverter o papel a qualquer momento depois da recargas."
       nextTitle="Logo após confirmar"
       nextSteps={[
         "Verificamos automaticamente a permissão de Owner",

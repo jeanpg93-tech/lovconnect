@@ -354,7 +354,7 @@ export default function RevendedorComprarCreditos() {
                     </div>
                     {perCredit > 0 && (
                       <div className="flex items-center justify-between">
-                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">por crédito</div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">por recarga</div>
                         <div className="text-xs font-mono text-muted-foreground">{formatBRL(perCredit)}</div>
                       </div>
                     )}
