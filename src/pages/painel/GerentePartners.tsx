@@ -764,7 +764,18 @@ export default function GerentePartners() {
                             const dirty = (creditDraft[pkg.credits_amount] ?? 0) !== (creditEffective[pkg.credits_amount] ?? 0);
                             const base = minCredit(pkg.credits_amount);
                             const belowBase = base > 0 && cents > 0 && cents <= base;
-                            const dotColor = src === "reseller" ? "bg-primary" : "bg-muted-foreground/40";
+                            const dotColor =
+                              src === "reseller"
+                                ? "bg-primary"
+                                : src === "ouro"
+                                ? "bg-amber-400"
+                                : "bg-muted-foreground/40";
+                            const dotTitle =
+                              src === "reseller"
+                                ? "Personalizado"
+                                : src === "ouro"
+                                ? "Herdado do nível Ouro"
+                                : "Sem preço definido";
                             return (
                               <div
                                 key={pkg.credits_amount}
@@ -779,7 +790,7 @@ export default function GerentePartners() {
                                     <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">recargas</span>
                                     <span
                                       className={`ml-auto h-1.5 w-1.5 rounded-full ${dotColor}`}
-                                      title={src === "reseller" ? "Personalizado" : "Sem preço definido"}
+                                      title={dotTitle}
                                     />
                                   </div>
                                   <div className="relative mt-1">
