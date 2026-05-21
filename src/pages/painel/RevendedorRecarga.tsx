@@ -1004,29 +1004,6 @@ export default function RevendedorRecargas() {
       {/* 
           DOCK NAVIGATION - ULTRA MINIMALIST 
       */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-6 md:hidden">
-        <div className="bg-background border border-border p-2 rounded-2xl shadow-xl flex items-center justify-between">
-          <Link to="/painel/revendedor" className="flex h-12 w-12 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary transition-all">
-            <LayoutDashboard className="h-5 w-5" />
-          </Link>
-          
-          <div className="flex bg-secondary rounded-xl p-1 gap-1">
-            <Link to="/painel/revendedor/licencas" className="flex items-center gap-2 px-4 h-10 rounded-lg text-muted-foreground hover:text-foreground transition-all font-semibold text-[11px]">
-              <History className="h-4 w-4" />
-              <span className="hidden sm:inline">Vendas</span>
-            </Link>
-            <Link to="/painel/revendedor/recargas" className="flex items-center gap-2 px-6 h-10 rounded-lg bg-primary text-white shadow-md transition-all font-semibold text-[11px]">
-              <Zap className="h-4 w-4" />
-              <span>Recargas</span>
-            </Link>
-          </div>
-
-          <Link to="/painel/revendedor/pedidos" className="flex h-12 w-12 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary transition-all">
-            <KeyRound className="h-5 w-5" />
-          </Link>
-        </div>
-      </div>
-
       <BuyCreditsFlowModal
         open={modalOpen}
         onOpenChange={setModalOpen}
