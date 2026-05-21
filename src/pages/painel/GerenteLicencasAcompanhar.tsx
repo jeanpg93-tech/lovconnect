@@ -176,8 +176,8 @@ export default function GerenteLicencasAcompanhar() {
         }
       };
       const [
-        { data: providerData, error: providerError },
-        { data: lovaxData, error: lovaxError },
+        resProvider,
+        resLovax,
         { data: resellersData },
         { data: apiKeysData },
         { data: dbOrdersData },
@@ -194,6 +194,11 @@ export default function GerenteLicencasAcompanhar() {
           .select("license_key, reseller_id")
           .not("license_key", "is", null),
       ]);
+
+      const providerData = resProvider?.data;
+      const providerError = resProvider?.error;
+      const lovaxData = resLovax?.data;
+      const lovaxError = resLovax?.error;
 
       if (providerError && lovaxError) {
         toast.error(`Erro ao carregar: ${providerError.message} / ${lovaxError.message}`);
