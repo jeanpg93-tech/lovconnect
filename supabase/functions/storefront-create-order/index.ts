@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const MISTIC_BASE = "https://api.misticpay.com/api";
-const ALLOWED_TYPES = ["pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
+const ALLOWED_TYPES = ["1d", "7d", "30d", "90d", "365d", "pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -86,7 +86,18 @@ Deno.serve(async (req) => {
       credit_amount = rec.credits_amount;
     } else if (license_type) {
       // It's a license purchase
-      if (extension_id) {
+      const method = (store as any).extension_method === "lovax" ? "lovax" : "flow";
+      const { data: methodPrice } = await admin
+        .from("reseller_license_prices")
+        .select("price_cents")
+        .eq("reseller_id", reseller.id)
+        .eq("method", method)
+        .eq("pack_id", license_type)
+        .gt("price_cents", 0)
+        .maybeSingle();
+      if (methodPrice?.price_cents) {
+        price_cents = methodPrice.price_cents;
+      } else if (extension_id) {
         // legado: vitrine por extensão
         if (!(store.visible_extension_ids as string[] | null)?.includes(extension_id)) {
           return json({ error: "Produto indisponível" }, 400);
