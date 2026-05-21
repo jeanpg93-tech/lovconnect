@@ -162,7 +162,7 @@ export default function GerenteAcompanharRecargas() {
       if (ids.length > 0) {
         const { data: purchases } = await supabase
           .from("reseller_credit_purchases")
-          .select("provider_pedido_id, reseller_id, resellers:reseller_id(display_name, user_id)")
+          .select("provider_pedido_id, reseller_id, price_cents, status, resellers:reseller_id(display_name, user_id)")
           .in("provider_pedido_id", ids);
         const userIds = Array.from(new Set((purchases ?? []).map((p: any) => p.resellers?.user_id).filter(Boolean)));
         let emailMap = new Map<string, string>();
@@ -171,10 +171,15 @@ export default function GerenteAcompanharRecargas() {
           emailMap = new Map((profs ?? []).map((p: any) => [p.id, p.email]));
         }
         const respMap = new Map<string, { nome: string | null; email: string | null }>();
+        const priceMap = new Map<string, { price_cents: number | null; refunded: boolean }>();
         for (const p of (purchases ?? []) as any[]) {
           respMap.set(p.provider_pedido_id, {
             nome: p.resellers?.display_name ?? null,
             email: p.resellers?.user_id ? (emailMap.get(p.resellers.user_id) ?? null) : null,
+          });
+          priceMap.set(p.provider_pedido_id, {
+            price_cents: p.price_cents ?? null,
+            refunded: p.status === "estornado",
           });
         }
         for (const o of orders) {
@@ -182,6 +187,11 @@ export default function GerenteAcompanharRecargas() {
           if (r) {
             o.responsavel_nome = r.nome;
             o.responsavel_email = r.email;
+          }
+          const pr = priceMap.get(o.id);
+          if (pr) {
+            o.price_cents = pr.price_cents;
+            o.refunded = pr.refunded;
           }
         }
       }
