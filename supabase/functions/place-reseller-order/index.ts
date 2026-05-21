@@ -47,8 +47,11 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const extension_id = body.extension_id ? String(body.extension_id) : null;
     const is_test = body.is_test === true;
+    const method = typeof body.method === "string" ? body.method.toLowerCase() : "";
     // licenças teste sempre forçam type "trial" no nosso registro
-    const license_type = is_test ? "trial" : String(body.license_type ?? "");
+    const license_type = is_test
+      ? (method ? `${method}_trial` : "trial")
+      : String(body.license_type ?? "");
     const client_id = body.client_id ? String(body.client_id) : null;
     const display_name = typeof body.display_name === "string" ? body.display_name.trim().slice(0, 100) : "";
     const whatsapp_raw = typeof body.whatsapp === "string" ? body.whatsapp : "";
@@ -305,7 +308,7 @@ Deno.serve(async (req) => {
     try {
       const endpoint = is_test ? `${base}/generate-trial` : `${base}/generate-license`;
       const payload: Record<string, unknown> = is_test
-        ? { display_name: final_display_name, minutes: 30, seconds: 0 }
+        ? { display_name: final_display_name, minutes: 30, seconds: 0, ...(method ? { method, extension: method } : {}) }
         : { ...mapTypeToProviderBody(license_type), display_name: final_display_name };
       const r = await fetch(endpoint, {
         method: "POST",
