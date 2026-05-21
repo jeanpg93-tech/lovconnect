@@ -201,7 +201,11 @@ export default function RevendedorBaixarExtensao() {
                       variant="outline"
                       className="h-9 px-3"
                       onClick={() => {
-                        const url = `${window.location.origin}/extensao/${e.slug}`;
+                        const path =
+                          e.slug === "extension-lovax"
+                            ? "/Extension-lovax"
+                            : "/Extension-flow";
+                        const url = `${window.location.origin}${path}`;
                         navigator.clipboard.writeText(url).then(
                           () => toast.success("Link copiado!"),
                           () => toast.error("Não foi possível copiar"),
