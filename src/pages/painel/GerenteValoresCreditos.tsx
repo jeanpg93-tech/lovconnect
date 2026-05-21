@@ -121,7 +121,7 @@ export default function GerenteValoresCreditos() {
   };
 
   const computeAutoFromDiscount = (tier: Tier, plan: Plan): number => {
-    const base = plan.price_cents;
+    const base = costs[plan.credits_amount] ?? plan.price_cents;
     const discount = Number(tier.discount_percent) || 0;
     return Math.round(base * (1 + discount / 100));
   };
