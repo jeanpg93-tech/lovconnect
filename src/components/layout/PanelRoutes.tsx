@@ -26,7 +26,6 @@ const GerenteValoresCreditos = lazy(() => import("@/pages/painel/GerenteValoresC
 const GerenteNiveis = lazy(() => import("@/pages/painel/GerenteNiveis"));
 const GerenteRankingPrizes = lazy(() => import("@/pages/painel/GerenteRankingPrizes"));
 const GerenteZonaRisco = lazy(() => import("@/pages/painel/GerenteZonaRisco"));
-const GerenteWhatsappTemplate = lazy(() => import("@/pages/painel/GerenteWhatsappTemplate"));
 const GerenteAvisos = lazy(() => import("@/pages/painel/GerenteAvisos"));
 const GerenteTodasLicencas = lazy(() => import("@/pages/painel/GerenteTodasLicencas"));
 const GerentePartners = lazy(() => import("@/pages/painel/GerentePartners"));
@@ -48,7 +47,6 @@ const RevendedorPedidos = lazy(() => import("@/pages/painel/RevendedorPedidos"))
 const RevendedorAdicionarSaldo = lazy(() => import("@/pages/painel/RevendedorAdicionarSaldo"));
 const RevendedorCarteira = lazy(() => import("@/pages/painel/RevendedorCarteira"));
 const RevendedorIntegracaoMisticPay = lazy(() => import("@/pages/painel/RevendedorIntegracaoMisticPay"));
-const RevendedorIntegracaoEvolution = lazy(() => import("@/pages/painel/RevendedorIntegracaoEvolution"));
 const RevendedorMinhaLoja = lazy(() => import("@/pages/painel/RevendedorMinhaLoja"));
 const RevendedorIndicacoes = lazy(() => import("@/pages/painel/RevendedorIndicacoes"));
 const RevendedorApi = lazy(() => import("@/pages/painel/RevendedorApi"));
