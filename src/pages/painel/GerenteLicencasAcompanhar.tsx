@@ -195,8 +195,8 @@ export default function GerenteLicencasAcompanhar() {
           .not("license_key", "is", null),
       ]);
 
-      if ((providerError || providerData?.error) && (lovaxError || lovaxData?.error)) {
-        toast.error(providerError?.message || providerData?.error || lovaxError?.message || lovaxData?.error || "Erro ao carregar licenças");
+      if (providerError && lovaxError) {
+        toast.error(`Erro ao carregar: ${providerError.message} / ${lovaxError.message}`);
         setLoading(false);
         return;
       }
