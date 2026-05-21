@@ -599,9 +599,37 @@ export default function GerenteAcompanharRecargas() {
                             {new Date(u.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="Detalhes" onClick={() => { setDetailsData(u); setDetailsOpen(true); }}>
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
+                            <div className="flex items-center justify-end gap-1">
+                              {u.status.toLowerCase() === "cancelado" && !u.refunded && (u.price_cents ?? 0) > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-1.5 sm:px-2 text-[10px] font-bold uppercase border-rose-500/40 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20"
+                                  title="Estornar venda"
+                                  onClick={() => {
+                                    setRefundData({
+                                      tipo: "credits",
+                                      provider_pedido_id: u.id,
+                                      reseller_label: u.responsavel_nome || u.responsavel_email,
+                                      price_cents: u.price_cents ?? 0,
+                                      extra_info: u.license_type,
+                                    });
+                                    setRefundDialogOpen(true);
+                                  }}
+                                >
+                                  <Undo2 className="h-3.5 w-3.5 sm:mr-1" />
+                                  <span className="hidden sm:inline">Estornar</span>
+                                </Button>
+                              )}
+                              {u.refunded && (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sky-400">
+                                  <Undo2 className="h-2.5 w-2.5" /> Estornado
+                                </span>
+                              )}
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="Detalhes" onClick={() => { setDetailsData(u); setDetailsOpen(true); }}>
+                                <Eye className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       );
