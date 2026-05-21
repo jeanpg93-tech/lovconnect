@@ -295,27 +295,27 @@ export default function RevendedorRecargas() {
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
-              <div className="group relative overflow-hidden rounded-2xl border border-border bg-card/50 backdrop-blur-sm p-5 text-left transition-all hover:border-primary/40">
+            <div className="grid grid-cols-2 gap-3 w-full max-w-xl">
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-card/50 backdrop-blur-sm p-3 sm:p-5 text-left transition-all hover:border-primary/40">
                 <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-primary/5 blur-2xl group-hover:bg-primary/10 transition-colors" />
                 <div className="relative flex items-center gap-2 mb-2">
                   <Wallet className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">Saldo Disponível</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">Saldo Disponível</span>
                 </div>
-                <div className="relative text-2xl md:text-3xl font-bold tabular-nums tracking-tight">
+                <div className="relative text-lg sm:text-2xl md:text-3xl font-bold tabular-nums tracking-tight">
                   {formatBRL(balance)}
                 </div>
               </div>
 
-              <div className="group relative overflow-hidden rounded-2xl border border-border bg-card/50 backdrop-blur-sm p-5 text-left transition-all hover:border-primary/40">
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-card/50 backdrop-blur-sm p-3 sm:p-5 text-left transition-all hover:border-primary/40">
                 <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-primary/5 blur-2xl group-hover:bg-primary/10 transition-colors" />
-                <div className="relative flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
+                <div className="relative flex items-center justify-between gap-1 mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <Zap className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">Modo de Pedido</span>
+                    <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] truncate">Modo de Pedido</span>
                   </div>
                   <span className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider shrink-0",
                     buyDisabled
                       ? "bg-amber-500/10 text-amber-500"
                       : "bg-emerald-500/10 text-emerald-500"
@@ -328,7 +328,7 @@ export default function RevendedorRecargas() {
                   </span>
                 </div>
                 <div className="relative flex items-baseline gap-2">
-                  <span className="text-2xl md:text-3xl font-bold tracking-tight">
+                  <span className="text-lg sm:text-2xl md:text-3xl font-bold tracking-tight">
                     {rechargeSettings.maintenance_enabled
                       ? "Manutenção"
                       : activeMode === "automatico"
