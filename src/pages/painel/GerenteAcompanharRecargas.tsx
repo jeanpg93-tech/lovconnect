@@ -33,6 +33,7 @@ type ManualOrder = {
   price_cents: number;
   status: string;
   created_at: string;
+  updated_at?: string | null;
   tipo_entrega: string;
   workspace_name?: string | null;
   invite_status?: string | null;
@@ -70,6 +71,12 @@ export default function GerenteAcompanharRecargas() {
     onConfirm: () => void | Promise<void>;
   } | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const askConfirm = (data: {
     title: string;
@@ -184,7 +191,7 @@ export default function GerenteAcompanharRecargas() {
   const loadManualOrders = async () => {
     const { data: rows } = await supabase
       .from("reseller_credit_purchases")
-      .select("id, provider_pedido_id, credits, price_cents, status, created_at, tipo_entrega, provider_response, reseller_id, resellers:reseller_id(display_name, user_id)")
+      .select("id, provider_pedido_id, credits, price_cents, status, created_at, updated_at, tipo_entrega, provider_response, reseller_id, resellers:reseller_id(display_name, user_id)")
       .contains("provider_response", { manual: true } as any)
       .order("created_at", { ascending: false })
       .limit(500);
@@ -213,6 +220,7 @@ export default function GerenteAcompanharRecargas() {
         price_cents: r.price_cents,
         status: r.status ?? "manual_pendente",
         created_at: r.created_at,
+        updated_at: r.updated_at,
         tipo_entrega: r.tipo_entrega,
         workspace_name: meta?.workspace_name ?? null,
         invite_status: meta?.invite_status ?? null,
@@ -663,9 +671,43 @@ export default function GerenteAcompanharRecargas() {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex flex-col items-center gap-1">
-                            <span className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wide", meta.cls)}>
-                              <meta.Icon className="h-3 w-3" />
-                              {meta.label}
+                            <span className={cn(
+                              "inline-flex rounded-2xl border px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wide",
+                              s === "manual_limite_atingido" ? "flex-col items-center gap-1" : "items-center gap-1 rounded-full py-0.5",
+                              meta.cls,
+                            )}>
+                              <span className="inline-flex items-center gap-1">
+                                <meta.Icon className="h-3 w-3" />
+                                {meta.label}
+                              </span>
+                              {s === "manual_limite_atingido" && (() => {
+                                const startMs = m.updated_at ? Date.parse(m.updated_at) : Date.parse(m.created_at);
+                                const endsAt = (isFinite(startMs) ? startMs : nowTick) + 24 * 60 * 60 * 1000;
+                                const remaining = Math.max(0, endsAt - nowTick);
+                                if (remaining <= 0) {
+                                  return (
+                                    <button
+                                      onClick={() => askConfirm({
+                                        title: "Continuar pedido?",
+                                        description: `O pedido ${m.provider_pedido_id.slice(0,8)} voltará para Pedido Iniciado para retomada do envio.`,
+                                        confirmLabel: "Continuar",
+                                        onConfirm: () => setManualStatus(m, "manual_iniciado", { force: true }),
+                                      })}
+                                      className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300 hover:bg-emerald-500/30"
+                                    >
+                                      Continuar
+                                    </button>
+                                  );
+                                }
+                                const hh = String(Math.floor(remaining / 3_600_000)).padStart(2, "0");
+                                const mm = String(Math.floor((remaining % 3_600_000) / 60_000)).padStart(2, "0");
+                                const ss = String(Math.floor((remaining % 60_000) / 1000)).padStart(2, "0");
+                                return (
+                                  <span className="rounded-full bg-orange-500/30 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-orange-100">
+                                    {hh}:{mm}:{ss}
+                                  </span>
+                                );
+                              })()}
                             </span>
                             {isFail && m.notes && (
                               <span className="max-w-[180px] truncate text-[10px] text-red-500/80" title={m.notes}>{m.notes}</span>
