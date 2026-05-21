@@ -202,14 +202,14 @@ export default function GerenteAcompanharRecargas() {
   const setManualStatus = async (
     m: ManualOrder,
     status: "manual_pendente" | "manual_aceito" | "manual_iniciado" | "manual_concluido" | "manual_sem_sucesso",
-    extra?: { notes?: string | null },
+    extra?: { notes?: string | null; force?: boolean },
   ) => {
     // Garante a sequência: Pendente → Aceito → Iniciado → Concluído.
     // "Sem sucesso" pode ser acionado a partir de qualquer status não-final.
     const ORDER = ["manual_pendente", "manual_aceito", "manual_iniciado", "manual_concluido"] as const;
     const current = (m.status || "manual_pendente") as string;
     const finalSet = new Set(["manual_concluido", "manual_entregue", "manual_sem_sucesso"]);
-    if (status !== "manual_sem_sucesso") {
+    if (!extra?.force && status !== "manual_sem_sucesso") {
       if (finalSet.has(current)) {
         toast.error("Pedido já finalizado.");
         return;
@@ -220,7 +220,7 @@ export default function GerenteAcompanharRecargas() {
         toast.error("Sequência inválida. Avance um passo por vez.");
         return;
       }
-    } else if (finalSet.has(current)) {
+    } else if (!extra?.force && finalSet.has(current)) {
       toast.error("Pedido já finalizado.");
       return;
     }
@@ -667,6 +667,21 @@ export default function GerenteAcompanharRecargas() {
                                 {s === "manual_iniciado" && (
                                   <Button size="sm" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_concluido", { notes: null })}>
                                     <CheckCircle2 className="mr-1 h-3 w-3" /> Concluído
+                                  </Button>
+                                )}
+                                {(s === "manual_aceito" || s === "manual_iniciado") && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                    title="Voltar para Pendente"
+                                    onClick={() => {
+                                      if (confirm("Voltar este pedido para o status Pendente?")) {
+                                        setManualStatus(m, "manual_pendente", { force: true });
+                                      }
+                                    }}
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
                                 <DropdownMenu>
