@@ -21,6 +21,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 type LicenseDef = {
   key: string;
@@ -89,6 +90,7 @@ const TYPE_LABEL: Record<string, string> = Object.fromEntries(
 
 export default function GerenteGeracaoManual() {
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [method, setMethod] = useState<"promptflow" | "lovax">("promptflow");
   const [genType, setGenType] = useState<string>("pro_30d");
   const [genName, setGenName] = useState("");
   const [genWhatsapp, setGenWhatsapp] = useState("");
@@ -196,6 +198,17 @@ export default function GerenteGeracaoManual() {
         description="Crie chaves de extensão na hora — direto pelo provedor"
       />
 
+      <Tabs value={method} onValueChange={(v) => setMethod(v as "promptflow" | "lovax")} className="mt-6">
+        <TabsList className="w-full justify-start">
+          <TabsTrigger value="promptflow" className="gap-2">
+            <Zap className="h-4 w-4" /> Método - PromptFlow
+          </TabsTrigger>
+          <TabsTrigger value="lovax" className="gap-2">
+            <Sparkles className="h-4 w-4" /> Método - LovaX
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Hero */}
       <div className="mt-6 relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/15 via-card/80 to-card/40 p-6 backdrop-blur-sm">
         <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
@@ -205,9 +218,11 @@ export default function GerenteGeracaoManual() {
             <Sparkles className="h-6 w-6 text-primary" />
           </div>
           <div className="flex-1">
-            <h2 className="font-display text-xl font-semibold">Nova licença em segundos</h2>
+            <h2 className="font-display text-xl font-semibold">
+              Nova licença em segundos · {method === "lovax" ? "LovaX" : "PromptFlow"}
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Escolha o tipo, dê um nome e a chave aparece pronta para copiar. O valor é debitado do seu saldo.
+              Gerando pelo método <strong>{method === "lovax" ? "LovaX" : "PromptFlow"}</strong>. Escolha o tipo, dê um nome e a chave aparece pronta para copiar.
             </p>
           </div>
         </div>
