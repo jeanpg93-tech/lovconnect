@@ -119,7 +119,7 @@ export default function GerenteLicencasAcompanhar() {
   const [apiKeys, setApiKeys] = useState<Record<string, { label: string; reseller_id: string }>>({});
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
-  const [showExpired, setShowExpired] = useState<string>("active");
+  const [showExpired, setShowExpired] = useState<string>("all");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [mobileExpandedRow, setMobileExpandedRow] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -162,14 +162,18 @@ export default function GerenteLicencasAcompanhar() {
               "Content-Type": "application/json",
             },
           });
+          const body = await r.text();
+          let parsed = {};
+          try { 
+            parsed = JSON.parse(body); 
+          } catch { 
+            parsed = { error: body || `HTTP ${r.status}` }; 
+          }
+          
           if (!r.ok) {
-            const body = await r.text();
-            let parsed = {};
-            try { parsed = JSON.parse(body); } catch { parsed = { error: body }; }
             return { data: parsed, error: { message: (parsed as any).error || `HTTP ${r.status}` } };
           }
-          const data = await r.json();
-          return { data, error: null };
+          return { data: parsed, error: null };
         } catch (e: any) {
           console.error(`[fetchFn] Error for ${path}:`, e);
           return { data: null, error: { message: e?.message || "network error" } };
@@ -245,7 +249,7 @@ export default function GerenteLicencasAcompanhar() {
         storefrontMap[o.license_key] = { reseller_id: o.reseller_id };
       });
 
-      const usage = (providerData?.usage ?? []) as any[];
+      const usage = ((providerData as any)?.usage ?? []) as any[];
       const list: OrderRow[] = usage.map(u => {
         const local = ordersMap[u.license_key];
         const sf = storefrontMap[u.license_key];
@@ -286,7 +290,7 @@ export default function GerenteLicencasAcompanhar() {
         };
       });
 
-      const lovaxUsage = (lovaxData?.usage ?? []) as any[];
+      const lovaxUsage = ((lovaxData as any)?.usage ?? []) as any[];
       const lovaxList: OrderRow[] = lovaxUsage.map((u: any) => {
         const local = ordersMap[u.license_key];
         const sf = storefrontMap[u.license_key];
