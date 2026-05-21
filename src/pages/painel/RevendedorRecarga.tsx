@@ -465,7 +465,7 @@ export default function RevendedorRecargas() {
         <div className="container mx-auto max-w-7xl">
           <Tabs defaultValue="plans" className="space-y-12" id="plans-tabs">
             <div className="flex justify-center border-b border-border">
-              <TabsList className="bg-transparent h-12 gap-2 sm:gap-8 px-0 w-full sm:w-auto justify-start sm:justify-center overflow-x-auto no-scrollbar">
+              <TabsList className="bg-transparent h-12 gap-2 sm:gap-8 px-0 w-full sm:w-auto justify-start sm:justify-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 <TabsTrigger value="plans" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
                   Planos
                 </TabsTrigger>
