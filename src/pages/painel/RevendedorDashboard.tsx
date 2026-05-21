@@ -555,7 +555,7 @@ export default function RevendedorDashboard() {
       </div>
 
       {/* GRÁFICOS */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="hidden md:grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <section className="rounded-2xl border border-border bg-card p-4 md:p-6 md:col-span-2 lg:col-span-2">
           <div className="flex items-center justify-between mb-4 md:mb-6">
             <h3 className="text-base md:text-lg font-bold flex items-center gap-2">
