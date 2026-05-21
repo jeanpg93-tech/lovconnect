@@ -110,8 +110,11 @@ export function MobileNav() {
   return (
     <>
       {/* Mobile Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 md:hidden">
-        <header className="flex h-14 items-center justify-between bg-background/95 backdrop-blur-xl border-b border-border px-3">
+      <div
+        className="fixed top-0 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-xl border-b border-border"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <header className="flex h-14 items-center justify-between px-3">
           <Button
             variant="ghost"
             size="icon"
