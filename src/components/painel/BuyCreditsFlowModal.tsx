@@ -1064,6 +1064,45 @@ export function BuyCreditsFlowModal({
         </DialogContent>
       </Dialog>
 
+      {/* Confirmação do workspace */}
+      <AlertDialog open={confirmWorkspaceOpen} onOpenChange={setConfirmWorkspaceOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar nome do workspace</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Confira se o nome do workspace está exatamente igual ao do cliente. Esse nome será usado para entregar os créditos.</p>
+                <div className="rounded-lg border border-border bg-muted/40 p-3 text-center">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Workspace informado</div>
+                  <div className="text-base font-semibold text-foreground break-all">{workspaceName.trim() || "—"}</div>
+                </div>
+                <p className="text-xs text-muted-foreground">Se estiver errado, cancele e corrija antes de continuar.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={savingMeta}>Revisar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={savingMeta || !workspaceName.trim()}
+              onClick={async (e) => {
+                e.preventDefault();
+                const ok = await saveManualMetadata("sent");
+                if (ok) {
+                  setConfirmWorkspaceOpen(false);
+                  setManualSubStep("tracking");
+                }
+              }}
+            >
+              {savingMeta ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Confirmando...</>
+              ) : (
+                "Confirmar e continuar"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Policies modal */}
       <Dialog open={policyOpen} onOpenChange={setPolicyOpen}>
         <DialogContent className="max-w-lg w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] max-h-[calc(100dvh-1rem)] overflow-y-auto overflow-x-hidden p-4 pr-10 sm:p-6 sm:pr-12">
