@@ -43,11 +43,14 @@ Deno.serve(async (req) => {
 
     const { data: store } = await svc
       .from("reseller_storefronts")
-      .select("is_enabled, show_free_trial")
+      .select("is_enabled, show_free_trial, extension_method")
       .eq("reseller_id", reseller.id)
       .maybeSingle();
     if (!store || !store.is_enabled) return json({ error: "Loja desativada" }, 404);
     if (!store.show_free_trial) return json({ error: "Chave teste indisponível nesta loja" }, 403);
+
+    const method: "flow" | "lovax" =
+      (store as any).extension_method === "lovax" ? "lovax" : "flow";
 
     // Limite diário: override específico do revendedor ou tier padrão
     let dailyLimit = 10;
@@ -126,37 +129,70 @@ Deno.serve(async (req) => {
     }).select().single();
     if (ordErr || !order) return json({ error: "Falha ao criar pedido" }, 500);
 
-    // chama provedor
-    const { data: cfg } = await svc
-      .from("provider_settings")
-      .select("api_key,base_url")
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
-    const base = cfg?.base_url ?? DEFAULT_BASE;
-
-    if (!apiKey) {
-      await svc.from("orders").update({ status: "failed", error_message: "Provedor não configurado" }).eq("id", order.id);
-      return json({ error: "Provedor não configurado pelo gerente" }, 500);
-    }
-
+    // chama provedor de acordo com o método escolhido pela loja
     let providerData: any = null;
+    let license_key: string | null = null;
     try {
-      const r = await fetch(`${base}/generate-trial`, {
-        method: "POST",
-        headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ display_name: final_display_name, minutes: 30, seconds: 0 }),
-      });
-      const text = await r.text();
-      try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
-      if (!r.ok) {
-        await svc.from("orders").update({
-          status: "failed",
-          error_message: `Provedor retornou ${r.status}`,
-          provider_response: providerData,
-        }).eq("id", order.id);
-        return json({ error: "Falha no provedor", details: providerData }, 502);
+      if (method === "lovax") {
+        const { data: settings } = await svc
+          .from("app_settings")
+          .select("key, value")
+          .in("key", ["lovax_api_token", "lovax_base_url"]);
+        const tk = settings?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined;
+        const bs = (settings?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined)
+          || "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
+        if (!tk) {
+          await svc.from("orders").update({ status: "failed", error_message: "MétodoLovax não configurado" }).eq("id", order.id);
+          return json({ error: "MétodoLovax não configurado pelo gerente" }, 500);
+        }
+        const r = await fetch(bs, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tk}`, "x-api-key": tk, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "generate_trial",
+            payload: { customer_name: final_display_name, minutes: 30, max_devices: 1 },
+          }),
+        });
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        if (!r.ok || !providerData?.success) {
+          await svc.from("orders").update({
+            status: "failed",
+            error_message: providerData?.error ?? `Lovax retornou ${r.status}`,
+            provider_response: providerData,
+          }).eq("id", order.id);
+          return json({ error: "Falha no MétodoLovax", details: providerData }, 502);
+        }
+        license_key = providerData?.license?.license_key ?? providerData?.license_key ?? providerData?.key ?? null;
+      } else {
+        const { data: cfg } = await svc
+          .from("provider_settings")
+          .select("api_key,base_url")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
+        const base = cfg?.base_url ?? DEFAULT_BASE;
+        if (!apiKey) {
+          await svc.from("orders").update({ status: "failed", error_message: "MétodoFlow não configurado" }).eq("id", order.id);
+          return json({ error: "MétodoFlow não configurado pelo gerente" }, 500);
+        }
+        const r = await fetch(`${base}/generate-trial`, {
+          method: "POST",
+          headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ display_name: final_display_name, minutes: 30, seconds: 0 }),
+        });
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        if (!r.ok) {
+          await svc.from("orders").update({
+            status: "failed",
+            error_message: `MétodoFlow retornou ${r.status}`,
+            provider_response: providerData,
+          }).eq("id", order.id);
+          return json({ error: "Falha no MétodoFlow", details: providerData }, 502);
+        }
+        license_key = providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
       }
     } catch (e) {
       await svc.from("orders").update({
@@ -165,9 +201,6 @@ Deno.serve(async (req) => {
       }).eq("id", order.id);
       return json({ error: "Erro ao chamar provedor" }, 502);
     }
-
-    const license_key =
-      providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
 
     await svc.from("orders").update({
       status: "completed",

@@ -98,8 +98,7 @@ export default function RevendedorMinhaLoja() {
   const [savingSlug, setSavingSlug] = useState(false);
 
   const [showExtensions, setShowExtensions] = useState(true);
-  const [showPromptFlow, setShowPromptFlow] = useState(true);
-  const [showLovaX, setShowLovaX] = useState(true);
+  const [extensionMethod, setExtensionMethod] = useState<"flow" | "lovax">("flow");
   const [showProducts, setShowProducts] = useState(true);
   const [showFreeTrial, setShowFreeTrial] = useState(true);
   const [showCredits, setShowCredits] = useState(true);
@@ -175,6 +174,7 @@ export default function RevendedorMinhaLoja() {
         setShowProducts(!!(store as any).show_products);
         setShowFreeTrial(!!(store as any).show_free_trial);
         setShowCredits(!!(store as any).show_credits);
+        setExtensionMethod(((store as any).extension_method === "lovax" ? "lovax" : "flow"));
         setAccessExtEnabled(!!(store as any).access_extension_enabled);
         setAccessExtMode((((store as any).access_extension_mode) ?? "native") as "native" | "custom");
         setAccessExtCustomUrl((store as any).access_extension_custom_url ?? "");
@@ -451,6 +451,7 @@ export default function RevendedorMinhaLoja() {
       show_products: showProducts,
       show_free_trial: showFreeTrial,
       show_credits: showCredits,
+      extension_method: extensionMethod,
       access_extension_enabled: accessExtEnabled,
       access_extension_mode: accessExtMode,
       access_extension_custom_url: accessExtCustomUrl.trim() || null,
@@ -994,48 +995,47 @@ export default function RevendedorMinhaLoja() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <div className="text-sm font-bold flex items-center gap-2">
-                        <Sparkles className="h-3.5 w-3.5 text-violet-500" /> Extensão PromptFlow
-                      </div>
-                      <div className="text-xs text-muted-foreground">Disponibiliza a extensão PromptFlow na loja.</div>
+                <div className="rounded-xl border bg-muted/30 p-4 space-y-3">
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-bold">Método da extensão</div>
+                    <div className="text-xs text-muted-foreground">
+                      Escolha apenas um método. A loja vai gerar as licenças (compra e teste) usando a API correspondente.
                     </div>
-                    <Switch
-                      checked={showPromptFlow}
-                      onCheckedChange={(v) => {
-                        if (!v && !showLovaX) {
-                          toast.error("Pelo menos uma extensão precisa estar ativa.");
-                          return;
-                        }
-                        setShowPromptFlow(v);
-                      }}
-                    />
                   </div>
-
-                  <div className="flex items-center justify-between pt-3 border-t border-dashed">
-                    <div className="space-y-0.5">
-                      <div className="text-sm font-bold flex items-center gap-2">
-                        <Zap className="h-3.5 w-3.5 text-cyan-500" /> Extensão LovaX
+                  <div className="grid gap-3 sm:grid-cols-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setExtensionMethod("flow")}
+                      className={`text-left rounded-xl border p-4 transition ${
+                        extensionMethod === "flow"
+                          ? "border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/40"
+                          : "border-border bg-background hover:border-violet-500/40"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 text-sm font-bold">
+                        <Sparkles className="h-4 w-4 text-violet-500" /> PromptFlow
                       </div>
-                      <div className="text-xs text-muted-foreground">Disponibiliza a extensão LovaX na loja.</div>
-                    </div>
-                    <Switch
-                      checked={showLovaX}
-                      onCheckedChange={(v) => {
-                        if (!v && !showPromptFlow) {
-                          toast.error("Pelo menos uma extensão precisa estar ativa.");
-                          return;
-                        }
-                        setShowLovaX(v);
-                      }}
-                    />
+                      <div className="text-[11px] text-muted-foreground mt-1">
+                        Licenças geradas pela API do MétodoFlow.
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExtensionMethod("lovax")}
+                      className={`text-left rounded-xl border p-4 transition ${
+                        extensionMethod === "lovax"
+                          ? "border-cyan-500 bg-cyan-500/10 ring-2 ring-cyan-500/40"
+                          : "border-border bg-background hover:border-cyan-500/40"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 text-sm font-bold">
+                        <Zap className="h-4 w-4 text-cyan-500" /> LovaX
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-1">
+                        Licenças geradas pela API do MétodoLovax.
+                      </div>
+                    </button>
                   </div>
-
-                  <p className="text-[11px] text-muted-foreground pt-2 border-t border-dashed">
-                    Obrigatório: pelo menos uma extensão deve estar ativa.
-                  </p>
                 </div>
               </AccordionContent>
             </AccordionItem>
