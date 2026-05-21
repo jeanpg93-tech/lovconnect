@@ -215,10 +215,71 @@ Deno.serve(async (req) => {
     }
 
     if (storeOrder.product_type === "credits" || storeOrder.product_type === "recharge" || storeOrder.license_type === "credits") {
+      // Marca como pago (recebemos o PIX), agora tenta cobrar custo do revendedor
       await admin.from("storefront_orders").update({
-        status: "completed",
+        status: "paid",
         paid_at: new Date().toISOString(),
         raw_response: payload,
+      }).eq("id", storeOrder.id);
+
+      // Calcula custo do pacote para o revendedor
+      let credits_cost = 0;
+      try {
+        const credits = Number(storeOrder.credit_amount ?? 0);
+        if (credits > 0) {
+          const { data: plan } = await admin
+            .from("credit_pricing_plans")
+            .select("id")
+            .eq("credits_amount", credits)
+            .eq("is_active", true)
+            .maybeSingle();
+          if (plan?.id) {
+            const { data: c } = await admin.rpc("get_credit_pack_cost", {
+              _reseller_id: storeOrder.reseller_id,
+              _plan_id: plan.id,
+            });
+            credits_cost = Number(c ?? 0);
+          }
+        }
+      } catch (e) {
+        console.warn("get_credit_pack_cost failed", e);
+      }
+
+      if (credits_cost > 0) {
+        const { data: debitOk } = await admin.rpc("debit_reseller_balance", {
+          _reseller_id: storeOrder.reseller_id,
+          _amount_cents: credits_cost,
+          _kind: "order_debit",
+          _description: `Venda Loja: ${storeOrder.credit_amount ?? 0} créditos`,
+          _reference_id: storeOrder.id,
+        });
+
+        if (!debitOk) {
+          // Sem saldo → aguarda recarga
+          await admin.from("storefront_orders").update({
+            status: "awaiting_balance",
+            cost_cents: credits_cost,
+          }).eq("id", storeOrder.id);
+
+          await admin.from("pending_storefront_charges").insert({
+            order_id: storeOrder.id,
+            reseller_id: storeOrder.reseller_id,
+            cost_cents: credits_cost,
+            product_type: "credits",
+          });
+
+          return json({ ok: true, kind: "storefront_credits_awaiting_balance" });
+        }
+
+        await admin.rpc("add_reseller_spent", {
+          _reseller_id: storeOrder.reseller_id,
+          _amount_cents: credits_cost,
+        });
+      }
+
+      await admin.from("storefront_orders").update({
+        status: "completed",
+        cost_cents: credits_cost,
       }).eq("id", storeOrder.id);
 
       try {
@@ -230,7 +291,7 @@ Deno.serve(async (req) => {
           license_type: "credits",
           product_type: "credits",
           credit_amount: storeOrder.credit_amount,
-          price_cents: Number(storeOrder.price_cents ?? 0),
+          price_cents: credits_cost,
           status: "completed",
           is_test: false,
           provider_response: payload,
