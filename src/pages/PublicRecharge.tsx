@@ -193,6 +193,12 @@ export default function PublicRecharge() {
   const [editingWorkspace, setEditingWorkspace] = useState(false);
   const [confirmWorkspaceOpen, setConfirmWorkspaceOpen] = useState(false);
   const [iniciadoProgress, setIniciadoProgress] = useState(8);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     const s = String(order?.status ?? "").toLowerCase();
