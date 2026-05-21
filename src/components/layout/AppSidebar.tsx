@@ -96,12 +96,12 @@ const groupsByRole: Record<AppRole, Group[]> = {
   revendedor: [
     { label: "Painel", items: [
       { title: "Dashboard", url: "/painel/revendedor", icon: LayoutDashboard },
-      { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
       { title: "Carteira", url: "/painel/revendedor/carteira", icon: Wallet },
       { title: "Indique e ganhe", url: "/painel/revendedor/indicacoes", icon: Gift },
     ]},
     { label: "Minhas vendas", items: [
-      { title: "Comprar Recargas", url: "/painel/revendedor/pedidos", icon: ShoppingCart },
+      { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
+      { title: "Licenças", url: "/painel/revendedor/pedidos", icon: ShoppingCart },
       { title: "Minhas Vendas", url: "/painel/revendedor/licencas", icon: ShoppingBag },
       { title: "Minha Loja", url: "/painel/revendedor/loja", icon: Store, badge: "store-status" },
       { title: "Precificação", url: "/painel/revendedor/extensoes", icon: Tag },
