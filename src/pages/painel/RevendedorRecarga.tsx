@@ -79,6 +79,13 @@ import {
 } from "@/components/ui/accordion";
 import { BuyCreditsFlowModal } from "@/components/painel/BuyCreditsFlowModal";
 import { useRechargeSettings } from "@/hooks/useRechargeSettings";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel";
 
 const formatBRL = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -491,8 +498,19 @@ export default function RevendedorRecargas() {
                   Nenhum pacote disponível no momento.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                  {plans.map((plan) => {
+                (() => {
+                  const chunkSize = 3;
+                  const chunks: ApiPlan[][] = [];
+                  for (let i = 0; i < plans.length; i += chunkSize) {
+                    chunks.push(plans.slice(i, i + chunkSize));
+                  }
+                  return (
+                <Carousel opts={{ align: "start", loop: false }} className="w-full relative">
+                  <CarouselContent>
+                    {chunks.map((chunk, ci) => (
+                      <CarouselItem key={ci}>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 px-1">
+                          {chunk.map((plan) => {
                      const costPrice = resellerPrices[plan.credits_amount] ?? (costs[plan.credits_amount] ?? plan.price_cents);
                      const salePrice = costPrice ? costPrice * 2 : 0;
                      const perCredit = costPrice ? costPrice / plan.credits_amount : 0;
@@ -638,8 +656,21 @@ export default function RevendedorRecargas() {
                         </div>
                       </div>
                     );
-                  })}
-                </div>
+                          })}
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="hidden sm:flex" />
+                  <CarouselNext className="hidden sm:flex" />
+                  <div className="mt-4 flex justify-center gap-1.5 sm:hidden">
+                    {chunks.map((_, i) => (
+                      <span key={i} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
+                    ))}
+                  </div>
+                </Carousel>
+                  );
+                })()
               )}
 
               {/* FAQ Section - apenas mobile */}
