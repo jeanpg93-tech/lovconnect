@@ -161,18 +161,6 @@ export default function GerenteLicencasValores() {
               </Badge>
             </CardHeader>
             <CardContent className="space-y-3">
-              {meta.id === "lovax" && !loadingTiers && tiers.length > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => autoFillIntermediate(meta.id)}
-                >
-                  <Wand2 className="mr-2 h-4 w-4" />
-                  Calcular 90d e 365d entre 30d e Vitalício
-                </Button>
-              )}
               {loadingTiers && (
                 <div className="flex items-center justify-center py-8 text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin" />
