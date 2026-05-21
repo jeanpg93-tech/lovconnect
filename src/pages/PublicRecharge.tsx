@@ -193,6 +193,24 @@ export default function PublicRecharge() {
   const [confirmWorkspaceOpen, setConfirmWorkspaceOpen] = useState(false);
   const [iniciadoProgress, setIniciadoProgress] = useState(8);
 
+  useEffect(() => {
+    const s = String(order?.status ?? "").toLowerCase();
+    const isIniciado = s === "manual_iniciado" || s === "manual_processando" || s === "processando";
+    if (!isIniciado) {
+      setIniciadoProgress(8);
+      return;
+    }
+    const t = setInterval(() => {
+      setIniciadoProgress((p) => {
+        if (p >= 95) return 95;
+        // sobe de pouco em pouco, mais devagar conforme aumenta
+        const step = Math.max(0.4, (95 - p) * 0.04);
+        return Math.min(95, p + step);
+      });
+    }, 800);
+    return () => clearInterval(t);
+  }, [order?.status]);
+
   // Carrega aviso de lentidão do provedor
   useEffect(() => {
     let cancelled = false;
