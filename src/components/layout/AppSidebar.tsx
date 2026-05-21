@@ -182,6 +182,8 @@ export function AppSidebar() {
 
   const [providerUsage, setProviderUsage] = useState<{ used: number; limit: number } | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
+  const [lovaxUsage, setLovaxUsage] = useState<{ used: number; limit: number } | null>(null);
+  const [lovaxLoading, setLovaxLoading] = useState(false);
   const [gatewayBalance, setGatewayBalance] = useState<string | null>(null);
   const [gatewayLoading, setGatewayLoading] = useState(false);
   const [creditsBalance, setCreditsBalance] = useState<number | null>(null);
@@ -316,10 +318,30 @@ export function AppSidebar() {
     fetchBalance();
     fetchGatewayBalance();
     fetchCreditsBalance();
+    const fetchLovax = async () => {
+      setLovaxLoading(true);
+      try {
+        const { data, error } = await invokeAuthenticatedFunction("lovax-api?action=status", { method: "GET" });
+        if (cancelled) return;
+        if (error || data?.error || data?.provider_error) {
+          setLovaxUsage(null);
+        } else {
+          const used = Number(data?.used ?? 0);
+          const limit = Number(data?.max ?? data?.limit ?? 0);
+          setLovaxUsage({ used, limit });
+        }
+      } catch {
+        if (!cancelled) setLovaxUsage(null);
+      } finally {
+        if (!cancelled) setLovaxLoading(false);
+      }
+    };
+    fetchLovax();
     const id = setInterval(() => {
       fetchBalance();
       fetchGatewayBalance();
       fetchCreditsBalance();
+      fetchLovax();
     }, 60_000);
     return () => { cancelled = true; clearInterval(id); };
   }, [primaryRole]);
@@ -423,11 +445,11 @@ export function AppSidebar() {
               className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2.5 transition-all hover:border-blue-500/40 hover:shadow-sm"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-500 transition-transform group-hover:scale-110">
-                <KeyRound className="h-4 w-4" />
+                <Zap className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
-                  Licenças
+                  MétodoFlow
                 </div>
                 <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
                   {balanceLoading && providerUsage === null
@@ -436,6 +458,29 @@ export function AppSidebar() {
                     ? `${providerUsage.used}/${providerUsage.limit || "∞"}`
                     : "—"}
                 </div>
+                <div className="mt-0.5 text-[9px] text-muted-foreground/80 leading-none">Licenças usadas</div>
+              </div>
+            </NavLink>
+
+            <NavLink
+              to="/painel/gerente/todas-licencas?tab=api"
+              className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2.5 transition-all hover:border-violet-500/40 hover:shadow-sm"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-500 transition-transform group-hover:scale-110">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
+                  MétodoLovax
+                </div>
+                <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
+                  {lovaxLoading && lovaxUsage === null
+                    ? "—"
+                    : lovaxUsage
+                    ? `${lovaxUsage.used}/${lovaxUsage.limit || "∞"}`
+                    : "—"}
+                </div>
+                <div className="mt-0.5 text-[9px] text-muted-foreground/80 leading-none">Licenças usadas</div>
               </div>
             </NavLink>
 
@@ -507,9 +552,16 @@ export function AppSidebar() {
             <NavLink
               to="/painel/gerente/api-provedor"
               className="flex h-8 w-8 items-center justify-center rounded-md border border-blue-500/30 bg-blue-500/10 text-blue-500"
-              title={providerUsage ? `Licenças: ${providerUsage.used}/${providerUsage.limit || "∞"}` : "Licenças geradas"}
+              title={providerUsage ? `MétodoFlow — Licenças usadas: ${providerUsage.used}/${providerUsage.limit || "∞"}` : "MétodoFlow"}
             >
-              <Wallet className="h-4 w-4" />
+              <Zap className="h-4 w-4" />
+            </NavLink>
+            <NavLink
+              to="/painel/gerente/todas-licencas?tab=api"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-violet-500/30 bg-violet-500/10 text-violet-500"
+              title={lovaxUsage ? `MétodoLovax — Licenças usadas: ${lovaxUsage.used}/${lovaxUsage.limit || "∞"}` : "MétodoLovax"}
+            >
+              <Sparkles className="h-4 w-4" />
             </NavLink>
             <NavLink
               to="/painel/gerente/gateway"
