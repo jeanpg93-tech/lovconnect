@@ -301,6 +301,7 @@ export default function RevendedorPedidos() {
             display_name: name,
             whatsapp: wa,
             is_test: isTest,
+            method: isTest ? selectedMethod : undefined,
           },
         });
     setSubmitting(false);
