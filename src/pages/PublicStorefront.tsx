@@ -217,17 +217,22 @@ export default function PublicStorefront() {
       );
       setPlans(sortedPlans);
 
-      const { data: rep } = await supabase
-        .from("reseller_extension_prices")
-        .select("license_type, price_cents, is_active, extension_id")
-        .eq("reseller_id", r.id);
+      const method = (s as any).extension_method === "lovax" ? "lovax" : "flow";
+      const { data: licensePrices } = await supabase
+        .from("reseller_license_prices")
+        .select("method, pack_id, price_cents")
+        .eq("reseller_id", r.id)
+        .eq("method", method)
+        .gt("price_cents", 0);
 
-      const list = ((rep ?? []) as any[])
-        .filter((row) => row.is_active && row.price_cents > 0)
-        .map((row) => ({ 
-          license_type: row.license_type, 
+      const list = ((licensePrices ?? []) as any[])
+        .map((row) => ({
+          license_type: row.pack_id,
           price_cents: row.price_cents,
-          extension_id: row.extension_id 
+          method: row.method,
+          label: FALLBACK_LABEL[row.pack_id] || row.pack_id,
+          desc: FALLBACK_DESC[row.pack_id] || "Ativação imediata via PIX",
+          extension_id: null,
         }))
         .sort((a, b) => ORDER.indexOf(a.license_type) - ORDER.indexOf(b.license_type));
       setPacks(list);
