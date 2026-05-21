@@ -218,6 +218,32 @@ export default function RevendedorPedidos() {
   const [loadingAll, setLoadingAll] = useState(false);
   const [licSearch, setLicSearch] = useState("");
   const [licStatusFilter, setLicStatusFilter] = useState<string>("all");
+  // ids de pedidos já reembolsados
+  const [refundedOrderIds, setRefundedOrderIds] = useState<Set<string>>(new Set());
+  const [refundingId, setRefundingId] = useState<string | null>(null);
+
+  const loadRefunds = async (rid: string) => {
+    const { data } = await supabase
+      .from("refund_requests")
+      .select("reference_id")
+      .eq("reseller_id", rid)
+      .eq("kind", "license");
+    setRefundedOrderIds(new Set((data ?? []).map((r: any) => r.reference_id)));
+  };
+
+  const requestRefund = async (o: Order) => {
+    if (!confirm(`Solicitar reembolso de ${(o.price_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} para o seu saldo?`)) return;
+    setRefundingId(o.id);
+    const { data, error } = await supabase.functions.invoke("request-refund", {
+      body: { kind: "license", reference_id: o.id },
+    });
+    setRefundingId(null);
+    if (error || (data as any)?.error) {
+      return toast.error((data as any)?.error ?? error?.message ?? "Falha no reembolso");
+    }
+    toast.success("Reembolso creditado no seu saldo");
+    if (resellerId) loadRefunds(resellerId);
+  };
 
   const loadAllOrders = async () => {
     if (!resellerId) return;
