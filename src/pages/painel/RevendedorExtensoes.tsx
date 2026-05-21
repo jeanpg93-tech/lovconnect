@@ -47,7 +47,9 @@ const formatBRL = (c: number) =>
 const suggestedPrice = (costCents: number) =>
   ((costCents * 2) / 100).toFixed(2).replace(".", ",");
 
-export default function RevendedorExtensoes() {
+type Props = { extensionId?: string | null };
+
+export default function RevendedorExtensoes({ extensionId = null }: Props = {}) {
   const { user } = useAuth();
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -68,19 +70,37 @@ export default function RevendedorExtensoes() {
     if (!r) { setLoading(false); return; }
     setResellerId(r.id);
 
+    const ovQuery = supabase
+      .from("reseller_extension_prices")
+      .select("id,license_type,price_cents,is_active,extension_id")
+      .eq("reseller_id", r.id);
+    const tepQuery = supabase
+      .from("tier_extension_prices")
+      .select("tier_id,license_type,price_cents,is_active,extension_id")
+      .eq("is_active", true);
+    const povQuery = supabase
+      .from("reseller_extension_price_overrides")
+      .select("license_type,price_cents,is_active,extension_id")
+      .eq("reseller_id", r.id);
+
+    if (extensionId) {
+      ovQuery.eq("extension_id", extensionId);
+      tepQuery.eq("extension_id", extensionId);
+      povQuery.eq("extension_id", extensionId);
+    } else {
+      ovQuery.is("extension_id", null);
+      povQuery.is("extension_id", null);
+    }
+
     const [{ data: pl }, { data: ov }, { data: tierData }, { data: tep }, { data: pov }] = await Promise.all([
       supabase
         .from("pricing_plans")
         .select("license_type,label,price_cents,is_active")
         .eq("is_active", true),
-      supabase
-        .from("reseller_extension_prices")
-        .select("id,license_type,price_cents,is_active,extension_id")
-        .eq("reseller_id", r.id)
-        .is("extension_id", null),
+      ovQuery,
       supabase.rpc("get_reseller_tier", { _reseller_id: r.id }),
-      supabase.from("tier_extension_prices").select("tier_id,license_type,price_cents,is_active").eq("is_active", true),
-      supabase.from("reseller_extension_price_overrides").select("license_type,price_cents,is_active").eq("reseller_id", r.id),
+      tepQuery,
+      povQuery,
     ]);
 
     setPlans(((pl ?? []) as Plan[])
@@ -110,7 +130,7 @@ export default function RevendedorExtensoes() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [user, extensionId]);
 
   const openDialog = () => {
     const next: Record<string, { enabled: boolean; price: string }> = {};
@@ -172,7 +192,7 @@ export default function RevendedorExtensoes() {
             .from("reseller_extension_prices")
             .insert({
               reseller_id: resellerId,
-              extension_id: null,
+              extension_id: extensionId,
               license_type: row.license_type,
               price_cents: row.price_cents,
               is_active: true,
