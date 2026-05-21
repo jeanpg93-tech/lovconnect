@@ -417,7 +417,7 @@ export default function RevendedorDashboard() {
 
         <div className="relative p-6 md:p-10">
           <div className="space-y-7 text-center md:text-left">
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
+            <div className="flex flex-col md:flex-row md:flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
               <span className="flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
@@ -425,16 +425,17 @@ export default function RevendedorDashboard() {
                 </span>
                 Live
               </span>
-              <span className="text-border">·</span>
-              <span>Painel do Revendedor</span>
-              {tier && (
-                <>
-                  <span className="text-border">·</span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-primary normal-case tracking-normal">
-                    <Crown className="h-3 w-3" /> {tier.name}
-                  </span>
-                </>
-              )}
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                <span>Painel do Revendedor</span>
+                {tier && (
+                  <>
+                    <span className="text-border">·</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-primary normal-case tracking-normal">
+                      <Crown className="h-3 w-3" /> {tier.name}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
 
             <div>
