@@ -1819,6 +1819,7 @@ export type Database = {
           contact_whatsapp: string | null
           created_at: string
           custom_prices: Json
+          extension_method: string
           is_enabled: boolean
           layout_mode: string
           logo_size: number
@@ -1853,6 +1854,7 @@ export type Database = {
           contact_whatsapp?: string | null
           created_at?: string
           custom_prices?: Json
+          extension_method?: string
           is_enabled?: boolean
           layout_mode?: string
           logo_size?: number
@@ -1887,6 +1889,7 @@ export type Database = {
           contact_whatsapp?: string | null
           created_at?: string
           custom_prices?: Json
+          extension_method?: string
           is_enabled?: boolean
           layout_mode?: string
           logo_size?: number
