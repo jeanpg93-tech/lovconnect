@@ -496,38 +496,44 @@ export default function RevendedorPedidos() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Extension selector - Premium style */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="w-full max-w-md space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 pl-1">
-                Escolha o Produto
-              </Label>
-              <Select value={selectedExtId} onValueChange={setSelectedExtId}>
-                <SelectTrigger className="h-12 border-white/10 bg-white/5 backdrop-blur-xl focus:ring-primary/20">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent className="border-white/10 bg-[#0F0F11] backdrop-blur-xl">
-                  {extensions.map((e) => (
-                    <SelectItem key={e.id} value={e.id} className="focus:bg-primary focus:text-black">
-                      {e.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {selectedExtId && (() => {
+          {/* Extension submenu — pill nav per extension */}
+          <div className="flex flex-col gap-3">
+            <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 pl-1">
+              Escolha a extensão
+            </Label>
+            <div className="flex flex-wrap items-center gap-2">
+              {extensions.map((e) => {
+                const active = e.id === selectedExtId;
+                return (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => setSelectedExtId(e.id)}
+                    className={cn(
+                      "group inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all",
+                      active
+                        ? "border-primary/40 bg-primary text-black shadow-[0_0_20px_rgba(var(--primary),0.25)]"
+                        : "border-white/10 bg-white/[0.03] text-zinc-400 hover:border-primary/30 hover:text-white"
+                    )}
+                  >
+                    <Puzzle className={cn("h-3.5 w-3.5", active ? "text-black" : "text-primary")} />
+                    <span>{e.name}</span>
+                  </button>
+                );
+              })}
+              {selectedExtId && (() => {
               const hasPartner = plans.some((p) => partnerOverrides[`${selectedExtId}|${p.license_type}`] !== undefined);
               const hasCustom = plans.some((p) => resellerPrices[`${selectedExtId}|${p.license_type}`] > 0);
               if (hasPartner || hasCustom) {
                 return (
-                  <Badge variant="outline" className="h-7 border-primary/30 bg-primary/10 px-3 text-[10px] font-bold text-primary uppercase animate-pulse">
-                    ✨ Benefícios Exclusivos Ativos
-                  </Badge>
+                    <Badge variant="outline" className="h-7 border-primary/30 bg-primary/10 px-3 text-[10px] font-bold text-primary uppercase animate-pulse">
+                      ✨ Benefícios Exclusivos Ativos
+                    </Badge>
                 );
               }
               return null;
-            })()}
+              })()}
+            </div>
           </div>
 
           {/* Pricing Grid - Mobile optimized */}
@@ -685,159 +691,6 @@ export default function RevendedorPedidos() {
           </div>
         </div>
       )}
-
-      {/* Desktop Table View */}
-      <div className="hidden overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-xl md:block">
-        <div className="border-b border-white/5 px-6 py-4">
-          <h3 className="font-display text-sm font-black uppercase tracking-widest text-white">Últimos pedidos</h3>
-        </div>
-        {orders.length === 0 ? (
-          <div className="p-12 text-center text-sm text-zinc-500">Nenhum pedido realizado ainda.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-white/5 bg-white/[0.03]">
-                <tr>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-500">Data</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-500">Tipo</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-500">Status</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-500">Chave</th>
-                  <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-500">Valor</th>
-                  <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-500">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {orders.map((o) => {
-                  const canManage = !!o.license_key && !["deleted", "failed", "refunded"].includes(o.status);
-                  const isBusy = actionLoading?.startsWith(`${o.id}:`);
-                  return (
-                    <tr key={o.id} className="transition-colors hover:bg-white/[0.02]">
-                      <td className="px-6 py-4 text-xs text-zinc-400">{new Date(o.created_at).toLocaleString("pt-BR")}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-zinc-300">{FALLBACK_LABEL[o.license_type] ?? o.license_type}</span>
-                          {o.is_test && (
-                            <Badge variant="outline" className="border-primary/20 bg-primary/10 text-[9px] font-bold text-primary uppercase">Teste</Badge>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">{statusBadge(o.status)}</td>
-                      <td className="px-6 py-4">
-                        {o.license_key ? (
-                          <button
-                            onClick={() => { navigator.clipboard.writeText(o.license_key!); toast.success("Chave copiada"); }}
-                            className="group flex items-center gap-2 rounded-lg border border-white/5 bg-white/5 px-3 py-1.5 transition-all hover:bg-white/10"
-                          >
-                            <span className="font-mono text-[11px] text-zinc-400">{o.license_key.slice(0, 12)}…</span>
-                            <Copy className="h-3 w-3 text-zinc-600 transition-colors group-hover:text-primary" />
-                          </button>
-                        ) : <span className="text-zinc-600">—</span>}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {o.is_test ? <span className="text-[10px] font-bold uppercase text-primary">Grátis</span> : <span className="font-mono font-bold text-white">{fmt(o.price_cents)}</span>}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {canManage ? (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 border border-white/5 bg-white/5 text-zinc-400" disabled={isBusy}>
-                                {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreVertical className="h-4 w-4" />}
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52 border-white/10 bg-[#0F0F11]">
-                              <DropdownMenuItem className="text-xs" onClick={() => runLicenseAction(o, "reset-hwid", "Resetar HWID?")}>
-                                <RefreshCcw className="mr-2 h-3.5 w-3.5" /> Resetar HWID
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-white/5" />
-                              <DropdownMenuItem className="text-xs text-rose-500" onClick={() => runLicenseAction(o, "revoke-license", "Revogar permanentemente?")}>
-                                <Ban className="mr-2 h-3.5 w-3.5" /> Revogar licença
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        ) : <span className="text-zinc-600">—</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Mobile Card View for Last Orders */}
-      <div className="space-y-4 md:hidden">
-        <div className="px-1 pt-4 pb-2 flex items-center justify-between">
-          <h3 className="font-display text-sm font-black uppercase tracking-widest text-white">Últimos pedidos</h3>
-          <span className="text-[10px] font-bold text-zinc-600 uppercase">{orders.length} Total</span>
-        </div>
-        {orders.length === 0 ? (
-          <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-8 text-center">
-            <p className="text-xs text-zinc-500">Nenhum pedido realizado.</p>
-          </div>
-        ) : (
-          orders.map((o) => {
-            const isBusy = actionLoading?.startsWith(`${o.id}:`);
-            const canManage = !!o.license_key && !["deleted", "failed", "refunded"].includes(o.status);
-            return (
-              <Card key={o.id} className="border-white/5 bg-white/[0.02] p-4 active:scale-[0.98] transition-all">
-                <div className="mb-3 flex items-start justify-between">
-                  <div className="space-y-0.5">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">{new Date(o.created_at).toLocaleString("pt-BR")}</span>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-display text-sm font-bold text-white">{FALLBACK_LABEL[o.license_type] ?? o.license_type}</h4>
-                      {o.is_test && <Badge className="bg-primary px-1.5 py-0 text-[8px] font-black text-black uppercase">Teste</Badge>}
-                    </div>
-                  </div>
-                  {statusBadge(o.status)}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 rounded-xl bg-white/[0.03] p-3">
-                  <div>
-                    <p className="text-[8px] font-bold uppercase tracking-widest text-zinc-600">Chave</p>
-                    {o.license_key ? (
-                      <button 
-                        onClick={() => { navigator.clipboard.writeText(o.license_key!); toast.success("Copiada"); }}
-                        className="flex items-center gap-1.5 font-mono text-[11px] text-zinc-300"
-                      >
-                        <span className="truncate">{o.license_key.slice(0, 10)}...</span>
-                        <Copy className="h-3 w-3 text-zinc-600" />
-                      </button>
-                    ) : <span className="text-xs text-zinc-600">—</span>}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[8px] font-bold uppercase tracking-widest text-zinc-600">Valor</p>
-                    <p className="font-mono text-xs font-black text-white">{o.is_test ? "GRÁTIS" : fmt(o.price_cents)}</p>
-                  </div>
-                </div>
-
-                {canManage && (
-                  <div className="mt-3 flex items-center justify-end gap-2 border-t border-white/5 pt-3">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 bg-white/5 text-[10px] font-bold text-zinc-400"
-                      onClick={() => runLicenseAction(o, "reset-hwid", "Resetar HWID?")}
-                      disabled={isBusy}
-                    >
-                      Resetar HWID
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 bg-rose-500/10 text-[10px] font-bold text-rose-500"
-                      onClick={() => runLicenseAction(o, "revoke-license", "Revogar licença?")}
-                      disabled={isBusy}
-                    >
-                      Revogar
-                    </Button>
-                  </div>
-                )}
-              </Card>
-            );
-          })
-        )}
-      </div>
 
           </TabsContent>
 
