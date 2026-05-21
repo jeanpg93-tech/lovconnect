@@ -865,6 +865,17 @@ export default function RevendedorRecargas() {
                     <Button className="h-11 px-5 rounded-xl bg-primary text-white text-xs font-bold" onClick={() => { navigator.clipboard?.writeText("https://api.revendovable.com/v1/recharge"); toast.success("Endpoint Copiado!"); }}>
                       <Copy className="h-3.5 w-3.5 mr-2" /> Endpoint
                     </Button>
+                    <Button
+                      variant="secondary"
+                      className="h-11 px-5 rounded-xl text-xs font-bold"
+                      onClick={() => {
+                        const fullRequest = `curl -X POST https://api.revendovable.com/v1/recharge \\\n  -H "Authorization: Bearer sk_rev_..." \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "plan": "recharge-500",\n    "target": "usr_99a",\n    "webhook_url": "https://seu-dominio.com/hook"\n  }'`;
+                        navigator.clipboard?.writeText(fullRequest);
+                        toast.success("Cópia completa copiada!");
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5 mr-2" /> Cópia completa
+                    </Button>
                   </div>
                 </div>
 
