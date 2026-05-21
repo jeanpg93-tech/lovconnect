@@ -671,9 +671,15 @@ export default function GerenteAcompanharRecargas() {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex flex-col items-center gap-1">
-                            <span className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wide", meta.cls)}>
-                              <meta.Icon className="h-3 w-3" />
-                              {meta.label}
+                            <span className={cn(
+                              "inline-flex rounded-2xl border px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wide",
+                              s === "manual_limite_atingido" ? "flex-col items-center gap-1" : "items-center gap-1 rounded-full py-0.5",
+                              meta.cls,
+                            )}>
+                              <span className="inline-flex items-center gap-1">
+                                <meta.Icon className="h-3 w-3" />
+                                {meta.label}
+                              </span>
                               {s === "manual_limite_atingido" && (() => {
                                 const startMs = m.updated_at ? Date.parse(m.updated_at) : Date.parse(m.created_at);
                                 const endsAt = (isFinite(startMs) ? startMs : nowTick) + 24 * 60 * 60 * 1000;
@@ -687,7 +693,7 @@ export default function GerenteAcompanharRecargas() {
                                         confirmLabel: "Continuar",
                                         onConfirm: () => setManualStatus(m, "manual_iniciado", { force: true }),
                                       })}
-                                      className="ml-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300 hover:bg-emerald-500/30"
+                                      className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300 hover:bg-emerald-500/30"
                                     >
                                       Continuar
                                     </button>
@@ -697,7 +703,7 @@ export default function GerenteAcompanharRecargas() {
                                 const mm = String(Math.floor((remaining % 3_600_000) / 60_000)).padStart(2, "0");
                                 const ss = String(Math.floor((remaining % 60_000) / 1000)).padStart(2, "0");
                                 return (
-                                  <span className="ml-1 rounded-full bg-orange-500/20 px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-orange-200">
+                                  <span className="rounded-full bg-orange-500/30 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-orange-100">
                                     {hh}:{mm}:{ss}
                                   </span>
                                 );
