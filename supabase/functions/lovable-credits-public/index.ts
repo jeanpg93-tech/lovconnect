@@ -67,6 +67,51 @@ Deno.serve(async (req) => {
     let method: "GET" | "POST" = "GET";
     let body: string | undefined;
 
+    // === Manual orders: served from local DB, not from the external provider ===
+    if (action === "order") {
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+      const { data: local } = await admin
+        .from("reseller_credit_purchases")
+        .select("id, provider_pedido_id, status, credits, price_cents, cost_cents, tipo_entrega, workspace_name, workspace_id, email_conta_lovable, created_at, updated_at, provider_response, error_message")
+        .or(`provider_pedido_id.eq.${orderId},id.eq.${orderId}`)
+        .maybeSingle();
+      const isManual =
+        !!local && (
+          (local.provider_response as any)?.manual === true ||
+          (local.status ?? "").startsWith("manual_")
+        );
+      if (isManual && local) {
+        const status = String(local.status ?? "manual_pendente");
+        const isDone = status === "manual_entregue" || status === "sucesso" || status === "entregue";
+        const isProcessing = status === "manual_confirmado" || status === "manual_processando" || status === "processando";
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              manual: true,
+              id: local.provider_pedido_id ?? local.id,
+              pedidoId: local.provider_pedido_id ?? local.id,
+              status,
+              statusLabel: isDone ? "Entregue" : isProcessing ? "Em processamento" : "Aguardando equipe",
+              creditos: local.credits,
+              precoCentavos: local.price_cents,
+              tipoEntrega: local.tipo_entrega,
+              workspaceName: local.workspace_name,
+              workspaceId: local.workspace_id,
+              emailConta: local.email_conta_lovable,
+              createdAt: local.created_at,
+              updatedAt: local.updated_at,
+              errorMessage: local.error_message,
+            },
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     switch (action) {
       case "order":
         path = `/pedidos/${orderId}`;

@@ -33,6 +33,11 @@ type OrderData = {
   id?: string;
   pedidoId?: string;
   status?: string;
+  statusLabel?: string;
+  manual?: boolean;
+  errorMessage?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
   creditos?: number;
   precoReais?: string;
   precoCentavos?: number;
@@ -318,6 +323,147 @@ export default function PublicRecharge() {
     status === "reembolsado" ||
     order.cancelar === true;
   const isInvalidInvite = !isCancelled && Number(order.codigoConviteStatus) === 2;
+
+  // === Modo MANUAL: pedido tratado pela equipe da plataforma ===
+  if (order.manual) {
+    const mStatus = status;
+    const isManualDone = mStatus === "manual_entregue" || mStatus === "sucesso" || mStatus === "entregue";
+    const isManualProcessing = mStatus === "manual_confirmado" || mStatus === "manual_processando" || mStatus === "processando";
+    const isManualFailed = mStatus === "falha" || mStatus === "cancelado" || mStatus === "reembolsado";
+    const manualStages = [
+      { key: "recebido", label: "Pedido recebido", desc: "Registramos sua solicitação", done: true, active: !isManualProcessing && !isManualDone && !isManualFailed },
+      { key: "processando", label: "Equipe processando", desc: "Nossa equipe está cuidando do seu pedido", done: isManualProcessing || isManualDone, active: isManualProcessing && !isManualDone },
+      { key: "entregue", label: "Créditos entregues", desc: "Pedido finalizado com sucesso", done: isManualDone, active: false },
+    ];
+
+    return (
+      <div className="relative min-h-screen overflow-hidden bg-[#0a0a0a] text-zinc-100 px-3 sm:px-4 py-6 sm:py-10">
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 opacity-40"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, rgba(168,85,247,0.18) 1px, transparent 1px), linear-gradient(to bottom, rgba(168,85,247,0.18) 1px, transparent 1px)",
+            backgroundSize: "56px 56px",
+            maskImage: "radial-gradient(ellipse at top, black 30%, transparent 80%)",
+            WebkitMaskImage: "radial-gradient(ellipse at top, black 30%, transparent 80%)",
+          }}
+        />
+
+        <div className="relative mx-auto max-w-xl space-y-5">
+          {/* Header */}
+          <div className="text-center space-y-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-200">
+              <Sparkles className="h-3 w-3" /> Entrega manual
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              Pedido de{" "}
+              <span className="bg-gradient-to-r from-amber-300 via-orange-300 to-amber-300 bg-clip-text text-transparent">
+                {totalCredits.toLocaleString("pt-BR")} créditos
+              </span>
+            </h1>
+            <p className="text-xs sm:text-sm text-zinc-400">
+              Acompanhe o status do seu pedido em tempo real
+            </p>
+          </div>
+
+          {/* Card principal */}
+          <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-amber-400/50 via-orange-400/20 to-amber-400/50 shadow-2xl shadow-amber-900/30">
+            <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] bg-zinc-950/85 backdrop-blur-xl p-5 sm:p-6 space-y-5">
+              <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-amber-500/20 blur-3xl" />
+
+              <div className="relative flex items-center justify-between">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+                  Pedido #{shortId}
+                </div>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold border",
+                    isManualDone
+                      ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
+                      : isManualFailed
+                      ? "border-rose-400/40 bg-rose-500/15 text-rose-200"
+                      : "border-amber-400/40 bg-amber-500/10 text-amber-200"
+                  )}
+                >
+                  {isManualDone ? <CheckCircle2 className="h-3 w-3" /> : isManualFailed ? <AlertCircle className="h-3 w-3" /> : <Loader2 className="h-3 w-3 animate-spin" />}
+                  {order.statusLabel ?? mStatus}
+                </span>
+              </div>
+
+              {/* Stages */}
+              <div className="relative space-y-3">
+                {manualStages.map((s, idx) => (
+                  <div key={s.key} className="flex items-start gap-3">
+                    <div className="relative flex flex-col items-center">
+                      <div
+                        className={cn(
+                          "flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all",
+                          s.done
+                            ? "border-emerald-400 bg-emerald-500/20 text-emerald-300"
+                            : s.active
+                            ? "border-amber-400 bg-amber-500/20 text-amber-300"
+                            : "border-white/10 bg-white/5 text-zinc-500"
+                        )}
+                      >
+                        {s.done ? <CheckCircle2 className="h-4 w-4" /> : s.active ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-xs font-bold">{idx + 1}</span>}
+                      </div>
+                      {idx < manualStages.length - 1 && (
+                        <div className={cn("w-0.5 h-8 mt-1", s.done ? "bg-emerald-500/60" : "bg-white/10")} />
+                      )}
+                    </div>
+                    <div className="flex-1 pt-1.5 pb-4">
+                      <div className={cn("text-sm font-semibold", s.done ? "text-emerald-200" : s.active ? "text-amber-100" : "text-zinc-400")}>
+                        {s.label}
+                      </div>
+                      <div className="text-xs text-zinc-500 mt-0.5">{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Resumo */}
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Créditos</div>
+                  <div className="text-base font-bold text-white mt-0.5">{totalCredits.toLocaleString("pt-BR")}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Valor</div>
+                  <div className="text-base font-bold text-white mt-0.5">{fmtBRL(order.precoCentavos, order.precoReais)}</div>
+                </div>
+                {order.workspaceName && (
+                  <div className="col-span-2">
+                    <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Workspace</div>
+                    <div className="text-sm font-medium text-zinc-200 mt-0.5 break-all">{order.workspaceName}</div>
+                  </div>
+                )}
+              </div>
+
+              {order.errorMessage && (
+                <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-xs text-rose-200">
+                  {order.errorMessage}
+                </div>
+              )}
+
+              <Button
+                variant="outline"
+                onClick={() => { setRefreshing(true); loadOrder(false); }}
+                disabled={refreshing}
+                className="w-full border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10"
+              >
+                {refreshing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                Atualizar status
+              </Button>
+            </div>
+          </div>
+
+          <p className="text-center text-[11px] text-zinc-500">
+            Esta página atualiza automaticamente a cada 12 segundos.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0a0a0a] text-zinc-100 px-3 sm:px-4 py-4 sm:py-8">
