@@ -6,13 +6,13 @@ import { BarChart3, History as HistoryIcon, Tag, KeyRound } from "lucide-react";
 import GerenteLicencasDashboard from "./GerenteLicencasDashboard";
 import GerenteLicencasAcompanhar from "./GerenteLicencasAcompanhar";
 import GerenteValores from "./GerenteValores";
-import GerenteApiProvedor from "./GerenteApiProvedor";
+import GerenteLicencasApis from "./GerenteLicencasApis";
 
 const TABS = [
   { value: "dashboard", label: "Dashboard", icon: BarChart3, Comp: GerenteLicencasDashboard },
   { value: "acompanhar", label: "Acompanhar", icon: HistoryIcon, Comp: GerenteLicencasAcompanhar },
   { value: "valores", label: "Valores", icon: Tag, Comp: GerenteValores },
-  { value: "api", label: "API's", icon: KeyRound, Comp: GerenteApiProvedor },
+  { value: "api", label: "API's", icon: KeyRound, Comp: GerenteLicencasApis },
 ] as const;
 
 export default function GerenteTodasLicencas() {
