@@ -863,11 +863,21 @@ export default function RevendedorPedidos() {
           if (licSearch.trim()) {
             const q = licSearch.trim().toLowerCase();
             return (o.license_key ?? "").toLowerCase().includes(q) ||
-              (o.license_type ?? "").toLowerCase().includes(q);
+              (o.license_type ?? "").toLowerCase().includes(q) ||
+              (o.customer?.display_name ?? "").toLowerCase().includes(q) ||
+              (o.customer?.whatsapp ?? "").toLowerCase().includes(q);
           }
           return true;
         });
         const fmtDate = (s: string) => new Date(s).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+        const fmtWa = (w?: string | null) => {
+          if (!w) return null;
+          const d = w.replace(/\D+/g, "");
+          if (d.length === 13) return `+${d.slice(0,2)} (${d.slice(2,4)}) ${d.slice(4,9)}-${d.slice(9)}`;
+          if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+          if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+          return w;
+        };
         return (
           <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 sm:p-8 space-y-5">
             <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
