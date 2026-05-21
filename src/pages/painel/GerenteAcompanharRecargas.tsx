@@ -1019,6 +1019,13 @@ export default function GerenteAcompanharRecargas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RefundSaleDialog
+        open={refundDialogOpen}
+        onOpenChange={setRefundDialogOpen}
+        data={refundData}
+        onSuccess={() => { loadAll(); }}
+      />
     </PageContainer>
   );
 }
