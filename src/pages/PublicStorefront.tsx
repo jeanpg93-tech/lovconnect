@@ -712,44 +712,46 @@ export default function PublicStorefront() {
                     const isLovax = method === "lovax";
                     const methodLabel = isLovax ? "LovaX" : "PromptFlow";
                     const methodDesc = isLovax
-                      ? "Tecnologia LovaX — geração de chaves rápida e estável"
-                      : "Tecnologia PromptFlow — máxima compatibilidade e performance";
+                      ? "As chaves desta vitrine são emitidas exclusivamente pela LovaX"
+                      : "As chaves desta vitrine são emitidas exclusivamente pela PromptFlow";
                     return (
-                      <div className="max-w-xl mx-auto mb-4">
+                      <div className="max-w-xl mx-auto mb-5">
                         <div
-                          className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur p-4 shadow-md"
-                          style={{ borderColor: `${color}40` }}
+                          className="relative overflow-hidden rounded-[2rem] border bg-background/80 backdrop-blur-xl p-5 text-left shadow-2xl"
+                          style={{ borderColor: `${color}70`, boxShadow: `0 20px 70px -24px ${color}99` }}
                         >
                           <div
-                            className="absolute -top-10 -left-10 h-32 w-32 rounded-full blur-[60px] opacity-20"
-                            style={{ background: color }}
+                            className="absolute inset-y-0 left-0 w-1.5"
+                            style={{ background: `linear-gradient(to bottom, transparent, ${color}, transparent)` }}
                           />
-                          <div className="relative z-10 flex items-center gap-3">
+                          <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: `linear-gradient(135deg, ${color} 1px, transparent 1px)`, backgroundSize: "18px 18px" }} />
+                          <div className="relative z-10 flex items-center gap-4">
                             <div
-                              className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 shadow-inner"
-                              style={{ background: `${color}1a`, color }}
+                              className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ring-1 ring-inset ring-background/20"
+                              style={{ background: `linear-gradient(135deg, ${color}, ${color}99)`, color: "#fff" }}
                             >
-                              {isLovax ? <Sparkles className="h-5 w-5" /> : <Chrome className="h-5 w-5" />}
+                              {isLovax ? <Sparkles className="h-6 w-6" /> : <Chrome className="h-6 w-6" />}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                                  Método da extensão
+                                <span className="text-[9px] font-black uppercase tracking-widest" style={{ color }}>
+                                  Motor de emissão
                                 </span>
                                 <span
-                                  className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border"
-                                  style={{ color, borderColor: `${color}50`, background: `${color}10` }}
+                                  className="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full border bg-background/70"
+                                  style={{ color, borderColor: `${color}60` }}
                                 >
-                                  Ativo
+                                  Escolhido pelo vendedor
                                 </span>
                               </div>
-                              <div className="font-bold text-base mt-0.5" style={{ color }}>
+                              <div className="font-black text-2xl mt-1 leading-none tracking-normal">
                                 {methodLabel}
                               </div>
-                              <div className="text-[11px] text-muted-foreground mt-0.5">
+                              <div className="text-xs text-muted-foreground mt-2 leading-relaxed">
                                 {methodDesc}
                               </div>
                             </div>
+                            <ShieldCheck className="hidden sm:block h-6 w-6 shrink-0" style={{ color }} />
                           </div>
                         </div>
                       </div>
