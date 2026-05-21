@@ -353,51 +353,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Dispara WhatsApp via Evolution API central (best-effort)
-    let whatsapp_sent = false;
-    let whatsapp_error: string | null = null;
-    if (license_key && whatsapp) {
-      try {
-        const EVO_URL = (Deno.env.get("EVOLUTION_BASE_URL") ?? "").replace(/\/+$/, "");
-        const EVO_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
-        const { data: integ } = await svc
-          .from("reseller_integrations")
-          .select("connection_status, instance_name")
-          .eq("reseller_id", reseller.id)
-          .maybeSingle();
-        const { data: tplRow } = await svc
-          .from("app_settings").select("value").eq("key", "evolution_message_template").maybeSingle();
-        const tpl = (typeof tplRow?.value === "string" ? tplRow.value : (tplRow?.value as any)) ||
-          "Olá {nome}! ✅ Sua licença {tipo} foi gerada.\n\n🔑 Chave: {chave}\n\nGuarde com cuidado.";
-
-        if (EVO_URL && EVO_KEY && integ?.connection_status === "connected" && integ.instance_name) {
-          const message = String(tpl)
-            .replaceAll("{nome}", final_display_name)
-            .replaceAll("{chave}", license_key)
-            .replaceAll("{tipo}", license_type);
-          const number = whatsapp.startsWith("55") ? whatsapp : `55${whatsapp}`;
-          const evoResp = await fetch(
-            `${EVO_URL}/message/sendText/${encodeURIComponent(integ.instance_name)}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-              body: JSON.stringify({ number, text: message }),
-            },
-          );
-          if (evoResp.ok) {
-            whatsapp_sent = true;
-            await svc.rpc("increment_evolution_messages_sent", { _reseller_id: reseller.id });
-          } else {
-            whatsapp_error = `Evolution retornou ${evoResp.status}`;
-          }
-          await evoResp.text().catch(() => {});
-        }
-      } catch (e) {
-        whatsapp_error = e instanceof Error ? e.message : "Erro Evolution";
-        console.error("[evolution send]", e);
-      }
-    }
-
     return json({
       ok: true,
       order_id: order.id,
@@ -407,8 +362,6 @@ Deno.serve(async (req) => {
       license_key,
       provider: providerData,
       discount_percent: discount_pct,
-      whatsapp_sent,
-      whatsapp_error,
     });
   } catch (e) {
     console.error("[place-reseller-order]", e);
