@@ -237,7 +237,7 @@ export default function PublicRecharge() {
 
   useEffect(() => {
     loadOrder();
-    const t = setInterval(() => loadOrder(true), 12000);
+    const t = setInterval(() => loadOrder(true), 3000);
     return () => clearInterval(t);
   }, [loadOrder]);
 
@@ -546,7 +546,7 @@ export default function PublicRecharge() {
           </div>
 
           <p className="text-center text-[11px] text-zinc-500">
-            Esta página atualiza automaticamente a cada 12 segundos.
+            Esta página atualiza automaticamente em tempo real.
           </p>
         </div>
       </div>
@@ -740,7 +740,7 @@ export default function PublicRecharge() {
 
         {/* Footer */}
         <div className="pt-2 text-center text-[11px] text-zinc-500">
-          Esta página atualiza automaticamente a cada 12s
+          Esta página atualiza automaticamente em tempo real
         </div>
       </div>
 
