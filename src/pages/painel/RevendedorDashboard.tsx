@@ -425,11 +425,11 @@ export default function RevendedorDashboard() {
                 </span>
                 Live
               </span>
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+              <div className="flex flex-col md:flex-row md:flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3">
                 <span>Painel do Revendedor</span>
                 {tier && (
                   <>
-                    <span className="text-border">·</span>
+                    <span className="hidden md:inline text-border">·</span>
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-primary normal-case tracking-normal">
                       <Crown className="h-3 w-3" /> {tier.name}
                     </span>
