@@ -627,8 +627,8 @@ export default function RevendedorDashboard() {
       </div>
 
       {/* ÚLTIMAS ATIVIDADES */}
-      <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <div className="md:col-span-1 lg:col-span-2 rounded-2xl border border-border bg-card p-4 md:p-6">
+      <section className="grid gap-6">
+        <div className="rounded-2xl border border-border bg-card p-4 md:p-6">
           <div className="flex items-center justify-between mb-4 md:mb-6">
             <h3 className="text-base md:text-lg font-bold flex items-center gap-2">
               <HistoryIcon className="h-4 w-4 md:h-5 md:w-5 text-primary" /> Atividades Recentes
