@@ -875,6 +875,38 @@ export default function GerenteAcompanharRecargas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={confirmOpen} onOpenChange={(o) => { if (!confirming) setConfirmOpen(o); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{confirmData?.title ?? "Confirmar"}</DialogTitle>
+            <DialogDescription>{confirmData?.description}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" size="sm" disabled={confirming} onClick={() => setConfirmOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              variant={confirmData?.variant === "destructive" ? "destructive" : "default"}
+              disabled={confirming}
+              onClick={async () => {
+                if (!confirmData) return;
+                try {
+                  setConfirming(true);
+                  await confirmData.onConfirm();
+                } finally {
+                  setConfirming(false);
+                  setConfirmOpen(false);
+                }
+              }}
+            >
+              {confirming ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+              {confirmData?.confirmLabel ?? "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
