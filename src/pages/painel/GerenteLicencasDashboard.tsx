@@ -5,6 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Truck, Zap, Sparkles, Wrench, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Method = "flow" | "lovax";
 
@@ -14,6 +24,7 @@ const MAINT_KEY = "licencas.delivery.maintenance";
 export default function GerenteLicencasDashboard() {
   const [method, setMethod] = useState<Method>("flow");
   const [maintenance, setMaintenance] = useState(false);
+  const [pendingMethod, setPendingMethod] = useState<Method | null>(null);
 
   useEffect(() => {
     const m = localStorage.getItem(METHOD_KEY) as Method | null;
@@ -21,10 +32,17 @@ export default function GerenteLicencasDashboard() {
     setMaintenance(localStorage.getItem(MAINT_KEY) === "1");
   }, []);
 
-  const switchMethod = (m: Method) => {
-    setMethod(m);
-    localStorage.setItem(METHOD_KEY, m);
-    toast.success(`Método de entrega: ${m === "flow" ? "MétodoFlow" : "MétodoLovax"}`);
+  const requestSwitch = (m: Method) => {
+    if (m === method) return;
+    setPendingMethod(m);
+  };
+
+  const confirmSwitch = () => {
+    if (!pendingMethod) return;
+    setMethod(pendingMethod);
+    localStorage.setItem(METHOD_KEY, pendingMethod);
+    toast.success(`Método de entrega: ${pendingMethod === "flow" ? "MétodoFlow" : "MétodoLovax"}`);
+    setPendingMethod(null);
   };
 
   const toggleMaintenance = () => {
@@ -79,7 +97,7 @@ export default function GerenteLicencasDashboard() {
                 return (
                   <button
                     key={opt.id}
-                    onClick={() => switchMethod(opt.id)}
+                    onClick={() => requestSwitch(opt.id)}
                     className={cn(
                       "group relative flex items-start gap-3 rounded-xl border p-4 text-left transition-all",
                       active
@@ -136,6 +154,24 @@ export default function GerenteLicencasDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={pendingMethod !== null} onOpenChange={(o) => !o && setPendingMethod(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Trocar método de entrega?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a alterar o método de entrega ativo de{" "}
+              <strong>{method === "flow" ? "MétodoFlow" : "MétodoLovax"}</strong> para{" "}
+              <strong>{pendingMethod === "flow" ? "MétodoFlow" : "MétodoLovax"}</strong>.
+              Novas licenças passarão a ser geradas pelo novo método imediatamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSwitch}>Confirmar troca</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
