@@ -85,7 +85,20 @@ export default function GerenteLicencasValores() {
         setPrices({ flow: dbValue.flow ?? {}, lovax: dbValue.lovax ?? {} });
       } else {
         // Migra automaticamente o que estiver no localStorage (legado)
-        setPrices(loadLocalPrices());
+        const local = loadLocalPrices();
+        setPrices(local);
+        const hasAny =
+          Object.keys(local.flow ?? {}).length > 0 ||
+          Object.keys(local.lovax ?? {}).length > 0;
+        if (hasAny) {
+          // Persiste imediatamente no banco para que os revendedores vejam
+          const { error: upErr } = await supabase
+            .from("app_settings")
+            .upsert({ key: STORAGE_KEY, value: local as any }, { onConflict: "key" });
+          if (!upErr) {
+            toast.success("Preços locais migrados para o banco");
+          }
+        }
       }
 
       setTiers(
