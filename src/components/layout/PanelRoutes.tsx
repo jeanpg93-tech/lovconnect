@@ -6,7 +6,6 @@ import { useRole } from "@/hooks/useRole";
 const GerenteDashboard = lazy(() => import("@/pages/painel/GerenteDashboard"));
 const GerenteRevendedores = lazy(() => import("@/pages/painel/GerenteRevendedores"));
 const GerenteAffiliados = lazy(() => import("@/pages/painel/GerenteAffiliados"));
-const GerenteUsuarios = lazy(() => import("@/pages/painel/GerenteUsuarios"));
 const GerenteAprovacoes = lazy(() => import("@/pages/painel/GerenteAprovacoes"));
 const GerenteGateway = lazy(() => import("@/pages/painel/GerenteGateway"));
 const GerenteApiProvedor = lazy(() => import("@/pages/painel/GerenteApiProvedor"));
