@@ -675,13 +675,23 @@ export default function GerenteAcompanharRecargas() {
                             {!isDone && !isFail && (
                               <>
                                 {s === "manual_pendente" && (
-                                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_aceito")}>
+                                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => askConfirm({
+                                    title: "Aceitar pedido?",
+                                    description: `O pedido ${m.provider_pedido_id.slice(0,8)} será marcado como Aceito/config e o cliente poderá informar o workspace.`,
+                                    confirmLabel: "Aceitar",
+                                    onConfirm: () => setManualStatus(m, "manual_aceito"),
+                                  })}>
                                     <Hand className="mr-1 h-3 w-3" /> Aceitar
                                   </Button>
                                 )}
                                 {s === "manual_aceito" && (
                                   m.workspace_name ? (
-                                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_iniciado")}>
+                                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => askConfirm({
+                                      title: "Marcar como Iniciado?",
+                                      description: `O pedido ${m.provider_pedido_id.slice(0,8)} entrará em Config/start.`,
+                                      confirmLabel: "Iniciar",
+                                      onConfirm: () => setManualStatus(m, "manual_iniciado"),
+                                    })}>
                                       <Wrench className="mr-1 h-3 w-3" /> Iniciado
                                     </Button>
                                   ) : (
@@ -691,7 +701,12 @@ export default function GerenteAcompanharRecargas() {
                                   )
                                 )}
                                 {s === "manual_iniciado" && (
-                                  <Button size="sm" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_concluido", { notes: null })}>
+                                  <Button size="sm" className="h-7 px-2 text-xs" onClick={() => askConfirm({
+                                    title: "Concluir pedido?",
+                                    description: `Confirmar entrega do pedido ${m.provider_pedido_id.slice(0,8)}. Esta ação finaliza o pedido.`,
+                                    confirmLabel: "Concluir",
+                                    onConfirm: () => setManualStatus(m, "manual_concluido", { notes: null }),
+                                  })}>
                                     <CheckCircle2 className="mr-1 h-3 w-3" /> Concluído
                                   </Button>
                                 )}
@@ -701,18 +716,19 @@ export default function GerenteAcompanharRecargas() {
                                     variant="ghost"
                                     className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
                                     title="Voltar para Pendente"
-                                    onClick={() => {
-                                      if (confirm("Voltar este pedido para o status Pendente?")) {
-                                        setManualStatus(m, "manual_pendente", { force: true });
-                                      }
-                                    }}
+                                    onClick={() => askConfirm({
+                                      title: "Voltar para Pendente?",
+                                      description: `O pedido ${m.provider_pedido_id.slice(0,8)} retornará ao status Pendente.`,
+                                      confirmLabel: "Voltar para Pendente",
+                                      onConfirm: () => setManualStatus(m, "manual_pendente", { force: true }),
+                                    })}
                                   >
                                     <RotateCcw className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button size="sm" variant="destructive" className="h-7 w-7 p-0" title="Sem sucesso">
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-transparent" title="Sem sucesso">
                                       <AlertTriangle className="h-3.5 w-3.5" />
                                     </Button>
                                   </DropdownMenuTrigger>
@@ -726,7 +742,13 @@ export default function GerenteAcompanharRecargas() {
                                           if (r.startsWith("Outro")) {
                                             setFailTarget(m); setFailReason(r); setFailCustom(""); setFailOpen(true);
                                           } else {
-                                            setManualStatus(m, "manual_sem_sucesso", { notes: r });
+                                            askConfirm({
+                                              title: "Marcar como Sem sucesso?",
+                                              description: `Motivo: ${r}. O pedido ${m.provider_pedido_id.slice(0,8)} será encerrado.`,
+                                              confirmLabel: "Confirmar",
+                                              variant: "destructive",
+                                              onConfirm: () => setManualStatus(m, "manual_sem_sucesso", { notes: r }),
+                                            });
                                           }
                                         }}
                                         className="text-xs"
@@ -739,7 +761,12 @@ export default function GerenteAcompanharRecargas() {
                               </>
                             )}
                             {(isDone || isFail) && (
-                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_pendente", { notes: null })}>
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => askConfirm({
+                                title: "Reabrir pedido?",
+                                description: `O pedido ${m.provider_pedido_id.slice(0,8)} voltará para o status Pendente.`,
+                                confirmLabel: "Reabrir",
+                                onConfirm: () => setManualStatus(m, "manual_pendente", { notes: null, force: true }),
+                              })}>
                                 <RotateCcw className="mr-1 h-3 w-3" /> Reabrir
                               </Button>
                             )}
