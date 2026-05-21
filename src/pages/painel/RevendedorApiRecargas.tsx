@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
+import CopyAllDocsButton from "@/components/api/CopyAllDocsButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1356,6 +1357,7 @@ print("Status:", consultar_pedido(pedido["pedidoId"])["status"])`}
 
 /* ============ PAGE ============ */
 export default function RevendedorApiRecargas() {
+  const docsRef = useRef<HTMLDivElement>(null);
   return (
     <PageContainer>
       <PageHeader
@@ -1366,6 +1368,7 @@ export default function RevendedorApiRecargas() {
         }
         description="Integre seu sistema para criar pedidos de recargas de recargas Lovable automaticamente."
         icon={KeyRound}
+        actions={<CopyAllDocsButton containerRef={docsRef} fileName="api-recargas-revendedor.md" />}
       />
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -1414,6 +1417,22 @@ export default function RevendedorApiRecargas() {
         <TabsContent value="webhooks"><TabWebhooks /></TabsContent>
         <TabsContent value="exemplos"><TabExemplos /></TabsContent>
       </Tabs>
+
+      {/* Hidden mirror used by "Copiar documentação completa" para coletar
+          o conteúdo de todas as abas de uma vez. */}
+      <div
+        ref={docsRef}
+        aria-hidden="true"
+        className="sr-only"
+        style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}
+      >
+        <h2>Início Rápido</h2><TabInicio />
+        <h2>Endpoints</h2><TabEndpoints />
+        <h2>Erros</h2><TabErros />
+        <h2>Fluxo Workspace Próprio</h2><TabFluxoProprio />
+        <h2>Webhooks</h2><TabWebhooks />
+        <h2>Exemplos</h2><TabExemplos />
+      </div>
 
       <NavLink
         to="/painel/revendedor/api"
