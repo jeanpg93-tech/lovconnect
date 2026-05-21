@@ -117,6 +117,7 @@ export default function RevendedorMinhaLoja() {
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [fetchingTestimonials, setFetchingTestimonials] = useState(false);
   const [addingTestimonial, setAddingTestimonial] = useState(false);
+  const [generatingAI, setGeneratingAI] = useState(false);
   const [newTestimonial, setNewTestimonial] = useState({ name: "", content: "", rating: 5 });
   
   type Period = "today" | "yesterday" | "week" | "month" | "all";
@@ -229,6 +230,34 @@ export default function RevendedorMinhaLoja() {
     } else {
       toast.success("Depoimento removido");
       if (resellerId) fetchTestimonials(resellerId);
+    }
+  };
+
+  const handleGenerateAITestimonials = async () => {
+    if (!resellerId) return;
+    setGeneratingAI(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-testimonials-ai", {
+        body: { storeName },
+      });
+      if (error) throw error;
+      const items: Array<{ name: string; message: string }> = data?.testimonials ?? [];
+      if (items.length === 0) throw new Error("Nenhum depoimento gerado");
+
+      const rows = items.slice(0, 3).map((t) => ({
+        reseller_id: resellerId,
+        customer_name: t.name,
+        content: t.message,
+        rating: 5,
+      }));
+      const { error: insErr } = await supabase.from("storefront_testimonials").insert(rows);
+      if (insErr) throw insErr;
+      toast.success("3 depoimentos gerados com IA");
+      fetchTestimonials(resellerId);
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao gerar com IA");
+    } finally {
+      setGeneratingAI(false);
     }
   };
 
