@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
               id: local.provider_pedido_id ?? local.id,
               pedidoId: local.provider_pedido_id ?? local.id,
               status,
-              statusLabel: isDone ? "Entregue" : isProcessing ? "Em processamento" : "Aguardando equipe",
+              statusLabel: isDone ? "Entregue" : isProcessing ? "Em processamento" : "Pedido pendente",
               creditos: local.credits,
               precoCentavos: local.price_cents,
               tipoEntrega: local.tipo_entrega,
