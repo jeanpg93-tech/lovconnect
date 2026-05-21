@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
   switch (type) {
@@ -16,6 +18,23 @@ function mapTypeToProviderBody(type: string): Record<string, unknown> {
     case "pro_30d": return { days: 30 };
     case "lifetime": return { lifetime: true };
     default: return { days: 30 };
+  }
+}
+
+async function triggerReleasePending(orderIds: string[]) {
+  for (const id of orderIds) {
+    try {
+      await fetch(`${SUPABASE_URL}/functions/v1/release-pending-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({ order_id: id }),
+      });
+    } catch (e) {
+      console.warn("release-pending-order invoke failed", id, e);
+    }
   }
 }
 
