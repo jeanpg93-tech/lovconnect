@@ -227,12 +227,12 @@ export default function GerenteAcompanharRecargas() {
 
   const setManualStatus = async (
     m: ManualOrder,
-    status: "manual_pendente" | "manual_aceito" | "manual_iniciado" | "manual_concluido" | "manual_sem_sucesso",
+    status: "manual_pendente" | "manual_aceito" | "manual_iniciado" | "manual_limite_atingido" | "manual_concluido" | "manual_sem_sucesso",
     extra?: { notes?: string | null; force?: boolean },
   ) => {
     // Garante a sequência: Pendente → Aceito → Iniciado → Concluído.
     // "Sem sucesso" pode ser acionado a partir de qualquer status não-final.
-    const ORDER = ["manual_pendente", "manual_aceito", "manual_iniciado", "manual_concluido"] as const;
+    const ORDER = ["manual_pendente", "manual_aceito", "manual_iniciado", "manual_limite_atingido", "manual_concluido"] as const;
     const current = (m.status || "manual_pendente") as string;
     const finalSet = new Set(["manual_concluido", "manual_entregue", "manual_sem_sucesso"]);
     if (!extra?.force && status !== "manual_sem_sucesso") {
@@ -242,7 +242,10 @@ export default function GerenteAcompanharRecargas() {
       }
       const ci = ORDER.indexOf(current as any);
       const ni = ORDER.indexOf(status as any);
-      if (ci < 0 || ni < 0 || ni !== ci + 1) {
+      // permite avanço de 1 passo OU pular "limite atingido" indo direto de iniciado para concluído
+      const okStep = ni === ci + 1;
+      const okSkipLimite = current === "manual_iniciado" && status === "manual_concluido";
+      if (ci < 0 || ni < 0 || (!okStep && !okSkipLimite)) {
         toast.error("Sequência inválida. Avance um passo por vez.");
         return;
       }
@@ -254,6 +257,7 @@ export default function GerenteAcompanharRecargas() {
       manual_pendente: "pending",
       manual_aceito: "accepted",
       manual_iniciado: "started",
+      manual_limite_atingido: "rate_limited",
       manual_concluido: "delivered",
       manual_sem_sucesso: "failed",
     };
@@ -618,6 +622,7 @@ export default function GerenteAcompanharRecargas() {
                       manual_pendente: { label: "Pendente", cls: "bg-amber-500/15 text-amber-500 border-amber-500/40", Icon: Clock },
                       manual_aceito: { label: "Aceito/config", cls: "bg-blue-500/15 text-blue-400 border-blue-500/40", Icon: Hand },
                       manual_iniciado: { label: "Pedido Iniciado", cls: "bg-cyan-500/15 text-cyan-400 border-cyan-500/40", Icon: Wrench },
+                      manual_limite_atingido: { label: "Limite atingido", cls: "bg-orange-500/15 text-orange-400 border-orange-500/40", Icon: Clock },
                       manual_concluido: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/40", Icon: CheckCircle2 },
                       manual_entregue: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/40", Icon: CheckCircle2 },
                       manual_sem_sucesso: { label: "Sem sucesso", cls: "bg-red-500/15 text-red-500 border-red-500/40", Icon: AlertTriangle },
@@ -701,6 +706,15 @@ export default function GerenteAcompanharRecargas() {
                                   )
                                 )}
                                 {s === "manual_iniciado" && (
+                                  <>
+                                  <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-orange-500 hover:text-orange-600" title="Marcar Limite diário atingido" onClick={() => askConfirm({
+                                    title: "Marcar Limite diário?",
+                                    description: `O pedido ${m.provider_pedido_id.slice(0,8)} ficará em Limite atingido até o limite diário liberar.`,
+                                    confirmLabel: "Marcar limite",
+                                    onConfirm: () => setManualStatus(m, "manual_limite_atingido"),
+                                  })}>
+                                    <Clock className="h-3.5 w-3.5" />
+                                  </Button>
                                   <Button size="sm" className="h-7 px-2 text-xs" onClick={() => askConfirm({
                                     title: "Concluir pedido?",
                                     description: `Confirmar entrega do pedido ${m.provider_pedido_id.slice(0,8)}. Esta ação finaliza o pedido.`,
@@ -709,8 +723,19 @@ export default function GerenteAcompanharRecargas() {
                                   })}>
                                     <CheckCircle2 className="mr-1 h-3 w-3" /> Concluído
                                   </Button>
+                                  </>
                                 )}
-                                {(s === "manual_aceito" || s === "manual_iniciado") && (
+                                {s === "manual_limite_atingido" && (
+                                  <Button size="sm" className="h-7 px-2 text-xs" onClick={() => askConfirm({
+                                    title: "Concluir pedido?",
+                                    description: `Confirmar entrega do pedido ${m.provider_pedido_id.slice(0,8)}. Esta ação finaliza o pedido.`,
+                                    confirmLabel: "Concluir",
+                                    onConfirm: () => setManualStatus(m, "manual_concluido", { notes: null, force: true }),
+                                  })}>
+                                    <CheckCircle2 className="mr-1 h-3 w-3" /> Concluído
+                                  </Button>
+                                )}
+                                {(s === "manual_aceito" || s === "manual_iniciado" || s === "manual_limite_atingido") && (
                                   <Button
                                     size="sm"
                                     variant="ghost"
