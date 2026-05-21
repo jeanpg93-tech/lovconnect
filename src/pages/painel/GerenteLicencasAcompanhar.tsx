@@ -633,7 +633,7 @@ export default function GerenteLicencasAcompanhar() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-amber-500 hover:bg-amber-500/10 hover:text-amber-500 transition-colors disabled:opacity-30"
-                                onClick={() => openConfirm("reset", o.license_key)}
+                                onClick={() => openConfirm("reset", o.license_key, o.method)}
                                 disabled={actionLoading === o.license_key}
                                 title="Resetar Dispositivo (HWID)"
                               >
@@ -643,7 +643,7 @@ export default function GerenteLicencasAcompanhar() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-30"
-                                onClick={() => openConfirm("revoke", o.license_key)}
+                                onClick={() => openConfirm("revoke", o.license_key, o.method)}
                                 disabled={!isActive || actionLoading === o.license_key}
                                 title="Revogar Licença"
                               >
@@ -653,7 +653,7 @@ export default function GerenteLicencasAcompanhar() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors disabled:opacity-30"
-                                onClick={() => openConfirm("delete", o.license_key)}
+                                onClick={() => openConfirm("delete", o.license_key, o.method)}
                                 disabled={isActive || actionLoading === o.license_key}
                                 title="Excluir Licença"
                               >
@@ -707,8 +707,8 @@ export default function GerenteLicencasAcompanhar() {
                                 <div className="space-y-4">
                                   <h4 className="text-[10px] font-mono uppercase tracking-widest text-primary flex items-center gap-2"><ArrowUpRight className="h-3 w-3" /> Gestão</h4>
                                   <div className="grid gap-2">
-                                    <Button variant="outline" size="sm" className="w-full text-xs text-destructive border-destructive/20" onClick={() => openConfirm("revoke", o.license_key)} disabled={!isActive}><XCircle className="mr-2 h-3.5 w-3.5" /> Revogar</Button>
-                                    <Button variant="outline" size="sm" className="w-full text-xs border-white/10" onClick={() => openConfirm("delete", o.license_key)} disabled={isActive}><Trash2 className="mr-2 h-3.5 w-3.5" /> Excluir</Button>
+                                    <Button variant="outline" size="sm" className="w-full text-xs text-destructive border-destructive/20" onClick={() => openConfirm("revoke", o.license_key, o.method)} disabled={!isActive}><XCircle className="mr-2 h-3.5 w-3.5" /> Revogar</Button>
+                                    <Button variant="outline" size="sm" className="w-full text-xs border-white/10" onClick={() => openConfirm("delete", o.license_key, o.method)} disabled={isActive}><Trash2 className="mr-2 h-3.5 w-3.5" /> Excluir</Button>
                                   </div>
                                 </div>
                               </div>
@@ -792,7 +792,7 @@ export default function GerenteLicencasAcompanhar() {
                           variant="ghost"
                           size="sm"
                           className="h-9 flex-1 bg-white/5 text-amber-500 hover:bg-amber-500/10 disabled:opacity-30"
-                          onClick={() => openConfirm("reset", o.license_key)}
+                          onClick={() => openConfirm("reset", o.license_key, o.method)}
                           disabled={actionLoading === o.license_key}
                           title="Reset"
                         >
@@ -802,7 +802,7 @@ export default function GerenteLicencasAcompanhar() {
                           variant="ghost"
                           size="sm"
                           className="h-9 flex-1 bg-white/5 text-destructive hover:bg-destructive/10 disabled:opacity-30"
-                          onClick={() => openConfirm("revoke", o.license_key)}
+                          onClick={() => openConfirm("revoke", o.license_key, o.method)}
                           disabled={!isActive || actionLoading === o.license_key}
                           title="Revogar"
                         >
@@ -812,7 +812,7 @@ export default function GerenteLicencasAcompanhar() {
                           variant="ghost"
                           size="sm"
                           className="h-9 flex-1 bg-white/5 text-muted-foreground hover:bg-white/10 disabled:opacity-30"
-                          onClick={() => openConfirm("delete", o.license_key)}
+                          onClick={() => openConfirm("delete", o.license_key, o.method)}
                           disabled={isActive || actionLoading === o.license_key}
                           title="Excluir"
                         >
