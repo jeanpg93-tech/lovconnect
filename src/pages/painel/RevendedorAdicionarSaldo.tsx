@@ -181,17 +181,17 @@ export default function RevendedorAdicionarSaldo() {
         <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-6 lg:col-span-2">
           <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
           <div className="relative">
-            <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            <div className="gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground flex items-center justify-center">
               <Wallet className="h-3.5 w-3.5 text-primary" /> Saldo na Plataforma
             </div>
-            <div className="mt-3 flex items-end gap-2">
+            <div className="mt-3 gap-2 flex items-center justify-center">
               <div className="font-display text-4xl font-bold tracking-tight">
                 {loading ? "—" : fmt(balanceCents)}
               </div>
             </div>
 
             {currentTier && (
-              <div className="mt-4 flex flex-wrap items-center gap-2">
+              <div className="mt-4 flex-wrap gap-2 flex items-center justify-center">
                 <span
                   className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
                   style={{ borderColor: currentTier.color, color: currentTier.color, backgroundColor: `${currentTier.color}15` }}
@@ -211,7 +211,7 @@ export default function RevendedorAdicionarSaldo() {
               </div>
             )}
 
-            <div className="mt-5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <div className="mt-5 gap-1.5 text-[11px] text-muted-foreground flex items-center justify-center">
               <ShieldCheck className="h-3.5 w-3.5 text-primary" />
               Pagamento seguro via PIX (Mystic Pay)
             </div>
@@ -220,9 +220,9 @@ export default function RevendedorAdicionarSaldo() {
 
         {/* Card de recargas */}
         <div className="rounded-2xl border border-border bg-card/60 p-6 backdrop-blur-sm lg:col-span-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="items-center justify-between gap-3 text-center flex flex-col">
             <div>
-              <div className="flex items-center gap-2 font-display text-base font-semibold">
+              <div className="gap-2 font-display text-base font-semibold flex items-center justify-center">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
                   <Zap className="h-4 w-4" />
                 </span>
@@ -262,7 +262,7 @@ export default function RevendedorAdicionarSaldo() {
           </div>
 
           {/* Presets */}
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="mt-3 flex-wrap gap-1.5 flex items-center justify-center">
             {PRESETS.map((v) => {
               const selected = amountCents === v * 100;
               return (
@@ -324,27 +324,27 @@ export default function RevendedorAdicionarSaldo() {
       {/* Sequência de níveis */}
       {tiers.length > 0 && (
         <div className="rounded-2xl border border-border bg-card/60 p-6 backdrop-blur-sm">
-          <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex-wrap gap-4 flex-col flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              <div className="gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground flex items-center justify-center">
                 <Crown className="h-3.5 w-3.5 text-primary" /> Sequência de níveis
               </div>
-              <div className="mt-1 font-display text-lg font-semibold">
+              <div className="mt-1 font-display text-lg font-semibold text-center">
                 Suba de nível e ganhe mais
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground text-center">
                 Quanto mais você gasta, maior seu desconto e bônus de recargas.
               </div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Total gasto</div>
-              <div className="font-display text-xl font-bold tabular-nums">{fmt(totalSpentCents)}</div>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground text-center">Total gasto</div>
+              <div className="font-display text-xl font-bold tabular-nums text-center">{fmt(totalSpentCents)}</div>
             </div>
           </div>
 
           {tierProgress && (
             <div className="mt-5">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="items-center justify-between text-xs text-muted-foreground flex flex-col">
                 {tierProgress.next ? (
                   <>
                     <span>
