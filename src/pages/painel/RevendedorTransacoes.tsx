@@ -204,7 +204,7 @@ export default function RevendedorTransacoes() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="recharge">Recargas PIX</SelectItem>
+                <SelectItem value="recharge">Recarga PIX</SelectItem>
                 <SelectItem value="order">Vendas / Pedidos</SelectItem>
                 <SelectItem value="manual">Ajustes Gerente</SelectItem>
                 <SelectItem value="bonus">Indicação & Bônus</SelectItem>

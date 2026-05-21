@@ -3,19 +3,19 @@ import { useSearchParams } from "react-router-dom";
 import { PageContainer } from "@/components/painel/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart3, History as HistoryIcon, Tag, KeyRound } from "lucide-react";
-import GerenteRecargasDashboard from "./GerenteRecargasDashboard";
-import GerenteAcompanharRecargas from "./GerenteAcompanharRecargas";
+import GerenteRecargaDashboard from "./GerenteRecargaDashboard";
+import GerenteAcompanharRecarga from "./GerenteAcompanharRecarga";
 import GerenteValoresCreditos from "./GerenteValoresCreditos";
-import GerenteApiRecargas from "./GerenteApiRecargas";
+import GerenteApiRecarga from "./GerenteApiRecarga";
 
 const TABS = [
-  { value: "dashboard", label: "Dashboard", icon: BarChart3, Comp: GerenteRecargasDashboard },
-  { value: "acompanhar", label: "Acompanhar", icon: HistoryIcon, Comp: GerenteAcompanharRecargas },
+  { value: "dashboard", label: "Dashboard", icon: BarChart3, Comp: GerenteRecargaDashboard },
+  { value: "acompanhar", label: "Acompanhar", icon: HistoryIcon, Comp: GerenteAcompanharRecarga },
   { value: "valores", label: "Valores", icon: Tag, Comp: GerenteValoresCreditos },
-  { value: "api", label: "API", icon: KeyRound, Comp: GerenteApiRecargas },
+  { value: "api", label: "API", icon: KeyRound, Comp: GerenteApiRecarga },
 ] as const;
 
-export default function GerenteRecargas() {
+export default function GerenteRecarga() {
   const [sp, setSp] = useSearchParams();
   const initial = TABS.find((t) => t.value === sp.get("tab"))?.value ?? "dashboard";
   const [tab, setTab] = useState<string>(initial);
@@ -30,8 +30,8 @@ export default function GerenteRecargas() {
   return (
     <PageContainer className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Gerenciar Recargas</h1>
-        <p className="text-muted-foreground">Tudo sobre recargas em um único lugar: métricas, pedidos, preços e API.</p>
+        <h1 className="text-2xl font-bold tracking-tight">Gerenciar Recarga</h1>
+        <p className="text-muted-foreground">Tudo sobre recarga em um único lugar: métricas, pedidos, preços e API.</p>
       </div>
 
       <Tabs value={tab} onValueChange={handleChange} className="space-y-6">

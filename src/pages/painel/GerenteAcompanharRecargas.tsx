@@ -44,7 +44,7 @@ type ManualOrder = {
 
 const TYPE_LABEL: Record<string, string> = {};
 
-export default function GerenteAcompanharRecargas() {
+export default function GerenteAcompanharRecarga() {
   const [usage, setUsage] = useState<Usage[]>([]);
   const [manualOrders, setManualOrders] = useState<ManualOrder[]>([]);
   const [saldo, setSaldo] = useState<number | null>(null);
@@ -111,7 +111,7 @@ export default function GerenteAcompanharRecargas() {
         }
         return {
           id: p.id ?? p.pedidoId ?? "",
-          license_type: `Recargas (${p.creditos ?? "—"})`,
+          license_type: `Recarga (${p.creditos ?? "—"})`,
           license_key: p.linkCliente ?? p.id ?? p.pedidoId ?? "",
           status,
           created_at: p.criadoEm ?? p.dataCriacao ?? new Date().toISOString(),
@@ -313,7 +313,7 @@ export default function GerenteAcompanharRecargas() {
             <div className="inline-flex items-center gap-1.5 rounded-full border bg-background/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur">
               <BarChart3 className="h-3 w-3" /> Painel do provedor
             </div>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight">Acompanhar Recargas</h1>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight">Acompanhar Recarga</h1>
             <p className="text-sm text-muted-foreground">Pedidos manuais e automáticos do provedor no período selecionado.</p>
           </div>
           <div className="flex items-center gap-2">
@@ -342,7 +342,7 @@ export default function GerenteAcompanharRecargas() {
         <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
           <div className="font-medium text-amber-600 dark:text-amber-400">Provedor não configurado</div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Configure a chave mestre em <strong>API Recargas</strong> para começar a receber pedidos.
+            Configure a chave mestre em <strong>API Recarga</strong> para começar a receber pedidos.
           </p>
         </div>
       )}
@@ -451,7 +451,7 @@ export default function GerenteAcompanharRecargas() {
                   <thead className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                     <tr>
                       <th className="px-4 py-3 text-left font-semibold">Pedido</th>
-                      <th className="px-4 py-3 text-left font-semibold">Recargas</th>
+                      <th className="px-4 py-3 text-left font-semibold">Recarga</th>
                       <th className="px-4 py-3 text-left font-semibold">Link público</th>
                       <th className="px-4 py-3 text-left font-semibold">Responsável</th>
                       <th className="px-4 py-3 text-center font-semibold">Status</th>
@@ -550,7 +550,7 @@ export default function GerenteAcompanharRecargas() {
                 <thead className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Pedido</th>
-                    <th className="px-4 py-3 text-left font-semibold">Recargas</th>
+                    <th className="px-4 py-3 text-left font-semibold">Recarga</th>
                     <th className="px-4 py-3 text-left font-semibold">Workspace</th>
                     <th className="px-4 py-3 text-left font-semibold">Responsável</th>
                     <th className="px-4 py-3 text-center font-semibold">Status</th>
@@ -586,7 +586,7 @@ export default function GerenteAcompanharRecargas() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{m.credits} recargas</td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">{m.credits} recarga</td>
                         <td className="px-4 py-3 text-xs">
                           {m.workspace_name ? (
                             <span className="font-medium text-foreground">{m.workspace_name}</span>

@@ -198,7 +198,7 @@ export default function RevendedorIndicacoes() {
                 <Gift className="h-3.5 w-3.5 text-primary" />
               </div>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
-                <strong className="text-foreground">Ganhe {pct}% de todas as recargas!</strong> Quem usar seu link vira seu indicado para sempre. O crédito cai na hora no seu saldo.
+                <strong className="text-foreground">Ganhe {pct}% de todas as recarga!</strong> Quem usar seu link vira seu indicado para sempre. O crédito cai na hora no seu saldo.
               </p>
             </div>
           </div>

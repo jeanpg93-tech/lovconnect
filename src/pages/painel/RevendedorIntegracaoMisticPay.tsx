@@ -104,7 +104,7 @@ export default function RevendedorIntegracaoMisticPay() {
         <AlertTriangle className="h-5 w-5 shrink-0 text-destructive" />
         <div className="space-y-1">
           <div className="font-medium text-destructive">Zona de risco</div>
-          <p className="text-muted-foreground">Se ativar, suas recargas passarão a usar sua conta MisticPay.</p>
+          <p className="text-muted-foreground">Se ativar, suas recarga passarão a usar sua conta MisticPay.</p>
         </div>
       </div>
 
@@ -116,7 +116,7 @@ export default function RevendedorIntegracaoMisticPay() {
             </div>
             <div>
               <h3 className="font-display text-base font-semibold">MisticPay (PIX)</h3>
-              <p className="text-xs text-muted-foreground">Receba recargas direto na sua conta.</p>
+              <p className="text-xs text-muted-foreground">Receba recarga direto na sua conta.</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

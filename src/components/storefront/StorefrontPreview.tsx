@@ -124,7 +124,7 @@ export function StorefrontPreview({
 
           {activeTab === "recharge" && (showProducts || showCredits) && (
             <div className="space-y-3">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-left">Recargas e Itens</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-left">Recarga e Itens</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {showProducts && (
                   <div className="rounded-lg border bg-card/80 backdrop-blur p-2 text-left flex items-center justify-between">
@@ -134,7 +134,7 @@ export function StorefrontPreview({
                 )}
                 {showCredits && (
                   <div className="rounded-lg border bg-card/80 backdrop-blur p-2 text-left flex items-center justify-between">
-                    <div className="text-xs font-medium">Recarga 50 Recargas</div>
+                    <div className="text-xs font-medium">Recarga 50 Recarga</div>
                     <div className="text-xs font-bold" style={{ color }}>R$ 45,00</div>
                   </div>
                 )}

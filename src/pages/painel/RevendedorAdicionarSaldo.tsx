@@ -199,7 +199,7 @@ export default function RevendedorAdicionarSaldo() {
                 </span>
                 {bonusPct > 0 && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                    <Gift className="h-3 w-3" /> +{bonusPct}% em recargas
+                    <Gift className="h-3 w-3" /> +{bonusPct}% em recarga
                   </span>
                 )}
                 {Number(currentTier.discount_percent) > 0 && (

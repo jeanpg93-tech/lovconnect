@@ -232,7 +232,7 @@ export function MobileNav() {
                   </div>
                   <div className="ml-4 text-left">
                     <span className="block text-xl font-bold text-white tracking-tight">Nova Recarga</span>
-                    <span className="block text-xs font-medium text-zinc-500 uppercase tracking-widest">Recargas de acesso</span>
+                    <span className="block text-xs font-medium text-zinc-500 uppercase tracking-widest">Recarga de acesso</span>
                   </div>
                 </Link>
               </Button>

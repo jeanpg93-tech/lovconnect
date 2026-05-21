@@ -311,7 +311,7 @@ export default function GerenteDashboard() {
         created_at: o.created_at,
         status: o.status === 'paid' ? 'completed' : o.status,
         is_test: false,
-        license_type: o.product_type === 'credit' ? `${o.credit_amount ?? ''} recargas` : (o.license_type || 'loja'),
+        license_type: o.product_type === 'credit' ? `${o.credit_amount ?? ''} recarga` : (o.license_type || 'loja'),
         price_cents: Number(o.price_cents ?? 0),
         reseller_name: rMap.get(o.reseller_id) ?? "—",
         extension_name: eMap.get(o.extension_id) ?? "—",
@@ -569,7 +569,7 @@ export default function GerenteDashboard() {
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-border bg-background/70 p-5 backdrop-blur">
               <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
-                <TrendingUp className="h-3 w-3 text-emerald-500" /> Recargas hoje
+                <TrendingUp className="h-3 w-3 text-emerald-500" /> Recarga hoje
               </div>
               <div className="mt-2 font-display font-black tracking-tighter text-emerald-600 text-xl">
                 {formatBRL(todayRecharge.cents)}
@@ -586,7 +586,7 @@ export default function GerenteDashboard() {
                 {providerBalance}
               </div>
               <div className="mt-1 text-[10px] text-muted-foreground">
-                crédito disponível para recargas
+                crédito disponível para recarga
               </div>
             </div>
           </div>
@@ -617,7 +617,7 @@ export default function GerenteDashboard() {
             accent="primary"
           />
           <StatCard
-            label="Volume Recargas"
+            label="Volume Recarga"
             value={formatBRL(stats.rechargeTotalCents)}
             hint={`${stats.rechargePaidCount} transações aprovadas`}
             icon={Wallet}
@@ -698,7 +698,7 @@ export default function GerenteDashboard() {
                     });
                     const kindLabels: Record<string, string> = {
                       deposit: "Depósito", recharge: "Recarga", bonus: "Bônus", refund: "Estorno",
-                      adjustment: "Ajuste", license_purchase: "Compra licença", credit_purchase: "Compra recargas",
+                      adjustment: "Ajuste", license_purchase: "Compra licença", credit_purchase: "Compra recarga",
                       order: "Pedido", debit: "Débito", order_debit: "Pedido",
                       manual_credit: "Crédito manual", credit_purchase_refund: "Estorno compra",
                       credit_recharge_api: "Recarga API",
@@ -741,7 +741,7 @@ export default function GerenteDashboard() {
                                       {isSaleLike ? (
                                         <>
                                           <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : "bg-sky-500/15 text-sky-600 border-sky-500/30"}`}>
-                                            <StoreIcon className="h-2.5 w-2.5" /> {isCreditPurchase ? "Recargas" : "Extensão"}
+                                            <StoreIcon className="h-2.5 w-2.5" /> {isCreditPurchase ? "Recarga" : "Extensão"}
                                           </span>
                                           <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isStoreSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"}`}>
                                             {isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}

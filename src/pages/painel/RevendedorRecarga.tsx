@@ -392,9 +392,9 @@ export default function RevendedorRecarga() {
 
                 <p className="text-sm md:text-base text-muted-foreground leading-relaxed max-w-2xl">
                   {activeMode === "automatico" ? (
-                    <>No modo automático, todas as suas recargas são processadas <span className="text-foreground font-semibold">instantaneamente</span> assim que o PIX é confirmado. Sem intervenção manual, sem espera — o saldo cai direto na sua conta e fica disponível para uso imediato.</>
+                    <>No modo automático, todas as suas recarga são processadas <span className="text-foreground font-semibold">instantaneamente</span> assim que o PIX é confirmado. Sem intervenção manual, sem espera — o saldo cai direto na sua conta e fica disponível para uso imediato.</>
                   ) : (
-                    <>No modo manual, seus pedidos entram em uma <span className="text-foreground font-semibold">fila de processamento</span>. Após a confirmação do PIX, a equipe entrega os recargas diretamente no workspace do cliente. Você acompanha cada etapa em tempo real.</>
+                    <>No modo manual, seus pedidos entram em uma <span className="text-foreground font-semibold">fila de processamento</span>. Após a confirmação do PIX, a equipe entrega os recarga diretamente no workspace do cliente. Você acompanha cada etapa em tempo real.</>
                   )}
                 </p>
 

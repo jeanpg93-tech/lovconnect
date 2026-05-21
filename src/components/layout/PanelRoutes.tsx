@@ -9,10 +9,10 @@ const GerenteAffiliados = lazy(() => import("@/pages/painel/GerenteAffiliados"))
 const GerenteAprovacoes = lazy(() => import("@/pages/painel/GerenteAprovacoes"));
 const GerenteGateway = lazy(() => import("@/pages/painel/GerenteGateway"));
 const GerenteApiProvedor = lazy(() => import("@/pages/painel/GerenteApiProvedor"));
-const GerenteApiRecargas = lazy(() => import("@/pages/painel/GerenteApiRecargas"));
-const GerenteAcompanharRecargas = lazy(() => import("@/pages/painel/GerenteAcompanharRecargas"));
-const GerenteRecargasDashboard = lazy(() => import("@/pages/painel/GerenteRecargasDashboard"));
-const GerenteRecargas = lazy(() => import("@/pages/painel/GerenteRecargas"));
+const GerenteApiRecarga = lazy(() => import("@/pages/painel/GerenteApiRecarga"));
+const GerenteAcompanharRecarga = lazy(() => import("@/pages/painel/GerenteAcompanharRecarga"));
+const GerenteRecargaDashboard = lazy(() => import("@/pages/painel/GerenteRecargaDashboard"));
+const GerenteRecarga = lazy(() => import("@/pages/painel/GerenteRecarga"));
 const GerenteGeracaoManual = lazy(() => import("@/pages/painel/GerenteGeracaoManual"));
 const GerenteGeracaoManualCreditos = lazy(() => import("@/pages/painel/GerenteGeracaoManualCreditos"));
 const GerenteApiRevendedor = lazy(() => import("@/pages/painel/GerenteApiRevendedor"));
@@ -50,7 +50,7 @@ const RevendedorIntegracaoEvolution = lazy(() => import("@/pages/painel/Revended
 const RevendedorMinhaLoja = lazy(() => import("@/pages/painel/RevendedorMinhaLoja"));
 const RevendedorIndicacoes = lazy(() => import("@/pages/painel/RevendedorIndicacoes"));
 const RevendedorApi = lazy(() => import("@/pages/painel/RevendedorApi"));
-const RevendedorApiRecargas = lazy(() => import("@/pages/painel/RevendedorApiRecargas"));
+const RevendedorApiRecarga = lazy(() => import("@/pages/painel/RevendedorApiRecarga"));
 const RevendedorBaixarExtensao = lazy(() => import("@/pages/painel/RevendedorBaixarExtensao"));
 const RevendedorNiveis = lazy(() => import("@/pages/painel/RevendedorNiveis"));
 const RevendedorRanking = lazy(() => import("@/pages/painel/RevendedorRanking"));
@@ -86,10 +86,10 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/gerente/aprovacoes", match: exact("/painel/gerente/aprovacoes"), render: () => <RoleRoute allow={["gerente"]}><GerenteAprovacoes /></RoleRoute> },
   { key: "/painel/gerente/gateway", match: exact("/painel/gerente/gateway"), render: () => <RoleRoute allow={["gerente"]}><GerenteGateway /></RoleRoute> },
   { key: "/painel/gerente/api-provedor", match: exact("/painel/gerente/api-provedor"), render: () => <RoleRoute allow={["gerente"]}><GerenteApiProvedor /></RoleRoute> },
-  { key: "/painel/gerente/api-recargas", match: exact("/painel/gerente/api-recargas"), render: () => <RoleRoute allow={["gerente"]}><GerenteApiRecargas /></RoleRoute> },
-  { key: "/painel/gerente/acompanhar-recargas", match: exact("/painel/gerente/acompanhar-recargas"), render: () => <RoleRoute allow={["gerente"]}><GerenteAcompanharRecargas /></RoleRoute> },
-  { key: "/painel/gerente/recargas-dashboard", match: exact("/painel/gerente/recargas-dashboard"), render: () => <RoleRoute allow={["gerente"]}><GerenteRecargasDashboard /></RoleRoute> },
-  { key: "/painel/gerente/recargas", match: exact("/painel/gerente/recargas"), render: () => <RoleRoute allow={["gerente"]}><GerenteRecargas /></RoleRoute> },
+  { key: "/painel/gerente/api-recarga", match: exact("/painel/gerente/api-recarga"), render: () => <RoleRoute allow={["gerente"]}><GerenteApiRecarga /></RoleRoute> },
+  { key: "/painel/gerente/acompanhar-recarga", match: exact("/painel/gerente/acompanhar-recarga"), render: () => <RoleRoute allow={["gerente"]}><GerenteAcompanharRecarga /></RoleRoute> },
+  { key: "/painel/gerente/recarga-dashboard", match: exact("/painel/gerente/recarga-dashboard"), render: () => <RoleRoute allow={["gerente"]}><GerenteRecargaDashboard /></RoleRoute> },
+  { key: "/painel/gerente/recarga", match: exact("/painel/gerente/recarga"), render: () => <RoleRoute allow={["gerente"]}><GerenteRecarga /></RoleRoute> },
   { key: "/painel/gerente/geracao-manual", match: exact("/painel/gerente/geracao-manual"), render: () => <RoleRoute allow={["gerente"]}><GerenteGeracaoManual /></RoleRoute> },
   { key: "/painel/gerente/geracao-manual-creditos", match: exact("/painel/gerente/geracao-manual-creditos"), render: () => <RoleRoute allow={["gerente"]}><GerenteGeracaoManualCreditos /></RoleRoute> },
   { key: "/painel/gerente/api-revendedor", match: exact("/painel/gerente/api-revendedor"), render: () => <RoleRoute allow={["gerente"]}><GerenteApiRevendedor /></RoleRoute> },
@@ -126,7 +126,7 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/revendedor/loja", match: exact("/painel/revendedor/loja"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorMinhaLoja /></RoleRoute> },
   { key: "/painel/revendedor/indicacoes", match: exact("/painel/revendedor/indicacoes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorIndicacoes /></RoleRoute> },
   { key: "/painel/revendedor/api", match: exact("/painel/revendedor/api"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorApi /></RoleRoute> },
-  { key: "/painel/revendedor/api-recargas", match: exact("/painel/revendedor/api-recargas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorApiRecargas /></RoleRoute> },
+  { key: "/painel/revendedor/api-recarga", match: exact("/painel/revendedor/api-recarga"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorApiRecarga /></RoleRoute> },
   { key: "/painel/revendedor/baixar-extensao", match: exact("/painel/revendedor/baixar-extensao"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorBaixarExtensao /></RoleRoute> },
   { key: "/painel/revendedor/niveis", match: exact("/painel/revendedor/niveis"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorNiveis /></RoleRoute> },
   { key: "/painel/revendedor/ranking", match: exact("/painel/revendedor/ranking"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorRanking /></RoleRoute> },

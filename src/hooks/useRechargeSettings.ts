@@ -13,7 +13,7 @@ export const DEFAULT_RECHARGE_SETTINGS: RechargeSettings = {
   active_mode: "automatico",
   maintenance_enabled: false,
   maintenance_message:
-    "Estamos em manutenção. Novas recargas estarão disponíveis em breve.",
+    "Estamos em manutenção. Novas recarga estarão disponíveis em breve.",
 };
 
 const KEY = "recarga_settings";

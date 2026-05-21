@@ -30,7 +30,7 @@ const formatBRL = (cents: number) =>
 
 const CATEGORIES = [
   { id: "destaques", name: "Destaques", icon: Star, color: "text-amber-400" },
-  { id: "creditos", name: "Recargas", icon: Coins, color: "text-emerald-400" },
+  { id: "creditos", name: "Recarga", icon: Coins, color: "text-emerald-400" },
   { id: "licencas", name: "Licenças", icon: KeyRound, color: "text-primary" },
   { id: "servicos", name: "Serviços", icon: Zap, color: "text-sky-400" },
 ];
@@ -39,7 +39,7 @@ const SERVICES = [
   {
     id: "creditos-10",
     category: "creditos",
-    name: "10 Recargas",
+    name: "10 Recarga",
     description: "Ideal para testes rápidos e demonstrações.",
     price: 1500,
     icon: Coins,
@@ -50,7 +50,7 @@ const SERVICES = [
   {
     id: "creditos-100",
     category: "creditos",
-    name: "100 Recargas",
+    name: "100 Recarga",
     description: "O pacote mais vendido para uso profissional.",
     price: 12000,
     icon: Coins,
@@ -61,7 +61,7 @@ const SERVICES = [
   {
     id: "creditos-500",
     category: "creditos",
-    name: "500 Recargas",
+    name: "500 Recarga",
     description: "Melhor custo-benefício para grandes operações.",
     price: 50000,
     icon: Zap,
@@ -176,7 +176,7 @@ export default function RevendedorLanding() {
             </h1>
 
             <p className="max-w-md text-sm md:text-base text-muted-foreground leading-relaxed">
-              Explore todos os pacotes de recargas, licenças pro e serviços de personalização para alavancar sua revenda.
+              Explore todos os pacotes de recarga, licenças pro e serviços de personalização para alavancar sua revenda.
             </p>
 
             <div className="flex flex-wrap gap-3">
