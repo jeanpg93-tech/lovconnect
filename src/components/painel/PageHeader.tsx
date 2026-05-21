@@ -14,7 +14,7 @@ export const PageHeader = ({
   icon?: any;
 }) => (
   <div className="mb-6 flex flex-col gap-4 text-center sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:text-left">
-    <div className="min-w-0 flex flex-col gap-2 items-center sm:items-start">
+    <div className="min-w-0 flex-col gap-2 items-center flex sm:items-center justify-center">
       <div className="flex items-center gap-3">
         {Icon && (
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-glow-sm">
@@ -37,7 +37,7 @@ export const PageHeader = ({
         )}
       </div>
       {description && (
-        <p className="max-w-2xl text-sm text-muted-foreground font-medium leading-relaxed">
+        <p className="max-w-2xl text-sm text-muted-foreground font-medium leading-relaxed text-center">
           {description}
         </p>
       )}
