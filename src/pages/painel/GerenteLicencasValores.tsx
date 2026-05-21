@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-type Tier = { id: string; name: string; color: string; sort_order: number; is_hidden: boolean };
+type Tier = { id: string; slug: string; name: string; color: string; sort_order: number; is_hidden: boolean };
 
 type Method = "flow" | "lovax";
 type PackId = "1d" | "7d" | "30d" | "90d" | "365d" | "lifetime";
@@ -68,10 +68,17 @@ export default function GerenteLicencasValores() {
     (async () => {
       const { data } = await supabase
         .from("reseller_tiers")
-        .select("id,name,color,sort_order,is_hidden")
+        .select("id,slug,name,color,sort_order,is_hidden")
         .eq("is_active", true)
         .order("sort_order");
-      setTiers(((data ?? []) as Tier[]).filter((t) => !t.is_hidden));
+      setTiers(
+        ((data ?? []) as Tier[]).filter(
+          (t) =>
+            !t.is_hidden &&
+            t.slug?.toLowerCase() !== "partner" &&
+            !/partner/i.test(t.name)
+        )
+      );
       setLoadingTiers(false);
     })();
   }, []);
