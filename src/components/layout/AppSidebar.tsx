@@ -98,7 +98,6 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Dashboard", url: "/painel/revendedor", icon: LayoutDashboard },
       { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
       { title: "Carteira", url: "/painel/revendedor/carteira", icon: Wallet },
-      { title: "Transações", url: "/painel/revendedor/transacoes", icon: HistoryIcon },
       { title: "Indique e ganhe", url: "/painel/revendedor/indicacoes", icon: Gift },
     ]},
     { label: "Vender", items: [
