@@ -58,7 +58,6 @@ import {
 } from "recharts";
 import { format, subDays, startOfDay, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import wizardHero from "@/assets/wizard-hero.png";
 
 const fmtBRL = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
