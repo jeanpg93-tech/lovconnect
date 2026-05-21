@@ -546,7 +546,7 @@ export default function PublicRecharge() {
           </div>
 
           <p className="text-center text-[11px] text-zinc-500">
-            Esta página atualiza automaticamente a cada 12 segundos.
+            Esta página atualiza automaticamente em tempo real.
           </p>
         </div>
       </div>
