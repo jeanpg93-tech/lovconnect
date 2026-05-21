@@ -9,7 +9,8 @@ import { Card } from "@/components/ui/card";
 import { 
   Loader2, ShoppingCart, KeyRound, Copy, ChevronDown, FlaskConical, 
   RefreshCcw, Ban, Trash2, MoreVertical, Sparkles, Crown, Package,
-  BookOpen, Zap, Globe, Terminal, FileDown, Puzzle, ShieldCheck
+  BookOpen, Zap, Globe, Terminal, FileDown, Puzzle, ShieldCheck,
+  ArrowRight, Wallet
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
