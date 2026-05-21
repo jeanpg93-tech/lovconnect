@@ -282,16 +282,27 @@ export default function RevendedorPedidos() {
       return;
     }
     setSubmitting(true);
-    const { data, error } = await supabase.functions.invoke("place-reseller-order", {
-      body: {
-        license_type: open.license_type,
-        extension_id: selectedExtId || null,
-        client_id: clientId === "none" ? null : clientId,
-        display_name: name,
-        whatsapp: wa,
-        is_test: isTest,
-      },
-    });
+    const usingMethodCtx = !!openMethodCtx && !isTest;
+    const { data, error } = usingMethodCtx
+      ? await supabase.functions.invoke("place-method-license-order", {
+          body: {
+            method: openMethodCtx!.method,
+            pack_id: openMethodCtx!.pack.id,
+            client_id: clientId === "none" ? null : clientId,
+            display_name: name,
+            whatsapp: wa,
+          },
+        })
+      : await supabase.functions.invoke("place-reseller-order", {
+          body: {
+            license_type: open.license_type,
+            extension_id: null,
+            client_id: clientId === "none" ? null : clientId,
+            display_name: name,
+            whatsapp: wa,
+            is_test: isTest,
+          },
+        });
     setSubmitting(false);
     if (error || (data as any)?.error) {
       toast.error((data as any)?.error ?? error?.message ?? "Falha no pedido");
