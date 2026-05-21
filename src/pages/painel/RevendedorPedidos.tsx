@@ -565,13 +565,6 @@ export default function RevendedorPedidos() {
         <div className="flex h-32 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : plans.length === 0 ? (
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center backdrop-blur-xl">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-zinc-600">
-            <ShoppingCart className="h-8 w-8" />
-          </div>
-          <p className="text-sm font-medium text-zinc-500">Nenhum plano disponível ainda.</p>
-        </div>
       ) : extensions.length === 0 ? (
         <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center backdrop-blur-xl">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-zinc-600">
@@ -584,7 +577,7 @@ export default function RevendedorPedidos() {
           {/* Extension submenu — pill nav per extension */}
           <div className="flex flex-col gap-3">
             <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 pl-1">
-              Escolha a extensão
+              Escolha a extensão para gerar licenças
             </Label>
             <div className="flex flex-wrap items-center gap-2">
               {extensions.map((e) => {
@@ -621,7 +614,15 @@ export default function RevendedorPedidos() {
             </div>
           </div>
 
-          {/* Pricing Grid - Mobile optimized */}
+          {plans.length === 0 ? (
+            <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center backdrop-blur-xl">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-zinc-600">
+                <ShoppingCart className="h-8 w-8" />
+              </div>
+              <p className="text-sm font-medium text-zinc-500">Nenhum plano disponível para esta extensão.</p>
+            </div>
+          ) : (
+          /* Pricing Grid - Mobile optimized */
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {plans.map((p) => {
               const { price: final, base, source } = computePrice(p, selectedExtId);
