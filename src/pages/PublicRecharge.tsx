@@ -742,6 +742,7 @@ export default function PublicRecharge() {
               </Button>
             </div>
           </div>
+          )}
 
           <p className="text-center text-[11px] text-zinc-500">
             Esta página atualiza automaticamente em tempo real.
