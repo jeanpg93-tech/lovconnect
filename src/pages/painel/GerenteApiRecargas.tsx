@@ -201,7 +201,7 @@ function ProvedorConfig() {
             <div>
               <h3 className="font-display text-base font-semibold">Aviso de lentidão do provedor</h3>
               <p className="mt-1 max-w-md text-xs text-muted-foreground">
-                Quando ativado, exibe um banner em todas as páginas públicas de recarga.
+                Quando ativado, exibe um banner em todas as páginas públicas de recargas.
               </p>
             </div>
           </div>
@@ -410,7 +410,7 @@ function EndpointsRevendedor() {
 
       <DocBlock title="GET /pedidos/{id} — Consultar pedido" body={`curl -X GET "${API_BASE}/pedidos/UUID" \\\n  -H "X-API-Key: SUA_API_KEY"`} />
 
-      <DocBlock title="GET /transacoes — Histórico de saldo" body={`curl -X GET "${API_BASE}/transacoes?page=1&limit=30&tipo=entrada" \\\n  -H "X-API-Key: SUA_API_KEY"\n\n# tipo opcional: "entrada" (créditos) | "saida" (débitos)`} />
+      <DocBlock title="GET /transacoes — Histórico de saldo" body={`curl -X GET "${API_BASE}/transacoes?page=1&limit=30&tipo=entrada" \\\n  -H "X-API-Key: SUA_API_KEY"\n\n# tipo opcional: "entrada" (recargas) | "saida" (débitos)`} />
 
       <DocBlock title="GET /estatisticas?periodo=30d" body={`curl -X GET "${API_BASE}/estatisticas?periodo=30d" \\\n  -H "X-API-Key: SUA_API_KEY"\n\n# periodo: 7d | 30d | 90d | all\n# Retorna totais, ticket médio, pedidos por status, saldo atual`} />
 
@@ -429,7 +429,7 @@ Formato de resposta: { "success": boolean, "data": {...} | "error": "..." }
 ## Comece em 3 passos
 1. Autenticação — Inclua o header X-API-Key em todas as requisições.
 2. Consulte o saldo — Antes de criar pedidos, verifique se há saldo suficiente.
-3. Crie pedidos — Envie a quantidade de créditos e configure o tipo de entrega.
+3. Crie pedidos — Envie a quantidade de recargas e configure o tipo de entrega.
 
 ## Endpoints
 
@@ -459,7 +459,7 @@ curl -X GET "${API_BASE}/pedidos/UUID" -H "X-API-Key: SUA_API_KEY"
 
 ### GET /transacoes — Histórico de saldo
 curl -X GET "${API_BASE}/transacoes?page=1&limit=30&tipo=entrada" -H "X-API-Key: SUA_API_KEY"
-# tipo opcional: "entrada" (créditos) | "saida" (débitos)
+# tipo opcional: "entrada" (recargas) | "saida" (débitos)
 
 ### GET /estatisticas?periodo=30d
 curl -X GET "${API_BASE}/estatisticas?periodo=30d" -H "X-API-Key: SUA_API_KEY"
@@ -469,7 +469,7 @@ curl -X GET "${API_BASE}/estatisticas?periodo=30d" -H "X-API-Key: SUA_API_KEY"
 curl -X GET "${API_BASE}/uso" -H "X-API-Key: SUA_API_KEY"
 
 ## Limites e Regras
-- Créditos: múltiplos dos pacotes ativos no seu nível.
+- Recargas: múltiplos dos pacotes ativos no seu nível.
 - Preço: dinâmico, calculado pelo nível. Consulte /orcamento antes de criar pedido.
 - Saldo insuficiente: HTTP 402, nada é debitado.
 - Abstração total: nenhuma resposta expõe IDs/URLs/erros do provedor upstream.
@@ -485,7 +485,7 @@ SLA: até 24h úteis após o convite confirmado.
 
 ## Fluxo em 4 passos
 1. Crie o pedido — POST /pedidos-manual (saldo debitado na hora).
-2. Convide o bot — adicione recarga@revendovable.store como editor do workspace Lovable.
+2. Convide o bot — adicione recargas@revendovable.store como editor do workspace Lovable.
 3. Confirme o convite — POST /pedidos-manual/{id}/convite com workspace_name e invite_status="sent".
 4. Aguarde a entrega — equipe processa em até 24h. Acompanhe via GET /pedidos-manual/{id}.
 
@@ -516,7 +516,7 @@ curl -X GET "${API_BASE}/pedidos-manual/UUID" -H "X-API-Key: SUA_API_KEY"
 ## Status do pedido
 - manual_pendente — aguardando convite/processamento
 - manual_processando — equipe trabalhando
-- entregue — créditos no workspace
+- entregue — recargas no workspace
 - cancelado — saldo estornado
 
 ## Observações
@@ -551,7 +551,7 @@ function DocsRevendedor() {
           {[
             { n: 1, t: "Autenticação", d: "Inclua o header X-API-Key em todas as requisições." },
             { n: 2, t: "Consulte o saldo", d: "Antes de criar pedidos, verifique se há saldo suficiente." },
-            { n: 3, t: "Crie pedidos", d: "Envie a quantidade de créditos e configure o tipo de entrega." },
+            { n: 3, t: "Crie pedidos", d: "Envie a quantidade de recargas e configure o tipo de entrega." },
           ].map(s => (
             <div key={s.n} className="rounded-lg border border-border bg-secondary/30 p-3">
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">{s.n}</div>
@@ -567,7 +567,7 @@ function DocsRevendedor() {
         <Card className="border-border bg-card/60 p-4 text-xs leading-relaxed">
           <h4 className="text-sm font-semibold">Limites e Regras</h4>
           <div className="mt-3 space-y-2">
-            <div><strong>Créditos:</strong> múltiplos dos pacotes ativos no seu nível</div>
+            <div><strong>Recargas:</strong> múltiplos dos pacotes ativos no seu nível</div>
             <div className="border-t border-border pt-2">
               <strong>Preço:</strong> dinâmico, calculado pelo nível do revendedor.
               Consulte sempre <code className="font-mono">/orcamento</code> antes de criar um pedido.
@@ -607,7 +607,7 @@ function EndpointsManual() {
         </p>
       </Card>
 
-      <DocBlock title="GET /manual/info — Info do fluxo manual" body={`curl -X GET "${API_BASE}/manual/info" \\\n  -H "X-API-Key: SUA_API_KEY"\n\n# Resposta\n{\n  "success": true,\n  "data": {\n    "emailBot": "recarga@revendovable.store",\n    "slaHoras": 24,\n    "instrucoes": [ ... ]\n  }\n}`} />
+      <DocBlock title="GET /manual/info — Info do fluxo manual" body={`curl -X GET "${API_BASE}/manual/info" \\\n  -H "X-API-Key: SUA_API_KEY"\n\n# Resposta\n{\n  "success": true,\n  "data": {\n    "emailBot": "recargas@revendovable.store",\n    "slaHoras": 24,\n    "instrucoes": [ ... ]\n  }\n}`} />
 
       <DocBlock title="POST /pedidos-manual — Criar pedido manual" body={`curl -X POST "${API_BASE}/pedidos-manual" \\\n  -H "X-API-Key: SUA_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "creditos": 100,\n    "tipo_entrega": "workspace_proprio",\n    "workspace_name": "Meu Workspace"\n  }'\n\n# Retorna pedidoId, status="manual_pendente",\n# emailBot a convidar e proximoPasso.`} />
 
@@ -630,8 +630,8 @@ function DocsManual() {
         <h3 className="font-display text-base font-semibold">Fluxo manual em 4 passos</h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { n: 1, t: "Crie o pedido", d: "POST /pedidos-manual com créditos e tipo de entrega. Saldo é debitado na hora." },
-            { n: 2, t: "Convide o bot", d: "Adicione recarga@revendovable.store como editor do workspace Lovable." },
+            { n: 1, t: "Crie o pedido", d: "POST /pedidos-manual com recargas e tipo de entrega. Saldo é debitado na hora." },
+            { n: 2, t: "Convide o bot", d: "Adicione recargas@revendovable.store como editor do workspace Lovable." },
             { n: 3, t: "Confirme o convite", d: "POST /pedidos-manual/{id}/convite com workspace_name e status=sent." },
             { n: 4, t: "Aguarde a entrega", d: "Equipe processa em até 24h. Acompanhe via GET /pedidos-manual/{id}." },
           ].map(s => (
@@ -658,7 +658,7 @@ function DocsManual() {
           <ul className="mt-3 list-disc space-y-1 pl-4">
             <li><code className="font-mono">manual_pendente</code> — aguardando convite/processamento</li>
             <li><code className="font-mono">manual_processando</code> — equipe trabalhando</li>
-            <li><code className="font-mono">entregue</code> — créditos no workspace</li>
+            <li><code className="font-mono">entregue</code> — recargas no workspace</li>
             <li><code className="font-mono">cancelado</code> — saldo estornado</li>
           </ul>
         </Card>

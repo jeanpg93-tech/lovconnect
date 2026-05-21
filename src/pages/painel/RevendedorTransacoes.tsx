@@ -40,8 +40,8 @@ type Transaction = {
 };
 
 const KIND_META: Record<string, { label: string; cls: string; icon: any }> = {
-  recharge:        { label: "Recarga",        cls: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",   icon: ArrowDownRight },
-  credit_purchase: { label: "Recarga",        cls: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",   icon: ArrowDownRight },
+  recharge:        { label: "Recargas",        cls: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",   icon: ArrowDownRight },
+  credit_purchase: { label: "Recargas",        cls: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",   icon: ArrowDownRight },
   bonus:           { label: "Bônus",          cls: "bg-amber-500/10 text-amber-500 border-amber-500/20",       icon: Gift },
   affiliate_bonus: { label: "Indicação",      cls: "bg-amber-500/10 text-amber-500 border-amber-500/20",       icon: Gift },
   order_debit:     { label: "Chave",          cls: "bg-blue-500/10 text-blue-500 border-blue-500/20",          icon: Key },
@@ -51,7 +51,7 @@ const KIND_META: Record<string, { label: string; cls: string; icon: any }> = {
   panel_refund:    { label: "Estorno Painel", cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",             icon: ArrowDownRight },
   credit_purchase_refund: { label: "Estorno", cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",           icon: ArrowDownRight },
   adjustment:      { label: "Ajuste Gerente", cls: "bg-violet-500/10 text-violet-500 border-violet-500/20",    icon: Zap },
-  manual_credit:   { label: "Crédito Manual", cls: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", icon: ArrowDownRight },
+  manual_credit:   { label: "Recarga Manual", cls: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", icon: ArrowDownRight },
   manual_debit:    { label: "Débito Manual",  cls: "bg-rose-500/10 text-rose-500 border-rose-500/20",          icon: ArrowUpRight },
 };
 

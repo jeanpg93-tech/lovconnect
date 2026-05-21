@@ -53,7 +53,7 @@ const App = () => (
               <Route path="/painel/*" element={<AppLayout />} />
               <Route path="/loja/:slug" element={<PublicStorefront />} />
               <Route path="/extensao/:slug" element={<PublicExtension />} />
-              <Route path="/recarga/:id" element={<PublicRecharge />} />
+              <Route path="/recargas/:id" element={<PublicRecharge />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

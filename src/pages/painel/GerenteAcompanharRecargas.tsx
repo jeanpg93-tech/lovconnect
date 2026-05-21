@@ -111,7 +111,7 @@ export default function GerenteAcompanharRecargas() {
         }
         return {
           id: p.id ?? p.pedidoId ?? "",
-          license_type: `Créditos (${p.creditos ?? "—"})`,
+          license_type: `Recargas (${p.creditos ?? "—"})`,
           license_key: p.linkCliente ?? p.id ?? p.pedidoId ?? "",
           status,
           created_at: p.criadoEm ?? p.dataCriacao ?? new Date().toISOString(),
@@ -451,7 +451,7 @@ export default function GerenteAcompanharRecargas() {
                   <thead className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                     <tr>
                       <th className="px-4 py-3 text-left font-semibold">Pedido</th>
-                      <th className="px-4 py-3 text-left font-semibold">Créditos</th>
+                      <th className="px-4 py-3 text-left font-semibold">Recargas</th>
                       <th className="px-4 py-3 text-left font-semibold">Link público</th>
                       <th className="px-4 py-3 text-left font-semibold">Responsável</th>
                       <th className="px-4 py-3 text-center font-semibold">Status</th>
@@ -463,7 +463,7 @@ export default function GerenteAcompanharRecargas() {
                     {filteredUsage.map((u, i) => {
                       const s = u.status.toLowerCase();
                       const cls = STATUS_STYLES[s] || "bg-muted text-muted-foreground border-border";
-                      const link = u.id ? `${window.location.origin}/recarga/${u.id}` : "";
+                      const link = u.id ? `${window.location.origin}/recargas/${u.id}` : "";
                       return (
                         <tr key={u.id || i} className="group border-b border-border/40 last:border-0 transition-colors hover:bg-primary/5">
                           <td className="px-4 py-3">
@@ -486,7 +486,7 @@ export default function GerenteAcompanharRecargas() {
                             {u.id ? (
                               <div className="flex items-center gap-1.5">
                                 <a href={link} target="_blank" rel="noopener noreferrer" className="group/link inline-flex max-w-[280px] items-center gap-1.5 truncate rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1 font-mono text-[11px] text-primary transition-colors hover:border-primary/40 hover:bg-primary/10">
-                                  <span className="truncate">/recarga/{u.id.slice(0, 8)}…</span>
+                                  <span className="truncate">/recargas/{u.id.slice(0, 8)}…</span>
                                   <ArrowUpRight className="h-3 w-3 shrink-0 transition-transform group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5" />
                                 </a>
                                 <button onClick={() => copy(link)} className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" title="Copiar link">
@@ -550,7 +550,7 @@ export default function GerenteAcompanharRecargas() {
                 <thead className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Pedido</th>
-                    <th className="px-4 py-3 text-left font-semibold">Créditos</th>
+                    <th className="px-4 py-3 text-left font-semibold">Recargas</th>
                     <th className="px-4 py-3 text-left font-semibold">Workspace</th>
                     <th className="px-4 py-3 text-left font-semibold">Responsável</th>
                     <th className="px-4 py-3 text-center font-semibold">Status</th>
@@ -586,7 +586,7 @@ export default function GerenteAcompanharRecargas() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{m.credits} créditos</td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">{m.credits} recargas</td>
                         <td className="px-4 py-3 text-xs">
                           {m.workspace_name ? (
                             <span className="font-medium text-foreground">{m.workspace_name}</span>
@@ -709,7 +709,7 @@ export default function GerenteAcompanharRecargas() {
                   {(() => {
                     const linkId = (detailsData as any).provider_pedido_id ?? detailsData.id;
                     return linkId ? (
-                      <a href={`${window.location.origin}/recarga/${linkId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                      <a href={`${window.location.origin}/recargas/${linkId}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
                         Abrir <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : "—";

@@ -82,10 +82,10 @@ export function MobileNav() {
       active: pathname === getHomeUrl(),
     },
     {
-      label: "Recarga",
+      label: "Recargas",
       icon: Zap,
-      url: "/painel/revendedor/recarga",
-      active: pathname === "/painel/revendedor/recarga",
+      url: "/painel/revendedor/recargas",
+      active: pathname === "/painel/revendedor/recargas",
     },
     {
       label: "Novo",
@@ -231,8 +231,8 @@ export function MobileNav() {
                     <Coins className="h-6 w-6" />
                   </div>
                   <div className="ml-4 text-left">
-                    <span className="block text-xl font-bold text-white tracking-tight">Nova Recarga</span>
-                    <span className="block text-xs font-medium text-zinc-500 uppercase tracking-widest">Créditos de acesso</span>
+                    <span className="block text-xl font-bold text-white tracking-tight">Nova Recargas</span>
+                    <span className="block text-xs font-medium text-zinc-500 uppercase tracking-widest">Recargas de acesso</span>
                   </div>
                 </Link>
               </Button>

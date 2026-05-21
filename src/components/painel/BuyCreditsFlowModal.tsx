@@ -101,7 +101,7 @@ export function BuyCreditsFlowModal({
   const [savingMeta, setSavingMeta] = useState(false);
   const [policyOpen, setPolicyOpen] = useState(false);
 
-  const MANUAL_BOT_EMAIL = "recarga@revendovable.store";
+  const MANUAL_BOT_EMAIL = "recargas@revendovable.store";
 
   const reset = () => {
     setStep("review");
@@ -321,11 +321,11 @@ export function BuyCreditsFlowModal({
   };
 
   const orderId = lastOrder?.id ?? lastOrder?.pedidoId ?? "";
-  const trackUrl = orderId ? `https://revendovable.store/recarga/${orderId}` : "";
+  const trackUrl = orderId ? `https://revendovable.store/recargas/${orderId}` : "";
   const creditAmount = lastOrder?.creditosEnviados ?? plan?.credits_amount ?? "";
   const clientMsg =
     `🎉 *Pedido confirmado!*\n\n` +
-    `Olá! Sua recarga de *${creditAmount} créditos Lovable* foi confirmada com sucesso. ✅\n\n` +
+    `Olá! Sua recargas de *${creditAmount} recargas Lovable* foi confirmada com sucesso. ✅\n\n` +
     (mode === "manual" && workspaceName.trim()
       ? `🗂️ *Workspace:* ${workspaceName.trim()}\n\n`
       : "") +
@@ -366,7 +366,7 @@ export function BuyCreditsFlowModal({
               {step === "success" && "Tudo pronto!"}
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground text-center">
-              {step === "review" && `Recarga de ${plan?.credits_amount}`}
+              {step === "review" && `Recargas de ${plan?.credits_amount}`}
               {step === "delivery" && "Convide o bot no workspace do cliente."}
               {step === "success" && "Compartilhe o link de acompanhamento."}
             </DialogDescription>
@@ -735,7 +735,7 @@ export function BuyCreditsFlowModal({
                   <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs flex gap-2">
                     <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                     <span className="text-foreground/80">
-                      Sem promover para <strong>Owner</strong>, o gerente não consegue depositar os créditos.
+                      Sem promover para <strong>Owner</strong>, o gerente não consegue depositar os recargas.
                     </span>
                   </div>
 
@@ -1069,13 +1069,13 @@ export function BuyCreditsFlowModal({
             <div className="space-y-2">
               <h4 className="font-semibold text-foreground">2. Fluxo de Entrega — Modo Automático</h4>
               <p className="text-muted-foreground leading-relaxed">
-                No modo automático, um bot especializado é convidado para o workspace do cliente como Editor e, em seguida, promovido a Owner. Os créditos são transferidos automaticamente para a conta do cliente assim que o bot aceitar o convite e assumir a propriedade do workspace.
+                No modo automático, um bot especializado é convidado para o workspace do cliente como Editor e, em seguida, promovido a Owner. Os recargas são transferidos automaticamente para a conta do cliente assim que o bot aceitar o convite e assumir a propriedade do workspace.
               </p>
             </div>
             <div className="space-y-2">
               <h4 className="font-semibold text-foreground">3. Fluxo de Entrega — Modo Manual</h4>
               <p className="text-muted-foreground leading-relaxed">
-                No modo manual, o pedido entra em uma fila de processamento após a confirmação do PIX. A equipe responsável realiza a entrega dos créditos no workspace do cliente em até 24 horas úteis. Você poderá acompanhar o status do pedido em tempo real pela página de transações.
+                No modo manual, o pedido entra em uma fila de processamento após a confirmação do PIX. A equipe responsável realiza a entrega dos recargas no workspace do cliente em até 24 horas úteis. Você poderá acompanhar o status do pedido em tempo real pela página de transações.
               </p>
             </div>
             <div className="space-y-2">
@@ -1090,7 +1090,7 @@ export function BuyCreditsFlowModal({
             <div className="space-y-2">
               <h4 className="font-semibold text-foreground">5. Prazos e Garantias</h4>
               <p className="text-muted-foreground leading-relaxed">
-                O prazo de entrega no modo automático é de poucos minutos após o convite ser aceito. No modo manual, o prazo é de até 24 horas úteis. Em caso de falha comprovada na entrega, a plataforma realizará o reembolso integral dos créditos debitados do seu saldo.
+                O prazo de entrega no modo automático é de poucos minutos após o convite ser aceito. No modo manual, o prazo é de até 24 horas úteis. Em caso de falha comprovada na entrega, a plataforma realizará o reembolso integral dos recargas debitados do seu saldo.
               </p>
             </div>
             <div className="space-y-2">

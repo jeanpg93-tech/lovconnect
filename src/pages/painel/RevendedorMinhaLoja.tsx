@@ -905,9 +905,9 @@ export default function RevendedorMinhaLoja() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <div className="text-sm font-bold flex items-center gap-2">
-                        <Coins className="h-3.5 w-3.5 text-emerald-500" /> Venda de Recarga na conta
+                        <Coins className="h-3.5 w-3.5 text-emerald-500" /> Venda de Recargas na conta
                       </div>
-                      <div className="text-xs text-muted-foreground">Permite que clientes comprem créditos diretamente.</div>
+                      <div className="text-xs text-muted-foreground">Permite que clientes comprem recargas diretamente.</div>
                     </div>
                     <Switch checked={showCredits} onCheckedChange={setShowCredits} />
                   </div>

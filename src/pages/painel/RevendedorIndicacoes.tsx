@@ -90,7 +90,7 @@ export default function RevendedorIndicacoes() {
     <div className="space-y-6 pb-20 md:pb-0">
       <PageHeader
         title="Indique e ganhe"
-        description="Compartilhe seu link de indicação. Ganhe comissão sobre cada recarga dos seus indicados."
+        description="Compartilhe seu link de indicação. Ganhe comissão sobre cada recargas dos seus indicados."
       />
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
@@ -139,7 +139,7 @@ export default function RevendedorIndicacoes() {
             )}
           </div>
           <p className="text-[10px] text-muted-foreground leading-tight relative z-10">
-            % sobre cada recarga dos indicados. Suba de nível para aumentar.
+            % sobre cada recargas dos indicados. Suba de nível para aumentar.
           </p>
           <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:opacity-10 transition-opacity">
             <Crown className="h-12 w-12 text-primary rotate-12" />
@@ -198,7 +198,7 @@ export default function RevendedorIndicacoes() {
                 <Gift className="h-3.5 w-3.5 text-primary" />
               </div>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
-                <strong className="text-foreground">Ganhe {pct}% de todas as recargas!</strong> Quem usar seu link vira seu indicado para sempre. O crédito cai na hora no seu saldo.
+                <strong className="text-foreground">Ganhe {pct}% de todas as recargas!</strong> Quem usar seu link vira seu indicado para sempre. O recarga cai na hora no seu saldo.
               </p>
             </div>
           </div>

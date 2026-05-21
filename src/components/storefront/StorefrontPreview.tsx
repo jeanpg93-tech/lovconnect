@@ -85,7 +85,7 @@ export function StorefrontPreview({
                 )}
               >
                 <Coins className={cn("h-3 w-3 mb-0.5", activeTab === "recharge" ? "text-primary" : "text-muted-foreground")} />
-                <span className="text-[9px] font-bold uppercase tracking-tight">Recarga</span>
+                <span className="text-[9px] font-bold uppercase tracking-tight">Recargas</span>
               </button>
             </div>
           )}
@@ -134,7 +134,7 @@ export function StorefrontPreview({
                 )}
                 {showCredits && (
                   <div className="rounded-lg border bg-card/80 backdrop-blur p-2 text-left flex items-center justify-between">
-                    <div className="text-xs font-medium">Recarga 50 Créditos</div>
+                    <div className="text-xs font-medium">Recargas 50 Recargas</div>
                     <div className="text-xs font-bold" style={{ color }}>R$ 45,00</div>
                   </div>
                 )}

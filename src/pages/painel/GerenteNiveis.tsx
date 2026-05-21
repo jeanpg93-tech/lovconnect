@@ -433,7 +433,7 @@ export default function GerenteNiveis() {
               <div className="space-y-1.5"><Label>Desconto (%)</Label>
                 <Input type="number" step="0.01" value={editTier.discount_percent} onChange={(e) => setEditTier({ ...editTier, discount_percent: Number(e.target.value) })} />
               </div>
-              <div className="space-y-1.5"><Label>Bônus recarga (%)</Label>
+              <div className="space-y-1.5"><Label>Bônus recargas (%)</Label>
                 <Input type="number" step="0.01" value={editTier.recharge_bonus_percent} onChange={(e) => setEditTier({ ...editTier, recharge_bonus_percent: Number(e.target.value) })} />
               </div>
               <div className="space-y-1.5"><Label>Comissão de indicação (%)</Label>

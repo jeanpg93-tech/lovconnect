@@ -85,7 +85,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
     ]},
     { label: "Produtos", items: [
       { title: "Geração de Licenças", url: "/painel/gerente/geracao-manual", icon: Sparkles },
-      { title: "Geração de Créditos", url: "/painel/gerente/geracao-manual-creditos", icon: Coins },
+      { title: "Geração de Recargas", url: "/painel/gerente/geracao-manual-creditos", icon: Coins },
       { title: "Valores Extensões", url: "/painel/gerente/valores", icon: Tag },
       { title: "Todas as Licenças", url: "/painel/gerente/todas-licencas", icon: KeyRound },
       { title: "Upload Extensão", url: "/painel/gerente/upload-extensao", icon: Package },
@@ -97,22 +97,22 @@ const groupsByRole: Record<AppRole, Group[]> = {
   revendedor: [
     { label: "Painel", items: [
       { title: "Dashboard", url: "/painel/revendedor", icon: LayoutDashboard },
-      { title: "Recarga", url: "/painel/revendedor/recarga", icon: Zap },
+      { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
       { title: "Transações", url: "/painel/revendedor/transacoes", icon: HistoryIcon },
       { title: "Indique e ganhe", url: "/painel/revendedor/indicacoes", icon: Gift },
       { title: "Níveis", url: "/painel/revendedor/niveis", icon: Crown },
       { title: "Ranking", url: "/painel/revendedor/ranking", icon: Award },
     ]},
     { label: "Vender", items: [
-      { title: "Comprar Recarga", url: "/painel/revendedor/pedidos", icon: ShoppingCart },
-      { title: "Comprar Créditos", url: "/painel/revendedor/comprar-creditos", icon: Coins },
+      { title: "Comprar Recargas", url: "/painel/revendedor/pedidos", icon: ShoppingCart },
+      { title: "Comprar Recargas", url: "/painel/revendedor/comprar-creditos", icon: Coins },
       { title: "Meus Clientes", url: "/painel/revendedor/clientes", icon: Users },
       { title: "Minhas Vendas", url: "/painel/revendedor/licencas", icon: ShoppingBag },
       { title: "Minha Loja", url: "/painel/revendedor/loja", icon: Store, badge: "store-status" },
     ]},
     { label: "Configurar", items: [
       { title: "Preços de Extensões", url: "/painel/revendedor/extensoes", icon: Tag },
-      { title: "Preços de Créditos", url: "/painel/revendedor/creditos", icon: Coins },
+      { title: "Preços de Recargas", url: "/painel/revendedor/creditos", icon: Coins },
       { title: "API de Chaves", url: "/painel/revendedor/api", icon: KeyRound },
       { title: "API de Recargas", url: "/painel/revendedor/api-recargas", icon: Coins },
       { title: "Resetar chave", url: "/painel/revendedor/resetar-chave", icon: RotateCcw },

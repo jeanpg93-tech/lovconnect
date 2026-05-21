@@ -16,7 +16,7 @@ export const DEFAULT_RECHARGE_SETTINGS: RechargeSettings = {
     "Estamos em manutenção. Novas recargas estarão disponíveis em breve.",
 };
 
-const KEY = "recarga_settings";
+const KEY = "recargas_settings";
 
 function normalize(raw: any): RechargeSettings {
   if (!raw || typeof raw !== "object") return DEFAULT_RECHARGE_SETTINGS;

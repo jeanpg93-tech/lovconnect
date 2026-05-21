@@ -82,7 +82,7 @@ export default function GerenteAcoesEspeciais() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Ações Especiais</h1>
         <p className="text-muted-foreground">
-          Gerencie promoções, descontos globais e bônus de recarga para todo o sistema.
+          Gerencie promoções, descontos globais e bônus de recargas para todo o sistema.
         </p>
       </div>
 
@@ -116,11 +116,11 @@ export default function GerenteAcoesEspeciais() {
           </CardContent>
         </Card>
 
-        {/* Desconto em Créditos */}
+        {/* Desconto em Recargas */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Desconto em Créditos</CardTitle>
-            <CardDescription>Porcentagem de desconto aplicada na compra de pacotes de créditos.</CardDescription>
+            <CardTitle className="text-lg">Desconto em Recargas</CardTitle>
+            <CardDescription>Porcentagem de desconto aplicada na compra de pacotes de recargas.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -145,11 +145,11 @@ export default function GerenteAcoesEspeciais() {
           </CardContent>
         </Card>
 
-        {/* Bônus de Recarga */}
+        {/* Bônus de Recargas */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Bônus de Recarga</CardTitle>
-            <CardDescription>Porcentagem extra de bônus ao realizar uma recarga de saldo.</CardDescription>
+            <CardTitle className="text-lg">Bônus de Recargas</CardTitle>
+            <CardDescription>Porcentagem extra de bônus ao realizar uma recargas de saldo.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">

@@ -37,7 +37,7 @@ const GerenteAcoesEspeciais = lazy(() => import("@/pages/painel/GerenteAcoesEspe
 const RevendedorPersonalizarExtensao = lazy(() => import("@/pages/painel/RevendedorPersonalizarExtensao"));
 const RevendedorLanding = lazy(() => import("@/pages/painel/RevendedorLanding"));
 
-const RevendedorRecarga = lazy(() => import("@/pages/painel/RevendedorRecarga"));
+const RevendedorRecargas = lazy(() => import("@/pages/painel/RevendedorRecargas"));
 
 const RevendedorDashboard = lazy(() => import("@/pages/painel/RevendedorDashboard"));
 const RevendedorClientes = lazy(() => import("@/pages/painel/RevendedorClientes"));
@@ -113,7 +113,7 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/revendedor/instalar-app", match: exact("/painel/revendedor/instalar-app"), render: () => <RoleRoute allow={["revendedor"]}><InstallApp /></RoleRoute> },
 
   { key: "/painel/revendedor", match: exact("/painel/revendedor"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorDashboard /></RoleRoute> },
-  { key: "/painel/revendedor/recarga", match: exact("/painel/revendedor/recarga"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorRecarga /></RoleRoute> },
+  { key: "/painel/revendedor/recargas", match: exact("/painel/revendedor/recargas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorRecargas /></RoleRoute> },
   { key: "/painel/revendedor/clientes", match: exact("/painel/revendedor/clientes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorClientes /></RoleRoute> },
   { key: "/painel/revendedor/licencas", match: exact("/painel/revendedor/licencas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorLicencas /></RoleRoute> },
   { key: "/painel/revendedor/extensoes", match: exact("/painel/revendedor/extensoes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorExtensoes /></RoleRoute> },
