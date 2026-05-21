@@ -680,14 +680,14 @@ export default function RevendedorRecargas() {
                 {/* Alerta principal */}
                 <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-destructive/30 bg-gradient-to-br from-destructive/10 via-destructive/5 to-transparent p-4 sm:p-6 md:p-8">
                   <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-destructive/20 blur-3xl pointer-events-none" />
-                  <div className="relative flex items-start gap-3 sm:gap-4">
-                    <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-destructive text-white shadow-lg shadow-destructive/30">
+                  <div className="relative flex flex-col items-center text-center gap-3 sm:gap-4">
+                    <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-destructive text-white shadow-lg shadow-destructive/30">
                       <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
-                    <div className="space-y-1 min-w-0">
+                    <div className="space-y-1 min-w-0 mx-auto">
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive">Atenção</span>
                       <h3 className="font-display text-lg sm:text-2xl md:text-3xl font-bold tracking-tight leading-tight">Verifique os requisitos antes de continuar</h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed max-w-2xl">
+                      <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed max-w-2xl mx-auto">
                         Contas com determinados planos <span className="font-bold text-foreground">Pro</span> e <span className="font-bold text-foreground">Business</span> são compatíveis com nosso sistema de recarga de créditos. Confira abaixo os planos aceitos atualmente.
                       </p>
                     </div>
@@ -696,17 +696,15 @@ export default function RevendedorRecargas() {
 
                 {/* Planos compatíveis */}
                 <div className="rounded-2xl sm:rounded-3xl border border-border bg-card overflow-hidden">
-                  <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-border">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
-                        <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-sm sm:text-lg font-bold tracking-tight">Planos compatíveis</h3>
-                        <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">Valores mensais aceitos no sistema</p>
-                      </div>
+                  <div className="flex flex-col items-center text-center gap-3 p-4 sm:p-6 border-b border-border">
+                    <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
-                    <span className="hidden md:inline-flex px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider">Aceitos</span>
+                    <div>
+                      <h3 className="text-sm sm:text-lg font-bold tracking-tight">Planos compatíveis</h3>
+                      <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">Valores mensais aceitos no sistema</p>
+                    </div>
+                    <span className="inline-flex px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider">Aceitos</span>
                   </div>
 
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border">
@@ -740,11 +738,11 @@ export default function RevendedorRecargas() {
 
                 {/* Limite diário */}
                 <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <div className="flex flex-col items-center text-center gap-3">
+                    <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
-                    <div className="min-w-0">
+                    <div>
                       <h3 className="text-sm sm:text-lg font-bold tracking-tight">Limite diário de recarga</h3>
                       <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">Quantos créditos cada plano libera por dia</p>
                     </div>
@@ -758,8 +756,8 @@ export default function RevendedorRecargas() {
                     ].map((r, i) => (
                       <div key={i} className="group relative overflow-hidden rounded-xl sm:rounded-2xl border border-border bg-background/60 p-4 sm:p-5 hover:border-primary/40 transition-all">
                         <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/5 blur-2xl group-hover:bg-primary/10 transition-colors" />
-                        <div className="relative space-y-3 sm:space-y-4">
-                          <div className="flex items-center justify-between">
+                        <div className="relative space-y-3 sm:space-y-4 flex flex-col items-center text-center">
+                          <div className="flex flex-col items-center gap-2">
                             <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                               <r.icon className="h-4 w-4" />
                             </div>
@@ -767,7 +765,7 @@ export default function RevendedorRecargas() {
                           </div>
                           <div>
                             <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 sm:mb-2 leading-tight">{r.plan}</p>
-                            <div className="flex items-baseline gap-1.5 flex-wrap">
+                            <div className="flex items-baseline justify-center gap-1.5 flex-wrap">
                               <span className="font-display text-2xl sm:text-3xl font-black tracking-tighter">{r.limit}</span>
                               <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground">{r.unit}</span>
                             </div>
@@ -781,22 +779,22 @@ export default function RevendedorRecargas() {
                 {/* Importante + Confirmação */}
                 <div className="grid lg:grid-cols-3 gap-3 sm:gap-4">
                   <div className="lg:col-span-2 rounded-2xl sm:rounded-3xl border border-amber-500/30 bg-amber-500/5 p-4 sm:p-6 md:p-8">
-                    <div className="flex items-start gap-3 sm:gap-4">
-                      <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-amber-500/15 text-amber-500">
+                    <div className="flex flex-col items-center text-center gap-3 sm:gap-4">
+                      <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl sm:rounded-2xl bg-amber-500/15 text-amber-500">
                         <ShieldAlert className="h-4 w-4 sm:h-5 sm:w-5" />
                       </div>
-                      <div className="space-y-1.5 min-w-0">
+                      <div className="space-y-1.5">
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">Importante</span>
                         <h4 className="text-sm sm:text-base font-bold tracking-tight leading-tight">Pedidos acima do limite diário</h4>
-                        <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed">
+                        <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed max-w-xl mx-auto">
                           Pedidos realizados acima do limite diário do seu plano serão entregues automaticamente <span className="font-bold text-foreground">no dia seguinte, após 24 horas exatas</span>.
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl sm:rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-4 sm:p-6 md:p-8 flex flex-col justify-between gap-3 sm:gap-4">
-                    <div className="flex items-center gap-3">
+                  <div className="rounded-2xl sm:rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-4 sm:p-6 md:p-8 flex flex-col items-center text-center justify-between gap-3 sm:gap-4">
+                    <div className="flex flex-col items-center gap-2">
                       <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Pronto pra começar</span>
                     </div>
