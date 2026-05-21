@@ -16,9 +16,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { KeyRound, Search, Loader2, Copy, FlaskConical, CheckCircle2, RefreshCw, Infinity as InfinityIcon, ArrowUpRight, Trash2, XCircle, ChevronDown, ChevronUp, Info, RotateCcw, Zap, Sparkles } from "lucide-react";
+import { KeyRound, Search, Loader2, Copy, FlaskConical, CheckCircle2, RefreshCw, Infinity as InfinityIcon, ArrowUpRight, Trash2, XCircle, ChevronDown, ChevronUp, Info, RotateCcw, Zap, Sparkles, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import RefundSaleDialog, { type RefundSaleData } from "@/components/painel/RefundSaleDialog";
 
 const PLAN_DAYS: Record<string, number | null> = {
   pro_1d: 1,
