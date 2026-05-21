@@ -35,7 +35,6 @@ type OrderData = {
   status?: string;
   statusLabel?: string;
   manual?: boolean;
-  tipoEntrega?: string;
   errorMessage?: string | null;
   createdAt?: string;
   updatedAt?: string;
