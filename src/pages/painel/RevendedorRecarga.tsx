@@ -838,7 +838,7 @@ export default function RevendedorRecargas() {
                 return (
                   <div className="grid lg:grid-cols-2 gap-6">
                     {/* API Automática (Revendedor) */}
-                    <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-8 space-y-6 transition-all hover:border-primary/40">
+                    <div className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-8 space-y-6 transition-all hover:border-primary/40">
                       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
                       <div className="relative flex items-start justify-between gap-4">
                         <div className="flex items-center gap-4">
@@ -906,7 +906,7 @@ export default function RevendedorRecargas() {
                     </div>
 
                     {/* API Manual */}
-                    <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-8 space-y-6 transition-all hover:border-amber-500/40">
+                    <div className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-8 space-y-6 transition-all hover:border-amber-500/40">
                       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
                       <div className="relative flex items-start justify-between gap-4">
                         <div className="flex items-center gap-4">
