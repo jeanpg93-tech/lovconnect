@@ -505,10 +505,10 @@ export default function RevendedorRecargas() {
                     chunks.push(plans.slice(i, i + chunkSize));
                   }
                   return (
-                <Carousel opts={{ align: "start", loop: false }} className="w-full relative">
-                  <CarouselContent>
+                <Carousel opts={{ align: "start", loop: false, slidesToScroll: 1, containScroll: "trimSnaps", dragFree: false }} className="w-full relative">
+                  <CarouselContent className="-ml-0">
                     {chunks.map((chunk, ci) => (
-                      <CarouselItem key={ci}>
+                      <CarouselItem key={ci} className="pl-0 basis-full">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 px-1">
                           {chunk.map((plan) => {
                      const costPrice = resellerPrices[plan.credits_amount] ?? (costs[plan.credits_amount] ?? plan.price_cents);
