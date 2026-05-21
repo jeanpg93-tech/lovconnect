@@ -390,14 +390,15 @@ export default function PublicRecharge() {
   if (order.manual) {
     const mStatus = status;
     const isManualDone = mStatus === "manual_concluido" || mStatus === "manual_entregue" || mStatus === "sucesso" || mStatus === "entregue";
+    const isManualLimite = mStatus === "manual_limite_atingido";
     const isManualIniciado = mStatus === "manual_iniciado" || mStatus === "manual_processando" || mStatus === "processando";
     const isManualAceito = mStatus === "manual_aceito" || mStatus === "manual_confirmado";
     const isManualFailed = mStatus === "manual_sem_sucesso" || mStatus === "falha" || mStatus === "cancelado" || mStatus === "reembolsado";
-    const isManualPendente = !isManualAceito && !isManualIniciado && !isManualDone && !isManualFailed;
+    const isManualPendente = !isManualAceito && !isManualIniciado && !isManualLimite && !isManualDone && !isManualFailed;
     const manualStages = [
       { key: "recebido", label: "Pedido recebido", desc: "Registramos sua solicitação", done: true, active: isManualPendente },
       { key: "aceito", label: "Pedido aceito — Aguardando configuração", desc: "Confirmamos seu pedido e estamos aguardando a configuração na sua conta", done: isManualAceito || isManualIniciado || isManualDone, active: isManualAceito },
-      { key: "configurado", label: "Configurado — Iniciando entrega", desc: "Tudo pronto, sua recarga está a caminho do workspace", done: isManualIniciado || isManualDone, active: isManualIniciado },
+      { key: "configurado", label: "Configurado — Iniciando entrega", desc: "Tudo pronto, sua recarga está a caminho do workspace", done: isManualIniciado || isManualLimite || isManualDone, active: isManualIniciado || isManualLimite },
       { key: "entregue", label: "Entrega finalizada — Recarga creditada", desc: "Créditos disponíveis no seu workspace", done: isManualDone, active: false },
     ];
 
