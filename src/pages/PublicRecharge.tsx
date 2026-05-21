@@ -454,6 +454,44 @@ export default function PublicRecharge() {
             </div>
           )}
 
+          {/* Aviso de iniciado — barra de progresso animada */}
+          {isManualIniciado && (
+            <div className="relative overflow-hidden rounded-2xl border border-cyan-400/40 bg-gradient-to-br from-cyan-500/20 via-sky-500/10 to-blue-500/5 p-4 sm:p-5 shadow-lg shadow-cyan-900/20">
+              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-400/20 blur-2xl" />
+              <div className="relative flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/20 ring-1 ring-cyan-400/40">
+                  <Loader2 className="h-5 w-5 text-cyan-300 animate-spin" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-200">Pedido iniciado</span>
+                    <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300" />
+                  </div>
+                  <p className="mt-1 text-sm font-semibold text-cyan-50 leading-snug">
+                    Sua recarga está sendo processada agora mesmo.
+                  </p>
+                  <p className="mt-1 text-xs text-cyan-100/70 leading-snug">
+                    Acompanhe o progresso abaixo. Esta página atualiza automaticamente ao concluir.
+                  </p>
+                  <div className="mt-3">
+                    <div className="relative h-2 w-full overflow-hidden rounded-full bg-cyan-950/60 ring-1 ring-cyan-400/20">
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-400 shadow-[0_0_12px_rgba(34,211,238,0.6)] transition-[width] duration-700 ease-out"
+                        style={{ width: `${iniciadoProgress}%` }}
+                      >
+                        <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.8s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+                      </div>
+                    </div>
+                    <div className="mt-1.5 flex justify-between text-[10px] font-mono text-cyan-200/70">
+                      <span>Processando…</span>
+                      <span>{Math.round(iniciadoProgress)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Card principal */}
           <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-amber-400/50 via-orange-400/20 to-amber-400/50 shadow-2xl shadow-amber-900/30">
             <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] bg-zinc-950/85 backdrop-blur-xl p-5 sm:p-6 space-y-5">
