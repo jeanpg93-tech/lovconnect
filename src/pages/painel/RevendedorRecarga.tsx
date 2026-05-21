@@ -351,8 +351,8 @@ export default function RevendedorRecargas() {
       </div>
 
       {/* Card explicativo - Modo dinâmico */}
-      <div className="px-2 sm:px-4 mb-12">
-        <div className="container mx-auto max-w-7xl">
+      <div className="px-1 sm:px-4 mb-12">
+        <div className="container mx-auto max-w-7xl px-0 sm:px-4">
           <div className={cn(
             "relative overflow-hidden rounded-2xl sm:rounded-3xl border p-5 sm:p-8 md:p-12 bg-gradient-to-br",
             activeMode === "automatico"
