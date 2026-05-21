@@ -28,6 +28,25 @@ const slugify = (s: string) =>
 const formatBRL = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((cents || 0) / 100);
 
+const firstLastName = (name: string | null | undefined) => {
+  const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "—";
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+};
+
+const formatPhoneBR = (phone: string | null | undefined) => {
+  if (!phone) return "—";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 13 && digits.startsWith("55")) {
+    const d = digits.slice(2);
+    return `+55 (${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  }
+  if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return phone;
+};
+
 export default function GerenteRevendedores() {
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [profilesByUser, setProfilesByUser] = useState<Record<string, Profile>>({});
