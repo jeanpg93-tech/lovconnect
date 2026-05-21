@@ -162,9 +162,16 @@ export default function GerenteLicencasAcompanhar() {
               "Content-Type": "application/json",
             },
           });
-          const data = await r.json().catch(() => ({}));
-          return { data, error: r.ok ? null : { message: data?.error || `HTTP ${r.status}` } };
+          if (!r.ok) {
+            const body = await r.text();
+            let parsed = {};
+            try { parsed = JSON.parse(body); } catch { parsed = { error: body }; }
+            return { data: parsed, error: { message: (parsed as any).error || `HTTP ${r.status}` } };
+          }
+          const data = await r.json();
+          return { data, error: null };
         } catch (e: any) {
+          console.error(`[fetchFn] Error for ${path}:`, e);
           return { data: null, error: { message: e?.message || "network error" } };
         }
       };
