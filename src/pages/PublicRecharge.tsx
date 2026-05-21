@@ -471,6 +471,50 @@ export default function PublicRecharge() {
                 ))}
               </div>
 
+              {/* Card de configuração — Passo 2 (cliente envia nome do workspace) */}
+              {isManualAceito && (
+                <div className="relative overflow-hidden rounded-xl border border-blue-400/40 bg-gradient-to-br from-blue-500/15 via-indigo-500/10 to-transparent p-4 sm:p-5">
+                  <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl" />
+                  <div className="relative space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/20 text-blue-200 ring-1 ring-blue-400/30">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-blue-300">Configuração</div>
+                        <div className="text-sm font-bold text-white">Informe o nome do seu workspace</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-zinc-400 leading-snug">
+                      Para concluir a configuração, digite o nome exato do workspace no Lovable onde os créditos devem ser entregues.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input
+                        value={workspaceInput}
+                        onChange={(e) => setWorkspaceInput(e.target.value)}
+                        placeholder={order.workspaceName ?? "Ex: meu-workspace"}
+                        disabled={submittingWorkspace}
+                        className="bg-zinc-900/60 border-white/10 text-white placeholder:text-zinc-500"
+                      />
+                      <Button
+                        onClick={submitWorkspace}
+                        disabled={submittingWorkspace || !workspaceInput.trim()}
+                        className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold whitespace-nowrap"
+                      >
+                        {submittingWorkspace ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+                        Finalizar configuração
+                      </Button>
+                    </div>
+                    {(order.workspaceName || workspaceSaved) && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-emerald-300">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Workspace registrado{order.workspaceName ? `: ${order.workspaceName}` : ""}. Você pode atualizar a qualquer momento até a equipe iniciar.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Resumo */}
               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
                 <div>
