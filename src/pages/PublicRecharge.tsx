@@ -416,6 +416,30 @@ export default function PublicRecharge() {
             </div>
           )}
 
+          {/* Aviso de pendência — aguardando aceite do provedor */}
+          {isManualPendente && (
+            <div className="relative overflow-hidden rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-amber-500/5 p-4 sm:p-5 shadow-lg shadow-amber-900/20">
+              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-400/20 blur-2xl" />
+              <div className="relative flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 ring-1 ring-amber-400/40">
+                  <Loader2 className="h-5 w-5 text-amber-300 animate-spin" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-200">Aguardando aceite</span>
+                    <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-amber-300" />
+                  </div>
+                  <p className="mt-1 text-sm font-semibold text-amber-50 leading-snug">
+                    Aguardando o aceite do provedor, aguarde uns instantes.
+                  </p>
+                  <p className="mt-1 text-xs text-amber-100/70 leading-snug">
+                    Assim que a equipe aceitar o seu pedido, esta página atualiza automaticamente.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Card principal */}
           <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-amber-400/50 via-orange-400/20 to-amber-400/50 shadow-2xl shadow-amber-900/30">
             <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] bg-zinc-950/85 backdrop-blur-xl p-5 sm:p-6 space-y-5">
