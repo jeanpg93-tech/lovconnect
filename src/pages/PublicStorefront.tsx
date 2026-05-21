@@ -1251,6 +1251,8 @@ export default function PublicStorefront() {
                                     ? "Falhou"
                                     : checkedOrder.status === "pending"
                                     ? "Pendente"
+                                    : checkedOrder.status === "awaiting_balance"
+                                    ? "Aguardando lojista"
                                     : checkedOrder.status}
                                 </span>
                               </div>
