@@ -84,8 +84,43 @@ const LICENSE_TYPES: LicenseDef[] = [
   },
 ];
 
+const LOVAX_LICENSE_TYPES: LicenseDef[] = [
+  {
+    key: "trial",
+    label: "Teste",
+    short: "30 minutos",
+    icon: Gift,
+    badge: "Grátis",
+    badgeClass: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
+    gradient: "from-emerald-500/20 via-emerald-500/5 to-transparent",
+  },
+  { key: "pro_1d", label: "1 Dia", short: "24 horas", icon: Clock, gradient: "from-sky-500/20 via-sky-500/5 to-transparent" },
+  { key: "pro_7d", label: "7 Dias", short: "1 semana", icon: Calendar, gradient: "from-blue-500/20 via-blue-500/5 to-transparent" },
+  { key: "pro_30d", label: "30 Dias", short: "Mensal", icon: Zap, badge: "Popular", badgeClass: "bg-primary/15 text-primary border-primary/30", gradient: "from-primary/25 via-primary/5 to-transparent" },
+  { key: "pro_90d", label: "90 Dias", short: "Trimestral", icon: Calendar, gradient: "from-violet-500/20 via-violet-500/5 to-transparent" },
+  { key: "pro_365d", label: "365 Dias", short: "Anual", icon: Calendar, gradient: "from-indigo-500/20 via-indigo-500/5 to-transparent" },
+  {
+    key: "lifetime",
+    label: "Vitalícia",
+    short: "Sem expirar",
+    icon: InfinityIcon,
+    badge: "Top",
+    badgeClass: "bg-amber-500/15 text-amber-500 border-amber-500/30",
+    gradient: "from-amber-500/25 via-amber-500/5 to-transparent",
+  },
+];
+
+const LOVAX_DAYS: Record<string, number> = {
+  pro_1d: 1,
+  pro_7d: 7,
+  pro_30d: 30,
+  pro_90d: 90,
+  pro_365d: 365,
+  lifetime: 36500,
+};
+
 const TYPE_LABEL: Record<string, string> = Object.fromEntries(
-  LICENSE_TYPES.map((t) => [t.key, t.label])
+  [...LICENSE_TYPES, ...LOVAX_LICENSE_TYPES].map((t) => [t.key, t.label])
 );
 
 export default function GerenteGeracaoManual() {
@@ -110,6 +145,11 @@ export default function GerenteGeracaoManual() {
     if (data?.error) throw new Error(data.error);
     return data;
   };
+
+  useEffect(() => {
+    // Reset selection when switching method to avoid invalid types
+    setGenType("pro_30d");
+  }, [method]);
 
   useEffect(() => {
     (async () => {
@@ -149,10 +189,20 @@ export default function GerenteGeracaoManual() {
     setGenerating(true);
     setLastGenerated(null);
     try {
-      const body: Record<string, unknown> = isTrial ? {} : { type: genType };
+      const body: Record<string, unknown> = {};
       if (!isTrial) {
         body.display_name = name.slice(0, 100);
         body.whatsapp = whatsappDigits;
+      }
+      if (method === "lovax") {
+        // lovax-api expects days/minutes, not type
+        if (isTrial) {
+          body.minutes = 30;
+        } else {
+          body.days = LOVAX_DAYS[genType] ?? 30;
+        }
+      } else if (!isTrial) {
+        body.type = genType;
       }
       const res = await call(isTrial ? "generate-trial" : "generate", { method: "POST", body });
       const key = res?.license_key ?? res?.key ?? res?.data?.license_key;
@@ -190,7 +240,8 @@ export default function GerenteGeracaoManual() {
     }
   };
 
-  const selected = LICENSE_TYPES.find((t) => t.key === genType) ?? LICENSE_TYPES[0];
+  const TYPES = method === "lovax" ? LOVAX_LICENSE_TYPES : LICENSE_TYPES;
+  const selected = TYPES.find((t) => t.key === genType) ?? TYPES[0];
 
   return (
     <PageContainer>
@@ -250,7 +301,7 @@ export default function GerenteGeracaoManual() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {LICENSE_TYPES.map((t) => {
+              {TYPES.map((t) => {
                 const Icon = t.icon;
                 const active = genType === t.key;
                 return (
