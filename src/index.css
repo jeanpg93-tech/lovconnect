@@ -249,3 +249,39 @@ div[style*="Edit with Lovable"],
   position: absolute !important;
   z-index: -9999 !important;
 }
+
+/* === Admin panel (gerente) — scrollbars finos e discretos em vermelho === */
+html[data-admin-panel="true"] {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.55) transparent;
+}
+html[data-admin-panel="true"] *,
+html[data-admin-panel="true"] *::before,
+html[data-admin-panel="true"] *::after {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.55) transparent;
+}
+html[data-admin-panel="true"] ::-webkit-scrollbar,
+html[data-admin-panel="true"]::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+html[data-admin-panel="true"] ::-webkit-scrollbar-track,
+html[data-admin-panel="true"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+html[data-admin-panel="true"] ::-webkit-scrollbar-thumb,
+html[data-admin-panel="true"]::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--primary) / 0.45);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+html[data-admin-panel="true"] ::-webkit-scrollbar-thumb:hover,
+html[data-admin-panel="true"]::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--primary) / 0.75);
+}
+html[data-admin-panel="true"] ::-webkit-scrollbar-corner,
+html[data-admin-panel="true"]::-webkit-scrollbar-corner {
+  background: transparent;
+}
