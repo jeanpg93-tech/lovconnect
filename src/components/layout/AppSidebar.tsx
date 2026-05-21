@@ -6,7 +6,6 @@ import {
   Package,
   Users,
   Store,
-  ShieldCheck,
   LogOut,
   Moon,
   Sun,
