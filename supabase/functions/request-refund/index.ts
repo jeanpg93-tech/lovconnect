@@ -6,6 +6,7 @@ const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const REFUNDABLE_RECHARGE_STATUS = new Set(['failed', 'expired', 'canceled', 'cancelled']);
 const REFUNDABLE_ORDER_STATUS = new Set(['failed', 'revoked']);
+const REFUNDABLE_CREDIT_PURCHASE_STATUS = new Set(['cancelado', 'cancelled', 'canceled', 'falha', 'failed']);
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const kind = body?.kind;
     const referenceId = body?.reference_id;
-    if ((kind !== 'recharge' && kind !== 'license') || typeof referenceId !== 'string' || !referenceId) {
+    if ((kind !== 'recharge' && kind !== 'license' && kind !== 'credit_purchase') || typeof referenceId !== 'string' || !referenceId) {
       return new Response(JSON.stringify({ error: 'Parâmetros inválidos' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -89,7 +90,7 @@ Deno.serve(async (req) => {
       }
       amountCents = Number(r.amount_cents) || 0;
       description = `Reembolso recarga ${r.id}`;
-    } else {
+    } else if (kind === 'license') {
       const { data: o } = await admin
         .from('orders')
         .select('id,reseller_id,price_cents,status,is_test')
@@ -112,6 +113,25 @@ Deno.serve(async (req) => {
       }
       amountCents = Number(o.price_cents) || 0;
       description = `Reembolso licença ${o.id}`;
+    } else {
+      // kind === 'credit_purchase'
+      const { data: c } = await admin
+        .from('reseller_credit_purchases')
+        .select('id,reseller_id,price_cents,status')
+        .eq('id', referenceId)
+        .maybeSingle();
+      if (!c || c.reseller_id !== resellerId) {
+        return new Response(JSON.stringify({ error: 'Compra de créditos não encontrada' }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (!REFUNDABLE_CREDIT_PURCHASE_STATUS.has(String(c.status))) {
+        return new Response(JSON.stringify({ error: `Status "${c.status}" não permite reembolso` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      amountCents = Number(c.price_cents) || 0;
+      description = `Estorno compra de créditos ${String(c.id).slice(0, 8)}`;
     }
 
     if (amountCents <= 0) {

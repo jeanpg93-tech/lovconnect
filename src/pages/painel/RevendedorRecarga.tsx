@@ -210,6 +210,84 @@ export default function RevendedorRecargas() {
   const [refundedRechargeIds, setRefundedRechargeIds] = useState<Set<string>>(new Set());
   const [refundingRechargeId, setRefundingRechargeId] = useState<string | null>(null);
 
+  // Histórico de compras de créditos (saldo → workspace próprio ou manual)
+  type CreditPurchaseRow = {
+    id: string;
+    credits: number;
+    price_cents: number;
+    status: string;
+    tipo_entrega: string | null;
+    workspace_name: string | null;
+    provider_pedido_id: string | null;
+    created_at: string;
+    updated_at: string;
+    error_message: string | null;
+  };
+  const [recentCreditPurchases, setRecentCreditPurchases] = useState<CreditPurchaseRow[]>([]);
+  const [allCreditPurchases, setAllCreditPurchases] = useState<CreditPurchaseRow[] | null>(null);
+  const [loadingAllCreditPurchases, setLoadingAllCreditPurchases] = useState(false);
+  const [cpSearch, setCpSearch] = useState("");
+  const [cpStatusFilter, setCpStatusFilter] = useState<string>("all");
+  const [refundedCreditPurchaseIds, setRefundedCreditPurchaseIds] = useState<Set<string>>(new Set());
+  const [refundingCreditPurchaseId, setRefundingCreditPurchaseId] = useState<string | null>(null);
+  const [syncingCreditPurchases, setSyncingCreditPurchases] = useState(false);
+
+  const loadCreditPurchaseRefunds = async (rid: string) => {
+    const { data } = await supabase
+      .from("refund_requests")
+      .select("reference_id")
+      .eq("reseller_id", rid)
+      .eq("kind", "credit_purchase");
+    setRefundedCreditPurchaseIds(new Set((data ?? []).map((r: any) => r.reference_id)));
+  };
+
+  const loadRecentCreditPurchases = async (rid: string) => {
+    const { data } = await supabase
+      .from("reseller_credit_purchases")
+      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,provider_pedido_id,created_at,updated_at,error_message")
+      .eq("reseller_id", rid)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setRecentCreditPurchases((data ?? []) as CreditPurchaseRow[]);
+  };
+  const loadAllCreditPurchases = async () => {
+    if (!resellerId) return;
+    setLoadingAllCreditPurchases(true);
+    const { data } = await supabase
+      .from("reseller_credit_purchases")
+      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,provider_pedido_id,created_at,updated_at,error_message")
+      .eq("reseller_id", resellerId)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    setAllCreditPurchases((data ?? []) as CreditPurchaseRow[]);
+    setLoadingAllCreditPurchases(false);
+  };
+  const syncCreditPurchases = async (rid: string, ids?: string[]) => {
+    setSyncingCreditPurchases(true);
+    try {
+      await supabase.functions.invoke("sync-credit-purchase-status", {
+        body: ids && ids.length > 0 ? { purchase_ids: ids } : {},
+      });
+      await loadRecentCreditPurchases(rid);
+      if (allCreditPurchases) await loadAllCreditPurchases();
+    } catch (_e) {}
+    setSyncingCreditPurchases(false);
+  };
+  const requestCreditPurchaseRefund = async (c: { id: string; price_cents: number }) => {
+    if (!confirm(`Solicitar estorno de ${formatBRL(c.price_cents)} para o seu saldo?`)) return;
+    setRefundingCreditPurchaseId(c.id);
+    const { data, error } = await supabase.functions.invoke("request-refund", {
+      body: { kind: "credit_purchase", reference_id: c.id },
+    });
+    setRefundingCreditPurchaseId(null);
+    if (error || (data as any)?.error) {
+      return toast.error((data as any)?.error ?? error?.message ?? "Falha no reembolso");
+    }
+    toast.success("Estorno creditado no seu saldo");
+    if (resellerId) loadCreditPurchaseRefunds(resellerId);
+    refreshBalance();
+  };
+
   const loadRechargeRefunds = async (rid: string) => {
     const { data } = await supabase
       .from("refund_requests")
@@ -282,6 +360,10 @@ export default function RevendedorRecargas() {
       setResellerId(r.id);
       loadRecentRecharges(r.id);
       loadRechargeRefunds(r.id);
+      loadRecentCreditPurchases(r.id);
+      loadCreditPurchaseRefunds(r.id);
+      // Em background: pergunta ao provider o status das compras "em aberto" e atualiza local.
+      syncCreditPurchases(r.id);
 
       const [{ data: b }, { data: pl }, { data: rp }, costsResponse] = await Promise.all([
         supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
@@ -1286,6 +1368,243 @@ export default function RevendedorRecargas() {
                 {!allRecharges && recentRecharges.length >= 20 && (
                   <p className="relative text-[11px] text-muted-foreground text-center">
                     Mostrando apenas as 20 mais recentes. Clique em "Ver todas as recargas" para listar tudo.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      </section>
+
+      {/* Minhas compras de créditos — histórico de compras pagas com saldo (workspace próprio / manual) */}
+      <section className="relative z-10 px-4 pb-12">
+        <div className="mx-auto max-w-7xl">
+          {(() => {
+            const list = allCreditPurchases ?? recentCreditPurchases;
+            const filtered = list.filter((c) => {
+              if (cpStatusFilter !== "all" && c.status !== cpStatusFilter) return false;
+              if (cpSearch.trim()) {
+                const q = cpSearch.trim().toLowerCase();
+                return (
+                  (c.id ?? "").toLowerCase().includes(q) ||
+                  (c.provider_pedido_id ?? "").toLowerCase().includes(q) ||
+                  (c.workspace_name ?? "").toLowerCase().includes(q)
+                );
+              }
+              return true;
+            });
+            const fmtDate = (s: string) =>
+              new Date(s).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+            const statusMap: Record<string, { label: string; cls: string }> = {
+              sucesso: { label: "Entregue", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
+              entregue: { label: "Entregue", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
+              completed: { label: "Entregue", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
+              aguardando: { label: "Aguardando", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+              processando: { label: "Processando", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+              pendente: { label: "Pendente", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+              manual_pendente: { label: "Manual pendente", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+              manual_aceito: { label: "Manual aceito", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+              manual_iniciado: { label: "Manual iniciado", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+              manual_processando: { label: "Manual proc.", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+              manual_entregue: { label: "Manual entregue", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
+              cancelado: { label: "Cancelado", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
+              falha: { label: "Falhou", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
+              failed: { label: "Falhou", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
+            };
+            const renderStatus = (s: string) => {
+              const v = statusMap[s] ?? { label: s, cls: "bg-muted text-muted-foreground" };
+              return (
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase", v.cls)}>
+                  {v.label}
+                </Badge>
+              );
+            };
+            const isRefundable = (s: string) =>
+              ["cancelado", "cancelled", "canceled", "falha", "failed"].includes(s);
+            return (
+              <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 sm:p-8 space-y-5">
+                <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+                <div className="relative flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
+                      <Coins className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">
+                        Histórico
+                      </span>
+                      <h3 className="font-display text-2xl font-bold tracking-tight">
+                        Minhas compras de créditos
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Compras pagas com saldo. Se cancelado, solicite o estorno aqui.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 text-xs font-bold"
+                      onClick={() => resellerId && syncCreditPurchases(resellerId)}
+                      disabled={syncingCreditPurchases}
+                      title="Atualizar status"
+                    >
+                      {syncingCreditPurchases ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCcw className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                    {allCreditPurchases ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 text-xs font-bold"
+                        onClick={() => setAllCreditPurchases(null)}
+                      >
+                        Mostrar apenas recentes
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="h-9 text-xs font-bold bg-emerald-500 text-white hover:bg-emerald-500/90"
+                        onClick={loadAllCreditPurchases}
+                        disabled={loadingAllCreditPurchases}
+                      >
+                        {loadingAllCreditPurchases ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                        ) : null}
+                        Ver todas as compras
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="relative flex flex-wrap gap-2">
+                  <div className="relative flex-1 min-w-[220px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={cpSearch}
+                      onChange={(e) => setCpSearch(e.target.value)}
+                      placeholder="Buscar por ID, pedido ou workspace…"
+                      className="pl-9 h-9 text-xs"
+                    />
+                  </div>
+                  <Select value={cpStatusFilter} onValueChange={setCpStatusFilter}>
+                    <SelectTrigger className="h-9 w-[200px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      <SelectItem value="aguardando">Aguardando</SelectItem>
+                      <SelectItem value="processando">Processando</SelectItem>
+                      <SelectItem value="sucesso">Entregue</SelectItem>
+                      <SelectItem value="cancelado">Cancelado</SelectItem>
+                      <SelectItem value="falha">Falhou</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="relative rounded-xl border border-border overflow-hidden">
+                  {filtered.length === 0 ? (
+                    <div className="p-10 text-center text-sm text-muted-foreground">
+                      Nenhuma compra de créditos encontrada.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {filtered.map((c) => {
+                        const trackId = c.provider_pedido_id ?? c.id;
+                        return (
+                          <div
+                            key={c.id}
+                            className="flex flex-wrap items-center gap-3 px-3 py-3 sm:px-4 text-xs hover:bg-background/40 transition-colors"
+                          >
+                            <div className="flex-1 min-w-[200px] space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-display text-base font-black text-foreground">
+                                  {c.credits} créditos
+                                </span>
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] font-bold uppercase border-white/10 bg-white/5 text-muted-foreground"
+                                >
+                                  {formatBRL(c.price_cents)}
+                                </Badge>
+                                {c.tipo_entrega ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[9px] font-bold uppercase border-white/10 bg-white/5 text-muted-foreground"
+                                  >
+                                    {c.tipo_entrega}
+                                  </Badge>
+                                ) : null}
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                <span>Criada: {fmtDate(c.created_at)}</span>
+                                {c.workspace_name ? (
+                                  <>
+                                    <span>·</span>
+                                    <span>WS: {c.workspace_name}</span>
+                                  </>
+                                ) : null}
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <a
+                                  href={`/recargas/${trackId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-mono text-[10px] text-primary hover:underline truncate max-w-[300px]"
+                                  title="Abrir página pública do pedido"
+                                >
+                                  /recargas/{String(trackId).slice(0, 12)}…
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard?.writeText(String(trackId));
+                                    toast.success("ID copiado");
+                                  }}
+                                  className="p-1 rounded hover:bg-white/5 text-muted-foreground hover:text-primary transition"
+                                  title="Copiar ID do pedido"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </button>
+                              </div>
+                              {c.error_message ? (
+                                <p className="text-[10px] text-rose-500 truncate max-w-[400px]" title={c.error_message}>
+                                  {c.error_message}
+                                </p>
+                              ) : null}
+                            </div>
+                            <div className="shrink-0">{renderStatus(c.status)}</div>
+                            {isRefundable(c.status) && (
+                              refundedCreditPurchaseIds.has(c.id) ? (
+                                <Badge variant="outline" className="text-[10px] font-bold uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+                                  Reembolsado
+                                </Badge>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 text-[10px] font-bold border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                                  disabled={refundingCreditPurchaseId === c.id}
+                                  onClick={() => requestCreditPurchaseRefund({ id: c.id, price_cents: c.price_cents })}
+                                >
+                                  {refundingCreditPurchaseId === c.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reembolso"}
+                                </Button>
+                              )
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {!allCreditPurchases && recentCreditPurchases.length >= 20 && (
+                  <p className="relative text-[11px] text-muted-foreground text-center">
+                    Mostrando apenas as 20 mais recentes. Clique em "Ver todas as compras" para listar tudo.
                   </p>
                 )}
               </div>
