@@ -469,7 +469,7 @@ export default function RevendedorRecargas() {
                   Planos
                 </TabsTrigger>
                 <TabsTrigger value="rules" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-sm transition-all px-4">
-                  Performance
+                  Limite de uso
                 </TabsTrigger>
                 <TabsTrigger value="api" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-sm transition-all px-4">
                   API
