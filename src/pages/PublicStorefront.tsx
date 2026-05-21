@@ -828,7 +828,7 @@ export default function PublicStorefront() {
                             {labelFor(pk.license_type)}
                           </div>
                           <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Sparkles className="h-3 w-3" /> Ativação imediata via PIX
+                            <Sparkles className="h-3 w-3" /> {descFor(pk.license_type)}
                           </div>
                         </div>
                         <div className="text-xl font-bold" style={{ color }}>
@@ -859,7 +859,7 @@ export default function PublicStorefront() {
                           {formatBRL(pk.price_cents)}
                         </div>
                         <div className="mt-3 text-[11px] text-muted-foreground flex items-center justify-center gap-1">
-                          <Sparkles className="h-3 w-3" /> Ativação imediata via PIX
+                          <Sparkles className="h-3 w-3" /> {descFor(pk.license_type)}
                         </div>
                       </button>
                     ))}
