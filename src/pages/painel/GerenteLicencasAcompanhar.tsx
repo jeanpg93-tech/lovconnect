@@ -419,18 +419,7 @@ export default function GerenteLicencasAcompanhar() {
   // Detecta o método de entrega usado pra gerar a licença.
   // Procura marcadores explícitos no payload do provedor; fallback "MétodoFlow".
   const getDeliveryMethod = (o: OrderRow) => {
-    const raw = JSON.stringify(o.full_data ?? {}).toLowerCase();
-    const flag =
-      (o.full_data?.method ||
-        o.full_data?.delivery_method ||
-        o.full_data?.source_method ||
-        "")?.toString().toLowerCase();
-    const isLovax =
-      flag.includes("lovax") ||
-      raw.includes("\"lovax\"") ||
-      raw.includes("tscommunity") ||
-      raw.includes("reseller-api");
-    return isLovax
+    return o.method === "lovax"
       ? { id: "lovax" as const, label: "MétodoLovax", Icon: Sparkles, color: "text-fuchsia-300 bg-fuchsia-500/10 border-fuchsia-500/20" }
       : { id: "flow" as const, label: "MétodoFlow", Icon: Zap, color: "text-primary bg-primary/10 border-primary/20" };
   };
