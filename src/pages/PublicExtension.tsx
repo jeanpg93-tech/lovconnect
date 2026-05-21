@@ -72,8 +72,9 @@ const RECOMMENDATIONS = [
   },
 ];
 
-export default function PublicExtension() {
-  const { slug } = useParams();
+export default function PublicExtension({ slug: slugProp }: { slug?: string } = {}) {
+  const params = useParams();
+  const slug = slugProp ?? params.slug;
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [ext, setExt] = useState<Ext | null>(null);
