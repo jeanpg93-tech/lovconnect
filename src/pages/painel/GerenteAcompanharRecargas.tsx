@@ -671,8 +671,8 @@ export default function GerenteAcompanharRecargas() {
                                 )}
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button size="sm" variant="destructive" className="h-7 px-2 text-xs">
-                                      <AlertTriangle className="mr-1 h-3 w-3" /> Sem sucesso <ChevronDown className="ml-0.5 h-3 w-3" />
+                                    <Button size="sm" variant="destructive" className="h-7 w-7 p-0" title="Sem sucesso">
+                                      <AlertTriangle className="h-3.5 w-3.5" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="w-72">
@@ -702,8 +702,8 @@ export default function GerenteAcompanharRecargas() {
                                 <RotateCcw className="mr-1 h-3 w-3" /> Reabrir
                               </Button>
                             )}
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setDetailsData(m as any); setDetailsOpen(true); }}>
-                              <Eye className="mr-1 h-3 w-3" /> Detalhes
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="Detalhes" onClick={() => { setDetailsData(m as any); setDetailsOpen(true); }}>
+                              <Eye className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </td>
