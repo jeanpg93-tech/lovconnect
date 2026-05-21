@@ -321,50 +321,127 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Generate license via provider
-    const { data: cfg } = await admin.from("provider_settings")
-      .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
-    const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
-    const base = cfg?.base_url ?? DEFAULT_PROVIDER_BASE;
-
-    if (!apiKey) {
-      await admin.from("storefront_orders").update({
-        status: "failed",
-        error_message: "Provedor não configurado",
-      }).eq("id", storeOrder.id);
-      return json({ ok: false, error: "no provider api key" }, 500);
-    }
+    // Resolve método da loja (flow|lovax)
+    const { data: storeCfg } = await admin
+      .from("reseller_storefronts")
+      .select("extension_method")
+      .eq("reseller_id", storeOrder.reseller_id)
+      .maybeSingle();
+    const method: "flow" | "lovax" =
+      (storeCfg as any)?.extension_method === "lovax" ? "lovax" : "flow";
 
     let providerData: any = null;
+    let license_key: string | null = null;
     try {
-      const r = await fetch(`${base}/generate-license`, {
-        method: "POST",
-        headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...mapTypeToProviderBody(storeOrder.license_type),
-          display_name: storeOrder.buyer_name,
-        }),
-      });
-      const txt = await r.text();
-      try { providerData = JSON.parse(txt); } catch { providerData = { raw: txt }; }
-      if (!r.ok) {
-        await admin.from("storefront_orders").update({
-          status: "failed",
-          error_message: `Provedor retornou ${r.status}`,
-          raw_response: providerData,
-        }).eq("id", storeOrder.id);
-        
-        // REYCLE/REFUND if provider failed
-        if (cost_cents > 0) {
-          await admin.rpc("credit_reseller_balance", {
-            _reseller_id: storeOrder.reseller_id,
-            _amount_cents: cost_cents,
-            _kind: "order_refund",
-            _description: `Estorno (falha provedor): ${storeOrder.id}`,
-            _reference_id: storeOrder.id,
-          });
+      if (method === "lovax") {
+        const { data: settings } = await admin
+          .from("app_settings")
+          .select("key, value")
+          .in("key", ["lovax_api_token", "lovax_base_url"]);
+        const tk = settings?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined;
+        const bs = (settings?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined)
+          || "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
+        if (!tk) {
+          await admin.from("storefront_orders").update({
+            status: "failed",
+            error_message: "MétodoLovax não configurado",
+          }).eq("id", storeOrder.id);
+          if (cost_cents > 0) {
+            await admin.rpc("credit_reseller_balance", {
+              _reseller_id: storeOrder.reseller_id,
+              _amount_cents: cost_cents,
+              _kind: "order_refund",
+              _description: `Estorno (Lovax não configurado): ${storeOrder.id}`,
+              _reference_id: storeOrder.id,
+            });
+          }
+          return json({ ok: false, error: "lovax not configured" }, 500);
         }
-        return json({ ok: false, error: "provider failed" }, 502);
+        const mapped = mapTypeToProviderBody(storeOrder.license_type);
+        const r = await fetch(bs, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tk}`, "x-api-key": tk, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "generate_license",
+            payload: {
+              customer_name: storeOrder.buyer_name,
+              days: (mapped as any).days ?? 30,
+              hours: 0,
+              minutes: 0,
+              max_devices: 1,
+            },
+          }),
+        });
+        const txt = await r.text();
+        try { providerData = JSON.parse(txt); } catch { providerData = { raw: txt }; }
+        if (!r.ok || !providerData?.success) {
+          await admin.from("storefront_orders").update({
+            status: "failed",
+            error_message: providerData?.error ?? `Lovax retornou ${r.status}`,
+            raw_response: providerData,
+          }).eq("id", storeOrder.id);
+          if (cost_cents > 0) {
+            await admin.rpc("credit_reseller_balance", {
+              _reseller_id: storeOrder.reseller_id,
+              _amount_cents: cost_cents,
+              _kind: "order_refund",
+              _description: `Estorno (falha Lovax): ${storeOrder.id}`,
+              _reference_id: storeOrder.id,
+            });
+          }
+          return json({ ok: false, error: "lovax failed" }, 502);
+        }
+        license_key =
+          providerData?.license?.license_key ?? providerData?.license_key ?? providerData?.key ?? null;
+      } else {
+        const { data: cfg } = await admin.from("provider_settings")
+          .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+        const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
+        const base = cfg?.base_url ?? DEFAULT_PROVIDER_BASE;
+        if (!apiKey) {
+          await admin.from("storefront_orders").update({
+            status: "failed",
+            error_message: "MétodoFlow não configurado",
+          }).eq("id", storeOrder.id);
+          if (cost_cents > 0) {
+            await admin.rpc("credit_reseller_balance", {
+              _reseller_id: storeOrder.reseller_id,
+              _amount_cents: cost_cents,
+              _kind: "order_refund",
+              _description: `Estorno (Flow não configurado): ${storeOrder.id}`,
+              _reference_id: storeOrder.id,
+            });
+          }
+          return json({ ok: false, error: "no provider api key" }, 500);
+        }
+        const r = await fetch(`${base}/generate-license`, {
+          method: "POST",
+          headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...mapTypeToProviderBody(storeOrder.license_type),
+            display_name: storeOrder.buyer_name,
+          }),
+        });
+        const txt = await r.text();
+        try { providerData = JSON.parse(txt); } catch { providerData = { raw: txt }; }
+        if (!r.ok) {
+          await admin.from("storefront_orders").update({
+            status: "failed",
+            error_message: `MétodoFlow retornou ${r.status}`,
+            raw_response: providerData,
+          }).eq("id", storeOrder.id);
+          if (cost_cents > 0) {
+            await admin.rpc("credit_reseller_balance", {
+              _reseller_id: storeOrder.reseller_id,
+              _amount_cents: cost_cents,
+              _kind: "order_refund",
+              _description: `Estorno (falha Flow): ${storeOrder.id}`,
+              _reference_id: storeOrder.id,
+            });
+          }
+          return json({ ok: false, error: "provider failed" }, 502);
+        }
+        license_key = providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
       }
     } catch (e) {
       await admin.from("storefront_orders").update({
@@ -373,9 +450,6 @@ Deno.serve(async (req) => {
       }).eq("id", storeOrder.id);
       return json({ ok: false, error: "provider error" }, 502);
     }
-
-    const license_key =
-      providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
 
     await admin.from("storefront_orders").update({
       status: "completed",
