@@ -292,7 +292,15 @@ export default function PublicStorefront() {
   }, [order?.id]);
 
   const labelFor = (lt: string) =>
-    plans.find((p) => p.license_type === lt)?.label || FALLBACK_LABEL[lt] || lt;
+    packs.find((p) => p.license_type === lt)?.label ||
+    plans.find((p) => p.license_type === lt)?.label ||
+    FALLBACK_LABEL[lt] ||
+    lt;
+
+  const descFor = (lt: string) =>
+    packs.find((p) => p.license_type === lt)?.desc ||
+    FALLBACK_DESC[lt] ||
+    "Ativação imediata via PIX";
 
   const priceFor = (lt: string) =>
     packs.find((p) => p.license_type === lt)?.price_cents ?? 
