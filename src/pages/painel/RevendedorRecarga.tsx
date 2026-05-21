@@ -354,7 +354,7 @@ export default function RevendedorRecargas() {
       <div className="px-4 mb-12">
         <div className="container mx-auto max-w-5xl">
           <div className={cn(
-            "relative overflow-hidden rounded-3xl border p-8 md:p-12 bg-gradient-to-br",
+            "relative overflow-hidden rounded-2xl sm:rounded-3xl border p-5 sm:p-8 md:p-12 bg-gradient-to-br",
             activeMode === "automatico"
               ? "border-primary/20 from-card via-card to-primary/5"
               : "border-amber-500/20 from-card via-card to-amber-500/5"
@@ -465,14 +465,14 @@ export default function RevendedorRecargas() {
         <div className="container mx-auto max-w-7xl">
           <Tabs defaultValue="plans" className="space-y-12" id="plans-tabs">
             <div className="flex justify-center border-b border-border">
-              <TabsList className="bg-transparent h-12 gap-8 px-0">
-                <TabsTrigger value="plans" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-sm transition-all px-4">
+              <TabsList className="bg-transparent h-12 gap-2 sm:gap-8 px-0 w-full sm:w-auto justify-start sm:justify-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <TabsTrigger value="plans" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
                   Planos
                 </TabsTrigger>
-                <TabsTrigger value="rules" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-sm transition-all px-4">
+                <TabsTrigger value="rules" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
                   Limite de uso
                 </TabsTrigger>
-                <TabsTrigger value="api" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-sm transition-all px-4">
+                <TabsTrigger value="api" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
                   API's
                 </TabsTrigger>
               </TabsList>
@@ -664,10 +664,10 @@ export default function RevendedorRecargas() {
                 </div>
 
                 {/* Footer Section Style */}
-                <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 p-16 text-white text-center space-y-8 shadow-lg shadow-primary/20">
-                   <h2 className="text-5xl md:text-6xl font-bold tracking-tighter ">Movimentando milhões de <br /> transações todos os dias.</h2>
-                   <p className="text-white/80 text-xl font-medium max-w-2xl mx-auto">Sem surpresas, sem letras miúdas. Aqui o preço é fixo e previsível em todas as suas operações.</p>
-                   <Button className="h-16 px-12 rounded-2xl bg-white text-primary font-bold   hover:bg-zinc-100 transition-all">
+                <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary to-primary/80 p-6 sm:p-10 md:p-16 text-white text-center space-y-5 sm:space-y-8 shadow-lg shadow-primary/20">
+                   <h2 className="text-2xl sm:text-4xl md:text-6xl font-bold tracking-tighter">Movimentando milhões de <br className="hidden sm:inline" /> transações todos os dias.</h2>
+                   <p className="text-white/80 text-sm sm:text-lg md:text-xl font-medium max-w-2xl mx-auto">Sem surpresas, sem letras miúdas. Aqui o preço é fixo e previsível em todas as suas operações.</p>
+                   <Button className="h-12 sm:h-16 px-8 sm:px-12 rounded-xl sm:rounded-2xl bg-white text-primary font-bold hover:bg-zinc-100 transition-all">
                       Abrir conta agora
                    </Button>
                 </div>
@@ -677,7 +677,7 @@ export default function RevendedorRecargas() {
             <TabsContent value="rules" className="animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
               <div className="space-y-8">
                 {/* Alerta principal */}
-                <div className="relative overflow-hidden rounded-3xl border border-destructive/30 bg-gradient-to-br from-destructive/10 via-destructive/5 to-transparent p-6 md:p-8">
+                <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-destructive/30 bg-gradient-to-br from-destructive/10 via-destructive/5 to-transparent p-5 sm:p-6 md:p-8">
                   <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-destructive/20 blur-3xl pointer-events-none" />
                   <div className="relative flex items-start gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-destructive text-white shadow-lg shadow-destructive/30">
@@ -738,7 +738,7 @@ export default function RevendedorRecargas() {
                 </div>
 
                 {/* Limite diário */}
-                <div className="rounded-3xl border border-border bg-card p-6 md:p-8 space-y-6">
+                <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-6 md:p-8 space-y-6">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <Zap className="h-5 w-5" />
@@ -779,7 +779,7 @@ export default function RevendedorRecargas() {
 
                 {/* Importante + Confirmação */}
                 <div className="grid lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-2 rounded-3xl border border-amber-500/30 bg-amber-500/5 p-6 md:p-8">
+                  <div className="lg:col-span-2 rounded-2xl sm:rounded-3xl border border-amber-500/30 bg-amber-500/5 p-5 sm:p-6 md:p-8">
                     <div className="flex items-start gap-4">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500">
                         <ShieldAlert className="h-5 w-5" />
@@ -794,7 +794,7 @@ export default function RevendedorRecargas() {
                     </div>
                   </div>
 
-                  <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-6 md:p-8 flex flex-col justify-between gap-4">
+                  <div className="rounded-2xl sm:rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-5 sm:p-6 md:p-8 flex flex-col justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-5 w-5 text-primary" />
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Pronto pra começar</span>
@@ -838,7 +838,7 @@ export default function RevendedorRecargas() {
                 return (
                   <div className="grid lg:grid-cols-2 gap-6">
                     {/* API Automática (Revendedor) */}
-                    <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-8 space-y-6 transition-all hover:border-primary/40">
+                    <div className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-8 space-y-6 transition-all hover:border-primary/40">
                       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
                       <div className="relative flex items-start justify-between gap-4">
                         <div className="flex items-center gap-4">
@@ -906,7 +906,7 @@ export default function RevendedorRecargas() {
                     </div>
 
                     {/* API Manual */}
-                    <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-8 space-y-6 transition-all hover:border-amber-500/40">
+                    <div className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-8 space-y-6 transition-all hover:border-amber-500/40">
                       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
                       <div className="relative flex items-start justify-between gap-4">
                         <div className="flex items-center gap-4">
