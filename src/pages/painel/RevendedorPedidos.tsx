@@ -131,7 +131,7 @@ export default function RevendedorPedidos() {
     const sinceToday = todayStart.toISOString();
     const [
       { data: pl }, { data: cs }, { data: os }, { data: t }, { data: tiers }, { data: ts }, { count: testCount },
-      { data: activeExts }, { data: rep }, { data: pov }, { data: tep },
+      { data: licSetting }, { data: salePrices },
     ] = await Promise.all([
       supabase.from("pricing_plans").select("license_type,label,price_cents,cost_cents,min_price_cents,is_active").eq("is_active", true),
       supabase.from("profiles").select("id,email,display_name").eq("reseller_id", r.id),
@@ -140,23 +140,10 @@ export default function RevendedorPedidos() {
       supabase.from("reseller_tiers").select("id,name,color,min_spent_cents,discount_percent,sort_order,is_active").eq("is_active", true).order("min_spent_cents", { ascending: true }),
       supabase.from("reseller_tier_state").select("total_spent_cents").eq("reseller_id", r.id).maybeSingle(),
       supabase.from("orders").select("id", { count: "exact", head: true }).eq("reseller_id", r.id).eq("is_test", true).gte("created_at", sinceToday),
-      // Todas as extensões ativas
-      supabase.from("extensions").select("id,name,is_active").eq("is_active", true),
-      // preços por revendedor (custom)
-      supabase
-        .from("reseller_extension_prices")
-        .select("extension_id,license_type,price_cents,is_active")
-        .eq("reseller_id", r.id),
-      // overrides do nível Partner para esse revendedor
-      supabase
-        .from("reseller_extension_price_overrides")
-        .select("extension_id,license_type,price_cents,is_active")
-        .eq("reseller_id", r.id),
-      // Preços por nível e extensão
-      supabase
-        .from("tier_extension_prices")
-        .select("tier_id,extension_id,license_type,price_cents,is_active")
-        .eq("is_active", true),
+      // Preços definidos pelo gerente (modelo licencas.valores)
+      supabase.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
+      // Preço de venda do revendedor (sale price) por método/pack
+      supabase.from("reseller_license_prices").select("method,pack_id,price_cents").eq("reseller_id", r.id),
     ]);
     const sorted = ((pl ?? []) as Plan[])
       .filter(p => ORDER.includes(p.license_type))
@@ -169,38 +156,17 @@ export default function RevendedorPedidos() {
     setTierState((ts as any) ?? { total_spent_cents: 0 });
     setTestsLast24h(testCount ?? 0);
 
-    // Prepara lista de extensões (todas as ativas)
-    const exts = (activeExts ?? [])
-      .map((e: any) => ({ id: e.id, name: e.name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-    
-    setExtensions(exts);
-    setSelectedExtId((cur) => cur && exts.some((e) => e.id === cur) ? cur : (exts[0]?.id ?? ""));
-    setSelectedExtId((cur) => cur && exts.some((e) => e.id === cur) ? cur : (exts[0]?.id ?? ""));
+    const valores = (licSetting?.value ?? {}) as Record<string, any>;
+    setLicValores(valores as any);
+    const methods = (Object.keys(valores).filter((m) => m === "flow" || m === "lovax") as MethodId[]);
+    setAvailableMethods(methods);
+    setSelectedMethod((cur) => (methods.includes(cur) ? cur : (methods[0] ?? "flow")));
 
-    const repMap: Record<string, number> = {};
-    (rep ?? []).forEach((row: any) => {
-      if (row.is_active && row.price_cents > 0) {
-        repMap[`${row.extension_id}|${row.license_type}`] = row.price_cents;
-      }
+    const saleMap: Record<string, number> = {};
+    (salePrices ?? []).forEach((row: any) => {
+      saleMap[`${row.method}|${row.pack_id}`] = row.price_cents;
     });
-    setResellerPrices(repMap);
-
-    const povMap: Record<string, number> = {};
-    (pov ?? []).forEach((row: any) => {
-      if (row.is_active && row.price_cents >= 0) {
-        povMap[`${row.extension_id}|${row.license_type}`] = row.price_cents;
-      }
-    });
-    setPartnerOverrides(povMap);
-
-    const tepMap: Record<string, number> = {};
-    (tep ?? []).forEach((row: any) => {
-      if (row.is_active && row.price_cents >= 0) {
-        tepMap[`${row.tier_id}|${row.extension_id}|${row.license_type}`] = row.price_cents;
-      }
-    });
-    setTierExtensionPrices(tepMap);
+    setResellerSalePrices(saleMap);
 
     setLoading(false);
   };
@@ -217,44 +183,16 @@ export default function RevendedorPedidos() {
   // 2) preço por revendedor (custom) → aplica desconto, respeita piso
   // 3) plano global → aplica desconto, respeita piso
   // Retorna { price, base, source }
-  const computePrice = (p: Plan, extId: string | null) => {
-    const lt = p.license_type;
-    if (extId) {
-      const k = `${extId}|${lt}`;
-      // Prioridade 1: Preço manual específico para este revendedor/extensão (Partner Override)
-      if (partnerOverrides[k] !== undefined && partnerOverrides[k] >= 0) {
-        const c = partnerOverrides[k];
-        return { price: c, base: c, source: "partner" as const };
-      }
-
-      // Prioridade 1.5: Preço definido por Nível para esta extensão
-      if (tier?.id) {
-        const tk = `${tier.id}|${k}`;
-        if (tierExtensionPrices[tk] !== undefined && tierExtensionPrices[tk] >= 0) {
-          const c = tierExtensionPrices[tk];
-          // Preços definidos por nível já consideram o desconto
-          return { price: c, base: c, source: "tier" as const };
-        }
-      }
-
-      // Prioridade 2: Preço customizado para o revendedor específico
-      const rp = resellerPrices[k];
-      if (rp && rp > 0) {
-        const final = applyDiscount(rp);
-        return {
-          price: final,
-          base: rp,
-          source: "reseller" as const,
-        };
-      }
-    }
-    // Prioridade 3: Preço padrão do Plano (Preço LP) + Desconto do Nível
-    const final = applyDiscount(p.price_cents);
-    return {
-      price: final,
-      base: p.price_cents,
-      source: "plan" as const,
-    };
+  // Custo (preço do gerente) para um pacote do método, no nível atual — em cents
+  const getCostCents = (method: MethodId, pack: PackId): number => {
+    if (!tier?.id) return 0;
+    const brl = Number(licValores?.[method]?.[pack]?.[tier.id] ?? 0);
+    return Math.round(brl * 100);
+  };
+  // Preço de venda definido pelo revendedor (override) — em cents
+  const getSaleCents = (method: MethodId, pack: PackId): number | null => {
+    const v = resellerSalePrices[`${method}|${pack}`];
+    return v && v > 0 ? v : null;
   };
 
   const onlyDigits = (s: string) => s.replace(/\D+/g, "");
