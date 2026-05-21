@@ -546,8 +546,8 @@ export default function GerenteAcompanharRecargas() {
                             {new Date(u.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setDetailsData(u); setDetailsOpen(true); }}>
-                              <Eye className="mr-1 h-3 w-3" /> Detalhes
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="Detalhes" onClick={() => { setDetailsData(u); setDetailsOpen(true); }}>
+                              <Eye className="h-3.5 w-3.5" />
                             </Button>
                           </td>
                         </tr>
