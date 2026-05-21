@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, Sparkles, BookOpen, Settings as SettingsIcon, ChevronDown, CheckCircle2 } from "lucide-react";
+import { Zap, Sparkles, BookOpen, Settings as SettingsIcon, ChevronDown, CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import GerenteApiProvedor from "./GerenteApiProvedor";
 
 type Method = "flow" | "lovax";
@@ -35,6 +36,10 @@ const METHODS = [
 export default function GerenteLicencasApis() {
   const [active, setActive] = useState<Method>("flow");
   const [open, setOpen] = useState<Method | null>(null);
+  const [conn, setConn] = useState<Record<Method, "checking" | "connected" | "disconnected">>({
+    flow: "checking",
+    lovax: "checking",
+  });
 
   const readActive = () => {
     const m = localStorage.getItem(METHOD_KEY) as Method | null;
@@ -52,6 +57,37 @@ export default function GerenteLicencasApis() {
       window.removeEventListener("storage", onStorage);
       clearInterval(interval);
     };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkFlow = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("provider-api?action=get-settings", { method: "GET" });
+        if (cancelled) return;
+        if (error || !data?.configured) {
+          setConn((c) => ({ ...c, flow: "disconnected" }));
+          return;
+        }
+        const { data: st, error: stErr } = await supabase.functions.invoke("provider-api?action=status", { method: "GET" });
+        if (cancelled) return;
+        setConn((c) => ({ ...c, flow: !stErr && st && !st.error ? "connected" : "disconnected" }));
+      } catch {
+        if (!cancelled) setConn((c) => ({ ...c, flow: "disconnected" }));
+      }
+    };
+
+    const checkLovax = () => {
+      const key = localStorage.getItem("licencas.lovax.apiKey");
+      const url = localStorage.getItem("licencas.lovax.baseUrl");
+      setConn((c) => ({ ...c, lovax: key && url ? "connected" : "disconnected" }));
+    };
+
+    const run = () => { checkFlow(); checkLovax(); };
+    run();
+    const id = setInterval(run, 10000);
+    return () => { cancelled = true; clearInterval(id); };
   }, []);
 
   const setAsActive = (m: Method) => {
@@ -102,6 +138,7 @@ export default function GerenteLicencasApis() {
                           Ativo
                         </Badge>
                       )}
+                      <ConnBadge state={conn[m.id]} />
                     </CardTitle>
                     <p className="text-xs text-muted-foreground mt-0.5">{m.desc}</p>
                   </div>
@@ -247,5 +284,30 @@ function Doc({ title, body }: { title: string; body: string }) {
       </div>
       <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-muted-foreground">{body}</pre>
     </div>
+  );
+}
+
+function ConnBadge({ state }: { state: "checking" | "connected" | "disconnected" }) {
+  if (state === "checking") {
+    return (
+      <Badge variant="outline" className="h-5 gap-1 text-[9px] uppercase tracking-wider">
+        <Loader2 className="h-2.5 w-2.5 animate-spin" />
+        Verificando
+      </Badge>
+    );
+  }
+  if (state === "connected") {
+    return (
+      <Badge className="h-5 gap-1 border-emerald-500/40 bg-emerald-500/15 text-emerald-500 text-[9px] uppercase tracking-wider hover:bg-emerald-500/15">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        Conectado
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="h-5 gap-1 border-rose-500/40 bg-rose-500/15 text-rose-500 text-[9px] uppercase tracking-wider hover:bg-rose-500/15">
+      <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+      Desconectado
+    </Badge>
   );
 }
