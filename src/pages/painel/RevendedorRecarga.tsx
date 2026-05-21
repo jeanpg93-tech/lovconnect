@@ -207,6 +207,32 @@ export default function RevendedorRecargas() {
   const [loadingAllRecharges, setLoadingAllRecharges] = useState(false);
   const [reSearch, setReSearch] = useState("");
   const [reStatusFilter, setReStatusFilter] = useState<string>("all");
+  const [refundedRechargeIds, setRefundedRechargeIds] = useState<Set<string>>(new Set());
+  const [refundingRechargeId, setRefundingRechargeId] = useState<string | null>(null);
+
+  const loadRechargeRefunds = async (rid: string) => {
+    const { data } = await supabase
+      .from("refund_requests")
+      .select("reference_id")
+      .eq("reseller_id", rid)
+      .eq("kind", "recharge");
+    setRefundedRechargeIds(new Set((data ?? []).map((r: any) => r.reference_id)));
+  };
+
+  const requestRechargeRefund = async (r: { id: string; amount_cents: number }) => {
+    if (!confirm(`Solicitar reembolso de ${formatBRL(r.amount_cents)} para o seu saldo?`)) return;
+    setRefundingRechargeId(r.id);
+    const { data, error } = await supabase.functions.invoke("request-refund", {
+      body: { kind: "recharge", reference_id: r.id },
+    });
+    setRefundingRechargeId(null);
+    if (error || (data as any)?.error) {
+      return toast.error((data as any)?.error ?? error?.message ?? "Falha no reembolso");
+    }
+    toast.success("Reembolso creditado no seu saldo");
+    if (resellerId) loadRechargeRefunds(resellerId);
+    refreshBalance();
+  };
 
   const loadRecentRecharges = async (rid: string) => {
     const { data } = await supabase
