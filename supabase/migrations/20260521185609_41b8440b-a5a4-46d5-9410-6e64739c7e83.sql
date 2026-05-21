@@ -1,0 +1,2 @@
+ALTER TABLE public.reseller_storefronts DROP CONSTRAINT IF EXISTS reseller_storefronts_background_effect_chk;
+ALTER TABLE public.reseller_storefronts ADD CONSTRAINT reseller_storefronts_background_effect_chk CHECK (background_effect = ANY (ARRAY['none','grid','circles','flames','dots','waves','aurora','stars','mesh','rays']));
