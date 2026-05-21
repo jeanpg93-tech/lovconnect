@@ -799,7 +799,7 @@ export default function RevendedorRecargas() {
       {/* 
           DOCK NAVIGATION - ULTRA MINIMALIST 
       */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-6">
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-6 md:hidden">
         <div className="bg-background border border-border p-2 rounded-2xl shadow-xl flex items-center justify-between">
           <Link to="/painel/revendedor" className="flex h-12 w-12 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary transition-all">
             <LayoutDashboard className="h-5 w-5" />
