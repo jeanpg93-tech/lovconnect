@@ -140,7 +140,7 @@ export default function RevendedorPedidos() {
     ] = await Promise.all([
       supabase.from("pricing_plans").select("license_type,label,price_cents,cost_cents,min_price_cents,is_active").eq("is_active", true),
       supabase.from("profiles").select("id,email,display_name").eq("reseller_id", r.id),
-      supabase.from("orders").select("id,license_type,price_cents,status,license_key,created_at,is_test").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("orders").select("id,license_type,price_cents,status,license_key,created_at,is_test, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(20),
       supabase.rpc("get_reseller_tier", { _reseller_id: r.id }),
       supabase.from("reseller_tiers").select("id,name,color,min_spent_cents,discount_percent,sort_order,is_active").eq("is_active", true).order("min_spent_cents", { ascending: true }),
       supabase.from("reseller_tier_state").select("total_spent_cents").eq("reseller_id", r.id).maybeSingle(),
@@ -252,7 +252,7 @@ export default function RevendedorPedidos() {
     setLoadingAll(true);
     const { data } = await supabase
       .from("orders")
-      .select("id,license_type,price_cents,status,license_key,created_at,is_test")
+      .select("id,license_type,price_cents,status,license_key,created_at,is_test, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
       .eq("reseller_id", resellerId)
       .order("created_at", { ascending: false })
       .limit(1000);
