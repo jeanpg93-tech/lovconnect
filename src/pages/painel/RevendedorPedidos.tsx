@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { 
   Loader2, ShoppingCart, KeyRound, Copy, ChevronDown, FlaskConical, 
-  RefreshCcw, Ban, Trash2, MoreVertical, Sparkles, Crown, Package 
+  RefreshCcw, Ban, Trash2, MoreVertical, Sparkles, Crown, Package,
+  BookOpen, Zap, Globe, Terminal, FileDown, Puzzle, ShieldCheck
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
