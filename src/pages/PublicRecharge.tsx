@@ -3,6 +3,14 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   Loader2,
@@ -181,6 +189,8 @@ export default function PublicRecharge() {
   const [workspaceInput, setWorkspaceInput] = useState("");
   const [submittingWorkspace, setSubmittingWorkspace] = useState(false);
   const [workspaceSaved, setWorkspaceSaved] = useState(false);
+  const [editingWorkspace, setEditingWorkspace] = useState(false);
+  const [confirmWorkspaceOpen, setConfirmWorkspaceOpen] = useState(false);
 
   // Carrega aviso de lentidão do provedor
   useEffect(() => {
@@ -303,6 +313,9 @@ export default function PublicRecharge() {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Erro");
       setWorkspaceSaved(true);
+      setEditingWorkspace(false);
+      setConfirmWorkspaceOpen(false);
+      setWorkspaceInput("");
       toast.success("Workspace enviado! Aguardando a equipe iniciar.");
       await loadOrder(true);
     } catch (e: any) {
