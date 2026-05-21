@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Sparkles, Save, Calendar, Infinity as InfinityIcon, Loader2 } from "lucide-react";
+import { Zap, Sparkles, Save, Calendar, Infinity as InfinityIcon, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +62,12 @@ export default function GerenteLicencasValores() {
   const [prices, setPrices] = useState<PriceMap>(EMPTY);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [loadingTiers, setLoadingTiers] = useState(true);
+  const [openPacks, setOpenPacks] = useState<Record<string, boolean>>({});
+
+  const togglePack = (m: Method, p: PackId) => {
+    const k = `${m}:${p}`;
+    setOpenPacks((prev) => ({ ...prev, [k]: !prev[k] }));
+  };
 
   useEffect(() => {
     setPrices(loadPrices());
@@ -138,12 +144,18 @@ export default function GerenteLicencasValores() {
               )}
               {!loadingTiers && tiers.length > 0 && packages.map((pkg) => {
                 const PIcon = pkg.icon;
+                const key = `${meta.id}:${pkg.id}`;
+                const open = !!openPacks[key];
                 return (
                   <div
                     key={pkg.id}
-                    className="space-y-2 rounded-xl border border-border bg-muted/30 p-3"
+                    className="rounded-xl border border-border bg-muted/30"
                   >
-                    <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => togglePack(meta.id, pkg.id)}
+                      className="flex w-full items-center gap-3 p-3 text-left"
+                    >
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground">
                         <PIcon className="h-4 w-4" />
                       </div>
@@ -151,8 +163,15 @@ export default function GerenteLicencasValores() {
                         <div className="font-semibold text-sm">{pkg.label}</div>
                         <p className="text-xs text-muted-foreground">{pkg.desc}</p>
                       </div>
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-2">
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                          open && "rotate-180"
+                        )}
+                      />
+                    </button>
+                    {open && (
+                    <div className="grid gap-2 px-3 pb-3 sm:grid-cols-2">
                       {tiers.map((tier) => (
                         <div key={tier.id} className="rounded-lg border border-border/60 bg-background/60 p-2">
                           <div className="flex items-center gap-1.5 mb-1">
@@ -178,6 +197,7 @@ export default function GerenteLicencasValores() {
                         </div>
                       ))}
                     </div>
+                    )}
                   </div>
                 );
               })}
