@@ -9,7 +9,8 @@ import { Card } from "@/components/ui/card";
 import { 
   Loader2, ShoppingCart, KeyRound, Copy, ChevronDown, FlaskConical, 
   RefreshCcw, Ban, Trash2, MoreVertical, Sparkles, Crown, Package,
-  BookOpen, Zap, Globe, Terminal, FileDown, Puzzle, ShieldCheck
+  BookOpen, Zap, Globe, Terminal, FileDown, Puzzle, ShieldCheck,
+  ArrowRight, Wallet
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -356,10 +357,94 @@ export default function RevendedorPedidos() {
       </div>
 
       <div className="relative space-y-6">
-        <PageHeader 
-          title="Licenças" 
-          description="Compre, gerencie e integre as licenças das suas extensões." 
-        />
+        {/* Hero */}
+        <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-white/[0.04] via-white/[0.02] to-transparent p-6 sm:p-10 backdrop-blur-xl">
+          <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+          <div className="pointer-events-none absolute -left-10 bottom-0 h-56 w-56 rounded-full bg-blue-500/5 blur-3xl" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.04),transparent_60%)]" />
+
+          <div className="relative grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-center">
+            <div className="space-y-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 backdrop-blur-sm w-fit">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Entrega instantânea</span>
+              </div>
+
+              <div className="space-y-3">
+                <h1 className="font-display text-4xl md:text-5xl font-black tracking-tighter leading-[1.05] text-white">
+                  Licenças das suas <span className="italic text-primary">extensões</span>
+                </h1>
+                <p className="text-sm md:text-base text-zinc-400 leading-relaxed max-w-xl">
+                  Compre, gere e gerencie chaves para Flow, Lovax e todas as extensões liberadas — direto do seu saldo, com preço definido pelo seu nível.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {extensions.slice(0, 4).map((e) => (
+                  <span
+                    key={e.id}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-300"
+                  >
+                    <Puzzle className="h-3 w-3 text-primary" />
+                    {e.name}
+                  </span>
+                ))}
+                {extensions.length > 4 && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                    +{extensions.length - 4} extensões
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="group relative overflow-hidden rounded-2xl border border-white/5 bg-card/40 backdrop-blur-sm p-4 transition-all hover:border-primary/40">
+                <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-primary/5 blur-2xl group-hover:bg-primary/10 transition-colors" />
+                <div className="relative flex items-center gap-2 mb-2">
+                  <Puzzle className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em]">Extensões</span>
+                </div>
+                <div className="relative text-2xl md:text-3xl font-black tabular-nums tracking-tight text-white">
+                  {extensions.length}
+                </div>
+                <div className="relative mt-1 text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
+                  disponíveis
+                </div>
+              </div>
+
+              <div className="group relative overflow-hidden rounded-2xl border border-white/5 bg-card/40 backdrop-blur-sm p-4 transition-all hover:border-primary/40">
+                <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-primary/5 blur-2xl group-hover:bg-primary/10 transition-colors" />
+                <div className="relative flex items-center justify-between gap-1 mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Crown className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] truncate">Seu nível</span>
+                  </div>
+                  {tier && (
+                    <span
+                      className="inline-flex items-center rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider shrink-0"
+                      style={{
+                        backgroundColor: `${tier.color}1f`,
+                        color: tier.color,
+                      }}
+                    >
+                      {discountPct > 0 ? `-${discountPct}%` : "Ativo"}
+                    </span>
+                  )}
+                </div>
+                <div className="relative text-2xl md:text-3xl font-black tracking-tight text-white">
+                  {tier?.name ?? "—"}
+                </div>
+                <div className="relative mt-1 text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
+                  desconto aplicado
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <Tabs defaultValue="plans" className="space-y-6">
           <div className="flex items-center justify-center">
@@ -480,13 +565,6 @@ export default function RevendedorPedidos() {
         <div className="flex h-32 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : plans.length === 0 ? (
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center backdrop-blur-xl">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-zinc-600">
-            <ShoppingCart className="h-8 w-8" />
-          </div>
-          <p className="text-sm font-medium text-zinc-500">Nenhum plano disponível ainda.</p>
-        </div>
       ) : extensions.length === 0 ? (
         <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center backdrop-blur-xl">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-zinc-600">
@@ -499,7 +577,7 @@ export default function RevendedorPedidos() {
           {/* Extension submenu — pill nav per extension */}
           <div className="flex flex-col gap-3">
             <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 pl-1">
-              Escolha a extensão
+              Escolha a extensão para gerar licenças
             </Label>
             <div className="flex flex-wrap items-center gap-2">
               {extensions.map((e) => {
@@ -536,7 +614,15 @@ export default function RevendedorPedidos() {
             </div>
           </div>
 
-          {/* Pricing Grid - Mobile optimized */}
+          {plans.length === 0 ? (
+            <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center backdrop-blur-xl">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-zinc-600">
+                <ShoppingCart className="h-8 w-8" />
+              </div>
+              <p className="text-sm font-medium text-zinc-500">Nenhum plano disponível para esta extensão.</p>
+            </div>
+          ) : (
+          /* Pricing Grid - Mobile optimized */
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {plans.map((p) => {
               const { price: final, base, source } = computePrice(p, selectedExtId);
@@ -689,6 +775,7 @@ export default function RevendedorPedidos() {
               );
             })}
           </div>
+          )}
         </div>
       )}
 
