@@ -28,6 +28,25 @@ const slugify = (s: string) =>
 const formatBRL = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((cents || 0) / 100);
 
+const firstLastName = (name: string | null | undefined) => {
+  const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "—";
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+};
+
+const formatPhoneBR = (phone: string | null | undefined) => {
+  if (!phone) return "—";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 13 && digits.startsWith("55")) {
+    const d = digits.slice(2);
+    return `+55 (${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  }
+  if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return phone;
+};
+
 export default function GerenteRevendedores() {
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [profilesByUser, setProfilesByUser] = useState<Record<string, Profile>>({});
@@ -353,7 +372,9 @@ export default function GerenteRevendedores() {
                 <thead className="bg-white/5 text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/60">
                   <tr>
                     <th className="px-6 py-4 text-left font-semibold">Nome</th>
+                    <th className="px-6 py-4 text-left font-semibold">Usuário</th>
                     <th className="px-6 py-4 text-left font-semibold">Email</th>
+                    <th className="px-6 py-4 text-left font-semibold">WhatsApp</th>
                     <th className="px-6 py-4 text-center font-semibold">Nível</th>
                     <th className="px-6 py-4 text-center font-semibold">Progresso</th>
                     <th className="px-6 py-4 text-center font-semibold">Teste (Uso/Limite)</th>
@@ -370,8 +391,10 @@ export default function GerenteRevendedores() {
                     const progress = tierProgressFor(r.id);
                     return (
                       <tr key={r.id} className="group transition-all duration-300 hover:bg-white/5">
-                        <td className="px-6 py-4 font-medium text-foreground">{r.display_name}</td>
+                        <td className="px-6 py-4 font-medium text-foreground">{firstLastName(prof?.display_name)}</td>
+                        <td className="px-6 py-4 text-muted-foreground/80">{r.display_name}</td>
                         <td className="px-6 py-4 text-muted-foreground/80">{prof?.email ?? "—"}</td>
+                        <td className="px-6 py-4 text-muted-foreground/80 font-mono text-xs whitespace-nowrap">{formatPhoneBR(prof?.phone)}</td>
                         <td className="px-6 py-4 text-center">
                           {tier ? (
                             <span className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest" style={{ background: `${tier.color}22`, color: tier.color }}>
@@ -436,8 +459,10 @@ export default function GerenteRevendedores() {
                   <div key={r.id} className="p-4 space-y-4 border-b border-white/5 bg-white/5 rounded-xl mb-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-bold text-foreground">{r.display_name}</h3>
+                        <h3 className="font-bold text-foreground">{firstLastName(prof?.display_name)}</h3>
+                        <p className="text-[11px] text-muted-foreground">@{r.display_name}</p>
                         <p className="text-xs text-muted-foreground">{prof?.email ?? "—"}</p>
+                        <p className="text-[11px] text-muted-foreground font-mono">{formatPhoneBR(prof?.phone)}</p>
                       </div>
                       <div className="text-right">
                         <span className="font-mono font-bold text-primary block">{formatBRL(balance)}</span>
