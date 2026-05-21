@@ -42,7 +42,6 @@ const RevendedorRecarga = lazy(() => import("@/pages/painel/RevendedorRecarga"))
 
 const RevendedorDashboard = lazy(() => import("@/pages/painel/RevendedorDashboard"));
 const RevendedorClientes = lazy(() => import("@/pages/painel/RevendedorClientes"));
-const RevendedorLicencas = lazy(() => import("@/pages/painel/RevendedorLicencas"));
 const RevendedorExtensoes = lazy(() => import("@/pages/painel/RevendedorExtensoes"));
 const RevendedorPrecos = lazy(() => import("@/pages/painel/RevendedorPrecos"));
 const RevendedorPedidos = lazy(() => import("@/pages/painel/RevendedorPedidos"));
@@ -118,11 +117,10 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/revendedor", match: exact("/painel/revendedor"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorDashboard /></RoleRoute> },
   { key: "/painel/revendedor/recargas", match: exact("/painel/revendedor/recargas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorRecarga /></RoleRoute> },
   { key: "/painel/revendedor/clientes", match: exact("/painel/revendedor/clientes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorClientes /></RoleRoute> },
-  { key: "/painel/revendedor/licencas", match: exact("/painel/revendedor/licencas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorLicencas /></RoleRoute> },
+  { key: "/painel/revendedor/licencas", match: exact("/painel/revendedor/licencas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPedidos /></RoleRoute> },
   { key: "/painel/revendedor/extensoes", match: exact("/painel/revendedor/extensoes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorExtensoes /></RoleRoute> },
   { key: "/painel/revendedor/precos", match: exact("/painel/revendedor/precos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPrecos /></RoleRoute> },
   { key: "/painel/revendedor/creditos", match: exact("/painel/revendedor/creditos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorCreditos /></RoleRoute> },
-  { key: "/painel/revendedor/pedidos", match: exact("/painel/revendedor/pedidos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPedidos /></RoleRoute> },
   { key: "/painel/revendedor/comprar-creditos", match: exact("/painel/revendedor/comprar-creditos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorComprarCreditos /></RoleRoute> },
   { key: "/painel/revendedor/adicionar-saldo", match: exact("/painel/revendedor/adicionar-saldo"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorAdicionarSaldo /></RoleRoute> },
   { key: "/painel/revendedor/carteira", match: exact("/painel/revendedor/carteira"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorCarteira /></RoleRoute> },
