@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import RevendedorTransacoes from "./RevendedorTransacoes";
 
 type Tx = { id: string; amount_cents: number; kind: string; description: string | null; created_at: string };
 type Tier = { id: string; slug: string; name: string; color: string; min_spent_cents: number; discount_percent: number; recharge_bonus_percent: number; sort_order: number; is_active: boolean };
