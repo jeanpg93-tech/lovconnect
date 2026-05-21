@@ -301,7 +301,7 @@ export default function PublicStorefront() {
         if (data?.order) {
           setOrderStatus(data.order.status);
           if (data.order.license_key) setLicenseKey(data.order.license_key);
-          if (["completed", "failed", "refunded"].includes(data.order.status)) {
+          if (["completed", "failed", "refunded", "awaiting_balance"].includes(data.order.status)) {
             if (pollRef.current) window.clearInterval(pollRef.current);
           }
         }
