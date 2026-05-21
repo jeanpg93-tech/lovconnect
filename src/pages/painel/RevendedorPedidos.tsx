@@ -361,20 +361,15 @@ export default function RevendedorPedidos() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                {extensions.slice(0, 4).map((e) => (
+                {availableMethods.map((m) => (
                   <span
-                    key={e.id}
+                    key={m}
                     className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-300"
                   >
                     <Puzzle className="h-3 w-3 text-primary" />
-                    {e.name}
+                    {METHOD_LABEL[m]}
                   </span>
                 ))}
-                {extensions.length > 4 && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                    +{extensions.length - 4} extensões
-                  </span>
-                )}
               </div>
             </div>
 
@@ -384,10 +379,10 @@ export default function RevendedorPedidos() {
                 <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-primary/5 blur-2xl group-hover:bg-primary/10 transition-colors" />
                 <div className="relative flex items-center gap-2 mb-2">
                   <Puzzle className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em]">Extensões</span>
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em]">Métodos</span>
                 </div>
                 <div className="relative text-2xl md:text-3xl font-black tabular-nums tracking-tight text-white">
-                  {extensions.length}
+                  {availableMethods.length}
                 </div>
                 <div className="relative mt-1 text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
                   disponíveis
