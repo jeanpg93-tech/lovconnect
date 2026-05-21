@@ -2084,6 +2084,7 @@ export type Database = {
           buyer_name: string
           buyer_whatsapp: string
           copy_paste: string | null
+          cost_cents: number | null
           created_at: string
           credit_amount: number | null
           delivery_type: string | null
@@ -2110,6 +2111,7 @@ export type Database = {
           buyer_name: string
           buyer_whatsapp: string
           copy_paste?: string | null
+          cost_cents?: number | null
           created_at?: string
           credit_amount?: number | null
           delivery_type?: string | null
@@ -2136,6 +2138,7 @@ export type Database = {
           buyer_name?: string
           buyer_whatsapp?: string
           copy_paste?: string | null
+          cost_cents?: number | null
           created_at?: string
           credit_amount?: number | null
           delivery_type?: string | null
@@ -2475,6 +2478,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      has_pending_storefront_orders: {
+        Args: { _reseller_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
