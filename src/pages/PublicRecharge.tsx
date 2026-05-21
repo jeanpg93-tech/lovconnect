@@ -332,8 +332,9 @@ export default function PublicRecharge() {
     const isManualFailed = mStatus === "falha" || mStatus === "cancelado" || mStatus === "reembolsado";
     const manualStages = [
       { key: "recebido", label: "Pedido recebido", desc: "Registramos sua solicitação", done: true, active: !isManualProcessing && !isManualDone && !isManualFailed },
-      { key: "processando", label: "Equipe processando", desc: "Nossa equipe está cuidando do seu pedido", done: isManualProcessing || isManualDone, active: isManualProcessing && !isManualDone },
-      { key: "entregue", label: "Créditos entregues", desc: "Pedido finalizado com sucesso", done: isManualDone, active: false },
+      { key: "aceito", label: "Pedido aceito — Aguardando configuração", desc: "Confirmamos seu pedido e estamos preparando a configuração", done: isManualProcessing || isManualDone, active: !isManualProcessing && !isManualDone && !isManualFailed ? false : false },
+      { key: "configurado", label: "Configurado — Iniciando entrega", desc: "Tudo pronto, sua recarga está a caminho do workspace", done: isManualDone, active: isManualProcessing && !isManualDone },
+      { key: "entregue", label: "Entrega finalizada — Recarga creditada", desc: "Créditos disponíveis no seu workspace", done: isManualDone, active: false },
     ];
 
     return (
@@ -390,6 +391,21 @@ export default function PublicRecharge() {
                 </span>
               </div>
 
+              {/* Workspace destaque */}
+              {order.workspaceName && (
+                <div className="relative rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-200">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-300">Workspace</div>
+                      <div className="text-base font-bold text-white mt-0.5 break-all">{order.workspaceName}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Stages */}
               <div className="relative space-y-3">
                 {manualStages.map((s, idx) => (
@@ -431,12 +447,6 @@ export default function PublicRecharge() {
                   <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Valor</div>
                   <div className="text-base font-bold text-white mt-0.5">{fmtBRL(order.precoCentavos, order.precoReais)}</div>
                 </div>
-                {order.workspaceName && (
-                  <div className="col-span-2">
-                    <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Workspace</div>
-                    <div className="text-sm font-medium text-zinc-200 mt-0.5 break-all">{order.workspaceName}</div>
-                  </div>
-                )}
               </div>
 
               {order.errorMessage && (
