@@ -32,6 +32,7 @@ import {
   Sparkles,
   PartyPopper,
   Link2Off,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import tutorialStep1 from "@/assets/tutorial-step1.webp";
