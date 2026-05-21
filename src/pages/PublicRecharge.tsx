@@ -33,6 +33,12 @@ type OrderData = {
   id?: string;
   pedidoId?: string;
   status?: string;
+  statusLabel?: string;
+  manual?: boolean;
+  tipoEntrega?: string;
+  errorMessage?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
   creditos?: number;
   precoReais?: string;
   precoCentavos?: number;
