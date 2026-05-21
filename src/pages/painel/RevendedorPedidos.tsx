@@ -463,56 +463,6 @@ export default function RevendedorPedidos() {
 
           <TabsContent value="plans" className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
 
-        {tier && allTiers.length > 0 && Object.keys(partnerOverrides).length === 0 && (() => {
-          const spent = tierState?.total_spent_cents ?? 0;
-          const currentIdx = allTiers.findIndex((x) => x.id === tier.id);
-          const currentTierRow = currentIdx >= 0 ? allTiers[currentIdx] : undefined;
-          const nextTier = currentIdx >= 0 ? allTiers[currentIdx + 1] : undefined;
-          const toNext = nextTier ? Math.max(0, nextTier.min_spent_cents - spent) : 0;
-          const currentMin = currentTierRow?.min_spent_cents ?? 0;
-          const range = nextTier ? nextTier.min_spent_cents - currentMin : 0;
-          const progress = nextTier && range > 0
-            ? Math.min(100, Math.max(0, ((spent - currentMin) / range) * 100))
-            : 100;
-          return (
-            <div className="mb-5 flex w-full items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3 backdrop-blur-xl">
-              <span
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-2 ring-background"
-                style={{ backgroundColor: tier.color, boxShadow: `0 0 15px ${tier.color}55` }}
-              >
-                <Crown className="h-4 w-4 text-black/80" />
-              </span>
-              <div className="flex flex-1 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
-                <div className="flex items-center justify-between sm:block">
-                  <span className="font-display text-sm font-bold text-white tracking-wide">{tier.name}</span>
-                  <span className="sm:hidden text-[10px] font-mono text-zinc-500">Saldo: {fmt(spent)}</span>
-                </div>
-                {nextTier ? (
-                  <div className="flex flex-1 items-center gap-3">
-                    <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
-                      <div
-                        className="absolute inset-y-0 left-0 rounded-full transition-all duration-1000"
-                        style={{
-                          width: `${progress}%`,
-                          background: `linear-gradient(90deg, ${tier.color}, ${nextTier.color})`,
-                        }}
-                      />
-                    </div>
-                    <span className="whitespace-nowrap text-[10px] font-medium text-zinc-400">
-                      Falta <span className="font-mono text-white">{fmt(toNext)}</span> para <span style={{ color: nextTier.color }}>{nextTier.name}</span>
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex flex-1 items-center gap-3">
-                    <div className="h-1.5 flex-1 rounded-full bg-gradient-to-r from-primary/40 to-primary" />
-                    <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-widest text-primary">Nível Máximo</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-
         {/* Card destacado: Teste grátis 15min */}
         {(() => {
           const dailyLimit = resellerId === '97959674-f4bd-4eb3-9fa1-37cd115a77df' 
