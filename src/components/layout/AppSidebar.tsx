@@ -104,8 +104,6 @@ const groupsByRole: Record<AppRole, Group[]> = {
     ]},
     { label: "Vender", items: [
       { title: "Comprar Recargas", url: "/painel/revendedor/pedidos", icon: ShoppingCart },
-      { title: "Comprar Recargas", url: "/painel/revendedor/comprar-creditos", icon: Coins },
-      { title: "Meus Clientes", url: "/painel/revendedor/clientes", icon: Users },
       { title: "Minhas Vendas", url: "/painel/revendedor/licencas", icon: ShoppingBag },
       { title: "Minha Loja", url: "/painel/revendedor/loja", icon: Store, badge: "store-status" },
     ]},
@@ -113,10 +111,8 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Preços de Extensões", url: "/painel/revendedor/extensoes", icon: Tag },
       { title: "Preços de Recargas", url: "/painel/revendedor/creditos", icon: Coins },
       { title: "API de Chaves", url: "/painel/revendedor/api", icon: KeyRound },
-      { title: "API de Recargas", url: "/painel/revendedor/api-recargas", icon: Coins },
       { title: "Resetar chave", url: "/painel/revendedor/resetar-chave", icon: RotateCcw },
       { title: "Baixar Extensão", url: "/painel/revendedor/baixar-extensao", icon: Package },
-      { title: "Instalar App", url: "/painel/revendedor/instalar-app", icon: Smartphone },
     ]},
   ],
   cliente: [
