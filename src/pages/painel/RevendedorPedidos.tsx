@@ -129,6 +129,7 @@ export default function RevendedorPedidos() {
     const { data: r } = await supabase.from("resellers").select("id").eq("user_id", user.id).maybeSingle();
     if (!r) { setLoading(false); return; }
     setResellerId(r.id);
+    loadRefunds(r.id);
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const sinceToday = todayStart.toISOString();
