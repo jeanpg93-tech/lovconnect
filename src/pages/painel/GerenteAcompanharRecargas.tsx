@@ -227,12 +227,12 @@ export default function GerenteAcompanharRecargas() {
 
   const setManualStatus = async (
     m: ManualOrder,
-    status: "manual_pendente" | "manual_aceito" | "manual_iniciado" | "manual_concluido" | "manual_sem_sucesso",
+    status: "manual_pendente" | "manual_aceito" | "manual_iniciado" | "manual_limite_atingido" | "manual_concluido" | "manual_sem_sucesso",
     extra?: { notes?: string | null; force?: boolean },
   ) => {
     // Garante a sequência: Pendente → Aceito → Iniciado → Concluído.
     // "Sem sucesso" pode ser acionado a partir de qualquer status não-final.
-    const ORDER = ["manual_pendente", "manual_aceito", "manual_iniciado", "manual_concluido"] as const;
+    const ORDER = ["manual_pendente", "manual_aceito", "manual_iniciado", "manual_limite_atingido", "manual_concluido"] as const;
     const current = (m.status || "manual_pendente") as string;
     const finalSet = new Set(["manual_concluido", "manual_entregue", "manual_sem_sucesso"]);
     if (!extra?.force && status !== "manual_sem_sucesso") {
@@ -242,7 +242,10 @@ export default function GerenteAcompanharRecargas() {
       }
       const ci = ORDER.indexOf(current as any);
       const ni = ORDER.indexOf(status as any);
-      if (ci < 0 || ni < 0 || ni !== ci + 1) {
+      // permite avanço de 1 passo OU pular "limite atingido" indo direto de iniciado para concluído
+      const okStep = ni === ci + 1;
+      const okSkipLimite = current === "manual_iniciado" && status === "manual_concluido";
+      if (ci < 0 || ni < 0 || (!okStep && !okSkipLimite)) {
         toast.error("Sequência inválida. Avance um passo por vez.");
         return;
       }
@@ -254,6 +257,7 @@ export default function GerenteAcompanharRecargas() {
       manual_pendente: "pending",
       manual_aceito: "accepted",
       manual_iniciado: "started",
+      manual_limite_atingido: "rate_limited",
       manual_concluido: "delivered",
       manual_sem_sucesso: "failed",
     };
