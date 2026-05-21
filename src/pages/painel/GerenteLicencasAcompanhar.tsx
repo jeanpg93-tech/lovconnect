@@ -148,12 +148,14 @@ export default function GerenteLicencasAcompanhar() {
     try {
       const [
         { data: providerData, error: providerError },
+        { data: lovaxData, error: lovaxError },
         { data: resellersData },
         { data: apiKeysData },
         { data: dbOrdersData },
         { data: storefrontData },
       ] = await Promise.all([
         supabase.functions.invoke("provider-api?action=usage-all", { method: "GET" }),
+        supabase.functions.invoke("lovax-api?action=usage&limit=500", { method: "GET" }),
         supabase.from("resellers").select("id, display_name, user_id"),
         supabase.from("reseller_api_keys").select("id, label, reseller_id"),
         supabase.from("orders")
@@ -164,8 +166,8 @@ export default function GerenteLicencasAcompanhar() {
           .not("license_key", "is", null),
       ]);
 
-      if (providerError || providerData?.error) {
-        toast.error(providerError?.message || providerData?.error || "Erro ao carregar licenças do provedor");
+      if ((providerError || providerData?.error) && (lovaxError || lovaxData?.error)) {
+        toast.error(providerError?.message || providerData?.error || lovaxError?.message || lovaxData?.error || "Erro ao carregar licenças");
         setLoading(false);
         return;
       }
@@ -245,11 +247,63 @@ export default function GerenteLicencasAcompanhar() {
           price_cents: null,
           creator_email: email,
           source,
+          method: "flow" as DeliveryMethod,
           full_data: u,
         };
       });
 
-      setOrders(list);
+      const lovaxUsage = (lovaxData?.usage ?? []) as any[];
+      const lovaxList: OrderRow[] = lovaxUsage.map((u: any) => {
+        const local = ordersMap[u.license_key];
+        const sf = storefrontMap[u.license_key];
+        const reseller_id = sf?.reseller_id || local?.reseller_id || null;
+        const api_key_id = local?.api_key_id || null;
+        let source: GenSource = "provider";
+        if (api_key_id) source = "api";
+        else if (sf) source = "storefront";
+        else if (local) source = "manual";
+        const userId = reseller_id ? resellerToUser[reseller_id] : null;
+        const email = (userId && emailMap[userId]) || u.creator_email || u.email || null;
+
+        // Derive license_type from days when possible
+        const days = typeof u.days === "number" ? u.days
+          : (u.expires_at && u.created_at)
+            ? Math.round((new Date(u.expires_at).getTime() - new Date(u.created_at).getTime()) / 86400000)
+            : null;
+        const lifetime = days !== null && days >= 3650;
+        let license_type = u.license_type || "active";
+        if (u.status === "trial" || license_type === "trial") license_type = "trial";
+        else if (lifetime) license_type = "lifetime";
+        else if (days === 1) license_type = "pro_1d";
+        else if (days === 7) license_type = "pro_7d";
+        else if (days === 15) license_type = "pro_15d";
+        else if (days === 30) license_type = "pro_30d";
+
+        return {
+          id: `lovax:${u.license_key}`,
+          license_id: u.id,
+          license_key: u.license_key,
+          display_name: u.display_name || u.customer_name,
+          license_type,
+          status: u.status,
+          created_at: u.created_at,
+          expires_at: u.expires_at ?? null,
+          lifetime,
+          days,
+          is_test: license_type === "trial",
+          reseller_id,
+          api_key_id,
+          customer_id: null,
+          client_id: null,
+          price_cents: null,
+          creator_email: email,
+          source,
+          method: "lovax" as DeliveryMethod,
+          full_data: u,
+        };
+      });
+
+      setOrders([...list, ...lovaxList]);
     } catch (e: any) {
       toast.error(e.message || "Erro de conexão");
     } finally {
