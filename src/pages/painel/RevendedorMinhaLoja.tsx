@@ -174,6 +174,7 @@ export default function RevendedorMinhaLoja() {
         setShowProducts(!!(store as any).show_products);
         setShowFreeTrial(!!(store as any).show_free_trial);
         setShowCredits(!!(store as any).show_credits);
+        setExtensionMethod(((store as any).extension_method === "lovax" ? "lovax" : "flow"));
         setAccessExtEnabled(!!(store as any).access_extension_enabled);
         setAccessExtMode((((store as any).access_extension_mode) ?? "native") as "native" | "custom");
         setAccessExtCustomUrl((store as any).access_extension_custom_url ?? "");
@@ -450,6 +451,7 @@ export default function RevendedorMinhaLoja() {
       show_products: showProducts,
       show_free_trial: showFreeTrial,
       show_credits: showCredits,
+      extension_method: extensionMethod,
       access_extension_enabled: accessExtEnabled,
       access_extension_mode: accessExtMode,
       access_extension_custom_url: accessExtCustomUrl.trim() || null,
