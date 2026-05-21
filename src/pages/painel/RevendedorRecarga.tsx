@@ -399,7 +399,7 @@ export default function RevendedorRecargas() {
                   )}
                 </p>
 
-                <div className="grid sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {(activeMode === "automatico" ? [
                     { icon: CheckCircle2, title: "Confirmação instantânea", desc: "PIX aprovado em segundos" },
                     { icon: Activity, title: "Sem fila de aprovação", desc: "Liberação 24/7 automática" },
@@ -408,8 +408,11 @@ export default function RevendedorRecargas() {
                     { icon: ListChecks, title: "Pedido na fila", desc: "Entrada imediata após PIX" },
                     { icon: UserCircle, title: "Processado pela equipe", desc: "Entrega manual no workspace" },
                     { icon: Activity, title: "Acompanhamento em tempo real", desc: "Status atualizado a cada passo" },
-                  ]).map((f) => (
-                    <div key={f.title} className="rounded-xl border border-border bg-background/40 p-3 backdrop-blur-sm">
+                  ]).map((f, idx) => (
+                    <div key={f.title} className={cn(
+                      "rounded-xl border border-border bg-background/40 p-3 backdrop-blur-sm",
+                      idx === 2 && "col-span-2 sm:col-span-1"
+                    )}>
                       <f.icon className={cn("h-4 w-4 mb-2", activeMode === "automatico" ? "text-primary" : "text-amber-500")} />
                       <div className="text-xs font-semibold">{f.title}</div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">{f.desc}</div>
