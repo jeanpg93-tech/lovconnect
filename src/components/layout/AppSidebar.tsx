@@ -161,7 +161,7 @@ export function AppSidebar() {
   // Sincroniza abertura com a rota atual se necessário
   useEffect(() => {
     if (primaryRole === "revendedor") {
-      if (pathname.includes("/revendedor/resetar-chave") || pathname.includes("/revendedor/api") || pathname.includes("/revendedor/baixar-extensao") || pathname.includes("/revendedor/instalar-app") || pathname.includes("/revendedor/extensoes") || pathname.includes("/revendedor/creditos")) {
+      if (pathname.includes("/revendedor/resetar-chave") || pathname.includes("/revendedor/api") || pathname.includes("/revendedor/baixar-extensao") || pathname.includes("/revendedor/instalar-app")) {
         setOpenGroups((prev) => (prev.includes("Configurar") ? prev : [...prev, "Configurar"]));
       }
     }
