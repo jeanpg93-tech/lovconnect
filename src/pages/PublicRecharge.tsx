@@ -510,6 +510,33 @@ export default function PublicRecharge() {
             </div>
           )}
 
+          {/* Aviso de pedido finalizado — celebração animada */}
+          {isManualDone && (
+            <div className="relative overflow-hidden rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/20 via-green-500/10 to-teal-500/5 p-4 sm:p-5 shadow-lg shadow-emerald-900/20 animate-fade-in">
+              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-emerald-400/30 blur-2xl animate-pulse" />
+              <div className="absolute -left-10 -bottom-10 h-32 w-32 rounded-full bg-teal-400/20 blur-2xl animate-pulse" />
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_3s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              <div className="relative flex items-start gap-3">
+                <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 ring-1 ring-emerald-400/50">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-300 animate-scale-in" />
+                  <span className="absolute inset-0 rounded-xl ring-2 ring-emerald-400/40 animate-ping" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-200">Pedido finalizado</span>
+                    <PartyPopper className="h-3.5 w-3.5 text-emerald-300 animate-pulse" />
+                  </div>
+                  <p className="mt-1 text-sm font-semibold text-emerald-50 leading-snug">
+                    Sua recarga foi entregue com sucesso! 🎉
+                  </p>
+                  <p className="mt-1 text-xs text-emerald-100/70 leading-snug">
+                    Os créditos já estão disponíveis no seu workspace. Bom trabalho!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Card principal */}
           <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-amber-400/50 via-orange-400/20 to-amber-400/50 shadow-2xl shadow-amber-900/30">
             <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] bg-zinc-950/85 backdrop-blur-xl p-5 sm:p-6 space-y-5">
