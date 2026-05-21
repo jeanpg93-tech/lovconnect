@@ -10,7 +10,7 @@ import {
   Loader2, ShoppingCart, KeyRound, Copy, ChevronDown, FlaskConical, 
   RefreshCcw, Ban, Trash2, MoreVertical, Sparkles, Crown, Package,
   BookOpen, Zap, Globe, Terminal, FileDown, Puzzle, ShieldCheck,
-  ArrowRight, Wallet
+  ArrowRight, Wallet, Search
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -213,6 +213,25 @@ export default function RevendedorPedidos() {
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  // Minhas Licenças — listagem completa (toggle "Ver todas")
+  const [allOrders, setAllOrders] = useState<Order[] | null>(null);
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [licSearch, setLicSearch] = useState("");
+  const [licStatusFilter, setLicStatusFilter] = useState<string>("all");
+
+  const loadAllOrders = async () => {
+    if (!resellerId) return;
+    setLoadingAll(true);
+    const { data } = await supabase
+      .from("orders")
+      .select("id,license_type,price_cents,status,license_key,created_at,is_test")
+      .eq("reseller_id", resellerId)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    setAllOrders((data ?? []) as Order[]);
+    setLoadingAll(false);
+  };
+
   const runLicenseAction = async (
     o: Order,
     action: "reset-hwid" | "revoke-license" | "delete-license",
@@ -233,6 +252,7 @@ export default function RevendedorPedidos() {
     if (action === "revoke-license") toast.success("Licença revogada");
     if (action === "delete-license") toast.success("Licença excluída");
     load();
+    if (allOrders) loadAllOrders();
   };
 
   const statusBadge = (status: string) => {
@@ -806,6 +826,144 @@ export default function RevendedorPedidos() {
             })()}
           </TabsContent>
         </Tabs>
+
+      {/* Minhas Licenças — gerencie todas as chaves geradas */}
+      {(() => {
+        const list = allOrders ?? orders;
+        const filtered = list.filter((o) => {
+          if (licStatusFilter !== "all" && o.status !== licStatusFilter) return false;
+          if (licSearch.trim()) {
+            const q = licSearch.trim().toLowerCase();
+            return (o.license_key ?? "").toLowerCase().includes(q) ||
+              (o.license_type ?? "").toLowerCase().includes(q);
+          }
+          return true;
+        });
+        const fmtDate = (s: string) => new Date(s).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+        return (
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 sm:p-8 space-y-5">
+            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+            <div className="relative flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
+                  <KeyRound className="h-6 w-6" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Gerenciar acessos</span>
+                  <h3 className="font-display text-2xl font-bold tracking-tight">Minhas Licenças</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Todas as chaves geradas — copie, resete HWID, revogue ou exclua.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {allOrders ? (
+                  <Button variant="outline" size="sm" className="h-9 text-xs font-bold" onClick={() => setAllOrders(null)}>
+                    Mostrar apenas recentes
+                  </Button>
+                ) : (
+                  <Button size="sm" className="h-9 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90" onClick={loadAllOrders} disabled={loadingAll}>
+                    {loadingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                    Ver todas as chaves
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="relative flex flex-wrap gap-2">
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={licSearch}
+                  onChange={(e) => setLicSearch(e.target.value)}
+                  placeholder="Buscar por chave ou tipo…"
+                  className="pl-9 h-9 text-xs"
+                />
+              </div>
+              <Select value={licStatusFilter} onValueChange={setLicStatusFilter}>
+                <SelectTrigger className="h-9 w-[160px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="completed">Concluídas</SelectItem>
+                  <SelectItem value="pending">Pendentes</SelectItem>
+                  <SelectItem value="failed">Falhou</SelectItem>
+                  <SelectItem value="revoked">Revogadas</SelectItem>
+                  <SelectItem value="deleted">Excluídas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="relative rounded-xl border border-border overflow-hidden">
+              {filtered.length === 0 ? (
+                <div className="p-10 text-center text-sm text-muted-foreground">
+                  Nenhuma licença encontrada.
+                </div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {filtered.map((o) => (
+                    <div key={o.id} className="flex flex-wrap items-center gap-3 px-3 py-3 sm:px-4 text-xs hover:bg-background/40 transition-colors">
+                      <div className="flex-1 min-w-[200px] space-y-1">
+                        <div className="flex items-center gap-2">
+                          <code className="font-mono text-[11px] font-bold text-foreground truncate max-w-[260px]">
+                            {o.license_key ?? "—"}
+                          </code>
+                          {o.license_key && (
+                            <button
+                              type="button"
+                              onClick={() => { navigator.clipboard?.writeText(o.license_key!); toast.success("Chave copiada"); }}
+                              className="p-1 rounded hover:bg-white/5 text-muted-foreground hover:text-primary transition"
+                              title="Copiar chave"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </button>
+                          )}
+                          {o.is_test && (
+                            <Badge variant="outline" className="text-[9px] font-bold uppercase border-amber-500/30 bg-amber-500/10 text-amber-500">Teste</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <span className="font-semibold">{FALLBACK_LABEL[o.license_type] ?? o.license_type}</span>
+                          <span>·</span>
+                          <span>{fmtDate(o.created_at)}</span>
+                        </div>
+                      </div>
+                      <div className="shrink-0">{statusBadge(o.status)}</div>
+                      <div className="shrink-0">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={!o.license_key || actionLoading?.startsWith(o.id)}>
+                              {actionLoading?.startsWith(o.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MoreVertical className="h-3.5 w-3.5" />}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem onClick={() => runLicenseAction(o, "reset-hwid", "Resetar HWID desta licença?")}>
+                              <RefreshCcw className="h-3.5 w-3.5 mr-2" /> Resetar HWID
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => runLicenseAction(o, "revoke-license", "Revogar esta licença? O cliente perderá o acesso.")}>
+                              <Ban className="h-3.5 w-3.5 mr-2" /> Revogar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => runLicenseAction(o, "delete-license", "Excluir esta licença? Esta ação é irreversível.")}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {!allOrders && orders.length >= 20 && (
+              <p className="relative text-[11px] text-muted-foreground text-center">
+                Mostrando apenas as 20 mais recentes. Clique em "Ver todas as chaves" para listar tudo.
+              </p>
+            )}
+          </div>
+        );
+      })()}
 
       <Dialog open={!!open} onOpenChange={(v) => !v && setOpen(null)}>
         <DialogContent className="bg-card border-border">
