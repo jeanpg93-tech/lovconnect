@@ -119,7 +119,7 @@ export default function GerenteLicencasAcompanhar() {
   const [apiKeys, setApiKeys] = useState<Record<string, { label: string; reseller_id: string }>>({});
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
-  const [showExpired, setShowExpired] = useState<string>("active");
+  const [showExpired, setShowExpired] = useState<string>("all");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [mobileExpandedRow, setMobileExpandedRow] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
