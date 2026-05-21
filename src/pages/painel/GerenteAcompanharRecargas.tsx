@@ -251,6 +251,12 @@ export default function GerenteAcompanharRecargas() {
 
   useEffect(() => { loadAll(); }, []);
 
+  // Atualiza pedidos manuais a cada 4s para refletir ações do cliente (ex.: envio do workspace) em tempo real
+  useEffect(() => {
+    const t = setInterval(() => { loadManualOrders(); }, 4000);
+    return () => clearInterval(t);
+  }, []);
+
   const copy = (s: string) => { navigator.clipboard.writeText(s); toast.success("Copiado"); };
 
   const rangeStart = useMemo(() => {
@@ -648,9 +654,15 @@ export default function GerenteAcompanharRecargas() {
                                   </Button>
                                 )}
                                 {s === "manual_aceito" && (
-                                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_iniciado")}>
-                                    <Wrench className="mr-1 h-3 w-3" /> Iniciado
-                                  </Button>
+                                  m.workspace_name ? (
+                                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_iniciado")}>
+                                      <Wrench className="mr-1 h-3 w-3" /> Iniciado
+                                    </Button>
+                                  ) : (
+                                    <Button size="sm" variant="outline" disabled className="h-7 px-2 text-xs opacity-70 cursor-not-allowed">
+                                      <Clock className="mr-1 h-3 w-3" /> Pendente
+                                    </Button>
+                                  )
                                 )}
                                 {s === "manual_iniciado" && (
                                   <Button size="sm" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_concluido", { notes: null })}>
