@@ -32,6 +32,7 @@ type Ext = {
   file_name: string | null;
   file_size: number | null;
   changelog: string | null;
+  method: "flow" | "lovax" | null;
 };
 
 type Version = {
@@ -44,8 +45,11 @@ type Version = {
   created_at: string;
 };
 
-const DEFAULT_NAME = "PromptFlow 5.0.2";
-const DEFAULT_SLUG = "lovmain-unlimited";
+type Method = "flow" | "lovax";
+const METHOD_DEFAULTS: Record<Method, { name: string; slug: string }> = {
+  flow: { name: "PromptFlow", slug: "extensao-flow" },
+  lovax: { name: "LovaX", slug: "extensao-lovax" },
+};
 const MAX_BYTES = 100 * 1024 * 1024;
 const MAX_LOG_LEN = 5000;
 
@@ -67,6 +71,7 @@ const bumpPatch = (v: string) => {
 };
 
 export default function GerenteUploadExtensao() {
+  const [method, setMethod] = useState<Method>("flow");
   const [ext, setExt] = useState<Ext | null>(null);
   const [loading, setLoading] = useState(true);
   const [versions, setVersions] = useState<Version[]>([]);
@@ -76,23 +81,51 @@ export default function GerenteUploadExtensao() {
   const [versionInput, setVersionInput] = useState("1.0.0");
   const [uploading, setUploading] = useState(false);
 
-  const ensureExtension = async (): Promise<Ext | null> => {
-    const { data: existing, error } = await supabase
+  const ensureExtension = async (m: Method): Promise<Ext | null> => {
+    const { data: byMethod } = await supabase
       .from("extensions")
-      .select("id,name,slug,version,file_path,file_name,file_size,changelog")
+      .select("id,name,slug,version,file_path,file_name,file_size,changelog,method")
+      .eq("method", m)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
-    if (error) {
-      toast.error(error.message);
-      return null;
+    if (byMethod) return byMethod as Ext;
+
+    // Backfill: if there's a legacy extension without method, claim it for "flow".
+    if (m === "flow") {
+      const { data: legacy } = await supabase
+        .from("extensions")
+        .select("id,name,slug,version,file_path,file_name,file_size,changelog,method")
+        .is("method", null)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (legacy) {
+        await supabase.from("extensions").update({ method: "flow" }).eq("id", (legacy as any).id);
+        return { ...(legacy as any), method: "flow" } as Ext;
+      }
     }
-    if (existing) return existing as Ext;
+
+    const def = METHOD_DEFAULTS[m];
+    // Make slug unique if needed
+    let slug = def.slug;
+    let i = 1;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { data: clash } = await supabase
+        .from("extensions")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (!clash) break;
+      i += 1;
+      slug = `${def.slug}-${i}`;
+    }
 
     const { data: created, error: cErr } = await supabase
       .from("extensions")
-      .insert({ name: DEFAULT_NAME, slug: DEFAULT_SLUG })
-      .select("id,name,slug,version,file_path,file_name,file_size,changelog")
+      .insert({ name: def.name, slug, method: m })
+      .select("id,name,slug,version,file_path,file_name,file_size,changelog,method")
       .single();
     if (cErr) {
       toast.error(cErr.message);
@@ -112,18 +145,22 @@ export default function GerenteUploadExtensao() {
 
   const load = async () => {
     setLoading(true);
-    const e = await ensureExtension();
+    const e = await ensureExtension(method);
     if (e) {
       setExt(e);
       setVersionInput(bumpPatch(e.version));
       await loadVersions(e.id);
+    } else {
+      setExt(null);
+      setVersions([]);
     }
     setLoading(false);
   };
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [method]);
 
   const submit = async () => {
     if (!ext) return;
@@ -232,15 +269,18 @@ export default function GerenteUploadExtensao() {
 
           <div className="space-y-1.5">
             <Label>Extensão/Método</Label>
-            <Select defaultValue="promptflow">
+            <Select value={method} onValueChange={(v) => setMethod(v as Method)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o método" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="promptflow">Método - PromptFlow</SelectItem>
+                <SelectItem value="flow">Método - PromptFlow</SelectItem>
                 <SelectItem value="lovax">Método - LovaX</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-[10px] text-muted-foreground">
+              Cada método tem sua própria extensão oficial. A loja entrega a extensão do método escolhido pelo revendedor.
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-[140px,1fr]">
