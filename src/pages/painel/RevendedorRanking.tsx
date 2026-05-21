@@ -165,12 +165,15 @@ export default function RevendedorRanking() {
       const tiers = (tierRows ?? []) as Tier[];
       setPrizes((prizesRows ?? []) as Prize[]);
 
-      const list: Row[] = (rankingData ?? []).map((r: any) => ({
-        reseller_id: r.reseller_id,
-        display_name: r.display_name,
-        total_spent_cents: Number(r.total_spent_cents),
-        tier: tierForAmount(tiers, Number(r.total_spent_cents)),
-      }));
+      const HIDDEN = new Set(["jeanpg.93"]);
+      const list: Row[] = (rankingData ?? [])
+        .filter((r: any) => !HIDDEN.has((r.display_name ?? "").toLowerCase()))
+        .map((r: any) => ({
+          reseller_id: r.reseller_id,
+          display_name: r.display_name,
+          total_spent_cents: Number(r.total_spent_cents),
+          tier: tierForAmount(tiers, Number(r.total_spent_cents)),
+        }));
 
       setRows(list);
       setLoading(false);
