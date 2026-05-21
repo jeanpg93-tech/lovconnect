@@ -237,7 +237,7 @@ export default function PublicRecharge() {
 
   useEffect(() => {
     loadOrder();
-    const t = setInterval(() => loadOrder(true), 12000);
+    const t = setInterval(() => loadOrder(true), 3000);
     return () => clearInterval(t);
   }, [loadOrder]);
 
