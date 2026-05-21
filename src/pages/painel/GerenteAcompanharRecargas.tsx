@@ -201,12 +201,13 @@ export default function GerenteAcompanharRecargas() {
 
   const setManualStatus = async (
     m: ManualOrder,
-    status: "manual_pendente" | "manual_configurando" | "manual_concluido" | "manual_sem_sucesso",
+    status: "manual_pendente" | "manual_aceito" | "manual_iniciado" | "manual_concluido" | "manual_sem_sucesso",
     extra?: { notes?: string | null },
   ) => {
     const inviteMap: Record<typeof status, string> = {
       manual_pendente: "pending",
-      manual_configurando: "configuring",
+      manual_aceito: "accepted",
+      manual_iniciado: "started",
       manual_concluido: "delivered",
       manual_sem_sucesso: "failed",
     };
@@ -563,7 +564,8 @@ export default function GerenteAcompanharRecargas() {
                     const s = (m.status || "").toLowerCase();
                     const STATUS_MAP: Record<string, { label: string; cls: string; Icon: any }> = {
                       manual_pendente: { label: "Pendente", cls: "bg-amber-500/15 text-amber-500 border-amber-500/40", Icon: Clock },
-                      manual_configurando: { label: "Configurando", cls: "bg-cyan-500/15 text-cyan-400 border-cyan-500/40", Icon: Wrench },
+                      manual_aceito: { label: "Aceito/config", cls: "bg-blue-500/15 text-blue-400 border-blue-500/40", Icon: Hand },
+                      manual_iniciado: { label: "Config/start", cls: "bg-cyan-500/15 text-cyan-400 border-cyan-500/40", Icon: Wrench },
                       manual_concluido: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/40", Icon: CheckCircle2 },
                       manual_entregue: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/40", Icon: CheckCircle2 },
                       manual_sem_sucesso: { label: "Sem sucesso", cls: "bg-red-500/15 text-red-500 border-red-500/40", Icon: AlertTriangle },
@@ -620,14 +622,21 @@ export default function GerenteAcompanharRecargas() {
                           <div className="flex flex-wrap items-center justify-end gap-1">
                             {!isDone && !isFail && (
                               <>
-                                {s !== "manual_configurando" && (
-                                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_configurando")}>
-                                    <Wrench className="mr-1 h-3 w-3" /> Configurar
+                                {s === "manual_pendente" && (
+                                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_aceito")}>
+                                    <Hand className="mr-1 h-3 w-3" /> Aceitar
                                   </Button>
                                 )}
-                                <Button size="sm" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_concluido", { notes: null })}>
-                                  <CheckCircle2 className="mr-1 h-3 w-3" /> Concluído
-                                </Button>
+                                {s === "manual_aceito" && (
+                                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_iniciado")}>
+                                    <Wrench className="mr-1 h-3 w-3" /> Iniciado
+                                  </Button>
+                                )}
+                                {s === "manual_iniciado" && (
+                                  <Button size="sm" className="h-7 px-2 text-xs" onClick={() => setManualStatus(m, "manual_concluido", { notes: null })}>
+                                    <CheckCircle2 className="mr-1 h-3 w-3" /> Concluído
+                                  </Button>
+                                )}
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button size="sm" variant="destructive" className="h-7 px-2 text-xs">

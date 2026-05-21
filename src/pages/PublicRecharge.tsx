@@ -327,13 +327,15 @@ export default function PublicRecharge() {
   // === Modo MANUAL: pedido tratado pela equipe da plataforma ===
   if (order.manual) {
     const mStatus = status;
-    const isManualDone = mStatus === "manual_entregue" || mStatus === "sucesso" || mStatus === "entregue";
-    const isManualProcessing = mStatus === "manual_confirmado" || mStatus === "manual_processando" || mStatus === "processando";
-    const isManualFailed = mStatus === "falha" || mStatus === "cancelado" || mStatus === "reembolsado";
+    const isManualDone = mStatus === "manual_concluido" || mStatus === "manual_entregue" || mStatus === "sucesso" || mStatus === "entregue";
+    const isManualIniciado = mStatus === "manual_iniciado" || mStatus === "manual_processando" || mStatus === "processando";
+    const isManualAceito = mStatus === "manual_aceito" || mStatus === "manual_confirmado";
+    const isManualFailed = mStatus === "manual_sem_sucesso" || mStatus === "falha" || mStatus === "cancelado" || mStatus === "reembolsado";
+    const isManualPendente = !isManualAceito && !isManualIniciado && !isManualDone && !isManualFailed;
     const manualStages = [
-      { key: "recebido", label: "Pedido recebido", desc: "Registramos sua solicitação", done: true, active: !isManualProcessing && !isManualDone && !isManualFailed },
-      { key: "aceito", label: "Pedido aceito — Aguardando configuração", desc: "Confirmamos seu pedido e estamos preparando a configuração", done: isManualProcessing || isManualDone, active: !isManualProcessing && !isManualDone && !isManualFailed ? false : false },
-      { key: "configurado", label: "Configurado — Iniciando entrega", desc: "Tudo pronto, sua recarga está a caminho do workspace", done: isManualDone, active: isManualProcessing && !isManualDone },
+      { key: "recebido", label: "Pedido recebido", desc: "Registramos sua solicitação", done: true, active: isManualPendente },
+      { key: "aceito", label: "Pedido aceito — Aguardando configuração", desc: "Confirmamos seu pedido e estamos preparando a configuração", done: isManualAceito || isManualIniciado || isManualDone, active: isManualAceito },
+      { key: "configurado", label: "Configurado — Iniciando entrega", desc: "Tudo pronto, sua recarga está a caminho do workspace", done: isManualIniciado || isManualDone, active: isManualIniciado },
       { key: "entregue", label: "Entrega finalizada — Recarga creditada", desc: "Créditos disponíveis no seu workspace", done: isManualDone, active: false },
     ];
 
