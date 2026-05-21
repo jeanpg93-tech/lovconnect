@@ -26,6 +26,35 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type Plan = { license_type: string; label: string; price_cents: number; cost_cents: number; min_price_cents?: number; is_active: boolean };
+type MethodId = "flow" | "lovax";
+type PackId = "1d" | "7d" | "30d" | "90d" | "365d" | "lifetime";
+type Pack = { id: PackId; label: string; desc: string };
+type LicMethodPlan = {
+  method: MethodId;
+  pack: Pack;
+  cost_cents: number;     // preço do nível (definido pelo gerente)
+  sale_cents: number | null; // preço de venda do revendedor (override)
+};
+
+const METHOD_LABEL: Record<MethodId, string> = { flow: "Flow", lovax: "Lovax" };
+
+const BASE_PACKS: Pack[] = [
+  { id: "1d", label: "1 dia", desc: "Acesso por 24h" },
+  { id: "7d", label: "7 dias", desc: "Acesso semanal" },
+  { id: "30d", label: "30 dias", desc: "Acesso mensal" },
+  { id: "lifetime", label: "Vitalícia", desc: "Acesso permanente" },
+];
+const PACKS_BY_METHOD: Record<MethodId, Pack[]> = {
+  flow: BASE_PACKS,
+  lovax: [
+    { id: "1d", label: "1 dia", desc: "Acesso por 24h" },
+    { id: "7d", label: "7 dias", desc: "Acesso semanal" },
+    { id: "30d", label: "30 dias", desc: "Acesso mensal" },
+    { id: "90d", label: "90 dias", desc: "Acesso trimestral" },
+    { id: "365d", label: "365 dias", desc: "Acesso anual" },
+    { id: "lifetime", label: "Vitalícia", desc: "Acesso permanente" },
+  ],
+};
 type Tier = { id: string; discount_percent: number; name: string; color: string; min_spent_cents: number; test_keys_per_day?: number } | null;
 type TierRow = { id: string; name: string; color: string; min_spent_cents: number; discount_percent: number; sort_order: number; is_active: boolean };
 type TierState = { total_spent_cents: number } | null;
