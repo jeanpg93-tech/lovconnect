@@ -214,6 +214,7 @@ export default function GerenteAcompanharRecargas() {
         price_cents: r.price_cents,
         status: r.status ?? "manual_pendente",
         created_at: r.created_at,
+        updated_at: r.updated_at,
         tipo_entrega: r.tipo_entrega,
         workspace_name: meta?.workspace_name ?? null,
         invite_status: meta?.invite_status ?? null,
