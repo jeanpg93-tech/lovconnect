@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
