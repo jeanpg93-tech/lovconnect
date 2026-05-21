@@ -675,6 +675,7 @@ export type Database = {
           file_size: number | null
           id: string
           is_active: boolean
+          method: string | null
           name: string
           price_cents: number
           slug: string
@@ -690,6 +691,7 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_active?: boolean
+          method?: string | null
           name: string
           price_cents?: number
           slug: string
@@ -705,6 +707,7 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_active?: boolean
+          method?: string | null
           name?: string
           price_cents?: number
           slug?: string
