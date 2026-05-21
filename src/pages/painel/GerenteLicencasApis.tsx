@@ -154,11 +154,6 @@ export default function GerenteLicencasApis() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex flex-wrap gap-2">
-                  {!isActive && (
-                    <Button size="sm" variant="outline" onClick={() => setAsActive(m.id)}>
-                      Tornar ativo
-                    </Button>
-                  )}
                   <Button
                     size="sm"
                     variant={isOpen ? "default" : "secondary"}
