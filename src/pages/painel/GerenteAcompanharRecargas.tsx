@@ -201,12 +201,13 @@ export default function GerenteAcompanharRecargas() {
 
   const setManualStatus = async (
     m: ManualOrder,
-    status: "manual_pendente" | "manual_configurando" | "manual_concluido" | "manual_sem_sucesso",
+    status: "manual_pendente" | "manual_aceito" | "manual_iniciado" | "manual_concluido" | "manual_sem_sucesso",
     extra?: { notes?: string | null },
   ) => {
     const inviteMap: Record<typeof status, string> = {
       manual_pendente: "pending",
-      manual_configurando: "configuring",
+      manual_aceito: "accepted",
+      manual_iniciado: "started",
       manual_concluido: "delivered",
       manual_sem_sucesso: "failed",
     };
