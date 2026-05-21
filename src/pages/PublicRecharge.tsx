@@ -191,6 +191,7 @@ export default function PublicRecharge() {
   const [workspaceSaved, setWorkspaceSaved] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState(false);
   const [confirmWorkspaceOpen, setConfirmWorkspaceOpen] = useState(false);
+  const [iniciadoProgress, setIniciadoProgress] = useState(8);
 
   // Carrega aviso de lentidão do provedor
   useEffect(() => {
