@@ -410,7 +410,7 @@ export default function RevendedorRecargas() {
                     { icon: Activity, title: "Acompanhamento em tempo real", desc: "Status atualizado a cada passo" },
                   ]).map((f, idx) => (
                     <div key={f.title} className={cn(
-                      "rounded-xl border border-border bg-background/40 p-2.5 sm:p-3 backdrop-blur-sm",
+                      "rounded-xl border border-border bg-background/40 p-2.5 sm:p-3 backdrop-blur-sm flex flex-col items-center text-center",
                       idx === 2 && "col-span-2 sm:col-span-1"
                     )}>
                       <f.icon className={cn("h-4 w-4 mb-1.5 sm:mb-2", activeMode === "automatico" ? "text-primary" : "text-amber-500")} />
