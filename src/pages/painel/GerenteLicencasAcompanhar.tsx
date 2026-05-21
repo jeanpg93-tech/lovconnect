@@ -118,6 +118,9 @@ export default function GerenteLicencasAcompanhar() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [resellers, setResellers] = useState<Record<string, string>>({});
   const [apiKeys, setApiKeys] = useState<Record<string, { label: string; reseller_id: string }>>({});
+  const [refundInfo, setRefundInfo] = useState<Record<string, { order_id: string; price_cents: number; refunded: boolean; reseller_id: string | null }>>({});
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundData, setRefundData] = useState<RefundSaleData | null>(null);
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [showExpired, setShowExpired] = useState<string>("all");
