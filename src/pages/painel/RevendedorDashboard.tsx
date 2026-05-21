@@ -116,6 +116,9 @@ export default function RevendedorDashboard() {
   const [avisos, setAvisos] = useState<any[]>([]);
   const [extMap, setExtMap] = useState<Record<string, string>>({});
   const [clientMap, setClientMap] = useState<Record<string, string>>({});
+  const [activeLicensesList, setActiveLicensesList] = useState<
+    { id: string; client_id: string; extension_id: string; expires_at: string | null; created_at: string }[]
+  >([]);
 
   const [integrations, setIntegrations] = useState<{
     misticpay_enabled: boolean;
@@ -221,9 +224,26 @@ export default function RevendedorDashboard() {
         evolution_status: integRes.data?.connection_status ?? "disconnected",
       });
 
+      // Lista detalhada de licenças ativas
+      const { data: activeLicData } = await supabase
+        .from("client_extensions")
+        .select("id,client_id,extension_id,expires_at,created_at")
+        .eq("reseller_id", r.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      const activeList = (activeLicData ?? []) as any[];
+      setActiveLicensesList(activeList);
+
       // Mapeia ids -> nome para a lista de pedidos
-      const extIds = Array.from(new Set(ords.map((o: any) => o.extension_id).filter(Boolean))) as string[];
-      const cliIds = Array.from(new Set(ords.map((o: any) => o.client_id).filter(Boolean))) as string[];
+      const extIds = Array.from(new Set([
+        ...ords.map((o: any) => o.extension_id).filter(Boolean),
+        ...activeList.map((l: any) => l.extension_id).filter(Boolean),
+      ])) as string[];
+      const cliIds = Array.from(new Set([
+        ...ords.map((o: any) => o.client_id).filter(Boolean),
+        ...activeList.map((l: any) => l.client_id).filter(Boolean),
+      ])) as string[];
       const [extData, cliData] = await Promise.all([
         extIds.length
           ? supabase.from("extensions").select("id,name").in("id", extIds)
