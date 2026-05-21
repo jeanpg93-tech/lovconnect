@@ -206,8 +206,7 @@ export default function PublicStorefront() {
       const { data: rep } = await supabase
         .from("reseller_extension_prices")
         .select("license_type, price_cents, is_active, extension_id")
-        .eq("reseller_id", r.id)
-        .is("extension_id", null);
+        .eq("reseller_id", r.id);
 
       const list = ((rep ?? []) as any[])
         .filter((row) => row.is_active && row.price_cents > 0)
