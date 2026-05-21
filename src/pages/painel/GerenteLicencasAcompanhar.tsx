@@ -39,6 +39,7 @@ const LABEL: Record<string, string> = {
 };
 
 type GenSource = "manual" | "storefront" | "api" | "provider";
+type DeliveryMethod = "flow" | "lovax";
 
 type OrderRow = {
   id: string;
@@ -59,6 +60,7 @@ type OrderRow = {
   display_name?: string;
   creator_email?: string | null;
   source?: GenSource;
+  method?: DeliveryMethod;
   full_data?: any;
 };
 
@@ -125,12 +127,14 @@ export default function GerenteLicencasAcompanhar() {
     open: boolean;
     type: "revoke" | "delete" | "reset";
     key: string;
+    method: DeliveryMethod;
     title: string;
     description: string;
   }>({
     open: false,
     type: "revoke",
     key: "",
+    method: "flow",
     title: "",
     description: "",
   });
@@ -146,12 +150,14 @@ export default function GerenteLicencasAcompanhar() {
     try {
       const [
         { data: providerData, error: providerError },
+        { data: lovaxData, error: lovaxError },
         { data: resellersData },
         { data: apiKeysData },
         { data: dbOrdersData },
         { data: storefrontData },
       ] = await Promise.all([
         supabase.functions.invoke("provider-api?action=usage-all", { method: "GET" }),
+        supabase.functions.invoke("lovax-api?action=usage&limit=500", { method: "GET" }),
         supabase.from("resellers").select("id, display_name, user_id"),
         supabase.from("reseller_api_keys").select("id, label, reseller_id"),
         supabase.from("orders")
@@ -162,8 +168,8 @@ export default function GerenteLicencasAcompanhar() {
           .not("license_key", "is", null),
       ]);
 
-      if (providerError || providerData?.error) {
-        toast.error(providerError?.message || providerData?.error || "Erro ao carregar licenças do provedor");
+      if ((providerError || providerData?.error) && (lovaxError || lovaxData?.error)) {
+        toast.error(providerError?.message || providerData?.error || lovaxError?.message || lovaxData?.error || "Erro ao carregar licenças");
         setLoading(false);
         return;
       }
@@ -243,11 +249,63 @@ export default function GerenteLicencasAcompanhar() {
           price_cents: null,
           creator_email: email,
           source,
+          method: "flow" as DeliveryMethod,
           full_data: u,
         };
       });
 
-      setOrders(list);
+      const lovaxUsage = (lovaxData?.usage ?? []) as any[];
+      const lovaxList: OrderRow[] = lovaxUsage.map((u: any) => {
+        const local = ordersMap[u.license_key];
+        const sf = storefrontMap[u.license_key];
+        const reseller_id = sf?.reseller_id || local?.reseller_id || null;
+        const api_key_id = local?.api_key_id || null;
+        let source: GenSource = "provider";
+        if (api_key_id) source = "api";
+        else if (sf) source = "storefront";
+        else if (local) source = "manual";
+        const userId = reseller_id ? resellerToUser[reseller_id] : null;
+        const email = (userId && emailMap[userId]) || u.creator_email || u.email || null;
+
+        // Derive license_type from days when possible
+        const days = typeof u.days === "number" ? u.days
+          : (u.expires_at && u.created_at)
+            ? Math.round((new Date(u.expires_at).getTime() - new Date(u.created_at).getTime()) / 86400000)
+            : null;
+        const lifetime = days !== null && days >= 3650;
+        let license_type = u.license_type || "active";
+        if (u.status === "trial" || license_type === "trial") license_type = "trial";
+        else if (lifetime) license_type = "lifetime";
+        else if (days === 1) license_type = "pro_1d";
+        else if (days === 7) license_type = "pro_7d";
+        else if (days === 15) license_type = "pro_15d";
+        else if (days === 30) license_type = "pro_30d";
+
+        return {
+          id: `lovax:${u.license_key}`,
+          license_id: u.id,
+          license_key: u.license_key,
+          display_name: u.display_name || u.customer_name,
+          license_type,
+          status: u.status,
+          created_at: u.created_at,
+          expires_at: u.expires_at ?? null,
+          lifetime,
+          days,
+          is_test: license_type === "trial",
+          reseller_id,
+          api_key_id,
+          customer_id: null,
+          client_id: null,
+          price_cents: null,
+          creator_email: email,
+          source,
+          method: "lovax" as DeliveryMethod,
+          full_data: u,
+        };
+      });
+
+      setOrders([...list, ...lovaxList]);
     } catch (e: any) {
       toast.error(e.message || "Erro de conexão");
     } finally {
@@ -259,10 +317,11 @@ export default function GerenteLicencasAcompanhar() {
     load();
   }, []);
 
-  const handleRevoke = async (key: string) => {
+  const handleRevoke = async (key: string, method: DeliveryMethod = "flow") => {
     setActionLoading(key);
     try {
-      const { data: res, error } = await supabase.functions.invoke("provider-api?action=revoke-license", {
+      const fn = method === "lovax" ? "lovax-api?action=delete-license" : "provider-api?action=revoke-license";
+      const { data: res, error } = await supabase.functions.invoke(fn, {
         method: "POST",
         body: { license_key: key }
       });
@@ -276,10 +335,11 @@ export default function GerenteLicencasAcompanhar() {
     }
   };
 
-  const handleDelete = async (key: string) => {
+  const handleDelete = async (key: string, method: DeliveryMethod = "flow") => {
     setActionLoading(key);
     try {
-      const { data: res, error } = await supabase.functions.invoke("provider-api?action=delete-license", {
+      const fn = method === "lovax" ? "lovax-api?action=delete-license" : "provider-api?action=delete-license";
+      const { data: res, error } = await supabase.functions.invoke(fn, {
         method: "POST",
         body: { license_key: key }
       });
@@ -293,10 +353,11 @@ export default function GerenteLicencasAcompanhar() {
     }
   };
 
-  const handleResetHWID = async (key: string) => {
+  const handleResetHWID = async (key: string, method: DeliveryMethod = "flow") => {
     setActionLoading(key);
     try {
-      const { data: res, error } = await supabase.functions.invoke("provider-api?action=reset-hwid", {
+      const fn = method === "lovax" ? "lovax-api?action=reset-hwid" : "provider-api?action=reset-hwid";
+      const { data: res, error } = await supabase.functions.invoke(fn, {
         method: "POST",
         body: { license_key: key }
       });
@@ -310,7 +371,7 @@ export default function GerenteLicencasAcompanhar() {
     }
   };
 
-  const openConfirm = (type: "revoke" | "delete" | "reset", key: string) => {
+  const openConfirm = (type: "revoke" | "delete" | "reset", key: string, method: DeliveryMethod = "flow") => {
     const configs = {
       revoke: {
         title: "Revogar Licença",
@@ -329,16 +390,17 @@ export default function GerenteLicencasAcompanhar() {
       open: true,
       type,
       key,
+      method,
       ...configs[type],
     });
   };
 
   const executeAction = () => {
-    const { type, key } = confirmDialog;
+    const { type, key, method } = confirmDialog;
     setConfirmDialog((prev) => ({ ...prev, open: false }));
-    if (type === "revoke") handleRevoke(key);
-    else if (type === "delete") handleDelete(key);
-    else if (type === "reset") handleResetHWID(key);
+    if (type === "revoke") handleRevoke(key, method);
+    else if (type === "delete") handleDelete(key, method);
+    else if (type === "reset") handleResetHWID(key, method);
   };
 
   const getGenerationType = (o: OrderRow) => {
@@ -357,18 +419,7 @@ export default function GerenteLicencasAcompanhar() {
   // Detecta o método de entrega usado pra gerar a licença.
   // Procura marcadores explícitos no payload do provedor; fallback "MétodoFlow".
   const getDeliveryMethod = (o: OrderRow) => {
-    const raw = JSON.stringify(o.full_data ?? {}).toLowerCase();
-    const flag =
-      (o.full_data?.method ||
-        o.full_data?.delivery_method ||
-        o.full_data?.source_method ||
-        "")?.toString().toLowerCase();
-    const isLovax =
-      flag.includes("lovax") ||
-      raw.includes("\"lovax\"") ||
-      raw.includes("tscommunity") ||
-      raw.includes("reseller-api");
-    return isLovax
+    return o.method === "lovax"
       ? { id: "lovax" as const, label: "MétodoLovax", Icon: Sparkles, color: "text-fuchsia-300 bg-fuchsia-500/10 border-fuchsia-500/20" }
       : { id: "flow" as const, label: "MétodoFlow", Icon: Zap, color: "text-primary bg-primary/10 border-primary/20" };
   };
@@ -582,7 +633,7 @@ export default function GerenteLicencasAcompanhar() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-amber-500 hover:bg-amber-500/10 hover:text-amber-500 transition-colors disabled:opacity-30"
-                                onClick={() => openConfirm("reset", o.license_key)}
+                                onClick={() => openConfirm("reset", o.license_key, o.method)}
                                 disabled={actionLoading === o.license_key}
                                 title="Resetar Dispositivo (HWID)"
                               >
@@ -592,7 +643,7 @@ export default function GerenteLicencasAcompanhar() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-30"
-                                onClick={() => openConfirm("revoke", o.license_key)}
+                                onClick={() => openConfirm("revoke", o.license_key, o.method)}
                                 disabled={!isActive || actionLoading === o.license_key}
                                 title="Revogar Licença"
                               >
@@ -602,7 +653,7 @@ export default function GerenteLicencasAcompanhar() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors disabled:opacity-30"
-                                onClick={() => openConfirm("delete", o.license_key)}
+                                onClick={() => openConfirm("delete", o.license_key, o.method)}
                                 disabled={isActive || actionLoading === o.license_key}
                                 title="Excluir Licença"
                               >
@@ -656,8 +707,8 @@ export default function GerenteLicencasAcompanhar() {
                                 <div className="space-y-4">
                                   <h4 className="text-[10px] font-mono uppercase tracking-widest text-primary flex items-center gap-2"><ArrowUpRight className="h-3 w-3" /> Gestão</h4>
                                   <div className="grid gap-2">
-                                    <Button variant="outline" size="sm" className="w-full text-xs text-destructive border-destructive/20" onClick={() => openConfirm("revoke", o.license_key)} disabled={!isActive}><XCircle className="mr-2 h-3.5 w-3.5" /> Revogar</Button>
-                                    <Button variant="outline" size="sm" className="w-full text-xs border-white/10" onClick={() => openConfirm("delete", o.license_key)} disabled={isActive}><Trash2 className="mr-2 h-3.5 w-3.5" /> Excluir</Button>
+                                    <Button variant="outline" size="sm" className="w-full text-xs text-destructive border-destructive/20" onClick={() => openConfirm("revoke", o.license_key, o.method)} disabled={!isActive}><XCircle className="mr-2 h-3.5 w-3.5" /> Revogar</Button>
+                                    <Button variant="outline" size="sm" className="w-full text-xs border-white/10" onClick={() => openConfirm("delete", o.license_key, o.method)} disabled={isActive}><Trash2 className="mr-2 h-3.5 w-3.5" /> Excluir</Button>
                                   </div>
                                 </div>
                               </div>
@@ -741,7 +792,7 @@ export default function GerenteLicencasAcompanhar() {
                           variant="ghost"
                           size="sm"
                           className="h-9 flex-1 bg-white/5 text-amber-500 hover:bg-amber-500/10 disabled:opacity-30"
-                          onClick={() => openConfirm("reset", o.license_key)}
+                          onClick={() => openConfirm("reset", o.license_key, o.method)}
                           disabled={actionLoading === o.license_key}
                           title="Reset"
                         >
@@ -751,7 +802,7 @@ export default function GerenteLicencasAcompanhar() {
                           variant="ghost"
                           size="sm"
                           className="h-9 flex-1 bg-white/5 text-destructive hover:bg-destructive/10 disabled:opacity-30"
-                          onClick={() => openConfirm("revoke", o.license_key)}
+                          onClick={() => openConfirm("revoke", o.license_key, o.method)}
                           disabled={!isActive || actionLoading === o.license_key}
                           title="Revogar"
                         >
@@ -761,7 +812,7 @@ export default function GerenteLicencasAcompanhar() {
                           variant="ghost"
                           size="sm"
                           className="h-9 flex-1 bg-white/5 text-muted-foreground hover:bg-white/10 disabled:opacity-30"
-                          onClick={() => openConfirm("delete", o.license_key)}
+                          onClick={() => openConfirm("delete", o.license_key, o.method)}
                           disabled={isActive || actionLoading === o.license_key}
                           title="Excluir"
                         >
