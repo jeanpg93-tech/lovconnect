@@ -727,13 +727,6 @@ export default function RevendedorDashboard() {
                 ok={integrations.misticpay_enabled} 
                 href="/painel/revendedor/integracoes/misticpay" 
               />
-              <IntegrationRow 
-                icon={MessageSquare} 
-                title="WhatsApp" 
-                subtitle="Evolution API" 
-                ok={integrations.evolution_status === "connected"} 
-                href="/painel/revendedor/integracoes/evolution" 
-              />
             </div>
           </div>
 
