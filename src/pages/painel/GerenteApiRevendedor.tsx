@@ -491,6 +491,7 @@ curl -X POST "${BASE_URL}/pedidos/UUID_DO_PEDIDO/reembolso" \\
           do seu backend. A chave é mostrada apenas uma vez — em caso de comprometimento, revogue e crie outra.
         </div>
       </div>
+      </div>
     </PageContainer>
   );
 }
