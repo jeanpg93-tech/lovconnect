@@ -95,17 +95,17 @@ export default function RevendedorPedidos() {
   const [testsLast24h, setTestsLast24h] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
-  // Extensões + overrides de preço
-  const [extensions, setExtensions] = useState<{ id: string; name: string }[]>([]);
-  const [selectedExtId, setSelectedExtId] = useState<string>("");
-  // override por nível Partner: extId|license_type -> cents
-  const [partnerOverrides, setPartnerOverrides] = useState<Record<string, number>>({});
-  // preço por revendedor (preço base custom): extId|license_type -> cents
-  const [resellerPrices, setResellerPrices] = useState<Record<string, number>>({});
-  // Preços por nível e extensão: tierId|extId|license_type -> cents
-  const [tierExtensionPrices, setTierExtensionPrices] = useState<Record<string, number>>({});
+  // Métodos / pacotes (modelo licencas.valores) — preços por nível setados pelo gerente
+  // valores: method -> pack_id -> tier_id -> BRL
+  const [licValores, setLicValores] = useState<Record<string, Record<string, Record<string, number>>>>({});
+  // override de venda do revendedor: method|pack_id -> cents
+  const [resellerSalePrices, setResellerSalePrices] = useState<Record<string, number>>({});
+  const [availableMethods, setAvailableMethods] = useState<MethodId[]>([]);
+  const [selectedMethod, setSelectedMethod] = useState<MethodId>("flow");
 
   const [open, setOpen] = useState<Plan | null>(null);
+  // contexto da compra atual quando é via método/pack
+  const [openMethodCtx, setOpenMethodCtx] = useState<{ method: MethodId; pack: Pack; cost_cents: number } | null>(null);
   const [isTest, setIsTest] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [clientId, setClientId] = useState<string>("none");
