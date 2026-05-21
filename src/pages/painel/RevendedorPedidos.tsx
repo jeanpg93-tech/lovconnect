@@ -962,6 +962,29 @@ export default function RevendedorPedidos() {
                           <span>·</span>
                           <span>{fmtDate(o.created_at)}</span>
                         </div>
+                        {(o.customer?.display_name || o.customer?.whatsapp) && (
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] pt-0.5">
+                            {o.customer?.display_name && (
+                              <span className="font-semibold text-foreground/90">
+                                👤 {o.customer.display_name}
+                              </span>
+                            )}
+                            {o.customer?.whatsapp && (
+                              <>
+                                <span className="text-muted-foreground/60">·</span>
+                                <a
+                                  href={`https://wa.me/${o.customer.whatsapp.replace(/\D+/g, "")}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="font-mono text-emerald-500 hover:underline"
+                                  title="Abrir no WhatsApp"
+                                >
+                                  {fmtWa(o.customer.whatsapp)}
+                                </a>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="shrink-0">{statusBadge(o.status)}</div>
                       {!o.is_test && (o.status === "failed" || o.status === "revoked") && (
