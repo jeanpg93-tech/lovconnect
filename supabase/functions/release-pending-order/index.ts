@@ -1,0 +1,214 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+
+const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+
+function mapTypeToProviderBody(type: string): Record<string, unknown> {
+  switch (type) {
+    case "1d": return { days: 1 };
+    case "7d": return { days: 7 };
+    case "30d": return { days: 30 };
+    case "90d": return { days: 90 };
+    case "365d": return { days: 365 };
+    case "pro_1d": return { days: 1 };
+    case "pro_7d": return { days: 7 };
+    case "pro_15d": return { days: 15 };
+    case "pro_30d": return { days: 30 };
+    case "lifetime": return { lifetime: true };
+    default: return { days: 30 };
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  try {
+    const body = await req.json().catch(() => ({}));
+    const orderId = String(body?.order_id ?? "");
+    if (!orderId) return json({ error: "missing order_id" }, 400);
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const { data: order } = await admin
+      .from("storefront_orders")
+      .select("*")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (!order) return json({ error: "order not found" }, 404);
+    if (order.status === "completed") return json({ ok: true, already: true });
+    if (order.status !== "paid") return json({ ok: false, status: order.status }, 200);
+
+    // Créditos: já está pago, só marca completed e registra orders
+    if (order.product_type === "credits" || order.license_type === "credits") {
+      await admin.from("storefront_orders").update({ status: "completed" }).eq("id", order.id);
+      try {
+        await admin.from("orders").insert({
+          reseller_id: order.reseller_id,
+          client_id: null,
+          customer_id: null,
+          extension_id: null,
+          license_type: "credits",
+          product_type: "credits",
+          credit_amount: order.credit_amount,
+          price_cents: Number(order.cost_cents ?? 0),
+          status: "completed",
+          is_test: false,
+          notes: `Venda da Loja • ${order.buyer_name} • ${order.credit_amount ?? 0} créditos (liberado após recarga)`,
+        });
+      } catch (e) { console.warn("orders insert (release credits) failed", e); }
+      return json({ ok: true, kind: "credits_released" });
+    }
+
+    // Licença: chama provedor
+    const { data: storeCfg } = await admin
+      .from("reseller_storefronts")
+      .select("extension_method")
+      .eq("reseller_id", order.reseller_id)
+      .maybeSingle();
+    const method: "flow" | "lovax" =
+      (storeCfg as any)?.extension_method === "lovax" ? "lovax" : "flow";
+
+    const cost_cents = Number(order.cost_cents ?? 0);
+    let providerData: any = null;
+    let license_key: string | null = null;
+
+    try {
+      if (method === "lovax") {
+        const { data: settings } = await admin
+          .from("app_settings")
+          .select("key,value")
+          .in("key", ["lovax_api_token", "lovax_base_url"]);
+        const tk = settings?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined;
+        const bs = (settings?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined)
+          || "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
+        if (!tk) {
+          await failAndRefund(admin, order, cost_cents, "Lovax não configurado");
+          return json({ ok: false, error: "lovax not configured" }, 500);
+        }
+        const mapped = mapTypeToProviderBody(order.license_type);
+        const r = await fetch(bs, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tk}`, "x-api-key": tk, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "generate_license",
+            payload: {
+              customer_name: order.buyer_name,
+              days: (mapped as any).days ?? 30,
+              hours: 0,
+              minutes: 0,
+              max_devices: 1,
+            },
+          }),
+        });
+        const txt = await r.text();
+        try { providerData = JSON.parse(txt); } catch { providerData = { raw: txt }; }
+        if (!r.ok || !providerData?.success) {
+          await failAndRefund(admin, order, cost_cents, providerData?.error ?? `Lovax retornou ${r.status}`, providerData);
+          return json({ ok: false, error: "lovax failed" }, 502);
+        }
+        license_key = providerData?.license?.license_key ?? providerData?.license_key ?? providerData?.key ?? null;
+      } else {
+        const { data: cfg } = await admin.from("provider_settings")
+          .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+        const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
+        const base = cfg?.base_url ?? DEFAULT_PROVIDER_BASE;
+        if (!apiKey) {
+          await failAndRefund(admin, order, cost_cents, "Flow não configurado");
+          return json({ ok: false, error: "no provider api key" }, 500);
+        }
+        const r = await fetch(`${base}/generate-license`, {
+          method: "POST",
+          headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...mapTypeToProviderBody(order.license_type),
+            display_name: order.buyer_name,
+          }),
+        });
+        const txt = await r.text();
+        try { providerData = JSON.parse(txt); } catch { providerData = { raw: txt }; }
+        if (!r.ok) {
+          await failAndRefund(admin, order, cost_cents, `Flow retornou ${r.status}`, providerData);
+          return json({ ok: false, error: "provider failed" }, 502);
+        }
+        license_key = providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
+      }
+    } catch (e) {
+      await failAndRefund(admin, order, cost_cents, e instanceof Error ? e.message : "erro provedor");
+      return json({ ok: false, error: "provider error" }, 502);
+    }
+
+    await admin.from("storefront_orders").update({
+      status: "completed",
+      license_key,
+    }).eq("id", order.id);
+
+    let customer_id: string | null = null;
+    try {
+      const { data: existing } = await admin
+        .from("reseller_customers")
+        .select("id")
+        .eq("reseller_id", order.reseller_id)
+        .eq("whatsapp", order.buyer_whatsapp)
+        .maybeSingle();
+      if (existing) {
+        customer_id = existing.id;
+      } else {
+        const { data: created } = await admin.from("reseller_customers").insert({
+          reseller_id: order.reseller_id,
+          whatsapp: order.buyer_whatsapp,
+          display_name: order.buyer_name,
+        }).select("id").single();
+        customer_id = created?.id ?? null;
+      }
+    } catch (e) { console.warn("customer upsert failed", e); }
+
+    try {
+      await admin.from("orders").insert({
+        reseller_id: order.reseller_id,
+        client_id: null,
+        customer_id,
+        extension_id: order.extension_id,
+        license_type: order.license_type,
+        price_cents: cost_cents,
+        status: "completed",
+        is_test: false,
+        license_key,
+        provider_response: providerData,
+        notes: `Venda da Loja • ${order.buyer_name} • Recebido R$ ${(Number(order.price_cents) / 100).toFixed(2)} (liberado após recarga)`,
+      });
+    } catch (e) { console.warn("orders insert failed", e); }
+
+    return json({ ok: true, kind: "license_released" });
+  } catch (e) {
+    console.error("release-pending-order error", e);
+    return json({ error: String((e as any)?.message ?? e) }, 500);
+  }
+});
+
+async function failAndRefund(admin: any, order: any, cost_cents: number, msg: string, raw?: any) {
+  await admin.from("storefront_orders").update({
+    status: "failed",
+    error_message: msg,
+    raw_response: raw,
+  }).eq("id", order.id);
+  if (cost_cents > 0) {
+    await admin.rpc("credit_reseller_balance", {
+      _reseller_id: order.reseller_id,
+      _amount_cents: cost_cents,
+      _kind: "order_refund",
+      _description: `Estorno (release): ${order.id}`,
+      _reference_id: order.id,
+    });
+  }
+}
+
+function json(b: unknown, status = 200) {
+  return new Response(JSON.stringify(b), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
