@@ -253,6 +253,8 @@ export default function RevendedorRecargas() {
       setPlansLoading(true);
       const { data: r } = await supabase.from("resellers").select("id").eq("user_id", user.id).maybeSingle();
       if (!r) { setPlansLoading(false); return; }
+      setResellerId(r.id);
+      loadRecentRecharges(r.id);
 
       const [{ data: b }, { data: pl }, { data: rp }, costsResponse] = await Promise.all([
         supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
