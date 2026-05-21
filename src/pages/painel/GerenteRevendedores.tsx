@@ -368,6 +368,7 @@ export default function GerenteRevendedores() {
           <div className="p-10 text-center text-sm text-muted-foreground">Nenhum revendedor cadastrado.</div>
         ) : (
           <>
+            <TooltipProvider delayDuration={150}>
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-white/5 text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/60">
@@ -477,6 +478,7 @@ export default function GerenteRevendedores() {
                 </tbody>
               </table>
             </div>
+            </TooltipProvider>
             <div className="md:hidden divide-y divide-white/5">
               {filteredResellers.map((r) => {
                 const prof = profilesByUser[r.user_id];
