@@ -46,6 +46,7 @@ const RevendedorLicencas = lazy(() => import("@/pages/painel/RevendedorLicencas"
 const RevendedorExtensoes = lazy(() => import("@/pages/painel/RevendedorExtensoes"));
 const RevendedorPedidos = lazy(() => import("@/pages/painel/RevendedorPedidos"));
 const RevendedorAdicionarSaldo = lazy(() => import("@/pages/painel/RevendedorAdicionarSaldo"));
+const RevendedorCarteira = lazy(() => import("@/pages/painel/RevendedorCarteira"));
 const RevendedorIntegracaoMisticPay = lazy(() => import("@/pages/painel/RevendedorIntegracaoMisticPay"));
 const RevendedorIntegracaoEvolution = lazy(() => import("@/pages/painel/RevendedorIntegracaoEvolution"));
 const RevendedorMinhaLoja = lazy(() => import("@/pages/painel/RevendedorMinhaLoja"));
@@ -122,6 +123,7 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/revendedor/pedidos", match: exact("/painel/revendedor/pedidos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPedidos /></RoleRoute> },
   { key: "/painel/revendedor/comprar-creditos", match: exact("/painel/revendedor/comprar-creditos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorComprarCreditos /></RoleRoute> },
   { key: "/painel/revendedor/adicionar-saldo", match: exact("/painel/revendedor/adicionar-saldo"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorAdicionarSaldo /></RoleRoute> },
+  { key: "/painel/revendedor/carteira", match: exact("/painel/revendedor/carteira"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorCarteira /></RoleRoute> },
   { key: "/painel/revendedor/integracoes/misticpay", match: exact("/painel/revendedor/integracoes/misticpay"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorIntegracaoMisticPay /></RoleRoute> },
   { key: "/painel/revendedor/integracoes/evolution", match: exact("/painel/revendedor/integracoes/evolution"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorIntegracaoEvolution /></RoleRoute> },
   { key: "/painel/revendedor/loja", match: exact("/painel/revendedor/loja"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorMinhaLoja /></RoleRoute> },
