@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     if (kind === 'recharge') {
       const { data: r } = await admin
         .from('recharge_intents')
-        .select('id,reseller_id,amount_cents,status')
+        .select('id,reseller_id,amount_cents,status,paid_at')
         .eq('id', referenceId)
         .maybeSingle();
       if (!r || r.reseller_id !== resellerId) {
@@ -79,6 +79,11 @@ Deno.serve(async (req) => {
       }
       if (!REFUNDABLE_RECHARGE_STATUS.has(r.status)) {
         return new Response(JSON.stringify({ error: `Status "${r.status}" não permite reembolso` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (!r.paid_at) {
+        return new Response(JSON.stringify({ error: 'Recarga nunca foi paga — nada a reembolsar' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
