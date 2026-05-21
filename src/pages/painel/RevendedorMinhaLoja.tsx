@@ -98,6 +98,8 @@ export default function RevendedorMinhaLoja() {
   const [savingSlug, setSavingSlug] = useState(false);
 
   const [showExtensions, setShowExtensions] = useState(true);
+  const [showPromptFlow, setShowPromptFlow] = useState(true);
+  const [showLovaX, setShowLovaX] = useState(true);
   const [showProducts, setShowProducts] = useState(true);
   const [showFreeTrial, setShowFreeTrial] = useState(true);
   const [showCredits, setShowCredits] = useState(true);
@@ -961,6 +963,50 @@ export default function RevendedorMinhaLoja() {
                     </div>
                     <Switch checked={showFreeTrial} onCheckedChange={setShowFreeTrial} />
                   </div>
+                </div>
+
+                <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="text-sm font-bold flex items-center gap-2">
+                        <Sparkles className="h-3.5 w-3.5 text-violet-500" /> Extensão PromptFlow
+                      </div>
+                      <div className="text-xs text-muted-foreground">Disponibiliza a extensão PromptFlow na loja.</div>
+                    </div>
+                    <Switch
+                      checked={showPromptFlow}
+                      onCheckedChange={(v) => {
+                        if (!v && !showLovaX) {
+                          toast.error("Pelo menos uma extensão precisa estar ativa.");
+                          return;
+                        }
+                        setShowPromptFlow(v);
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-dashed">
+                    <div className="space-y-0.5">
+                      <div className="text-sm font-bold flex items-center gap-2">
+                        <Zap className="h-3.5 w-3.5 text-cyan-500" /> Extensão LovaX
+                      </div>
+                      <div className="text-xs text-muted-foreground">Disponibiliza a extensão LovaX na loja.</div>
+                    </div>
+                    <Switch
+                      checked={showLovaX}
+                      onCheckedChange={(v) => {
+                        if (!v && !showPromptFlow) {
+                          toast.error("Pelo menos uma extensão precisa estar ativa.");
+                          return;
+                        }
+                        setShowLovaX(v);
+                      }}
+                    />
+                  </div>
+
+                  <p className="text-[11px] text-muted-foreground pt-2 border-t border-dashed">
+                    Obrigatório: pelo menos uma extensão deve estar ativa.
+                  </p>
                 </div>
               </AccordionContent>
             </AccordionItem>
