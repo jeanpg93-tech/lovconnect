@@ -54,18 +54,31 @@ type Storefront = {
 
 type Reseller = { id: string; display_name: string; slug: string; is_active: boolean };
 type Plan = { license_type: string; label: string; price_cents: number; customer_price_cents: number; is_active: boolean };
-type Pack = { license_type: string; price_cents: number; extension_id?: string };
+type Pack = { license_type: string; price_cents: number; extension_id?: string | null; method?: "flow" | "lovax"; label?: string; desc?: string };
 type Recharge = { id: string; credits_amount: number; price_cents: number };
 
 const FALLBACK_LABEL: Record<string, string> = {
   trial: "Chave Teste (30min)",
+  "1d": "1 dia",
+  "7d": "7 dias",
+  "30d": "30 dias",
+  "90d": "90 dias",
+  "365d": "365 dias",
   pro_1d: "Pro 1 dia",
   pro_7d: "Pro 7 dias",
   pro_15d: "Pro 15 dias",
   pro_30d: "Pro 30 dias",
   lifetime: "Vitalícia",
 };
-const ORDER = ["pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
+const FALLBACK_DESC: Record<string, string> = {
+  "1d": "Acesso por 24 horas",
+  "7d": "Acesso semanal",
+  "30d": "Acesso mensal",
+  "90d": "Acesso trimestral",
+  "365d": "Acesso anual",
+  lifetime: "Acesso permanente",
+};
+const ORDER = ["1d", "7d", "30d", "90d", "365d", "pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
 
 
 
@@ -204,17 +217,22 @@ export default function PublicStorefront() {
       );
       setPlans(sortedPlans);
 
-      const { data: rep } = await supabase
-        .from("reseller_extension_prices")
-        .select("license_type, price_cents, is_active, extension_id")
-        .eq("reseller_id", r.id);
+      const method = (s as any).extension_method === "lovax" ? "lovax" : "flow";
+      const { data: licensePrices } = await supabase
+        .from("reseller_license_prices")
+        .select("method, pack_id, price_cents")
+        .eq("reseller_id", r.id)
+        .eq("method", method)
+        .gt("price_cents", 0);
 
-      const list = ((rep ?? []) as any[])
-        .filter((row) => row.is_active && row.price_cents > 0)
-        .map((row) => ({ 
-          license_type: row.license_type, 
+      const list = ((licensePrices ?? []) as any[])
+        .map((row) => ({
+          license_type: row.pack_id,
           price_cents: row.price_cents,
-          extension_id: row.extension_id 
+          method: row.method,
+          label: FALLBACK_LABEL[row.pack_id] || row.pack_id,
+          desc: FALLBACK_DESC[row.pack_id] || "Ativação imediata via PIX",
+          extension_id: null,
         }))
         .sort((a, b) => ORDER.indexOf(a.license_type) - ORDER.indexOf(b.license_type));
       setPacks(list);
@@ -274,7 +292,15 @@ export default function PublicStorefront() {
   }, [order?.id]);
 
   const labelFor = (lt: string) =>
-    plans.find((p) => p.license_type === lt)?.label || FALLBACK_LABEL[lt] || lt;
+    packs.find((p) => p.license_type === lt)?.label ||
+    plans.find((p) => p.license_type === lt)?.label ||
+    FALLBACK_LABEL[lt] ||
+    lt;
+
+  const descFor = (lt: string) =>
+    packs.find((p) => p.license_type === lt)?.desc ||
+    FALLBACK_DESC[lt] ||
+    "Ativação imediata via PIX";
 
   const priceFor = (lt: string) =>
     packs.find((p) => p.license_type === lt)?.price_cents ?? 
@@ -686,44 +712,46 @@ export default function PublicStorefront() {
                     const isLovax = method === "lovax";
                     const methodLabel = isLovax ? "LovaX" : "PromptFlow";
                     const methodDesc = isLovax
-                      ? "Tecnologia LovaX — geração de chaves rápida e estável"
-                      : "Tecnologia PromptFlow — máxima compatibilidade e performance";
+                      ? "As chaves desta vitrine são emitidas exclusivamente pela LovaX"
+                      : "As chaves desta vitrine são emitidas exclusivamente pela PromptFlow";
                     return (
-                      <div className="max-w-xl mx-auto mb-4">
+                      <div className="max-w-xl mx-auto mb-5">
                         <div
-                          className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur p-4 shadow-md"
-                          style={{ borderColor: `${color}40` }}
+                          className="relative overflow-hidden rounded-[2rem] border bg-background/80 backdrop-blur-xl p-5 text-left shadow-2xl"
+                          style={{ borderColor: `${color}70`, boxShadow: `0 20px 70px -24px ${color}99` }}
                         >
                           <div
-                            className="absolute -top-10 -left-10 h-32 w-32 rounded-full blur-[60px] opacity-20"
-                            style={{ background: color }}
+                            className="absolute inset-y-0 left-0 w-1.5"
+                            style={{ background: `linear-gradient(to bottom, transparent, ${color}, transparent)` }}
                           />
-                          <div className="relative z-10 flex items-center gap-3">
+                          <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: `linear-gradient(135deg, ${color} 1px, transparent 1px)`, backgroundSize: "18px 18px" }} />
+                          <div className="relative z-10 flex items-center gap-4">
                             <div
-                              className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 shadow-inner"
-                              style={{ background: `${color}1a`, color }}
+                              className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ring-1 ring-inset ring-background/20"
+                              style={{ background: `linear-gradient(135deg, ${color}, ${color}99)`, color: "#fff" }}
                             >
-                              {isLovax ? <Sparkles className="h-5 w-5" /> : <Chrome className="h-5 w-5" />}
+                              {isLovax ? <Sparkles className="h-6 w-6" /> : <Chrome className="h-6 w-6" />}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                                  Método da extensão
+                                <span className="text-[9px] font-black uppercase tracking-widest" style={{ color }}>
+                                  Motor de emissão
                                 </span>
                                 <span
-                                  className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border"
-                                  style={{ color, borderColor: `${color}50`, background: `${color}10` }}
+                                  className="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full border bg-background/70"
+                                  style={{ color, borderColor: `${color}60` }}
                                 >
-                                  Ativo
+                                  Escolhido pelo vendedor
                                 </span>
                               </div>
-                              <div className="font-bold text-base mt-0.5" style={{ color }}>
+                              <div className="font-black text-2xl mt-1 leading-none tracking-normal">
                                 {methodLabel}
                               </div>
-                              <div className="text-[11px] text-muted-foreground mt-0.5">
+                              <div className="text-xs text-muted-foreground mt-2 leading-relaxed">
                                 {methodDesc}
                               </div>
                             </div>
+                            <ShieldCheck className="hidden sm:block h-6 w-6 shrink-0" style={{ color }} />
                           </div>
                         </div>
                       </div>
@@ -800,7 +828,7 @@ export default function PublicStorefront() {
                             {labelFor(pk.license_type)}
                           </div>
                           <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Sparkles className="h-3 w-3" /> Ativação imediata via PIX
+                            <Sparkles className="h-3 w-3" /> {descFor(pk.license_type)}
                           </div>
                         </div>
                         <div className="text-xl font-bold" style={{ color }}>
@@ -831,7 +859,7 @@ export default function PublicStorefront() {
                           {formatBRL(pk.price_cents)}
                         </div>
                         <div className="mt-3 text-[11px] text-muted-foreground flex items-center justify-center gap-1">
-                          <Sparkles className="h-3 w-3" /> Ativação imediata via PIX
+                          <Sparkles className="h-3 w-3" /> {descFor(pk.license_type)}
                         </div>
                       </button>
                     ))}

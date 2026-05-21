@@ -5,6 +5,11 @@ const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/function
 
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
   switch (type) {
+    case "1d": return { days: 1 };
+    case "7d": return { days: 7 };
+    case "30d": return { days: 30 };
+    case "90d": return { days: 90 };
+    case "365d": return { days: 365 };
     case "pro_1d": return { days: 1 };
     case "pro_7d": return { days: 7 };
     case "pro_15d": return { days: 15 };
@@ -211,6 +216,15 @@ Deno.serve(async (req) => {
       raw_response: payload,
     }).eq("id", storeOrder.id);
 
+    // Resolve método da loja (flow|lovax)
+    const { data: storeCfg } = await admin
+      .from("reseller_storefronts")
+      .select("extension_method")
+      .eq("reseller_id", storeOrder.reseller_id)
+      .maybeSingle();
+    const method: "flow" | "lovax" =
+      (storeCfg as any)?.extension_method === "lovax" ? "lovax" : "flow";
+
     // CUSTO DO REVENDEDOR — mesma lógica do place-reseller-order:
     // 1) reseller_extension_price_overrides (Partners) — prioridade máxima
     // 2) tier_extension_prices (preço fixo do nível) — ignora desconto% e piso global
@@ -250,6 +264,16 @@ Deno.serve(async (req) => {
         _reseller_id: storeOrder.reseller_id,
       });
       const tier: any = Array.isArray(tierRow) ? tierRow[0] : tierRow;
+
+      if (tier?.id && !storeOrder.extension_id) {
+        const { data: setting } = await admin
+          .from("app_settings")
+          .select("value")
+          .eq("key", "licencas.valores")
+          .maybeSingle();
+        const brl = Number(((setting?.value ?? {}) as Record<string, any>)?.[method]?.[storeOrder.license_type]?.[tier.id] ?? 0);
+        if (brl > 0) tier_price_override = Math.round(brl * 100);
+      }
 
       if (tier_price_override === 0 && tier?.id && storeOrder.extension_id) {
         const { data: tep } = await admin
@@ -320,15 +344,6 @@ Deno.serve(async (req) => {
         });
       }
     }
-
-    // Resolve método da loja (flow|lovax)
-    const { data: storeCfg } = await admin
-      .from("reseller_storefronts")
-      .select("extension_method")
-      .eq("reseller_id", storeOrder.reseller_id)
-      .maybeSingle();
-    const method: "flow" | "lovax" =
-      (storeCfg as any)?.extension_method === "lovax" ? "lovax" : "flow";
 
     let providerData: any = null;
     let license_key: string | null = null;
