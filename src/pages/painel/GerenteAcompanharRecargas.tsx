@@ -251,6 +251,12 @@ export default function GerenteAcompanharRecargas() {
 
   useEffect(() => { loadAll(); }, []);
 
+  // Atualiza pedidos manuais a cada 4s para refletir ações do cliente (ex.: envio do workspace) em tempo real
+  useEffect(() => {
+    const t = setInterval(() => { loadManualOrders(); }, 4000);
+    return () => clearInterval(t);
+  }, []);
+
   const copy = (s: string) => { navigator.clipboard.writeText(s); toast.success("Copiado"); };
 
   const rangeStart = useMemo(() => {
