@@ -467,6 +467,25 @@ export default function GerenteLicencasAcompanhar() {
     else if (type === "reset") handleResetHWID(key, method);
   };
 
+  // Retorna true se a licença está em um estado em que cabe estorno
+  const isCancelable = (o: OrderRow) => {
+    const s = (o.status || "").toLowerCase();
+    return ["revoked", "revogado", "revogada", "canceled", "cancelled", "cancelado", "queimado", "queimada"].includes(s);
+  };
+
+  const openRefundLicense = (o: OrderRow) => {
+    const info = refundInfo[o.license_key];
+    if (!info) return;
+    setRefundData({
+      tipo: "license",
+      provider_pedido_id: o.license_key,
+      reseller_label: (o.reseller_id && resellers[o.reseller_id]) || o.creator_email || null,
+      price_cents: info.price_cents,
+      extra_info: LABEL[o.license_type] || o.license_type,
+    });
+    setRefundDialogOpen(true);
+  };
+
   const getGenerationType = (o: OrderRow) => {
     switch (o.source) {
       case "api":
