@@ -1,1 +1,4 @@
 project_id = "qoemkofkeleuhjifvauh"
+
+[functions.generate-testimonials-ai]
+verify_jwt = false
