@@ -10,6 +10,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -367,6 +368,7 @@ export default function GerenteRevendedores() {
           <div className="p-10 text-center text-sm text-muted-foreground">Nenhum revendedor cadastrado.</div>
         ) : (
           <>
+            <TooltipProvider delayDuration={150}>
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-white/5 text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/60">
@@ -414,34 +416,61 @@ export default function GerenteRevendedores() {
                           <div className="flex flex-col items-center gap-1">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-mono font-bold">{r.test_keys_used_today} / {r.test_keys_per_day_override || tier?.test_keys_per_day || 0}</span>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6 rounded-md hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
-                                onClick={() => openTestKeysConfig(r)}
-                              >
-                                <Settings2 className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6 rounded-md hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
-                                onClick={() => resetTestKeys(r)}
-                              >
-                                <RotateCcw className="h-3 w-3" />
-                              </Button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 rounded-md hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
+                                    onClick={() => openTestKeysConfig(r)}
+                                  >
+                                    <Settings2 className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Configurar limite diário de chaves de teste</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 rounded-md hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
+                                    onClick={() => resetTestKeys(r)}
+                                  >
+                                    <RotateCcw className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Zerar contador de chaves de teste usadas hoje</TooltipContent>
+                              </Tooltip>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <Switch checked={r.is_active} onCheckedChange={() => toggleActive(r)} />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex"><Switch checked={r.is_active} onCheckedChange={() => toggleActive(r)} /></span>
+                            </TooltipTrigger>
+                            <TooltipContent>{r.is_active ? "Revendedor ativo — clique para suspender" : "Revendedor suspenso — clique para ativar"}</TooltipContent>
+                          </Tooltip>
                         </td>
                         <td className="px-6 py-4 text-right font-mono font-bold text-primary">{formatBRL(balance)}</td>
                         <td className="px-6 py-4 text-center">
-                          <div className="flex justify-center gap-2">
-                            <Button size="sm" variant="ghost" onClick={() => openBalance(r)}><Wallet className="h-4 w-4" /></Button>
-                            <Button size="sm" variant="ghost" onClick={() => deleteReseller(r)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                          </div>
+                          <TooltipProvider delayDuration={150}>
+                            <div className="flex justify-center gap-2">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="sm" variant="ghost" onClick={() => openBalance(r)}><Wallet className="h-4 w-4" /></Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Ajustar saldo do revendedor</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="sm" variant="ghost" onClick={() => deleteReseller(r)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Excluir revendedor</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TooltipProvider>
                         </td>
                       </tr>
                     );
@@ -449,6 +478,7 @@ export default function GerenteRevendedores() {
                 </tbody>
               </table>
             </div>
+            </TooltipProvider>
             <div className="md:hidden divide-y divide-white/5">
               {filteredResellers.map((r) => {
                 const prof = profilesByUser[r.user_id];
