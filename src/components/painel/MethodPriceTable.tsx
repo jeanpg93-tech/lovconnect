@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Calendar, Infinity as InfinityIcon, Crown } from "lucide-react";
+import { Loader2, Calendar, Infinity as InfinityIcon, Crown, Save, Pencil, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 type Method = "flow" | "lovax";
 type PackId = "1d" | "7d" | "30d" | "90d" | "365d" | "lifetime";
@@ -38,6 +41,11 @@ export default function MethodPriceTable({ method }: { method: Method }) {
   const [loading, setLoading] = useState(true);
   const [prices, setPrices] = useState<PriceMap | null>(null);
   const [tier, setTier] = useState<any>(null);
+  const [resellerId, setResellerId] = useState<string | null>(null);
+  const [overrides, setOverrides] = useState<Partial<Record<PackId, number>>>({});
+  const [editing, setEditing] = useState<PackId | null>(null);
+  const [draft, setDraft] = useState<string>("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -48,17 +56,47 @@ export default function MethodPriceTable({ method }: { method: Method }) {
         .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
-      const [{ data: setting }, { data: tierData }] = await Promise.all([
+      setResellerId(r?.id ?? null);
+      const overrideKey = r ? `licencas.revendedor.${r.id}.${method}` : null;
+      const [{ data: setting }, { data: tierData }, ovRes] = await Promise.all([
         supabase.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
         r ? supabase.rpc("get_reseller_tier", { _reseller_id: r.id }) : Promise.resolve({ data: null }),
+        overrideKey
+          ? supabase.from("app_settings").select("value").eq("key", overrideKey).maybeSingle()
+          : Promise.resolve({ data: null } as any),
       ]);
       const value = (setting?.value ?? { flow: {}, lovax: {} }) as PriceMap;
       setPrices({ flow: value.flow ?? {}, lovax: value.lovax ?? {} });
       const t = Array.isArray(tierData) ? tierData[0] : tierData;
       setTier(t);
+      const ovValue = ((ovRes as any)?.data?.value ?? {}) as Partial<Record<PackId, number>>;
+      setOverrides(ovValue);
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, method]);
+
+  const saveOverride = async (pkgId: PackId, newValue: number | null) => {
+    if (!resellerId) return;
+    setSaving(true);
+    const next = { ...overrides };
+    if (newValue === null || !Number.isFinite(newValue) || newValue <= 0) {
+      delete next[pkgId];
+    } else {
+      next[pkgId] = newValue;
+    }
+    const key = `licencas.revendedor.${resellerId}.${method}`;
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ key, value: next as any }, { onConflict: "key" });
+    setSaving(false);
+    if (error) {
+      toast.error(`Erro ao salvar: ${error.message}`);
+      return;
+    }
+    setOverrides(next);
+    setEditing(null);
+    toast.success("Preço atualizado");
+  };
 
   if (loading) {
     return (
@@ -94,15 +132,18 @@ export default function MethodPriceTable({ method }: { method: Method }) {
 
       <div className="overflow-hidden rounded-xl border border-border bg-card/40 backdrop-blur-sm">
         <div className="hidden grid-cols-12 gap-3 border-b border-border bg-card/60 px-4 py-2.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground md:grid">
-          <div className="col-span-6">Pacote</div>
-          <div className="col-span-3">Seu preço base</div>
-          <div className="col-span-3">Sugerido +100%</div>
+          <div className="col-span-4">Pacote</div>
+          <div className="col-span-2">Preço base</div>
+          <div className="col-span-2">Sugerido</div>
+          <div className="col-span-4">Meu preço</div>
         </div>
         <div className="divide-y divide-border">
           {packages.map((pkg) => {
             const Icon = pkg.icon;
             const base = Number(tierMap(pkg.id)[tier.id] ?? 0);
             const empty = !base;
+            const myPrice = overrides[pkg.id];
+            const isEditing = editing === pkg.id;
             return (
               <div
                 key={pkg.id}
@@ -111,7 +152,7 @@ export default function MethodPriceTable({ method }: { method: Method }) {
                   empty && "opacity-70",
                 )}
               >
-                <div className="md:col-span-6">
+                <div className="md:col-span-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background/60 text-primary">
                       <Icon className="h-4 w-4" />
@@ -122,9 +163,9 @@ export default function MethodPriceTable({ method }: { method: Method }) {
                     </div>
                   </div>
                 </div>
-                <div className="md:col-span-3">
+                <div className="md:col-span-2">
                   <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground md:hidden">
-                    Seu preço base
+                    Preço base
                   </div>
                   {base > 0 ? (
                     <div className="font-display text-base font-bold tabular-nums">
@@ -136,13 +177,82 @@ export default function MethodPriceTable({ method }: { method: Method }) {
                     </span>
                   )}
                 </div>
-                <div className="md:col-span-3">
+                <div className="md:col-span-2">
                   <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground md:hidden">
                     Sugerido
                   </div>
                   <div className="text-sm tabular-nums text-muted-foreground">
                     {base > 0 ? formatBRL(base * 2) : "—"}
                   </div>
+                </div>
+                <div className="md:col-span-4">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground md:hidden">
+                    Meu preço
+                  </div>
+                  {isEditing ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">R$</span>
+                      <Input
+                        autoFocus
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        className="h-8 w-28"
+                        placeholder={base > 0 ? String(base * 2) : "0,00"}
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        disabled={saving}
+                        onClick={() => saveOverride(pkg.id, draft === "" ? null : Number(draft))}
+                      >
+                        <Check className="h-4 w-4 text-primary" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => setEditing(null)}
+                      >
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  ) : myPrice && myPrice > 0 ? (
+                    <div className="flex items-center gap-2">
+                      <span className="font-display text-base font-bold tabular-nums text-primary">
+                        {formatBRL(myPrice)}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 gap-1 px-2 text-[11px]"
+                        onClick={() => {
+                          setDraft(String(myPrice));
+                          setEditing(pkg.id);
+                        }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Editar
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1.5"
+                      disabled={empty}
+                      onClick={() => {
+                        setDraft(base > 0 ? String(base * 2) : "");
+                        setEditing(pkg.id);
+                      }}
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      Cadastrar preço
+                    </Button>
+                  )}
                 </div>
               </div>
             );
