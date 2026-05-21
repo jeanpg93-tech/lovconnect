@@ -351,8 +351,19 @@ export default function RevendedorDashboard() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <div className="relative flex h-16 w-16 items-center justify-center">
+          <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" />
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 border border-primary/30">
+            <Loader2 className="h-7 w-7 animate-spin text-primary" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-foreground">Carregando seu painel</p>
+          <p className="text-xs text-muted-foreground">
+            Reunindo seus dados, pedidos e licenças…
+          </p>
+        </div>
       </div>
     );
   }
