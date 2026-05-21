@@ -914,6 +914,45 @@ export type Database = {
           },
         ]
       }
+      pending_storefront_charges: {
+        Row: {
+          attempted_at: string | null
+          attempts: number
+          cost_cents: number
+          created_at: string
+          id: string
+          last_error: string | null
+          order_id: string
+          product_type: string
+          released_at: string | null
+          reseller_id: string
+        }
+        Insert: {
+          attempted_at?: string | null
+          attempts?: number
+          cost_cents: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          order_id: string
+          product_type?: string
+          released_at?: string | null
+          reseller_id: string
+        }
+        Update: {
+          attempted_at?: string | null
+          attempts?: number
+          cost_cents?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          order_id?: string
+          product_type?: string
+          released_at?: string | null
+          reseller_id?: string
+        }
+        Relationships: []
+      }
       pricing_plans: {
         Row: {
           cost_cents: number
@@ -2442,6 +2481,10 @@ export type Database = {
         Args: { _reseller_id: string }
         Returns: string
       }
+      get_credit_pack_cost: {
+        Args: { _plan_id: string; _reseller_id: string }
+        Returns: number
+      }
       get_primary_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -2496,6 +2539,10 @@ export type Database = {
       }
       reject_user: { Args: { _user_id: string }; Returns: undefined }
       reset_daily_test_keys: { Args: never; Returns: undefined }
+      try_release_pending_orders: {
+        Args: { _reseller_id: string }
+        Returns: string[]
+      }
       unaccent_safe: { Args: { _s: string }; Returns: string }
     }
     Enums: {
