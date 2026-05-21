@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ type Method = "flow" | "lovax";
 
 const METHOD_KEY = "licencas.delivery.method";
 const MAINT_KEY = "licencas.delivery.maintenance";
+const SETTING_KEY = "licencas.delivery.method";
 
 export default function GerenteLicencasDashboard() {
   const [method, setMethod] = useState<Method>("flow");
@@ -30,6 +32,19 @@ export default function GerenteLicencasDashboard() {
     const m = localStorage.getItem(METHOD_KEY) as Method | null;
     if (m === "flow" || m === "lovax") setMethod(m);
     setMaintenance(localStorage.getItem(MAINT_KEY) === "1");
+    // Sincroniza com a configuração compartilhada (visível pelos revendedores)
+    (async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", SETTING_KEY)
+        .maybeSingle();
+      const v = (data?.value as any)?.method;
+      if (v === "flow" || v === "lovax") {
+        setMethod(v);
+        localStorage.setItem(METHOD_KEY, v);
+      }
+    })();
   }, []);
 
   const requestSwitch = (m: Method) => {
@@ -39,10 +54,20 @@ export default function GerenteLicencasDashboard() {
 
   const confirmSwitch = () => {
     if (!pendingMethod) return;
-    setMethod(pendingMethod);
-    localStorage.setItem(METHOD_KEY, pendingMethod);
-    toast.success(`Método de entrega: ${pendingMethod === "flow" ? "MétodoFlow" : "MétodoLovax"}`);
+    const m = pendingMethod;
+    setMethod(m);
+    localStorage.setItem(METHOD_KEY, m);
     setPendingMethod(null);
+    (async () => {
+      const { error } = await supabase
+        .from("app_settings")
+        .upsert({ key: SETTING_KEY, value: { method: m } as any }, { onConflict: "key" });
+      if (error) {
+        toast.error(`Falha ao salvar: ${error.message}`);
+      } else {
+        toast.success(`Método de entrega: ${m === "flow" ? "MétodoFlow" : "MétodoLovax"}`);
+      }
+    })();
   };
 
   const toggleMaintenance = () => {
