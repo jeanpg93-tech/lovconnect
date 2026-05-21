@@ -114,7 +114,7 @@ export default function RevendedorTransacoes() {
         if (typeFilter === "manual" && !["adjustment", "manual_credit", "manual_debit"].includes(t.kind)) return false;
         if (typeFilter === "order" && !["order", "order_debit", "api_debit"].includes(t.kind)) return false;
         if (typeFilter === "bonus" && !["bonus", "affiliate_bonus"].includes(t.kind)) return false;
-        if (typeFilter === "refund" && !["refund", "panel_refund", "credit_purchase_refund"].includes(t.kind)) return false;
+        if (typeFilter === "refund" && !["refund", "panel_refund", "credit_purchase_refund", "license_purchase_refund"].includes(t.kind)) return false;
         if (typeFilter !== "manual" && typeFilter !== "order" && typeFilter !== "bonus" && typeFilter !== "refund" && t.kind !== typeFilter) return false;
       }
 
