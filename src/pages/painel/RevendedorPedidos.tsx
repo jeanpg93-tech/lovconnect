@@ -102,6 +102,9 @@ export default function RevendedorPedidos() {
   const [resellerSalePrices, setResellerSalePrices] = useState<Record<string, number>>({});
   const [availableMethods, setAvailableMethods] = useState<MethodId[]>([]);
   const [selectedMethod, setSelectedMethod] = useState<MethodId>("flow");
+  // Método habilitado pelo gerente (compartilhado via app_settings).
+  // Apenas esse método pode ser usado para gerar licenças.
+  const [enabledMethod, setEnabledMethod] = useState<MethodId | null>(null);
 
   const [open, setOpen] = useState<Plan | null>(null);
   // contexto da compra atual quando é via método/pack
@@ -131,7 +134,7 @@ export default function RevendedorPedidos() {
     const sinceToday = todayStart.toISOString();
     const [
       { data: pl }, { data: cs }, { data: os }, { data: t }, { data: tiers }, { data: ts }, { count: testCount },
-      { data: licSetting }, { data: salePrices },
+      { data: licSetting }, { data: salePrices }, { data: deliverySetting },
     ] = await Promise.all([
       supabase.from("pricing_plans").select("license_type,label,price_cents,cost_cents,min_price_cents,is_active").eq("is_active", true),
       supabase.from("profiles").select("id,email,display_name").eq("reseller_id", r.id),
@@ -144,6 +147,8 @@ export default function RevendedorPedidos() {
       supabase.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
       // Preço de venda do revendedor (sale price) por método/pack
       supabase.from("reseller_license_prices").select("method,pack_id,price_cents").eq("reseller_id", r.id),
+      // Método de entrega habilitado pelo gerente
+      supabase.from("app_settings").select("value").eq("key", "licencas.delivery.method").maybeSingle(),
     ]);
     const sorted = ((pl ?? []) as Plan[])
       .filter(p => ORDER.includes(p.license_type))
@@ -160,7 +165,16 @@ export default function RevendedorPedidos() {
     setLicValores(valores as any);
     const methods = (Object.keys(valores).filter((m) => m === "flow" || m === "lovax") as MethodId[]);
     setAvailableMethods(methods);
-    setSelectedMethod((cur) => (methods.includes(cur) ? cur : (methods[0] ?? "flow")));
+
+    const enabledRaw = (deliverySetting?.value as any)?.method;
+    const enabled: MethodId | null =
+      enabledRaw === "flow" || enabledRaw === "lovax" ? enabledRaw : null;
+    setEnabledMethod(enabled);
+    // Força a seleção para o método habilitado (se houver e estiver disponível)
+    setSelectedMethod((cur) => {
+      if (enabled && methods.includes(enabled)) return enabled;
+      return methods.includes(cur) ? cur : (methods[0] ?? "flow");
+    });
 
     const saleMap: Record<string, number> = {};
     (salePrices ?? []).forEach((row: any) => {
@@ -458,24 +472,39 @@ export default function RevendedorPedidos() {
             <div className="flex flex-wrap items-center gap-2">
               {availableMethods.map((m) => {
                 const active = m === selectedMethod;
+                const disabled = !!enabledMethod && m !== enabledMethod;
                 return (
                   <button
                     key={m}
                     type="button"
-                    onClick={() => setSelectedMethod(m)}
+                    onClick={() => { if (!disabled) setSelectedMethod(m); }}
+                    disabled={disabled}
+                    title={disabled ? "Método desabilitado pelo gerente no momento" : undefined}
                     className={cn(
                       "group inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all",
                       active
                         ? "border-primary/40 bg-primary text-black shadow-[0_0_20px_rgba(var(--primary),0.25)]"
-                        : "border-white/10 bg-white/[0.03] text-zinc-400 hover:border-primary/30 hover:text-white"
+                        : disabled
+                          ? "border-white/5 bg-white/[0.02] text-zinc-600 cursor-not-allowed opacity-60"
+                          : "border-white/10 bg-white/[0.03] text-zinc-400 hover:border-primary/30 hover:text-white"
                     )}
                   >
-                    <Puzzle className={cn("h-3.5 w-3.5", active ? "text-black" : "text-primary")} />
+                    <Puzzle className={cn("h-3.5 w-3.5", active ? "text-black" : disabled ? "text-zinc-600" : "text-primary")} />
                     <span>{METHOD_LABEL[m]}</span>
+                    {disabled && (
+                      <span className="ml-1 rounded-full border border-white/10 bg-white/5 px-1.5 py-px text-[8px] font-bold uppercase tracking-wider text-zinc-500">
+                        Indisponível
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
+            {enabledMethod && (
+              <p className="pl-1 text-[10px] text-zinc-500">
+                Apenas o método <span className="font-bold text-zinc-300">{METHOD_LABEL[enabledMethod]}</span> está habilitado pelo gerente no momento.
+              </p>
+            )}
           </div>
 
           {(() => {

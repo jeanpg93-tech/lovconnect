@@ -11,6 +11,7 @@ import GerenteApiProvedor from "./GerenteApiProvedor";
 
 type Method = "flow" | "lovax";
 const METHOD_KEY = "licencas.delivery.method";
+const SETTING_KEY = "licencas.delivery.method";
 
 const METHODS = [
   {
@@ -48,6 +49,19 @@ export default function GerenteLicencasApis() {
 
   useEffect(() => {
     readActive();
+    // Sincroniza com configuração compartilhada do banco
+    (async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", SETTING_KEY)
+        .maybeSingle();
+      const v = (data?.value as any)?.method;
+      if (v === "flow" || v === "lovax") {
+        setActive(v);
+        localStorage.setItem(METHOD_KEY, v);
+      }
+    })();
     const onStorage = (e: StorageEvent) => {
       if (e.key === METHOD_KEY) readActive();
     };
@@ -101,7 +115,13 @@ export default function GerenteLicencasApis() {
   const setAsActive = (m: Method) => {
     localStorage.setItem(METHOD_KEY, m);
     setActive(m);
-    toast.success(`Método ativo: ${m === "flow" ? "MétodoFlow" : "MétodoLovax"}`);
+    (async () => {
+      const { error } = await supabase
+        .from("app_settings")
+        .upsert({ key: SETTING_KEY, value: { method: m } as any }, { onConflict: "key" });
+      if (error) toast.error(`Falha ao salvar: ${error.message}`);
+      else toast.success(`Método ativo: ${m === "flow" ? "MétodoFlow" : "MétodoLovax"}`);
+    })();
   };
 
   return (
