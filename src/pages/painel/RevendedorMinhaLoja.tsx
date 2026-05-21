@@ -98,8 +98,7 @@ export default function RevendedorMinhaLoja() {
   const [savingSlug, setSavingSlug] = useState(false);
 
   const [showExtensions, setShowExtensions] = useState(true);
-  const [showPromptFlow, setShowPromptFlow] = useState(true);
-  const [showLovaX, setShowLovaX] = useState(true);
+  const [extensionMethod, setExtensionMethod] = useState<"flow" | "lovax">("flow");
   const [showProducts, setShowProducts] = useState(true);
   const [showFreeTrial, setShowFreeTrial] = useState(true);
   const [showCredits, setShowCredits] = useState(true);
