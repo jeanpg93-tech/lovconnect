@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { KeyRound, Search, Loader2, Copy, FlaskConical, CheckCircle2, RefreshCw, Infinity as InfinityIcon, ArrowUpRight, Trash2, XCircle, ChevronDown, ChevronUp, Info, RotateCcw } from "lucide-react";
+import { KeyRound, Search, Loader2, Copy, FlaskConical, CheckCircle2, RefreshCw, Infinity as InfinityIcon, ArrowUpRight, Trash2, XCircle, ChevronDown, ChevronUp, Info, RotateCcw, Zap, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -354,6 +354,25 @@ export default function GerenteLicencasAcompanhar() {
     }
   };
 
+  // Detecta o método de entrega usado pra gerar a licença.
+  // Procura marcadores explícitos no payload do provedor; fallback "MétodoFlow".
+  const getDeliveryMethod = (o: OrderRow) => {
+    const raw = JSON.stringify(o.full_data ?? {}).toLowerCase();
+    const flag =
+      (o.full_data?.method ||
+        o.full_data?.delivery_method ||
+        o.full_data?.source_method ||
+        "")?.toString().toLowerCase();
+    const isLovax =
+      flag.includes("lovax") ||
+      raw.includes("\"lovax\"") ||
+      raw.includes("tscommunity") ||
+      raw.includes("reseller-api");
+    return isLovax
+      ? { id: "lovax" as const, label: "MétodoLovax", Icon: Sparkles, color: "text-fuchsia-300 bg-fuchsia-500/10 border-fuchsia-500/20" }
+      : { id: "flow" as const, label: "MétodoFlow", Icon: Zap, color: "text-primary bg-primary/10 border-primary/20" };
+  };
+
   const copy = async (txt: string) => {
     await navigator.clipboard.writeText(txt);
     toast.success("Copiado!");
@@ -474,6 +493,7 @@ export default function GerenteLicencasAcompanhar() {
                   <TableRow className="border-b border-white/5 hover:bg-transparent bg-white/[0.02]">
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60 pl-6">Nome / Provedor</TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Geração</TableHead>
+                    <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Método</TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Responsável</TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60 text-center">Status</TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60 text-center">Validade</TableHead>
@@ -485,6 +505,7 @@ export default function GerenteLicencasAcompanhar() {
                     const exp = getExpiry(o);
                     const isExpanded = expandedRow === o.id;
                     const gen = getGenerationType(o);
+                    const method = getDeliveryMethod(o);
                     const st = computeStatus(o, exp);
                     const isActive = st.kind === "active";
 
@@ -512,6 +533,12 @@ export default function GerenteLicencasAcompanhar() {
                             <div className={cn("inline-flex flex-col rounded-lg px-2.5 py-1 border", gen.color)}>
                               <span className="text-[10px] font-black uppercase tracking-wider">{gen.label}</span>
                               <span className="text-[8px] opacity-70 leading-none">{gen.sub}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className={cn("inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 border", method.color)}>
+                              <method.Icon className="h-3 w-3" />
+                              <span className="text-[10px] font-black uppercase tracking-wider">{method.label}</span>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -597,7 +624,7 @@ export default function GerenteLicencasAcompanhar() {
                         </TableRow>
                         {isExpanded && (
                           <TableRow className="bg-black/40">
-                            <TableCell colSpan={6} className="p-6">
+                            <TableCell colSpan={7} className="p-6">
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-2">
                                 <div className="space-y-4">
                                   <h4 className="text-[10px] font-mono uppercase tracking-widest text-primary flex items-center gap-2"><Info className="h-3 w-3" /> Detalhes</h4>
@@ -649,6 +676,7 @@ export default function GerenteLicencasAcompanhar() {
                 const exp = getExpiry(o);
                 const isExpanded = mobileExpandedRow === o.id;
                 const gen = getGenerationType(o);
+                const method = getDeliveryMethod(o);
                 const st = computeStatus(o, exp);
                 const isActive = st.kind === "active";
 
@@ -679,6 +707,13 @@ export default function GerenteLicencasAcompanhar() {
                         <div className="flex flex-col gap-1">
                           <span className="text-[9px] opacity-50 uppercase font-mono">Geração</span>
                           <span className={cn("text-[9px] font-bold uppercase p-1 rounded w-fit border", gen.color)}>{gen.label}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[9px] opacity-50 uppercase font-mono">Método</span>
+                          <span className={cn("inline-flex items-center gap-1 text-[9px] font-bold uppercase p-1 rounded w-fit border", method.color)}>
+                            <method.Icon className="h-2.5 w-2.5" />
+                            {method.label}
+                          </span>
                         </div>
                         <div className="flex flex-col items-end gap-1">
                           <span className="text-[9px] opacity-50 uppercase font-mono">Expira</span>
