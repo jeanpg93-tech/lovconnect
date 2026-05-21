@@ -120,6 +120,7 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/revendedor/clientes", match: exact("/painel/revendedor/clientes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorClientes /></RoleRoute> },
   { key: "/painel/revendedor/licencas", match: exact("/painel/revendedor/licencas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorLicencas /></RoleRoute> },
   { key: "/painel/revendedor/extensoes", match: exact("/painel/revendedor/extensoes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorExtensoes /></RoleRoute> },
+  { key: "/painel/revendedor/precos", match: exact("/painel/revendedor/precos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPrecos /></RoleRoute> },
   { key: "/painel/revendedor/creditos", match: exact("/painel/revendedor/creditos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorCreditos /></RoleRoute> },
   { key: "/painel/revendedor/pedidos", match: exact("/painel/revendedor/pedidos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPedidos /></RoleRoute> },
   { key: "/painel/revendedor/comprar-creditos", match: exact("/painel/revendedor/comprar-creditos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorComprarCreditos /></RoleRoute> },
