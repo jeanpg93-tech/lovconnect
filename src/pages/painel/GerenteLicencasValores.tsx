@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Sparkles, Save, Calendar, Infinity as InfinityIcon, Loader2, ChevronDown } from "lucide-react";
+import { Zap, Sparkles, Save, Calendar, Infinity as InfinityIcon, Loader2, ChevronDown, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -102,6 +102,35 @@ export default function GerenteLicencasValores() {
     toast.success(`Preços do ${m === "flow" ? "MétodoFlow" : "MétodoLovax"} salvos`);
   };
 
+  // Interpola 90d e 365d entre 30d e vitalício por nível.
+  const autoFillIntermediate = (m: Method) => {
+    setPrices((prev) => {
+      const methodPrices = { ...(prev[m] ?? {}) };
+      const base30 = methodPrices["30d"] ?? {};
+      const baseLife = methodPrices["lifetime"] ?? {};
+      const next90: Record<string, number> = { ...(methodPrices["90d"] ?? {}) };
+      const next365: Record<string, number> = { ...(methodPrices["365d"] ?? {}) };
+      let updated = 0;
+      tiers.forEach((t) => {
+        const p30 = Number(base30[t.id] ?? 0);
+        const pLife = Number(baseLife[t.id] ?? 0);
+        if (p30 > 0 && pLife > p30) {
+          next90[t.id] = Math.round((p30 + (pLife - p30) * 0.33) * 100) / 100;
+          next365[t.id] = Math.round((p30 + (pLife - p30) * 0.75) * 100) / 100;
+          updated++;
+        }
+      });
+      if (updated === 0) {
+        toast.error("Defina 30 dias e Vitalício antes (Vitalício > 30d).");
+        return prev;
+      }
+      methodPrices["90d"] = next90;
+      methodPrices["365d"] = next365;
+      toast.success(`Preços de 90d e 365d calculados para ${updated} nível(is).`);
+      return { ...prev, [m]: methodPrices };
+    });
+  };
+
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">
@@ -132,6 +161,18 @@ export default function GerenteLicencasValores() {
               </Badge>
             </CardHeader>
             <CardContent className="space-y-3">
+              {meta.id === "lovax" && !loadingTiers && tiers.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => autoFillIntermediate(meta.id)}
+                >
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  Calcular 90d e 365d entre 30d e Vitalício
+                </Button>
+              )}
               {loadingTiers && (
                 <div className="flex items-center justify-center py-8 text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin" />
