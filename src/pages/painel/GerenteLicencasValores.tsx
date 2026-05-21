@@ -44,7 +44,7 @@ const STORAGE_KEY = "licencas.valores";
 type PriceMap = Record<Method, Partial<Record<PackId, Record<string, number>>>>;
 const EMPTY: PriceMap = { flow: {}, lovax: {} };
 
-function loadPrices(): PriceMap {
+function loadLocalPrices(): PriceMap {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return EMPTY;
@@ -70,15 +70,26 @@ export default function GerenteLicencasValores() {
   };
 
   useEffect(() => {
-    setPrices(loadPrices());
     (async () => {
-      const { data } = await supabase
-        .from("reseller_tiers")
-        .select("id,slug,name,color,sort_order,is_hidden")
-        .eq("is_active", true)
-        .order("sort_order");
+      const [{ data: settingRow }, { data: tierData }] = await Promise.all([
+        supabase.from("app_settings").select("value").eq("key", STORAGE_KEY).maybeSingle(),
+        supabase
+          .from("reseller_tiers")
+          .select("id,slug,name,color,sort_order,is_hidden")
+          .eq("is_active", true)
+          .order("sort_order"),
+      ]);
+
+      const dbValue = (settingRow?.value ?? null) as PriceMap | null;
+      if (dbValue && (dbValue.flow || dbValue.lovax)) {
+        setPrices({ flow: dbValue.flow ?? {}, lovax: dbValue.lovax ?? {} });
+      } else {
+        // Migra automaticamente o que estiver no localStorage (legado)
+        setPrices(loadLocalPrices());
+      }
+
       setTiers(
-        ((data ?? []) as Tier[]).filter(
+        ((tierData ?? []) as Tier[]).filter(
           (t) =>
             !t.is_hidden &&
             t.slug?.toLowerCase() !== "partner" &&
@@ -97,7 +108,14 @@ export default function GerenteLicencasValores() {
     });
   };
 
-  const save = (m: Method) => {
+  const save = async (m: Method) => {
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ key: STORAGE_KEY, value: prices as any }, { onConflict: "key" });
+    if (error) {
+      toast.error(`Falha ao salvar: ${error.message}`);
+      return;
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prices));
     toast.success(`Preços do ${m === "flow" ? "MétodoFlow" : "MétodoLovax"} salvos`);
   };
