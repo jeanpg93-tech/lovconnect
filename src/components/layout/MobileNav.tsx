@@ -309,7 +309,7 @@ export function MobileNav() {
                     asChild
                   >
                     <Link
-                      to="/painel/revendedor/adicionar-saldo"
+                      to="/painel/revendedor/carteira#saldo"
                       onClick={() => setIsWalletModalOpen(false)}
                     >
                       <Plus className="mr-2 h-5 w-5 stroke-[3px]" />
