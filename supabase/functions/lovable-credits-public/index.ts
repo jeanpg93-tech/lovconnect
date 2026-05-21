@@ -55,6 +55,54 @@ Deno.serve(async (req) => {
       });
     }
 
+    // === Cliente envia o nome do workspace na etapa de configuração (pedidos manuais) ===
+    if (action === "set_workspace") {
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+      let workspaceName = "";
+      try {
+        const payload = await req.json();
+        workspaceName = String(payload?.workspace_name ?? "").trim();
+      } catch { /* ignore */ }
+      if (!workspaceName) {
+        return new Response(JSON.stringify({ error: "workspace_name é obrigatório" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: row } = await admin
+        .from("reseller_credit_purchases")
+        .select("id, provider_pedido_id, status")
+        .or(`provider_pedido_id.eq.${orderId},id.eq.${orderId}`)
+        .maybeSingle();
+      if (!row) {
+        return new Response(JSON.stringify({ error: "Pedido não encontrado" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const status = String(row.status ?? "");
+      if (status !== "manual_aceito") {
+        return new Response(JSON.stringify({ error: "Pedido não está aguardando configuração" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      await admin
+        .from("reseller_credit_purchases")
+        .update({ workspace_name: workspaceName })
+        .eq("id", row.id);
+      await admin
+        .from("manual_recharge_metadata")
+        .update({ workspace_name: workspaceName })
+        .eq("provider_pedido_id", row.provider_pedido_id);
+      return new Response(JSON.stringify({ success: true, workspace_name: workspaceName }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const apiKey = await getMasterKey();
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "API not configured" }), {
