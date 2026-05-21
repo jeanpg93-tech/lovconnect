@@ -61,6 +61,7 @@ type TierState = { total_spent_cents: number } | null;
 type Order = {
   id: string; license_type: string; price_cents: number; status: string;
   license_key: string | null; created_at: string; is_test: boolean;
+  customer?: { display_name: string | null; whatsapp: string | null } | null;
 };
 
 const FALLBACK_LABEL: Record<string, string> = {
@@ -139,7 +140,7 @@ export default function RevendedorPedidos() {
     ] = await Promise.all([
       supabase.from("pricing_plans").select("license_type,label,price_cents,cost_cents,min_price_cents,is_active").eq("is_active", true),
       supabase.from("profiles").select("id,email,display_name").eq("reseller_id", r.id),
-      supabase.from("orders").select("id,license_type,price_cents,status,license_key,created_at,is_test").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("orders").select("id,license_type,price_cents,status,license_key,created_at,is_test, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(20),
       supabase.rpc("get_reseller_tier", { _reseller_id: r.id }),
       supabase.from("reseller_tiers").select("id,name,color,min_spent_cents,discount_percent,sort_order,is_active").eq("is_active", true).order("min_spent_cents", { ascending: true }),
       supabase.from("reseller_tier_state").select("total_spent_cents").eq("reseller_id", r.id).maybeSingle(),
@@ -251,7 +252,7 @@ export default function RevendedorPedidos() {
     setLoadingAll(true);
     const { data } = await supabase
       .from("orders")
-      .select("id,license_type,price_cents,status,license_key,created_at,is_test")
+      .select("id,license_type,price_cents,status,license_key,created_at,is_test, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
       .eq("reseller_id", resellerId)
       .order("created_at", { ascending: false })
       .limit(1000);
@@ -862,11 +863,21 @@ export default function RevendedorPedidos() {
           if (licSearch.trim()) {
             const q = licSearch.trim().toLowerCase();
             return (o.license_key ?? "").toLowerCase().includes(q) ||
-              (o.license_type ?? "").toLowerCase().includes(q);
+              (o.license_type ?? "").toLowerCase().includes(q) ||
+              (o.customer?.display_name ?? "").toLowerCase().includes(q) ||
+              (o.customer?.whatsapp ?? "").toLowerCase().includes(q);
           }
           return true;
         });
         const fmtDate = (s: string) => new Date(s).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+        const fmtWa = (w?: string | null) => {
+          if (!w) return null;
+          const d = w.replace(/\D+/g, "");
+          if (d.length === 13) return `+${d.slice(0,2)} (${d.slice(2,4)}) ${d.slice(4,9)}-${d.slice(9)}`;
+          if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+          if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+          return w;
+        };
         return (
           <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 sm:p-8 space-y-5">
             <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
@@ -951,6 +962,29 @@ export default function RevendedorPedidos() {
                           <span>·</span>
                           <span>{fmtDate(o.created_at)}</span>
                         </div>
+                        {(o.customer?.display_name || o.customer?.whatsapp) && (
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] pt-0.5">
+                            {o.customer?.display_name && (
+                              <span className="font-semibold text-foreground/90">
+                                👤 {o.customer.display_name}
+                              </span>
+                            )}
+                            {o.customer?.whatsapp && (
+                              <>
+                                <span className="text-muted-foreground/60">·</span>
+                                <a
+                                  href={`https://wa.me/${o.customer.whatsapp.replace(/\D+/g, "")}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="font-mono text-emerald-500 hover:underline"
+                                  title="Abrir no WhatsApp"
+                                >
+                                  {fmtWa(o.customer.whatsapp)}
+                                </a>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="shrink-0">{statusBadge(o.status)}</div>
                       {!o.is_test && (o.status === "failed" || o.status === "revoked") && (
