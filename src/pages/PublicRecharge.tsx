@@ -581,8 +581,58 @@ export default function PublicRecharge() {
           )}
 
           {!isManualFailed && (
+          (() => {
+            const limiteSinceMs = order.updatedAt ? Date.parse(order.updatedAt) : nowTick;
+            const endsAtMs = (isFinite(limiteSinceMs) ? limiteSinceMs : nowTick) + 24 * 60 * 60 * 1000;
+            const remainingMs = Math.max(0, endsAtMs - nowTick);
+            const hh = String(Math.floor(remainingMs / 3_600_000)).padStart(2, "0");
+            const mm = String(Math.floor((remainingMs % 3_600_000) / 60_000)).padStart(2, "0");
+            const ss = String(Math.floor((remainingMs % 60_000) / 1000)).padStart(2, "0");
+            return (
+          <>
+          {isManualLimite && (
+            <div className="relative overflow-hidden rounded-2xl border border-orange-400/40 bg-gradient-to-br from-orange-500/20 via-amber-500/10 to-orange-500/5 p-4 sm:p-5 shadow-lg shadow-orange-900/20 animate-fade-in mb-4">
+              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-400/20 blur-2xl animate-pulse" />
+              <div className="relative flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 ring-1 ring-orange-400/40">
+                  <Clock className="h-5 w-5 text-orange-300 animate-pulse" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-orange-200">Limite diário atingido</span>
+                    <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-orange-300" />
+                  </div>
+                  <p className="mt-1 text-sm font-semibold text-orange-50 leading-snug">
+                    Sua conta atingiu o limite diário de recargas.
+                  </p>
+                  <p className="mt-1 text-xs text-orange-100/70 leading-snug">
+                    Retomaremos o envio automaticamente em até 24 horas, assim que o limite for liberado. Não é necessário fazer nada.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-amber-400/50 via-orange-400/20 to-amber-400/50 shadow-2xl shadow-amber-900/30">
-            <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] bg-zinc-950/85 backdrop-blur-xl p-5 sm:p-6 space-y-5">
+            <div className={cn("relative overflow-hidden rounded-[calc(1rem-1.5px)] bg-zinc-950/85 backdrop-blur-xl p-5 sm:p-6 space-y-5", isManualLimite && "select-none")}>
+              {isManualLimite && (
+                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 rounded-[calc(1rem-1.5px)] bg-zinc-950/60 backdrop-blur-md">
+                  <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-orange-500/20 ring-2 ring-orange-400/50">
+                    <Clock className="h-10 w-10 text-orange-300 animate-[spin_8s_linear_infinite]" />
+                    <span className="absolute inset-0 rounded-full ring-2 ring-orange-400/40 animate-ping" />
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-200">Liberação em</div>
+                    <div className="mt-1 font-mono text-3xl font-black tabular-nums text-orange-100 drop-shadow-[0_0_12px_rgba(251,146,60,0.4)]">
+                      {hh}:{mm}:{ss}
+                    </div>
+                    <div className="mt-1 text-[11px] text-orange-100/70">Aguardando liberação do limite diário</div>
+                  </div>
+                </div>
+              )}
+              {isManualLimite && (
+                <div className="absolute inset-0 z-20 rounded-[calc(1rem-1.5px)] backdrop-blur-[6px] bg-zinc-950/30" />
+              )}
               <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-amber-500/20 blur-3xl" />
 
               <div className="relative flex items-center justify-between">
