@@ -48,6 +48,7 @@ type Storefront = {
   show_credits?: boolean;
   show_extensions?: boolean;
   show_free_trial?: boolean;
+  extension_method?: "flow" | "lovax" | null;
 };
 
 
@@ -206,8 +207,7 @@ export default function PublicStorefront() {
       const { data: rep } = await supabase
         .from("reseller_extension_prices")
         .select("license_type, price_cents, is_active, extension_id")
-        .eq("reseller_id", r.id)
-        .is("extension_id", null);
+        .eq("reseller_id", r.id);
 
       const list = ((rep ?? []) as any[])
         .filter((row) => row.is_active && row.price_cents > 0)
@@ -681,6 +681,54 @@ export default function PublicStorefront() {
             <div className="w-full">
               {activeTab === "extension" ? (
                 <>
+                  {(() => {
+                    const method = store.extension_method ?? "flow";
+                    const isLovax = method === "lovax";
+                    const methodLabel = isLovax ? "LovaX" : "PromptFlow";
+                    const methodDesc = isLovax
+                      ? "Tecnologia LovaX — geração de chaves rápida e estável"
+                      : "Tecnologia PromptFlow — máxima compatibilidade e performance";
+                    return (
+                      <div className="max-w-xl mx-auto mb-4">
+                        <div
+                          className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card/80 via-card/60 to-card/80 backdrop-blur p-4 shadow-md"
+                          style={{ borderColor: `${color}40` }}
+                        >
+                          <div
+                            className="absolute -top-10 -left-10 h-32 w-32 rounded-full blur-[60px] opacity-20"
+                            style={{ background: color }}
+                          />
+                          <div className="relative z-10 flex items-center gap-3">
+                            <div
+                              className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 shadow-inner"
+                              style={{ background: `${color}1a`, color }}
+                            >
+                              {isLovax ? <Sparkles className="h-5 w-5" /> : <Chrome className="h-5 w-5" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                                  Método da extensão
+                                </span>
+                                <span
+                                  className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border"
+                                  style={{ color, borderColor: `${color}50`, background: `${color}10` }}
+                                >
+                                  Ativo
+                                </span>
+                              </div>
+                              <div className="font-bold text-base mt-0.5" style={{ color }}>
+                                {methodLabel}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground mt-0.5">
+                                {methodDesc}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   {store.show_free_trial && (
                     <div className="max-w-xl mx-auto mb-4">
                       <button
