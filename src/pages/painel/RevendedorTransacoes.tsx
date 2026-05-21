@@ -50,6 +50,7 @@ const KIND_META: Record<string, { label: string; cls: string; icon: any }> = {
   refund:          { label: "Estorno",        cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",             icon: ArrowDownRight },
   panel_refund:    { label: "Estorno Painel", cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",             icon: ArrowDownRight },
   credit_purchase_refund: { label: "Estorno", cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",           icon: ArrowDownRight },
+  license_purchase_refund:{ label: "Estorno Licença", cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",   icon: ArrowDownRight },
   adjustment:      { label: "Ajuste Gerente", cls: "bg-violet-500/10 text-violet-500 border-violet-500/20",    icon: Zap },
   manual_credit:   { label: "Recarga Manual", cls: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", icon: ArrowDownRight },
   manual_debit:    { label: "Débito Manual",  cls: "bg-rose-500/10 text-rose-500 border-rose-500/20",          icon: ArrowUpRight },
