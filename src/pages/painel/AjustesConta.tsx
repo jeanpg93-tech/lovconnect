@@ -46,16 +46,16 @@ export default function AjustesConta() {
   useEffect(() => {
     if (!user) return;
     setEmail(user.email ?? "");
-    setPhone(user.phone ?? "");
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("display_name, avatar_url")
+        .select("display_name, avatar_url, phone")
         .eq("id", user.id)
         .maybeSingle();
       if (data) {
         setDisplayName(data.display_name ?? "");
         setAvatarUrl(data.avatar_url ?? null);
+        setPhone(data.phone ?? "");
       }
     })();
   }, [user]);
@@ -123,7 +123,10 @@ export default function AjustesConta() {
     const parsed = phoneSchema.safeParse(phone);
     if (!parsed.success) return toast.error(parsed.error.errors[0].message);
     setSavingPhone(true);
-    const { error } = await supabase.auth.updateUser({ phone: parsed.data });
+    const { error } = await supabase
+      .from("profiles")
+      .update({ phone: parsed.data })
+      .eq("id", user!.id);
     setSavingPhone(false);
     if (error) return toast.error(error.message);
     toast.success("Telefone atualizado.");
