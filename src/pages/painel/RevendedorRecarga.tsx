@@ -207,6 +207,32 @@ export default function RevendedorRecargas() {
   const [loadingAllRecharges, setLoadingAllRecharges] = useState(false);
   const [reSearch, setReSearch] = useState("");
   const [reStatusFilter, setReStatusFilter] = useState<string>("all");
+  const [refundedRechargeIds, setRefundedRechargeIds] = useState<Set<string>>(new Set());
+  const [refundingRechargeId, setRefundingRechargeId] = useState<string | null>(null);
+
+  const loadRechargeRefunds = async (rid: string) => {
+    const { data } = await supabase
+      .from("refund_requests")
+      .select("reference_id")
+      .eq("reseller_id", rid)
+      .eq("kind", "recharge");
+    setRefundedRechargeIds(new Set((data ?? []).map((r: any) => r.reference_id)));
+  };
+
+  const requestRechargeRefund = async (r: { id: string; amount_cents: number }) => {
+    if (!confirm(`Solicitar reembolso de ${formatBRL(r.amount_cents)} para o seu saldo?`)) return;
+    setRefundingRechargeId(r.id);
+    const { data, error } = await supabase.functions.invoke("request-refund", {
+      body: { kind: "recharge", reference_id: r.id },
+    });
+    setRefundingRechargeId(null);
+    if (error || (data as any)?.error) {
+      return toast.error((data as any)?.error ?? error?.message ?? "Falha no reembolso");
+    }
+    toast.success("Reembolso creditado no seu saldo");
+    if (resellerId) loadRechargeRefunds(resellerId);
+    refreshBalance();
+  };
 
   const loadRecentRecharges = async (rid: string) => {
     const { data } = await supabase
@@ -255,6 +281,7 @@ export default function RevendedorRecargas() {
       if (!r) { setPlansLoading(false); return; }
       setResellerId(r.id);
       loadRecentRecharges(r.id);
+      loadRechargeRefunds(r.id);
 
       const [{ data: b }, { data: pl }, { data: rp }, costsResponse] = await Promise.all([
         supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
@@ -1233,6 +1260,23 @@ export default function RevendedorRecargas() {
                             ) : null}
                           </div>
                           <div className="shrink-0">{renderStatus(r.status)}</div>
+                          {["failed", "expired", "canceled", "cancelled"].includes(r.status) && (
+                            refundedRechargeIds.has(r.id) ? (
+                              <Badge variant="outline" className="text-[10px] font-bold uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+                                Reembolsado
+                              </Badge>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2 text-[10px] font-bold border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                                disabled={refundingRechargeId === r.id}
+                                onClick={() => requestRechargeRefund({ id: r.id, amount_cents: r.amount_cents })}
+                              >
+                                {refundingRechargeId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reembolso"}
+                              </Button>
+                            )
+                          )}
                         </div>
                       ))}
                     </div>
