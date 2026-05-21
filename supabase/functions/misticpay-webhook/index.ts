@@ -424,42 +424,6 @@ Deno.serve(async (req) => {
       console.warn("orders insert (storefront) failed", e);
     }
 
-    // Send WhatsApp via Evolution (best-effort)
-    if (license_key) {
-      try {
-        const EVO_URL = (Deno.env.get("EVOLUTION_BASE_URL") ?? "").replace(/\/+$/, "");
-        const EVO_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
-        const { data: integ } = await admin
-          .from("reseller_integrations")
-          .select("connection_status, instance_name, evolution_message_template")
-          .eq("reseller_id", storeOrder.reseller_id)
-          .maybeSingle();
-        const tpl = integ?.evolution_message_template ||
-          "Olá {nome}! ✅ Sua licença {tipo} foi gerada.\n\n🔑 Chave: {chave}\n\nGuarde com cuidado.";
-        if (EVO_URL && EVO_KEY && integ?.connection_status === "connected" && integ.instance_name) {
-          const message = String(tpl)
-            .replaceAll("{nome}", storeOrder.buyer_name)
-            .replaceAll("{chave}", license_key)
-            .replaceAll("{tipo}", storeOrder.license_type);
-          const number = storeOrder.buyer_whatsapp.startsWith("55")
-            ? storeOrder.buyer_whatsapp
-            : `55${storeOrder.buyer_whatsapp}`;
-          await fetch(
-            `${EVO_URL}/message/sendText/${encodeURIComponent(integ.instance_name)}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-              body: JSON.stringify({ number, text: message }),
-            },
-          ).then((r) => {
-            if (r.ok) admin.rpc("increment_evolution_messages_sent", { _reseller_id: storeOrder.reseller_id });
-          }).catch(() => {});
-        }
-      } catch (e) {
-        console.warn("evolution send failed", e);
-      }
-    }
-
     return json({ ok: true, kind: "storefront_order" });
   } catch (e) {
     console.error("webhook error", e);

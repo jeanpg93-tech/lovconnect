@@ -185,44 +185,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // dispara WhatsApp via Evolution (best-effort, igual place-reseller-order)
-    if (license_key && buyer_whatsapp) {
-      try {
-        const EVO_URL = (Deno.env.get("EVOLUTION_BASE_URL") ?? "").replace(/\/+$/, "");
-        const EVO_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
-        const { data: integ } = await svc
-          .from("reseller_integrations")
-          .select("connection_status, instance_name")
-          .eq("reseller_id", reseller.id)
-          .maybeSingle();
-        const { data: tplRow } = await svc
-          .from("app_settings").select("value").eq("key", "evolution_message_template").maybeSingle();
-        const tpl = (typeof tplRow?.value === "string" ? tplRow.value : (tplRow?.value as any)) ||
-          "Olá {nome}! Sua chave teste foi gerada.\n\nChave: {chave}";
-        if (EVO_URL && EVO_KEY && integ?.connection_status === "connected" && integ.instance_name) {
-          const message = String(tpl)
-            .replaceAll("{nome}", final_display_name)
-            .replaceAll("{chave}", license_key)
-            .replaceAll("{tipo}", "trial");
-          const number = buyer_whatsapp.startsWith("55") ? buyer_whatsapp : `55${buyer_whatsapp}`;
-          const evoResp = await fetch(
-            `${EVO_URL}/message/sendText/${encodeURIComponent(integ.instance_name)}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-              body: JSON.stringify({ number, text: message }),
-            },
-          );
-          if (evoResp.ok) {
-            await svc.rpc("increment_evolution_messages_sent", { _reseller_id: reseller.id });
-          }
-          await evoResp.text().catch(() => {});
-        }
-      } catch (e) {
-        console.error("[evolution send trial]", e);
-      }
-    }
-
     return json({
       ok: true,
       order_id: order.id,
