@@ -52,7 +52,8 @@ const App = () => (
               <Route path="/instalar" element={<Install />} />
               <Route path="/painel/*" element={<AppLayout />} />
               <Route path="/loja/:slug" element={<PublicStorefront />} />
-              <Route path="/extensao/:slug" element={<PublicExtension />} />
+              <Route path="/Extension-flow" element={<PublicExtension slug="lovmain-unlimited" />} />
+              <Route path="/Extension-lovax" element={<PublicExtension slug="extension-lovax" />} />
               <Route path="/recargas/:id" element={<PublicRecharge />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
