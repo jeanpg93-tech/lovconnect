@@ -210,6 +210,84 @@ export default function RevendedorRecargas() {
   const [refundedRechargeIds, setRefundedRechargeIds] = useState<Set<string>>(new Set());
   const [refundingRechargeId, setRefundingRechargeId] = useState<string | null>(null);
 
+  // Histórico de compras de créditos (saldo → workspace próprio ou manual)
+  type CreditPurchaseRow = {
+    id: string;
+    credits: number;
+    price_cents: number;
+    status: string;
+    tipo_entrega: string | null;
+    workspace_name: string | null;
+    provider_pedido_id: string | null;
+    created_at: string;
+    updated_at: string;
+    error_message: string | null;
+  };
+  const [recentCreditPurchases, setRecentCreditPurchases] = useState<CreditPurchaseRow[]>([]);
+  const [allCreditPurchases, setAllCreditPurchases] = useState<CreditPurchaseRow[] | null>(null);
+  const [loadingAllCreditPurchases, setLoadingAllCreditPurchases] = useState(false);
+  const [cpSearch, setCpSearch] = useState("");
+  const [cpStatusFilter, setCpStatusFilter] = useState<string>("all");
+  const [refundedCreditPurchaseIds, setRefundedCreditPurchaseIds] = useState<Set<string>>(new Set());
+  const [refundingCreditPurchaseId, setRefundingCreditPurchaseId] = useState<string | null>(null);
+  const [syncingCreditPurchases, setSyncingCreditPurchases] = useState(false);
+
+  const loadCreditPurchaseRefunds = async (rid: string) => {
+    const { data } = await supabase
+      .from("refund_requests")
+      .select("reference_id")
+      .eq("reseller_id", rid)
+      .eq("kind", "credit_purchase");
+    setRefundedCreditPurchaseIds(new Set((data ?? []).map((r: any) => r.reference_id)));
+  };
+
+  const loadRecentCreditPurchases = async (rid: string) => {
+    const { data } = await supabase
+      .from("reseller_credit_purchases")
+      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,provider_pedido_id,created_at,updated_at,error_message")
+      .eq("reseller_id", rid)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setRecentCreditPurchases((data ?? []) as CreditPurchaseRow[]);
+  };
+  const loadAllCreditPurchases = async () => {
+    if (!resellerId) return;
+    setLoadingAllCreditPurchases(true);
+    const { data } = await supabase
+      .from("reseller_credit_purchases")
+      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,provider_pedido_id,created_at,updated_at,error_message")
+      .eq("reseller_id", resellerId)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    setAllCreditPurchases((data ?? []) as CreditPurchaseRow[]);
+    setLoadingAllCreditPurchases(false);
+  };
+  const syncCreditPurchases = async (rid: string, ids?: string[]) => {
+    setSyncingCreditPurchases(true);
+    try {
+      await supabase.functions.invoke("sync-credit-purchase-status", {
+        body: ids && ids.length > 0 ? { purchase_ids: ids } : {},
+      });
+      await loadRecentCreditPurchases(rid);
+      if (allCreditPurchases) await loadAllCreditPurchases();
+    } catch (_e) {}
+    setSyncingCreditPurchases(false);
+  };
+  const requestCreditPurchaseRefund = async (c: { id: string; price_cents: number }) => {
+    if (!confirm(`Solicitar estorno de ${formatBRL(c.price_cents)} para o seu saldo?`)) return;
+    setRefundingCreditPurchaseId(c.id);
+    const { data, error } = await supabase.functions.invoke("request-refund", {
+      body: { kind: "credit_purchase", reference_id: c.id },
+    });
+    setRefundingCreditPurchaseId(null);
+    if (error || (data as any)?.error) {
+      return toast.error((data as any)?.error ?? error?.message ?? "Falha no reembolso");
+    }
+    toast.success("Estorno creditado no seu saldo");
+    if (resellerId) loadCreditPurchaseRefunds(resellerId);
+    refreshBalance();
+  };
+
   const loadRechargeRefunds = async (rid: string) => {
     const { data } = await supabase
       .from("refund_requests")
@@ -282,6 +360,10 @@ export default function RevendedorRecargas() {
       setResellerId(r.id);
       loadRecentRecharges(r.id);
       loadRechargeRefunds(r.id);
+      loadRecentCreditPurchases(r.id);
+      loadCreditPurchaseRefunds(r.id);
+      // Em background: pergunta ao provider o status das compras "em aberto" e atualiza local.
+      syncCreditPurchases(r.id);
 
       const [{ data: b }, { data: pl }, { data: rp }, costsResponse] = await Promise.all([
         supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
