@@ -252,6 +252,7 @@ export default function RevendedorPedidos() {
     if (action === "revoke-license") toast.success("Licença revogada");
     if (action === "delete-license") toast.success("Licença excluída");
     load();
+    if (allOrders) loadAllOrders();
   };
 
   const statusBadge = (status: string) => {
