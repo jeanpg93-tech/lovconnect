@@ -31,7 +31,6 @@ const GerenteAvisos = lazy(() => import("@/pages/painel/GerenteAvisos"));
 const GerenteTodasLicencas = lazy(() => import("@/pages/painel/GerenteTodasLicencas"));
 const GerentePartners = lazy(() => import("@/pages/painel/GerentePartners"));
 const GerenteFinanceiroGeral = lazy(() => import("@/pages/painel/GerenteFinanceiroGeral"));
-const GerentePerformance = lazy(() => import("@/pages/painel/GerentePerformance"));
 const GerenteVendasLoja = lazy(() => import("@/pages/painel/GerenteVendasLoja"));
 const RevendedorAvisos = lazy(() => import("@/pages/painel/RevendedorAvisos"));
 const GerentePersonalizarExtensao = lazy(() => import("@/pages/painel/GerentePersonalizarExtensao"));
@@ -110,7 +109,6 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/gerente/partners", match: exact("/painel/gerente/partners"), render: () => <RoleRoute allow={["gerente"]}><GerentePartners /></RoleRoute> },
   { key: "/painel/gerente/ranking-prizes", match: exact("/painel/gerente/ranking-prizes"), render: () => <RoleRoute allow={["gerente"]}><GerenteRankingPrizes /></RoleRoute> },
   { key: "/painel/gerente/personalizar-extensao", match: exact("/painel/gerente/personalizar-extensao"), render: () => <RoleRoute allow={["gerente"]}><GerentePersonalizarExtensao /></RoleRoute> },
-  { key: "/painel/gerente/performance", match: exact("/painel/gerente/performance"), render: () => <RoleRoute allow={["gerente"]}><GerentePerformance /></RoleRoute> },
   { key: "/painel/gerente/acoes-especiais", match: exact("/painel/gerente/acoes-especiais"), render: () => <RoleRoute allow={["gerente"]}><GerenteAcoesEspeciais /></RoleRoute> },
   { key: "/painel/gerente/instalar-app", match: exact("/painel/gerente/instalar-app"), render: () => <RoleRoute allow={["gerente"]}><InstallApp /></RoleRoute> },
   { key: "/painel/revendedor/avisos", match: exact("/painel/revendedor/avisos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorAvisos /></RoleRoute> },
