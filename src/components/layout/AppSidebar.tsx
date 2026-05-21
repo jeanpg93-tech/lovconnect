@@ -72,7 +72,6 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Dashboard", url: "/painel/gerente", icon: LayoutDashboard },
       { title: "Financeiro", url: "/painel/gerente/financeiro", icon: Wallet },
       { title: "Vendas da Loja", url: "/painel/gerente/vendas-loja", icon: ShoppingBag },
-      { title: "Performance", url: "/painel/gerente/performance", icon: Gauge },
     ]},
     { label: "Operação", items: [
       { title: "Aprovações", url: "/painel/gerente/aprovacoes", icon: UserCheck },
