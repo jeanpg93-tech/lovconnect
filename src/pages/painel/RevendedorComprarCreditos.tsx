@@ -472,7 +472,7 @@ export default function RevendedorComprarCreditos() {
 
       {step === 3 && (() => {
         const orderId = lastOrder?.id ?? lastOrder?.pedidoId ?? "";
-        const trackUrl = `https://revendovable.store/recargas/${orderId}`;
+        const trackUrl = `https://lovconnect.store/recargas/${orderId}`;
         const clientMsg =
           `Olá! Seu pedido de ${lastOrder?.creditosEnviados ?? selectedPlan?.credits_amount ?? ""} recargas Lovable foi confirmado com sucesso. ✅\n\n` +
           `Acompanhe o pedido em tempo real pelo link abaixo:\n${trackUrl}\n\n` +

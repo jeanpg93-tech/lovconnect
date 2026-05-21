@@ -321,9 +321,7 @@ export function BuyCreditsFlowModal({
   };
 
   const orderId = lastOrder?.id ?? lastOrder?.pedidoId ?? "";
-  const siteOrigin =
-    typeof window !== "undefined" ? window.location.origin : "";
-  const trackUrl = orderId ? `${siteOrigin}/recargas/${orderId}` : "";
+  const trackUrl = orderId ? `https://lovconnect.store/recargas/${orderId}` : "";
   const creditAmount = lastOrder?.creditosEnviados ?? plan?.credits_amount ?? "";
   const clientMsg =
     `✨ *Pedido confirmado com sucesso!* ✨\n` +
