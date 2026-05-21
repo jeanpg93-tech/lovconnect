@@ -14,6 +14,8 @@ import {
   AlertTriangle,
   Trash2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Wallet,
   Ticket,
   ShoppingCart,
@@ -146,7 +148,7 @@ const roleLabel: Record<AppRole, string> = {
 };
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
   const { primaryRole, loading, hasData } = useRole();
@@ -331,6 +333,19 @@ export function AppSidebar() {
       fetchLovax();
     }, 60_000);
     return () => { cancelled = true; clearInterval(id); };
+  }, [primaryRole]);
+
+  // Aplica scrollbars finos/vermelhos só no painel do admin (gerente)
+  useEffect(() => {
+    const root = document.documentElement;
+    if (primaryRole === "gerente") {
+      root.setAttribute("data-admin-panel", "true");
+    } else {
+      root.removeAttribute("data-admin-panel");
+    }
+    return () => {
+      root.removeAttribute("data-admin-panel");
+    };
   }, [primaryRole]);
 
   if ((loading && !hasData) || !primaryRole) return null;
