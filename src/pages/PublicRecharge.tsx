@@ -363,7 +363,7 @@ export default function PublicRecharge() {
     const isManualPendente = !isManualAceito && !isManualIniciado && !isManualDone && !isManualFailed;
     const manualStages = [
       { key: "recebido", label: "Pedido recebido", desc: "Registramos sua solicitação", done: true, active: isManualPendente },
-      { key: "aceito", label: "Pedido aceito — Aguardando configuração", desc: "Confirmamos seu pedido e estamos preparando a configuração", done: isManualAceito || isManualIniciado || isManualDone, active: isManualAceito },
+      { key: "aceito", label: "Pedido aceito — Aguardando configuração", desc: "Confirmamos seu pedido e estamos aguardando a configuração na sua conta", done: isManualAceito || isManualIniciado || isManualDone, active: isManualAceito },
       { key: "configurado", label: "Configurado — Iniciando entrega", desc: "Tudo pronto, sua recarga está a caminho do workspace", done: isManualIniciado || isManualDone, active: isManualIniciado },
       { key: "entregue", label: "Entrega finalizada — Recarga creditada", desc: "Créditos disponíveis no seu workspace", done: isManualDone, active: false },
     ];
