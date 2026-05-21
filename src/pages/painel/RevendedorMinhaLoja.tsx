@@ -864,6 +864,36 @@ export default function RevendedorMinhaLoja() {
                   </div>
                 </div>
 
+                <div className="space-y-4 pt-4 border-t border-dashed">
+                  <div>
+                    <Label className="text-xs font-bold uppercase tracking-wider">Exposição dos Produtos</Label>
+                    <p className="text-[11px] text-muted-foreground mt-1">Escolha como os produtos são exibidos na loja.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {LAYOUT_OPTIONS.map((opt) => {
+                      const Icon = opt.icon;
+                      const active = layoutMode === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => setLayoutMode(opt.value)}
+                          className={cn(
+                            "flex flex-col items-center gap-2 p-3 rounded-xl border transition-all text-center",
+                            active
+                              ? "bg-primary/10 border-primary ring-1 ring-primary/20"
+                              : "bg-muted/30 border-transparent hover:border-muted-foreground/30"
+                          )}
+                        >
+                          <div className={cn("p-2 rounded-lg", active ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground")}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <span className="text-[10px] font-bold uppercase">{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="space-y-3 pt-4 border-t border-dashed">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-bold uppercase tracking-wider">Preview da Loja</Label>
