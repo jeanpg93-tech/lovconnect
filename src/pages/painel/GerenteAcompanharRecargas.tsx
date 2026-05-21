@@ -11,9 +11,10 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Wallet, Loader2, Copy, RefreshCw, Search, Coins, CheckCircle2, Clock, XCircle,
   Filter, ArrowUpRight, Zap, Eye, ExternalLink, History as HistoryIcon, Hand, Send,
-  Wrench, AlertTriangle, RotateCcw, ChevronDown, BarChart3,
+  Wrench, AlertTriangle, RotateCcw, ChevronDown, BarChart3, Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
+import RefundSaleDialog, { type RefundSaleData } from "@/components/painel/RefundSaleDialog";
 
 type Usage = {
   id: string;
@@ -23,6 +24,8 @@ type Usage = {
   created_at: string;
   responsavel_email?: string | null;
   responsavel_nome?: string | null;
+  price_cents?: number | null;
+  refunded?: boolean;
   raw?: any;
 };
 
@@ -72,6 +75,8 @@ export default function GerenteAcompanharRecargas() {
   } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [nowTick, setNowTick] = useState(() => Date.now());
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundData, setRefundData] = useState<RefundSaleData | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setNowTick(Date.now()), 1000);
