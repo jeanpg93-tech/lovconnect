@@ -763,9 +763,9 @@ export default function GerenteAcompanharRecargas() {
                             {(isDone || isFail) && (
                               <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => askConfirm({
                                 title: "Reabrir pedido?",
-                                description: `O pedido ${m.provider_pedido_id.slice(0,8)} voltará para o status Pendente.`,
+                                description: `O pedido ${m.provider_pedido_id.slice(0,8)} voltará para o status Aceito/Config.`,
                                 confirmLabel: "Reabrir",
-                                onConfirm: () => setManualStatus(m, "manual_pendente", { notes: null, force: true }),
+                                onConfirm: () => setManualStatus(m, "manual_aceito", { notes: null, force: true }),
                               })}>
                                 <RotateCcw className="mr-1 h-3 w-3" /> Reabrir
                               </Button>
