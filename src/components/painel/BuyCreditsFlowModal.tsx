@@ -321,19 +321,25 @@ export function BuyCreditsFlowModal({
   };
 
   const orderId = lastOrder?.id ?? lastOrder?.pedidoId ?? "";
-  const trackUrl = orderId ? `https://revendovable.store/recargas/${orderId}` : "";
+  const siteOrigin =
+    typeof window !== "undefined" ? window.location.origin : "";
+  const trackUrl = orderId ? `${siteOrigin}/recargas/${orderId}` : "";
   const creditAmount = lastOrder?.creditosEnviados ?? plan?.credits_amount ?? "";
   const clientMsg =
-    `🎉 *Pedido confirmado!*\n\n` +
-    `Olá! Sua recargas de *${creditAmount} recargas Lovable* foi confirmada com sucesso. ✅\n\n` +
+    `✨ *Pedido confirmado com sucesso!* ✨\n` +
+    `━━━━━━━━━━━━━━━━━━━\n\n` +
+    `Olá! 👋\n\n` +
+    `Sua recarga de *${creditAmount} créditos Lovable* já está garantida. 🚀\n\n` +
     (mode === "manual" && workspaceName.trim()
       ? `🗂️ *Workspace:* ${workspaceName.trim()}\n\n`
       : "") +
-    `📦 *Acompanhe seu pedido em tempo real:*\n${trackUrl}\n\n` +
+    `🔎 *Acompanhe em tempo real:*\n${trackUrl}\n\n` +
     (mode === "manual"
-      ? `⏱️ Entrega manual processada pela equipe — você recebe a confirmação aqui assim que cair no workspace.\n\n`
-      : `⏱️ A entrega é automática e leva apenas alguns minutos.\n\n`) +
-    `Qualquer dúvida, estou à disposição! 💬`;
+      ? `⏱️ *Entrega manual:* nossa equipe está processando — você receberá a confirmação assim que os créditos caírem no workspace.\n\n`
+      : `⚡ *Entrega automática:* leva apenas alguns minutos para concluir.\n\n`) +
+    `━━━━━━━━━━━━━━━━━━━\n` +
+    `Obrigado pela confiança! 💙\n` +
+    `Qualquer dúvida, é só me chamar. 💬`;
 
   return (
     <>
