@@ -87,6 +87,14 @@ Deno.serve(async (req) => {
         const status = String(local.status ?? "manual_pendente");
         const isDone = status === "manual_entregue" || status === "sucesso" || status === "entregue";
         const isProcessing = status === "manual_confirmado" || status === "manual_processando" || status === "processando";
+        const isAceito = status === "manual_aceito";
+        const isIniciado = status === "manual_iniciado";
+        const isConcluido = status === "manual_concluido" || isDone;
+        let statusLabel = "Pendente";
+        if (isConcluido) statusLabel = "Concluído";
+        else if (isIniciado) statusLabel = "Config/start";
+        else if (isAceito) statusLabel = "Aceito/config";
+        else if (isProcessing) statusLabel = "Em processamento";
         return new Response(
           JSON.stringify({
             success: true,
@@ -95,7 +103,7 @@ Deno.serve(async (req) => {
               id: local.provider_pedido_id ?? local.id,
               pedidoId: local.provider_pedido_id ?? local.id,
               status,
-              statusLabel: isDone ? "Entregue" : isProcessing ? "Em processamento" : "Pedido pendente",
+              statusLabel,
               creditos: local.credits,
               precoCentavos: local.price_cents,
               tipoEntrega: local.tipo_entrega,
