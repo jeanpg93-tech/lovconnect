@@ -101,7 +101,8 @@ export default function GerenteGeracaoManual() {
   >(null);
 
   const call = async (action: string, opts?: { method?: "GET" | "POST"; body?: any }) => {
-    const { data, error } = await supabase.functions.invoke(`provider-api?action=${action}`, {
+    const fn = method === "lovax" ? "lovax-api" : "provider-api";
+    const { data, error } = await supabase.functions.invoke(`${fn}?action=${action}`, {
       method: opts?.method ?? "GET",
       body: opts?.body,
     });
@@ -119,7 +120,7 @@ export default function GerenteGeracaoManual() {
         setConfigured(false);
       }
     })();
-  }, []);
+  }, [method]);
 
   const copy = (s: string) => {
     navigator.clipboard.writeText(s);
