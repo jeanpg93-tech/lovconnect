@@ -255,13 +255,14 @@ Deno.serve(async (req) => {
           .filter((t) => Number(t.min_spent_cents ?? 0) <= totalSpent)
           .sort((a, b) => Number(a.min_spent_cents ?? 0) - Number(b.min_spent_cents ?? 0))
           .at(-1);
+        const ouroTier = allTiers.find((t) => (t.name ?? "").toLowerCase().includes("ouro"));
         const blackTier = allTiers.find((t) => (t.name ?? "").toLowerCase().includes("black"));
+        const partnerFallbackTier = ouroTier ?? blackTier;
         const isPartner = currentTierName.toLowerCase().includes("partner");
-        const effectiveTierId = isPartner && blackTier
-          ? blackTier.id
-          : tierObj?.is_hidden
-            ? (equivalentVisibleTier?.id ?? visibleTiers[0]?.id ?? null)
-            : (tierObj?.id ?? equivalentVisibleTier?.id ?? visibleTiers[0]?.id ?? null);
+        const baseTierId = tierObj?.is_hidden
+          ? (equivalentVisibleTier?.id ?? visibleTiers[0]?.id ?? null)
+          : (tierObj?.id ?? equivalentVisibleTier?.id ?? visibleTiers[0]?.id ?? null);
+        let effectiveTierId = isPartner && partnerFallbackTier ? partnerFallbackTier.id : baseTierId;
 
         if (!effectiveTierId) {
           return new Response(JSON.stringify({ error: "Nível do revendedor não definido" }), {
@@ -290,7 +291,18 @@ Deno.serve(async (req) => {
           .eq("plan_id", plan.id)
           .eq("is_active", true)
           .maybeSingle();
-        const costCents = Number(tierPrice?.price_cents ?? 0);
+        let costCents = Number(tierPrice?.price_cents ?? 0);
+        // Fallback: se Partner não tem preço, herda do Ouro
+        if (costCents <= 0 && isPartner && partnerFallbackTier && effectiveTierId !== partnerFallbackTier.id) {
+          const { data: fbPrice } = await adminClient
+            .from("tier_credit_prices")
+            .select("price_cents")
+            .eq("tier_id", partnerFallbackTier.id)
+            .eq("plan_id", plan.id)
+            .eq("is_active", true)
+            .maybeSingle();
+          costCents = Number(fbPrice?.price_cents ?? 0);
+        }
         if (costCents <= 0) {
           return new Response(JSON.stringify({ error: "Preço de custo não definido para este nível" }), {
             status: 400,
