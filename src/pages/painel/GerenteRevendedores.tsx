@@ -372,7 +372,9 @@ export default function GerenteRevendedores() {
                 <thead className="bg-white/5 text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/60">
                   <tr>
                     <th className="px-6 py-4 text-left font-semibold">Nome</th>
+                    <th className="px-6 py-4 text-left font-semibold">Usuário</th>
                     <th className="px-6 py-4 text-left font-semibold">Email</th>
+                    <th className="px-6 py-4 text-left font-semibold">WhatsApp</th>
                     <th className="px-6 py-4 text-center font-semibold">Nível</th>
                     <th className="px-6 py-4 text-center font-semibold">Progresso</th>
                     <th className="px-6 py-4 text-center font-semibold">Teste (Uso/Limite)</th>
@@ -389,8 +391,10 @@ export default function GerenteRevendedores() {
                     const progress = tierProgressFor(r.id);
                     return (
                       <tr key={r.id} className="group transition-all duration-300 hover:bg-white/5">
-                        <td className="px-6 py-4 font-medium text-foreground">{r.display_name}</td>
+                        <td className="px-6 py-4 font-medium text-foreground">{firstLastName(prof?.display_name)}</td>
+                        <td className="px-6 py-4 text-muted-foreground/80">{r.display_name}</td>
                         <td className="px-6 py-4 text-muted-foreground/80">{prof?.email ?? "—"}</td>
+                        <td className="px-6 py-4 text-muted-foreground/80 font-mono text-xs whitespace-nowrap">{formatPhoneBR(prof?.phone)}</td>
                         <td className="px-6 py-4 text-center">
                           {tier ? (
                             <span className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest" style={{ background: `${tier.color}22`, color: tier.color }}>
