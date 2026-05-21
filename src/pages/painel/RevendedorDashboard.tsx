@@ -670,32 +670,6 @@ export default function RevendedorDashboard() {
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-4 md:p-6">
-            <h3 className="text-base md:text-lg font-bold flex items-center gap-2 mb-4 md:mb-6">
-              <ShieldCheck className="h-4 w-4 md:h-5 md:w-5 text-primary" /> Integrações
-            </h3>
-            <div className="space-y-3">
-              <IntegrationRow 
-                icon={CreditCard} 
-                title="MisticPay" 
-                subtitle="Pagamentos PIX" 
-                ok={integrations.misticpay_enabled} 
-                href="/painel/revendedor/integracoes/misticpay" 
-              />
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-primary/5 border border-primary/10 p-4">
-            <div className="flex items-center gap-2 mb-2 text-primary">
-              <Zap className="h-4 w-4" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Status do Sistema</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Clusters operando em alta disponibilidade. Nenhuma instabilidade detectada nas últimas 24 horas.
-            </p>
-          </div>
-        </div>
       </section>
 
     </div>
