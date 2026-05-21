@@ -3,6 +3,14 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   Loader2,
@@ -181,6 +189,8 @@ export default function PublicRecharge() {
   const [workspaceInput, setWorkspaceInput] = useState("");
   const [submittingWorkspace, setSubmittingWorkspace] = useState(false);
   const [workspaceSaved, setWorkspaceSaved] = useState(false);
+  const [editingWorkspace, setEditingWorkspace] = useState(false);
+  const [confirmWorkspaceOpen, setConfirmWorkspaceOpen] = useState(false);
 
   // Carrega aviso de lentidão do provedor
   useEffect(() => {
@@ -303,6 +313,9 @@ export default function PublicRecharge() {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Erro");
       setWorkspaceSaved(true);
+      setEditingWorkspace(false);
+      setConfirmWorkspaceOpen(false);
+      setWorkspaceInput("");
       toast.success("Workspace enviado! Aguardando a equipe iniciar.");
       await loadOrder(true);
     } catch (e: any) {
@@ -496,7 +509,32 @@ export default function PublicRecharge() {
               </div>
 
               {/* Card de configuração — Passo 2 (cliente envia nome do workspace) */}
-              {isManualAceito && (
+              {isManualAceito && (() => {
+                const hasWorkspace = Boolean(order.workspaceName) || workspaceSaved;
+                const collapsed = hasWorkspace && !editingWorkspace;
+                if (collapsed) {
+                  return (
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-400/20 bg-emerald-500/5 px-3 py-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
+                        <div className="min-w-0 text-xs text-emerald-100/90 truncate">
+                          Workspace: <span className="font-semibold text-emerald-200">{order.workspaceName}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWorkspaceInput(order.workspaceName ?? "");
+                          setEditingWorkspace(true);
+                        }}
+                        className="text-[11px] font-medium text-zinc-400 hover:text-zinc-200 underline-offset-2 hover:underline whitespace-nowrap"
+                      >
+                        Trocar workspace
+                      </button>
+                    </div>
+                  );
+                }
+                return (
                 <div className="relative overflow-hidden rounded-xl border border-blue-400/40 bg-gradient-to-br from-blue-500/15 via-indigo-500/10 to-transparent p-4 sm:p-5">
                   <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl" />
                   <div className="relative space-y-3">
@@ -521,7 +559,13 @@ export default function PublicRecharge() {
                         className="bg-zinc-900/60 border-white/10 text-white placeholder:text-zinc-500"
                       />
                       <Button
-                        onClick={submitWorkspace}
+                        onClick={() => {
+                          if (!workspaceInput.trim()) {
+                            toast.error("Informe o nome do workspace");
+                            return;
+                          }
+                          setConfirmWorkspaceOpen(true);
+                        }}
                         disabled={submittingWorkspace || !workspaceInput.trim()}
                         className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold whitespace-nowrap"
                       >
@@ -529,15 +573,25 @@ export default function PublicRecharge() {
                         Finalizar configuração
                       </Button>
                     </div>
-                    {(order.workspaceName || workspaceSaved) && (
+                    {hasWorkspace && (
                       <div className="flex items-center gap-1.5 text-[11px] text-emerald-300">
                         <CheckCircle2 className="h-3 w-3" />
                         Workspace registrado{order.workspaceName ? `: ${order.workspaceName}` : ""}. Você pode atualizar a qualquer momento até a equipe iniciar.
                       </div>
                     )}
+                    {hasWorkspace && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingWorkspace(false)}
+                        className="text-[11px] font-medium text-zinc-400 hover:text-zinc-200 underline-offset-2 hover:underline"
+                      >
+                        Cancelar
+                      </button>
+                    )}
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* Resumo */}
               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
@@ -573,6 +627,37 @@ export default function PublicRecharge() {
             Esta página atualiza automaticamente em tempo real.
           </p>
         </div>
+
+        <Dialog open={confirmWorkspaceOpen} onOpenChange={(o) => !submittingWorkspace && setConfirmWorkspaceOpen(o)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Confirmar workspace</DialogTitle>
+              <DialogDescription>
+                Confirme se o nome do workspace está exatamente como aparece no Lovable. Os créditos serão entregues nesse workspace.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-100 break-all">
+              {workspaceInput.trim() || "—"}
+            </div>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmWorkspaceOpen(false)}
+                disabled={submittingWorkspace}
+              >
+                Revisar
+              </Button>
+              <Button
+                onClick={submitWorkspace}
+                disabled={submittingWorkspace}
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold"
+              >
+                {submittingWorkspace ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+                Confirmar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
