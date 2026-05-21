@@ -83,7 +83,6 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/gerente/vendas-loja", match: exact("/painel/gerente/vendas-loja"), render: () => <RoleRoute allow={["gerente"]}><GerenteVendasLoja /></RoleRoute> },
   { key: "/painel/gerente/revendedores", match: exact("/painel/gerente/revendedores"), render: () => <RoleRoute allow={["gerente"]}><GerenteRevendedores /></RoleRoute> },
   { key: "/painel/gerente/affiliados", match: exact("/painel/gerente/affiliados"), render: () => <RoleRoute allow={["gerente"]}><GerenteAffiliados /></RoleRoute> },
-  { key: "/painel/gerente/usuarios", match: exact("/painel/gerente/usuarios"), render: () => <RoleRoute allow={["gerente"]}><GerenteUsuarios /></RoleRoute> },
   { key: "/painel/gerente/aprovacoes", match: exact("/painel/gerente/aprovacoes"), render: () => <RoleRoute allow={["gerente"]}><GerenteAprovacoes /></RoleRoute> },
   { key: "/painel/gerente/gateway", match: exact("/painel/gerente/gateway"), render: () => <RoleRoute allow={["gerente"]}><GerenteGateway /></RoleRoute> },
   { key: "/painel/gerente/api-provedor", match: exact("/painel/gerente/api-provedor"), render: () => <RoleRoute allow={["gerente"]}><GerenteApiProvedor /></RoleRoute> },
