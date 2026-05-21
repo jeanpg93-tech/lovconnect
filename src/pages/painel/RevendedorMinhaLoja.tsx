@@ -1232,7 +1232,19 @@ export default function RevendedorMinhaLoja() {
                     </div>
                   </div>
                   <div className="md:col-span-3 space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Depoimentos Ativos ({testimonials.length})</Label>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Depoimentos Ativos ({testimonials.length})</Label>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-[11px] font-bold gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                        onClick={handleGenerateAITestimonials}
+                        disabled={generatingAI || !resellerId}
+                      >
+                        {generatingAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                        Gerar com IA
+                      </Button>
+                    </div>
                     <div className="space-y-2 max-h-[360px] overflow-y-auto pr-2 custom-scrollbar">
                       {testimonials.length === 0 ? (
                         <div className="h-32 rounded-xl border border-dashed flex items-center justify-center text-xs text-muted-foreground">Nenhum depoimento ainda.</div>
