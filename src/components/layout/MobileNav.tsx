@@ -94,10 +94,10 @@ export function MobileNav() {
       isAction: true,
     },
     {
-      label: "Início",
-      icon: LayoutDashboard,
-      url: getHomeUrl(),
-      active: pathname === getHomeUrl(),
+      label: "Licenças",
+      icon: KeyRound,
+      url: primaryRole === "gerente" ? "/painel/gerente/licencas" : "/painel/revendedor/licencas",
+      active: pathname === (primaryRole === "gerente" ? "/painel/gerente/licencas" : "/painel/revendedor/licencas"),
     },
     {
       label: "Saldo",
