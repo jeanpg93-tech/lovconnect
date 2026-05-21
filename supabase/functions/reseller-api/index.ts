@@ -17,6 +17,17 @@ const corsHeaders = {
 const ALLOWED_TYPES = ["pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
 const DEFAULT_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
 
+const UNIFIED_METHODS = ["flow", "lovax"];
+const UNIFIED_PACKS = ["1d", "7d", "30d", "90d", "365d", "lifetime"];
+const PACK_LABEL: Record<string, string> = {
+  "1d": "1 Dia", "7d": "7 Dias", "30d": "30 Dias",
+  "90d": "90 Dias", "365d": "1 Ano", "lifetime": "Vitalícia",
+};
+const genUnifiedKey = (method: string, pack: string) => {
+  const rnd = crypto.randomUUID().replace(/-/g, "").toUpperCase().slice(0, 16);
+  return `${method.toUpperCase()}-${pack.toUpperCase()}-${rnd}`;
+};
+
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
   switch (type) {
     case "pro_1d": return { days: 1 };
@@ -483,6 +494,245 @@ Deno.serve(async (req) => {
 
 
   const LICENSE_ACTIONS = ["reset-hwid", "revoke-license", "delete-license"];
+
+  // ---------- GET /metodos ----------
+  // Lista os métodos (flow/lovax) com pacotes, preço de custo (nível do revendedor)
+  // e preço de venda configurado (override em reseller_license_prices).
+  if (req.method === "GET" && (action === "metodos" || action === "methods")) {
+    const { data: setting } = await svc.from("app_settings")
+      .select("value").eq("key", "licencas.valores").maybeSingle();
+    const valores = (setting?.value ?? {}) as Record<string, any>;
+
+    const { data: tierData } = await svc.rpc("get_reseller_tier", { _reseller_id: reseller.id });
+    const tier: any = Array.isArray(tierData) ? tierData[0] : tierData;
+
+    const { data: sales } = await svc.from("reseller_license_prices")
+      .select("method,pack_id,price_cents").eq("reseller_id", reseller.id);
+    const saleMap: Record<string, number> = {};
+    (sales ?? []).forEach((r: any) => { saleMap[`${r.method}|${r.pack_id}`] = Number(r.price_cents); });
+
+    const result = UNIFIED_METHODS.map((m) => ({
+      metodo: m,
+      pacotes: UNIFIED_PACKS.map((p) => {
+        const brl = Number(valores?.[m]?.[p]?.[tier?.id] ?? 0);
+        const cost_cents = Math.round(brl * 100);
+        const sale_cents = saleMap[`${m}|${p}`] ?? null;
+        return {
+          pacote: p,
+          label: PACK_LABEL[p],
+          custo_cents: cost_cents,
+          venda_cents: sale_cents,
+          disponivel: cost_cents > 0,
+        };
+      }).filter((x) => x.disponivel),
+    })).filter((x) => x.pacotes.length > 0);
+
+    await logUsage(200);
+    return json({ ok: true, metodos: result, tier: tier ? { id: tier.id, name: tier.name } : null });
+  }
+
+  // ---------- POST /licencas ----------
+  // Endpoint unificado: { metodo: "flow"|"lovax", pacote, display_name, whatsapp?, client_id? }
+  if (req.method === "POST" && (action === "licencas" || action === "licenses")) {
+    const body = await req.json().catch(() => ({}));
+    const metodo = String(body.metodo ?? body.method ?? "").toLowerCase();
+    const pacote = String(body.pacote ?? body.pack_id ?? body.pack ?? "").toLowerCase();
+    const display_name = typeof body.display_name === "string" ? body.display_name.trim().slice(0, 100) : "";
+    const whatsapp = (typeof body.whatsapp === "string" ? body.whatsapp : "").replace(/\D+/g, "").slice(0, 15);
+    const client_id = body.client_id ? String(body.client_id) : null;
+
+    if (!UNIFIED_METHODS.includes(metodo)) {
+      await logUsage(400, { error_message: "metodo inválido" });
+      return json({ error: "metodo inválido", permitidos: UNIFIED_METHODS }, 400);
+    }
+    if (!UNIFIED_PACKS.includes(pacote)) {
+      await logUsage(400, { error_message: "pacote inválido" });
+      return json({ error: "pacote inválido", permitidos: UNIFIED_PACKS }, 400);
+    }
+    if (display_name.length < 2) {
+      await logUsage(400, { error_message: "display_name obrigatório" });
+      return json({ error: "display_name obrigatório (>= 2 chars)" }, 400);
+    }
+    if (whatsapp && (whatsapp.length < 10 || whatsapp.length > 13)) {
+      await logUsage(400, { error_message: "whatsapp inválido" });
+      return json({ error: "whatsapp inválido" }, 400);
+    }
+
+    if (client_id) {
+      const { data: prof } = await svc.from("profiles")
+        .select("id,reseller_id").eq("id", client_id).maybeSingle();
+      if (!prof || prof.reseller_id !== reseller.id) {
+        await logUsage(403, { error_message: "client_id não pertence ao revendedor" });
+        return json({ error: "client_id não pertence a você" }, 403);
+      }
+    }
+
+    // Preço de custo do método/pacote no nível atual
+    const { data: tierData } = await svc.rpc("get_reseller_tier", { _reseller_id: reseller.id });
+    const tier: any = Array.isArray(tierData) ? tierData[0] : tierData;
+    if (!tier?.id) {
+      await logUsage(400, { error_message: "Nível não definido" });
+      return json({ error: "Nível do revendedor não definido" }, 400);
+    }
+
+    const { data: setting } = await svc.from("app_settings")
+      .select("value").eq("key", "licencas.valores").maybeSingle();
+    const valores = (setting?.value ?? {}) as Record<string, any>;
+    const priceBrl = Number(valores?.[metodo]?.[pacote]?.[tier.id] ?? 0);
+    if (!priceBrl || priceBrl <= 0) {
+      await logUsage(400, { error_message: "Preço não configurado" });
+      return json({ error: "Preço não configurado para esse pacote no seu nível" }, 400);
+    }
+    const price_cents = Math.round(priceBrl * 100);
+    const license_type = `${metodo}_${pacote}`;
+
+    // Cria pedido pendente
+    const { data: order, error: ordErr } = await svc.from("orders").insert({
+      reseller_id: reseller.id,
+      client_id,
+      license_type,
+      price_cents,
+      status: "pending",
+      api_key_id: keyRow.id,
+      product_type: "extension",
+      notes: JSON.stringify({ method: metodo, pack_id: pacote, display_name, whatsapp: whatsapp || null, source: "unified_api" }),
+    }).select().single();
+    if (ordErr || !order) {
+      await logUsage(500, { error_message: "Falha pedido" });
+      return json({ error: "Falha ao criar pedido" }, 500);
+    }
+
+    // Debita
+    const { data: ok, error: debErr } = await svc.rpc("debit_reseller_balance", {
+      _reseller_id: reseller.id,
+      _amount_cents: price_cents,
+      _kind: "api_debit",
+      _description: `API ${metodo.toUpperCase()} ${pacote}`,
+      _reference_id: order.id,
+    });
+    if (debErr || !ok) {
+      await svc.from("orders").update({
+        status: "failed",
+        error_message: debErr?.message ?? "Saldo insuficiente",
+      }).eq("id", order.id);
+      await logUsage(402, { error_message: "Saldo insuficiente" });
+      return json({ error: "Saldo insuficiente" }, 402);
+    }
+
+    // Gera chave localmente (sem chamar provedor) — mesmo padrão do place-method-license-order
+    const license_key = genUnifiedKey(metodo, pacote);
+    await svc.from("orders").update({
+      status: "completed", license_key,
+    }).eq("id", order.id);
+    await svc.rpc("add_reseller_spent", { _reseller_id: reseller.id, _amount_cents: price_cents });
+    await logUsage(200, { cost_cents: price_cents, license_type, license_key });
+
+    return json({
+      ok: true,
+      order_id: order.id,
+      license_key,
+      metodo,
+      pacote,
+      price_cents,
+      display_name,
+    });
+  }
+
+  // ---------- POST /licencas-trial ----------
+  // Body: { metodo, display_name } — trial 15min vinculado ao método escolhido
+  if (req.method === "POST" && (action === "licencas-trial" || action === "trial")) {
+    const body = await req.json().catch(() => ({}));
+    const metodo = String(body.metodo ?? body.method ?? "").toLowerCase();
+    const display_name = typeof body.display_name === "string" ? body.display_name.trim().slice(0, 100) : "Cliente Teste";
+
+    if (!UNIFIED_METHODS.includes(metodo)) {
+      await logUsage(400, { error_message: "metodo inválido" });
+      return json({ error: "metodo inválido", permitidos: UNIFIED_METHODS }, 400);
+    }
+
+    // Limite diário de trial (override do revendedor > tier)
+    const { data: resellerRow } = await svc.from("resellers")
+      .select("test_keys_per_day_override").eq("id", reseller.id).maybeSingle();
+    let dailyLimit: number;
+    if (resellerRow?.test_keys_per_day_override != null) {
+      dailyLimit = Number(resellerRow.test_keys_per_day_override);
+    } else {
+      const { data: tierRows } = await svc.rpc("get_reseller_tier", { _reseller_id: reseller.id });
+      const tierObj: any = Array.isArray(tierRows) ? tierRows[0] : tierRows;
+      dailyLimit = Number(tierObj?.test_keys_per_day ?? 10);
+    }
+    if (dailyLimit <= 0) {
+      await logUsage(403, { error_message: "Trial bloqueado pelo nível" });
+      return json({ error: "Seu nível não permite trials. Faça upgrade." }, 403);
+    }
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const since = today.toISOString();
+    const { count } = await svc.from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("reseller_id", reseller.id).eq("is_test", true).gte("created_at", since);
+    if ((count ?? 0) >= dailyLimit) {
+      await logUsage(429, { error_message: "Limite diário atingido" });
+      return json({ error: `Limite de ${dailyLimit} trial(s)/dia atingido` }, 429);
+    }
+
+    // Chama provedor
+    const { data: cfg } = await svc.from("provider_settings")
+      .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    const provKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
+    const base = cfg?.base_url ?? DEFAULT_BASE;
+    if (!provKey) {
+      await logUsage(500, { error_message: "Provedor offline" });
+      return json({ error: "Provedor não configurado" }, 500);
+    }
+
+    let providerData: any = null;
+    try {
+      const r = await fetch(`${base}/generate-trial`, {
+        method: "POST",
+        headers: { "x-api-token": provKey, "x-api-key": provKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ display_name, minutes: 30, seconds: 0, method: metodo, extension: metodo }),
+      });
+      const text = await r.text();
+      try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+      if (!r.ok) {
+        await logUsage(502, { error_message: `Provedor ${r.status}` });
+        return json({ error: "Provedor falhou", details: providerData }, 502);
+      }
+    } catch (e) {
+      await logUsage(502, { error_message: e instanceof Error ? e.message : "fetch error" });
+      return json({ error: "Erro ao chamar provedor" }, 502);
+    }
+
+    const license_key = providerData?.license_key ?? providerData?.key ?? null;
+    const license_type = `${metodo}_trial`;
+
+    // Registra pedido teste (sem custo) para contagem do limite diário
+    await svc.from("orders").insert({
+      reseller_id: reseller.id,
+      license_type,
+      price_cents: 0,
+      status: "completed",
+      is_test: true,
+      license_key,
+      api_key_id: keyRow.id,
+      product_type: "extension",
+      notes: JSON.stringify({ method: metodo, source: "unified_api", trial: true }),
+    });
+
+    await logUsage(200, { license_type, license_key: license_key ?? undefined });
+    return json({
+      ok: true,
+      license_key,
+      metodo,
+      tipo: "trial",
+      minutos: providerData?.minutes ?? 15,
+      expira_em: providerData?.expires_at,
+      restantes_hoje: Math.max(0, dailyLimit - ((count ?? 0) + 1)),
+      limite_diario: dailyLimit,
+    });
+  }
+
   if (req.method === "POST" && LICENSE_ACTIONS.includes(action)) {
     const body = await req.json().catch(() => ({}));
     const license_key = typeof body.license_key === "string" ? body.license_key.trim() : "";

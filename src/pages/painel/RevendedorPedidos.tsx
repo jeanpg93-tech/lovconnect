@@ -696,15 +696,14 @@ export default function RevendedorPedidos() {
               const endpoints = [
                 { method: "GET",  path: "/status",                  desc: "Saúde da API" },
                 { method: "GET",  path: "/saldo",                   desc: "Saldo atual em centavos" },
-                { method: "GET",  path: "/planos",                  desc: "Planos disponíveis por extensão" },
-                { method: "POST", path: "/licencas",                desc: "Criar licença (comprar)" },
-                { method: "GET",  path: "/licencas",                desc: "Listar licenças geradas" },
-                { method: "GET",  path: "/licencas/{key}",          desc: "Consultar licença" },
-                { method: "POST", path: "/licencas/{key}/reset",    desc: "Resetar HWID" },
-                { method: "POST", path: "/licencas/{key}/revoke",   desc: "Revogar licença" },
-                { method: "POST", path: "/licencas/trial",          desc: "Gerar licença teste (15min)" },
+                { method: "GET",  path: "/metodos",                 desc: "Lista métodos (Flow/Lovax) com pacotes e preços" },
+                { method: "POST", path: "/licencas",                desc: "Gerar licença unificada — body: { metodo, pacote, display_name, whatsapp? }" },
+                { method: "POST", path: "/licencas-trial",          desc: "Gerar trial 15min — body: { metodo, display_name }" },
+                { method: "POST", path: "/reset-hwid",              desc: "Resetar HWID — body: { license_key }" },
+                { method: "POST", path: "/revoke-license",          desc: "Revogar licença — body: { license_key }" },
+                { method: "POST", path: "/delete-license",          desc: "Excluir licença — body: { license_key }" },
               ];
-              const fullSample = `# API de Licenças — exemplos\n# URL base: ${API_BASE}\n# Header obrigatório: X-API-Key: lov_live_xxxxxxxxxxxxxxxxxxxxxxxx\n\ncurl -X GET "${API_BASE}/planos" \\\n  -H "X-API-Key: SUA_API_KEY"\n\ncurl -X POST "${API_BASE}/licencas" \\\n  -H "X-API-Key: SUA_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "extension_id": "ext_xxx",\n    "license_type": "pro_30d",\n    "display_name": "Cliente João",\n    "whatsapp": "11912345678"\n  }'`;
+              const fullSample = `# API Unificada de Licenças — Flow + Lovax em 1 só endpoint\n# URL base: ${API_BASE}\n# Header obrigatório: X-API-Key: SUA_CHAVE\n\n# 1) Listar métodos disponíveis com preços\ncurl -X GET "${API_BASE}/metodos" \\\n  -H "X-API-Key: SUA_API_KEY"\n\n# 2) Gerar licença (escolha 'flow' ou 'lovax')\ncurl -X POST "${API_BASE}/licencas" \\\n  -H "X-API-Key: SUA_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "metodo": "flow",\n    "pacote": "30d",\n    "display_name": "Cliente João",\n    "whatsapp": "11912345678"\n  }'\n\n# 3) Gerar trial gratuito de 15min\ncurl -X POST "${API_BASE}/licencas-trial" \\\n  -H "X-API-Key: SUA_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{ "metodo": "lovax", "display_name": "Teste Cliente" }'`;
               return (
                 <div className="grid lg:grid-cols-1 gap-6">
                   <div className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-8 space-y-6 transition-all hover:border-primary/40">
