@@ -957,7 +957,7 @@ export function BuyCreditsFlowModal({
                     <Rocket className="h-8 w-8" strokeWidth={2.5} />
                   </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-1">Entrega finalizada!</h3>
+                <h3 className="text-2xl font-bold mb-1">Pedido quase finalizado</h3>
                 <p className="text-sm text-muted-foreground">
                   {lastOrder?.creditosEnviados ?? plan?.credits_amount} Lovables a caminho do workspace.
                 </p>
