@@ -8,7 +8,7 @@ import {
   Loader2, Store, MessageCircle, Copy, CheckCircle2, ArrowLeft, 
   ShieldCheck, QrCode, Tag, Sparkles, Download, Chrome, RefreshCw, 
   Key, AlertTriangle, ExternalLink, Star, Quote, Send, HelpCircle,
-  KeyRound, Coins
+  KeyRound, Coins, Zap, Hand
 } from "lucide-react";
 import { toast } from "sonner";
 import { StorefrontBackground } from "@/components/storefront/StorefrontBackground";
@@ -90,6 +90,7 @@ export default function PublicStorefront() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [packs, setPacks] = useState<Pack[]>([]);
   const [recharges, setRecharges] = useState<Recharge[]>([]);
+  const [rechargeMode, setRechargeMode] = useState<"automatico" | "manual">("automatico");
   const [activeTab, setActiveTab] = useState<"extension" | "recharge">("extension");
   const [testimonials, setTestimonials] = useState<any[]>([]);
   
@@ -252,6 +253,14 @@ export default function PublicStorefront() {
         .eq("is_active", true)
         .order("credits_amount", { ascending: true });
       if (rec) setRecharges(rec);
+
+      const { data: rs } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "recargas_settings")
+        .maybeSingle();
+      const mode = (rs?.value as any)?.active_mode;
+      if (mode === "manual" || mode === "automatico") setRechargeMode(mode);
 
       // Default active tab based on what is enabled
       if (s && !(s as any).show_extensions && (s as any).show_credits) {
@@ -874,6 +883,56 @@ export default function PublicStorefront() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2.5 max-w-xl mx-auto">
+                    {(() => {
+                      const isAuto = rechargeMode === "automatico";
+                      const modeLabel = isAuto ? "Automático" : "Manual";
+                      const modeDesc = isAuto
+                        ? "Suas recargas são creditadas instantaneamente após o pagamento via PIX."
+                        : "Suas recargas são processadas manualmente pelo vendedor após o pagamento.";
+                      return (
+                        <div
+                          className="relative overflow-hidden rounded-[2rem] border bg-background/80 backdrop-blur-xl p-5 text-left shadow-2xl mb-2"
+                          style={{ borderColor: `${color}70`, boxShadow: `0 20px 70px -24px ${color}99` }}
+                        >
+                          <div
+                            className="absolute inset-y-0 left-0 w-1.5"
+                            style={{ background: `linear-gradient(to bottom, transparent, ${color}, transparent)` }}
+                          />
+                          <div
+                            className="absolute inset-0 opacity-[0.08]"
+                            style={{ backgroundImage: `linear-gradient(135deg, ${color} 1px, transparent 1px)`, backgroundSize: "18px 18px" }}
+                          />
+                          <div className="relative z-10 flex items-center gap-4">
+                            <div
+                              className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ring-1 ring-inset ring-background/20"
+                              style={{ background: `linear-gradient(135deg, ${color}, ${color}99)`, color: "#fff" }}
+                            >
+                              {isAuto ? <Zap className="h-6 w-6" /> : <Hand className="h-6 w-6" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[9px] font-black uppercase tracking-widest" style={{ color }}>
+                                  Método de entrega
+                                </span>
+                                <span
+                                  className="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full border bg-background/70"
+                                  style={{ color, borderColor: `${color}60` }}
+                                >
+                                  {isAuto ? "Ativo agora" : "Sob revisão"}
+                                </span>
+                              </div>
+                              <div className="font-black text-2xl mt-1 leading-none tracking-normal">
+                                {modeLabel}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                                {modeDesc}
+                              </div>
+                            </div>
+                            <ShieldCheck className="hidden sm:block h-6 w-6 shrink-0" style={{ color }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {recharges.map((rec) => (
                       <button
                         key={rec.id}
