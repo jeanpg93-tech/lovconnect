@@ -286,3 +286,28 @@ function Doc({ title, body }: { title: string; body: string }) {
     </div>
   );
 }
+
+function ConnBadge({ state }: { state: "checking" | "connected" | "disconnected" }) {
+  if (state === "checking") {
+    return (
+      <Badge variant="outline" className="h-5 gap-1 text-[9px] uppercase tracking-wider">
+        <Loader2 className="h-2.5 w-2.5 animate-spin" />
+        Verificando
+      </Badge>
+    );
+  }
+  if (state === "connected") {
+    return (
+      <Badge className="h-5 gap-1 border-emerald-500/40 bg-emerald-500/15 text-emerald-500 text-[9px] uppercase tracking-wider hover:bg-emerald-500/15">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        Conectado
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="h-5 gap-1 border-rose-500/40 bg-rose-500/15 text-rose-500 text-[9px] uppercase tracking-wider hover:bg-rose-500/15">
+      <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+      Desconectado
+    </Badge>
+  );
+}
