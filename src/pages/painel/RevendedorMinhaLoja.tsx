@@ -117,6 +117,7 @@ export default function RevendedorMinhaLoja() {
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [fetchingTestimonials, setFetchingTestimonials] = useState(false);
   const [addingTestimonial, setAddingTestimonial] = useState(false);
+  const [generatingAI, setGeneratingAI] = useState(false);
   const [newTestimonial, setNewTestimonial] = useState({ name: "", content: "", rating: 5 });
   
   type Period = "today" | "yesterday" | "week" | "month" | "all";
@@ -229,6 +230,34 @@ export default function RevendedorMinhaLoja() {
     } else {
       toast.success("Depoimento removido");
       if (resellerId) fetchTestimonials(resellerId);
+    }
+  };
+
+  const handleGenerateAITestimonials = async () => {
+    if (!resellerId) return;
+    setGeneratingAI(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-testimonials-ai", {
+        body: { storeName },
+      });
+      if (error) throw error;
+      const items: Array<{ name: string; message: string }> = data?.testimonials ?? [];
+      if (items.length === 0) throw new Error("Nenhum depoimento gerado");
+
+      const rows = items.slice(0, 3).map((t) => ({
+        reseller_id: resellerId,
+        customer_name: t.name,
+        content: t.message,
+        rating: 5,
+      }));
+      const { error: insErr } = await supabase.from("storefront_testimonials").insert(rows);
+      if (insErr) throw insErr;
+      toast.success("3 depoimentos gerados com IA");
+      fetchTestimonials(resellerId);
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao gerar com IA");
+    } finally {
+      setGeneratingAI(false);
     }
   };
 
@@ -1203,7 +1232,19 @@ export default function RevendedorMinhaLoja() {
                     </div>
                   </div>
                   <div className="md:col-span-3 space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Depoimentos Ativos ({testimonials.length})</Label>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Depoimentos Ativos ({testimonials.length})</Label>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-[11px] font-bold gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                        onClick={handleGenerateAITestimonials}
+                        disabled={generatingAI || !resellerId}
+                      >
+                        {generatingAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                        Gerar com IA
+                      </Button>
+                    </div>
                     <div className="space-y-2 max-h-[360px] overflow-y-auto pr-2 custom-scrollbar">
                       {testimonials.length === 0 ? (
                         <div className="h-32 rounded-xl border border-dashed flex items-center justify-center text-xs text-muted-foreground">Nenhum depoimento ainda.</div>
