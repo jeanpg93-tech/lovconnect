@@ -61,7 +61,10 @@ export default function GerentePartners() {
   // Recargas: chave = credits_amount (number como string)
   const [creditEffective, setCreditEffective] = useState<Record<number, number>>({});
   const [creditDraft, setCreditDraft] = useState<Record<number, number>>({});
-  const [creditSource, setCreditSource] = useState<Record<number, "reseller" | "none">>({});
+  const [creditSource, setCreditSource] = useState<Record<number, "reseller" | "ouro" | "none">>({});
+
+  // Preços de créditos do nível Ouro (fallback para Partners sem preço definido)
+  const [ouroCreditPrices, setOuroCreditPrices] = useState<Record<number, number>>({});
 
   // Custo base (preços globais). Valores em centavos.
   const [creditBase, setCreditBase] = useState<Record<number, number>>({}); // credits_amount -> cents
@@ -150,6 +153,22 @@ export default function GerentePartners() {
     });
     setCreditBase(cb);
 
+    // Preços de crédito do nível Ouro (fallback)
+    const ouroTier = tierList.find((x) => x.slug === "ouro");
+    if (ouroTier) {
+      const { data: ouroTcp } = await supabase
+        .from("tier_credit_prices")
+        .select("plan_id,price_cents,is_active,credit_pricing_plans!inner(credits_amount)")
+        .eq("tier_id", ouroTier.id)
+        .eq("is_active", true);
+      const ouroMap: Record<number, number> = {};
+      (ouroTcp ?? []).forEach((row: any) => {
+        const amount = row.credit_pricing_plans?.credits_amount;
+        if (amount != null && row.price_cents > 0) ouroMap[amount] = row.price_cents;
+      });
+      setOuroCreditPrices(ouroMap);
+    }
+
     const stateMap: Record<string, State> = {};
     (s ?? []).forEach((row: any) => { stateMap[row.reseller_id] = row; });
     setStates(stateMap);
@@ -228,12 +247,16 @@ export default function GerentePartners() {
         creditByAmount.set(rp.credits_amount, rp.price_cents);
       }
     });
+    const isPartnerTier = selectedTier?.slug === "partner";
     const cEff: Record<number, number> = {};
-    const cSrc: Record<number, "reseller" | "none"> = {};
+    const cSrc: Record<number, "reseller" | "ouro" | "none"> = {};
     for (const pkg of creditPackages) {
       if (creditByAmount.has(pkg.credits_amount)) {
         cEff[pkg.credits_amount] = creditByAmount.get(pkg.credits_amount)!;
         cSrc[pkg.credits_amount] = "reseller";
+      } else if (isPartnerTier && ouroCreditPrices[pkg.credits_amount] != null) {
+        cEff[pkg.credits_amount] = ouroCreditPrices[pkg.credits_amount];
+        cSrc[pkg.credits_amount] = "ouro";
       } else {
         cEff[pkg.credits_amount] = 0;
         cSrc[pkg.credits_amount] = "none";
@@ -741,7 +764,18 @@ export default function GerentePartners() {
                             const dirty = (creditDraft[pkg.credits_amount] ?? 0) !== (creditEffective[pkg.credits_amount] ?? 0);
                             const base = minCredit(pkg.credits_amount);
                             const belowBase = base > 0 && cents > 0 && cents <= base;
-                            const dotColor = src === "reseller" ? "bg-primary" : "bg-muted-foreground/40";
+                            const dotColor =
+                              src === "reseller"
+                                ? "bg-primary"
+                                : src === "ouro"
+                                ? "bg-amber-400"
+                                : "bg-muted-foreground/40";
+                            const dotTitle =
+                              src === "reseller"
+                                ? "Personalizado"
+                                : src === "ouro"
+                                ? "Herdado do nível Ouro"
+                                : "Sem preço definido";
                             return (
                               <div
                                 key={pkg.credits_amount}
@@ -756,7 +790,7 @@ export default function GerentePartners() {
                                     <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">recargas</span>
                                     <span
                                       className={`ml-auto h-1.5 w-1.5 rounded-full ${dotColor}`}
-                                      title={src === "reseller" ? "Personalizado" : "Sem preço definido"}
+                                      title={dotTitle}
                                     />
                                   </div>
                                   <div className="relative mt-1">
