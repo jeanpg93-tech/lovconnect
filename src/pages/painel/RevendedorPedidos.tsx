@@ -953,6 +953,23 @@ export default function RevendedorPedidos() {
                         </div>
                       </div>
                       <div className="shrink-0">{statusBadge(o.status)}</div>
+                      {!o.is_test && (o.status === "failed" || o.status === "revoked") && (
+                        refundedOrderIds.has(o.id) ? (
+                          <Badge variant="outline" className="text-[10px] font-bold uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+                            Reembolsado
+                          </Badge>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-[10px] font-bold border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                            disabled={refundingId === o.id}
+                            onClick={() => requestRefund(o)}
+                          >
+                            {refundingId === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reembolso"}
+                          </Button>
+                        )
+                      )}
                       <div className="shrink-0">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
