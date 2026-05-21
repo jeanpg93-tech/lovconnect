@@ -315,10 +315,11 @@ export default function GerenteLicencasAcompanhar() {
     load();
   }, []);
 
-  const handleRevoke = async (key: string) => {
+  const handleRevoke = async (key: string, method: DeliveryMethod = "flow") => {
     setActionLoading(key);
     try {
-      const { data: res, error } = await supabase.functions.invoke("provider-api?action=revoke-license", {
+      const fn = method === "lovax" ? "lovax-api?action=delete-license" : "provider-api?action=revoke-license";
+      const { data: res, error } = await supabase.functions.invoke(fn, {
         method: "POST",
         body: { license_key: key }
       });
@@ -332,10 +333,11 @@ export default function GerenteLicencasAcompanhar() {
     }
   };
 
-  const handleDelete = async (key: string) => {
+  const handleDelete = async (key: string, method: DeliveryMethod = "flow") => {
     setActionLoading(key);
     try {
-      const { data: res, error } = await supabase.functions.invoke("provider-api?action=delete-license", {
+      const fn = method === "lovax" ? "lovax-api?action=delete-license" : "provider-api?action=delete-license";
+      const { data: res, error } = await supabase.functions.invoke(fn, {
         method: "POST",
         body: { license_key: key }
       });
@@ -349,10 +351,11 @@ export default function GerenteLicencasAcompanhar() {
     }
   };
 
-  const handleResetHWID = async (key: string) => {
+  const handleResetHWID = async (key: string, method: DeliveryMethod = "flow") => {
     setActionLoading(key);
     try {
-      const { data: res, error } = await supabase.functions.invoke("provider-api?action=reset-hwid", {
+      const fn = method === "lovax" ? "lovax-api?action=reset-hwid" : "provider-api?action=reset-hwid";
+      const { data: res, error } = await supabase.functions.invoke(fn, {
         method: "POST",
         body: { license_key: key }
       });
@@ -366,7 +369,7 @@ export default function GerenteLicencasAcompanhar() {
     }
   };
 
-  const openConfirm = (type: "revoke" | "delete" | "reset", key: string) => {
+  const openConfirm = (type: "revoke" | "delete" | "reset", key: string, method: DeliveryMethod = "flow") => {
     const configs = {
       revoke: {
         title: "Revogar Licença",
@@ -385,16 +388,17 @@ export default function GerenteLicencasAcompanhar() {
       open: true,
       type,
       key,
+      method,
       ...configs[type],
     });
   };
 
   const executeAction = () => {
-    const { type, key } = confirmDialog;
+    const { type, key, method } = confirmDialog;
     setConfirmDialog((prev) => ({ ...prev, open: false }));
-    if (type === "revoke") handleRevoke(key);
-    else if (type === "delete") handleDelete(key);
-    else if (type === "reset") handleResetHWID(key);
+    if (type === "revoke") handleRevoke(key, method);
+    else if (type === "delete") handleDelete(key, method);
+    else if (type === "reset") handleResetHWID(key, method);
   };
 
   const getGenerationType = (o: OrderRow) => {
