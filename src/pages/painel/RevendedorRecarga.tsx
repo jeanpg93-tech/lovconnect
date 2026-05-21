@@ -1260,6 +1260,23 @@ export default function RevendedorRecargas() {
                             ) : null}
                           </div>
                           <div className="shrink-0">{renderStatus(r.status)}</div>
+                          {["failed", "expired", "canceled", "cancelled"].includes(r.status) && (
+                            refundedRechargeIds.has(r.id) ? (
+                              <Badge variant="outline" className="text-[10px] font-bold uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+                                Reembolsado
+                              </Badge>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2 text-[10px] font-bold border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                                disabled={refundingRechargeId === r.id}
+                                onClick={() => requestRechargeRefund({ id: r.id, amount_cents: r.amount_cents })}
+                              >
+                                {refundingRechargeId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reembolso"}
+                              </Button>
+                            )
+                          )}
                         </div>
                       ))}
                     </div>
