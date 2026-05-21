@@ -182,6 +182,8 @@ export function AppSidebar() {
 
   const [providerUsage, setProviderUsage] = useState<{ used: number; limit: number } | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
+  const [lovaxUsage, setLovaxUsage] = useState<{ used: number; limit: number } | null>(null);
+  const [lovaxLoading, setLovaxLoading] = useState(false);
   const [gatewayBalance, setGatewayBalance] = useState<string | null>(null);
   const [gatewayLoading, setGatewayLoading] = useState(false);
   const [creditsBalance, setCreditsBalance] = useState<number | null>(null);
@@ -316,10 +318,30 @@ export function AppSidebar() {
     fetchBalance();
     fetchGatewayBalance();
     fetchCreditsBalance();
+    const fetchLovax = async () => {
+      setLovaxLoading(true);
+      try {
+        const { data, error } = await invokeAuthenticatedFunction("lovax-api?action=status", { method: "GET" });
+        if (cancelled) return;
+        if (error || data?.error || data?.provider_error) {
+          setLovaxUsage(null);
+        } else {
+          const used = Number(data?.used ?? 0);
+          const limit = Number(data?.max ?? data?.limit ?? 0);
+          setLovaxUsage({ used, limit });
+        }
+      } catch {
+        if (!cancelled) setLovaxUsage(null);
+      } finally {
+        if (!cancelled) setLovaxLoading(false);
+      }
+    };
+    fetchLovax();
     const id = setInterval(() => {
       fetchBalance();
       fetchGatewayBalance();
       fetchCreditsBalance();
+      fetchLovax();
     }, 60_000);
     return () => { cancelled = true; clearInterval(id); };
   }, [primaryRole]);
