@@ -416,8 +416,8 @@ export default function RevendedorDashboard() {
         </div>
 
         <div className="relative p-6 md:p-10">
-          <div className="space-y-7">
-            <div className="flex items-center gap-3 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
+          <div className="space-y-7 text-center md:text-left">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
               <span className="flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
@@ -443,13 +443,13 @@ export default function RevendedorDashboard() {
                 <br />
                 <span className="italic text-primary">Geral.</span>
               </h1>
-              <p className="mt-4 max-w-xl text-sm md:text-base text-muted-foreground leading-relaxed">
+              <p className="mt-4 max-w-xl mx-auto md:mx-0 text-sm md:text-base text-muted-foreground leading-relaxed">
                 Monitoramento em tempo real da sua operação. Vendas, recargas e licenças numa única interface.
               </p>
             </div>
 
             {/* CTAs */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap justify-center md:justify-start gap-2">
               <Button asChild size="sm" className="rounded-xl shadow-red-glow">
                 <Link to="/painel/revendedor/recargas">
                   <Zap className="mr-2 h-4 w-4" /> Centro de Abastecimento
