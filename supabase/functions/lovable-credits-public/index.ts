@@ -133,6 +133,15 @@ Deno.serve(async (req) => {
         );
       if (isManual && local) {
         const status = String(local.status ?? "manual_pendente");
+        let manualNotes: string | null = null;
+        try {
+          const { data: meta } = await admin
+            .from("manual_recharge_metadata")
+            .select("notes")
+            .eq("provider_pedido_id", local.provider_pedido_id)
+            .maybeSingle();
+          manualNotes = (meta as any)?.notes ?? null;
+        } catch (_) {}
         const isDone = status === "manual_entregue" || status === "sucesso" || status === "entregue";
         const isProcessing = status === "manual_confirmado" || status === "manual_processando" || status === "processando";
         const isAceito = status === "manual_aceito";
@@ -161,6 +170,7 @@ Deno.serve(async (req) => {
               createdAt: local.created_at,
               updatedAt: local.updated_at,
               errorMessage: local.error_message,
+              managerNotes: manualNotes,
             },
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
