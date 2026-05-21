@@ -319,6 +319,7 @@ export default function RevendedorPedidos() {
     }
     setOpen(null);
     setIsTest(false);
+    setOpenMethodCtx(null);
     setClientId("none");
     setDisplayName("");
     setWhatsapp("");
