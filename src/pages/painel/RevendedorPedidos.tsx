@@ -61,6 +61,7 @@ type TierState = { total_spent_cents: number } | null;
 type Order = {
   id: string; license_type: string; price_cents: number; status: string;
   license_key: string | null; created_at: string; is_test: boolean;
+  customer?: { display_name: string | null; whatsapp: string | null } | null;
 };
 
 const FALLBACK_LABEL: Record<string, string> = {
