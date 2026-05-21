@@ -170,12 +170,6 @@ export default function RevendedorAdicionarSaldo() {
 
   return (
     <div className="space-y-6">
-      <div className="hidden sm:block">
-        <PageHeader
-          title="Adicionar saldo"
-          description="Recarregue seu saldo via PIX e ganhe bônus de acordo com seu nível."
-        />
-      </div>
 
       {/* Hero: Saldo + Recargas */}
       <div className="grid gap-4 lg:grid-cols-5">
