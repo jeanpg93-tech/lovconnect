@@ -5,13 +5,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart3, History as HistoryIcon, Tag, KeyRound } from "lucide-react";
 import GerenteLicencasDashboard from "./GerenteLicencasDashboard";
 import GerenteLicencasAcompanhar from "./GerenteLicencasAcompanhar";
-import GerenteValores from "./GerenteValores";
+import GerenteLicencasValores from "./GerenteLicencasValores";
 import GerenteLicencasApis from "./GerenteLicencasApis";
 
 const TABS = [
   { value: "dashboard", label: "Dashboard", icon: BarChart3, Comp: GerenteLicencasDashboard },
   { value: "acompanhar", label: "Acompanhar", icon: HistoryIcon, Comp: GerenteLicencasAcompanhar },
-  { value: "valores", label: "Valores", icon: Tag, Comp: GerenteValores },
+  { value: "valores", label: "Valores", icon: Tag, Comp: GerenteLicencasValores },
   { value: "api", label: "API's", icon: KeyRound, Comp: GerenteLicencasApis },
 ] as const;
 
