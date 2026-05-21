@@ -781,32 +781,24 @@ export default function RevendedorPedidos() {
             ) : (
               (() => {
                 if (!open) return null;
-                const { price, base, source } = computePrice(open, selectedExtId);
-                const extName = extensions.find((e) => e.id === selectedExtId)?.name;
+                const price = openMethodCtx?.cost_cents ?? open.price_cents;
+                const methodName = openMethodCtx ? METHOD_LABEL[openMethodCtx.method] : null;
                 return (
                   <div className="rounded-lg border border-border bg-background/40 p-3 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Total a debitar</span>
                       <span className="font-mono text-lg font-semibold text-primary">{fmt(price)}</span>
                     </div>
-                    {extName && (
+                    {methodName && (
                       <div className="mt-1 text-[11px] text-muted-foreground">
-                        Extensão: <span className="font-medium text-foreground">{extName}</span>
+                        Método: <span className="font-medium text-foreground">{methodName}</span>
                       </div>
                     )}
-                    {source === "partner" ? (
-                      <div className="mt-1 text-[11px] text-primary">
-                        ✨ Preço Partner exclusivo (sem desconto adicional)
-                      </div>
-                    ) : source === "reseller" ? (
+                    {tier && (
                       <div className="mt-1 text-[11px] text-muted-foreground">
-                        Preço personalizado {fmt(base)}{discountPct > 0 ? ` · desconto ${discountPct}% nível ${tier?.name}` : ""}
+                        Preço do seu nível: <span className="font-medium text-foreground">{tier.name}</span>
                       </div>
-                    ) : discountPct > 0 ? (
-                      <div className="mt-1 text-[11px] text-muted-foreground">
-                        Preço base {fmt(base)} · desconto {discountPct}% nível {tier?.name}
-                      </div>
-                    ) : null}
+                    )}
                   </div>
                 );
               })()
