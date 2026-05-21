@@ -71,6 +71,12 @@ export default function GerenteAcompanharRecargas() {
     onConfirm: () => void | Promise<void>;
   } | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const askConfirm = (data: {
     title: string;
