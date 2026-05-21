@@ -79,9 +79,17 @@ export default function GerenteLicencasApis() {
     };
 
     const checkLovax = () => {
-      const key = localStorage.getItem("licencas.lovax.apiKey");
-      const url = localStorage.getItem("licencas.lovax.baseUrl");
-      setConn((c) => ({ ...c, lovax: key && url ? "connected" : "disconnected" }));
+      (async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke("lovax-api?action=get-settings", { method: "GET" });
+          if (cancelled) return;
+          if (error || !data?.configured) { setConn((c) => ({ ...c, lovax: "disconnected" })); return; }
+          const { data: st, error: stErr } = await supabase.functions.invoke("lovax-api?action=status", { method: "GET" });
+          if (cancelled) return;
+          const okStatus = !stErr && st && !st.error && !st.provider_error;
+          setConn((c) => ({ ...c, lovax: okStatus ? "connected" : "disconnected" }));
+        } catch { if (!cancelled) setConn((c) => ({ ...c, lovax: "disconnected" })); }
+      })();
     };
 
     const run = () => { checkFlow(); checkLovax(); };
@@ -195,71 +203,210 @@ export default function GerenteLicencasApis() {
 }
 
 function LovaxConfig() {
+  const DEFAULT_BASE = "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
   const [apiKey, setApiKey] = useState("");
-  const [baseUrl, setBaseUrl] = useState("");
+  const [baseUrl, setBaseUrl] = useState(DEFAULT_BASE);
+  const [settings, setSettings] = useState<{ configured: boolean; api_key_masked?: string; base_url?: string; updated_at?: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [status, setStatus] = useState<any>(null);
+  const [usage, setUsage] = useState<any[]>([]);
 
-  useEffect(() => {
-    setApiKey(localStorage.getItem("licencas.lovax.apiKey") ?? "");
-    setBaseUrl(localStorage.getItem("licencas.lovax.baseUrl") ?? "https://api.metodolovax.com/v1");
-  }, []);
-
-  const save = () => {
-    localStorage.setItem("licencas.lovax.apiKey", apiKey);
-    localStorage.setItem("licencas.lovax.baseUrl", baseUrl);
-    toast.success("Configurações do MétodoLovax salvas");
+  const call = async (action: string, opts?: { method?: "GET" | "POST"; body?: any }) => {
+    const { data, error } = await supabase.functions.invoke(`lovax-api?action=${action}`, {
+      method: opts?.method ?? "GET",
+      body: opts?.body,
+    });
+    if (error) throw new Error(error.message);
+    if (data?.error) throw new Error(data.error);
+    return data;
   };
+
+  const loadAll = async () => {
+    try {
+      const s = await call("get-settings");
+      setSettings(s);
+      if (s?.base_url) setBaseUrl(s.base_url);
+      if (s?.configured) {
+        try { setStatus(await call("status")); } catch { setStatus(null); }
+        try { const u = await call("usage"); setUsage(u?.usage ?? []); } catch { setUsage([]); }
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao carregar");
+    }
+  };
+
+  useEffect(() => { loadAll(); }, []);
+
+  const save = async () => {
+    if (!apiKey.trim() && !settings?.configured) { toast.error("Informe o token"); return; }
+    setSaving(true);
+    try {
+      await call("save-settings", {
+        method: "POST",
+        body: { api_key: apiKey.trim() || undefined, base_url: baseUrl.trim() || undefined },
+      });
+      toast.success("Configurações do MétodoLovax salvas");
+      setApiKey("");
+      await loadAll();
+    } catch (e: any) { toast.error(e.message ?? "Falha ao salvar"); }
+    finally { setSaving(false); }
+  };
+
+  const remove = async () => {
+    if (!confirm("Remover credenciais do MétodoLovax?")) return;
+    try {
+      await call("delete-settings", { method: "POST" });
+      toast.success("Credenciais removidas");
+      setSettings({ configured: false });
+      setStatus(null);
+      setUsage([]);
+    } catch (e: any) { toast.error(e.message ?? "Erro"); }
+  };
+
+  const testConn = async () => {
+    setTesting(true);
+    try {
+      const st = await call("status");
+      if (st?.provider_error) throw new Error(st.provider_error);
+      setStatus(st);
+      toast.success("Conexão OK");
+    } catch (e: any) { toast.error(e.message ?? "Falhou"); }
+    finally { setTesting(false); }
+  };
+
+  const base = baseUrl || DEFAULT_BASE;
 
   return (
     <Tabs defaultValue="docs" className="w-full">
       <TabsList>
         <TabsTrigger value="docs"><BookOpen className="mr-1.5 h-3.5 w-3.5" /> Documentação</TabsTrigger>
         <TabsTrigger value="settings"><SettingsIcon className="mr-1.5 h-3.5 w-3.5" /> Configurações</TabsTrigger>
+        <TabsTrigger value="usage">Histórico</TabsTrigger>
       </TabsList>
 
       <TabsContent value="docs" className="mt-4 space-y-3">
         <div className="rounded-xl border border-border bg-card/60 p-4 text-sm">
-          <h3 className="font-display text-base font-semibold">API Lovax</h3>
+          <h3 className="font-display text-base font-semibold">API TS Community (MétodoLovax)</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Endpoints REST autenticados via header <code className="font-mono">x-lovax-key</code>. Quando o MétodoLovax estiver ativo na Dashboard,
-            o sistema enviará todas as solicitações de licença para esta API.
+            Todas as chamadas são <code className="font-mono">POST</code> para o mesmo endpoint, variando o campo <code className="font-mono">action</code> no body.
+            Autenticação via header <code className="font-mono">Authorization: Bearer SEU_TOKEN</code> (ou <code className="font-mono">x-api-key</code>).
+            Quando o MétodoLovax estiver ativo na Dashboard, o sistema envia todas as solicitações de licença para esta API.
           </p>
         </div>
-        <Doc title="Base URL" body={`${baseUrl || "https://api.metodolovax.com/v1"}`} />
-        <Doc
-          title="POST /licenses — gerar licença"
-          body={`curl -X POST ${baseUrl || "https://api.metodolovax.com/v1"}/licenses \\\n  -H "x-lovax-key: SUA_CHAVE" \\\n  -H "Content-Type: application/json" \\\n  -d '{"display_name":"Cliente","days":30}'`}
-        />
-        <Doc
-          title="GET /licenses/:key — consultar"
-          body={`curl ${baseUrl || "https://api.metodolovax.com/v1"}/licenses/ABC123 \\\n  -H "x-lovax-key: SUA_CHAVE"`}
-        />
-        <Doc
-          title="POST /licenses/:key/revoke — revogar"
-          body={`curl -X POST ${baseUrl || "https://api.metodolovax.com/v1"}/licenses/ABC123/revoke \\\n  -H "x-lovax-key: SUA_CHAVE"`}
-        />
+        <Doc title="Base URL + headers" body={`# URL\n${base}\n\n# Headers\nAuthorization: Bearer SEU_TOKEN\nContent-Type: application/json\n# Alternativa: x-api-key: SEU_TOKEN`} />
+        <Doc title="action: balance — saldo / estoque" body={`curl -X POST ${base} \\\n  -H "Authorization: Bearer SEU_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"action":"balance","payload":{}}'`} />
+        <Doc title="action: list_licenses — listar (limit/offset)" body={`curl -X POST ${base} \\\n  -H "Authorization: Bearer SEU_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"action":"list_licenses","payload":{"limit":50,"offset":0}}'`} />
+        <Doc title="action: generate_license — gerar licença paga" body={`curl -X POST ${base} \\\n  -H "Authorization: Bearer SEU_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"action":"generate_license","payload":{"customer_name":"Cliente","email":"cliente@email.com","days":30,"hours":0,"minutes":0,"max_devices":1}}'`} />
+        <Doc title="action: generate_trial — gerar trial (até 30 min)" body={`curl -X POST ${base} \\\n  -H "Authorization: Bearer SEU_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"action":"generate_trial","payload":{"customer_name":"Cliente Trial","email":"cliente@email.com","minutes":30,"max_devices":1}}'`} />
+        <Doc title="action: reset_hwid — resetar dispositivo" body={`curl -X POST ${base} \\\n  -H "Authorization: Bearer SEU_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"action":"reset_hwid","payload":{"license_key":"TS-..."}}'`} />
+        <Doc title="action: delete_license — deletar" body={`curl -X POST ${base} \\\n  -H "Authorization: Bearer SEU_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"action":"delete_license","payload":{"license_key":"TS-..."}}'`} />
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-xs text-muted-foreground">
+          <strong className="text-amber-600 dark:text-amber-400">Importante:</strong> nunca exponha seu token no frontend.
+          O <code className="font-mono">reseller_id</code> é detectado automaticamente pelo token — nunca envie manualmente.
+        </div>
       </TabsContent>
 
       <TabsContent value="settings" className="mt-4 space-y-4">
+        {settings?.configured && (
+          <div className="rounded-lg border border-border bg-secondary/30 p-3 text-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-mono uppercase tracking-wider text-muted-foreground">Token atual</div>
+                <div className="mt-1 font-mono">{settings.api_key_masked}</div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={testConn} disabled={testing}>
+                  {testing ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+                  Testar conexão
+                </Button>
+                <Button size="sm" variant="ghost" className="text-destructive" onClick={remove}>Remover</Button>
+              </div>
+            </div>
+            {settings.updated_at && (
+              <div className="mt-2 text-[11px] text-muted-foreground">
+                Atualizada em {new Date(settings.updated_at).toLocaleString("pt-BR")}
+              </div>
+            )}
+            {status && !status.provider_error && (
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded border border-border bg-background/40 p-2">
+                  <div className="text-[10px] text-muted-foreground uppercase">Restantes</div>
+                  <div className="font-bold">{status.remaining ?? "—"}</div>
+                </div>
+                <div className="rounded border border-border bg-background/40 p-2">
+                  <div className="text-[10px] text-muted-foreground uppercase">Usadas</div>
+                  <div className="font-bold">{status.used ?? "—"}</div>
+                </div>
+                <div className="rounded border border-border bg-background/40 p-2">
+                  <div className="text-[10px] text-muted-foreground uppercase">Total</div>
+                  <div className="font-bold">{status.total_licenses ?? status.max ?? "—"}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">API Key</label>
+          <label className="text-sm font-medium">Token de API {settings?.configured && <span className="text-xs text-muted-foreground">(deixe em branco para manter)</span>}</label>
           <input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="lvx_seu_token"
+            placeholder="tlc_seu_token_aqui"
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
+          <p className="text-[11px] text-muted-foreground">
+            Gere em <code className="font-mono">painel TS Community → /dashboard/api → Meus Tokens → Criar Token</code>.
+          </p>
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Base URL</label>
+          <label className="text-sm font-medium">Base URL <span className="text-xs text-muted-foreground">(opcional)</span></label>
           <input
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
-            placeholder="https://api.metodolovax.com/v1"
+            placeholder={DEFAULT_BASE}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
         </div>
-        <Button onClick={save}>Salvar configurações</Button>
+        <Button onClick={save} disabled={saving}>
+          {saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
+          Salvar configurações
+        </Button>
+      </TabsContent>
+
+      <TabsContent value="usage" className="mt-4">
+        <div className="rounded-xl border border-border bg-card/60">
+          {usage.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">
+              {settings?.configured ? "Nenhuma licença encontrada ainda." : "Configure o token para ver o histórico."}
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 text-left">Tipo</th>
+                  <th className="px-4 py-3 text-left">Chave</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  <th className="px-4 py-3 text-right">Expira</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usage.map((u: any, i: number) => (
+                  <tr key={i} className="border-b border-border/50 last:border-0 hover:bg-secondary/30">
+                    <td className="px-4 py-3 capitalize">{u.license_type}</td>
+                    <td className="px-4 py-3"><code className="font-mono text-xs">{u.license_key}</code></td>
+                    <td className="px-4 py-3 text-center">
+                      <Badge variant={u.status === "active" ? "default" : "secondary"} className="capitalize">{u.status}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right text-xs text-muted-foreground">
+                      {u.expires_at ? new Date(u.expires_at).toLocaleString("pt-BR") : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </TabsContent>
     </Tabs>
   );
