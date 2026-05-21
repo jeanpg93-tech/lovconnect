@@ -105,9 +105,6 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Licenças", url: "/painel/revendedor/licencas", icon: Puzzle },
       { title: "Minha Loja", url: "/painel/revendedor/loja", icon: Store, badge: "store-status" },
       { title: "Precificação", url: "/painel/revendedor/precos", icon: Tag },
-    ]},
-    { label: "Configurar", items: [
-      { title: "API de Chaves", url: "/painel/revendedor/api", icon: KeyRound },
       { title: "Resetar chave", url: "/painel/revendedor/resetar-chave", icon: RotateCcw },
       { title: "Baixar Extensão", url: "/painel/revendedor/baixar-extensao", icon: Package },
     ]},
