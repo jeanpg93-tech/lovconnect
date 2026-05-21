@@ -127,6 +127,21 @@ Deno.serve(async (req) => {
           paid_at: new Date().toISOString(),
           raw_response: payload,
         }).eq("id", intent.id);
+
+        // Após creditar saldo, tenta liberar vendas em espera
+        try {
+          const { data: released } = await admin.rpc("try_release_pending_orders", {
+            _reseller_id: intent.reseller_id,
+          });
+          const ids = Array.isArray(released) ? released.filter(Boolean) : [];
+          if (ids.length > 0) {
+            // Não await para não travar webhook
+            triggerReleasePending(ids as string[]);
+          }
+        } catch (e) {
+          console.warn("try_release_pending_orders failed", e);
+        }
+
         return json({ ok: true, kind: "recharge" });
       }
 
