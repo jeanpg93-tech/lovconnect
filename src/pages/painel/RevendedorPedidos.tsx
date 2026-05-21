@@ -213,6 +213,25 @@ export default function RevendedorPedidos() {
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  // Minhas Licenças — listagem completa (toggle "Ver todas")
+  const [allOrders, setAllOrders] = useState<Order[] | null>(null);
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [licSearch, setLicSearch] = useState("");
+  const [licStatusFilter, setLicStatusFilter] = useState<string>("all");
+
+  const loadAllOrders = async () => {
+    if (!resellerId) return;
+    setLoadingAll(true);
+    const { data } = await supabase
+      .from("orders")
+      .select("id,license_type,price_cents,status,license_key,created_at,is_test")
+      .eq("reseller_id", resellerId)
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    setAllOrders((data ?? []) as Order[]);
+    setLoadingAll(false);
+  };
+
   const runLicenseAction = async (
     o: Order,
     action: "reset-hwid" | "revoke-license" | "delete-license",
