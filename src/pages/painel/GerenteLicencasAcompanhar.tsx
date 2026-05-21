@@ -39,6 +39,7 @@ const LABEL: Record<string, string> = {
 };
 
 type GenSource = "manual" | "storefront" | "api" | "provider";
+type DeliveryMethod = "flow" | "lovax";
 
 type OrderRow = {
   id: string;
@@ -59,6 +60,7 @@ type OrderRow = {
   display_name?: string;
   creator_email?: string | null;
   source?: GenSource;
+  method?: DeliveryMethod;
   full_data?: any;
 };
 
