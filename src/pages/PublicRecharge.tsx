@@ -627,6 +627,37 @@ export default function PublicRecharge() {
             Esta página atualiza automaticamente em tempo real.
           </p>
         </div>
+
+        <Dialog open={confirmWorkspaceOpen} onOpenChange={(o) => !submittingWorkspace && setConfirmWorkspaceOpen(o)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Confirmar workspace</DialogTitle>
+              <DialogDescription>
+                Confirme se o nome do workspace está exatamente como aparece no Lovable. Os créditos serão entregues nesse workspace.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-100 break-all">
+              {workspaceInput.trim() || "—"}
+            </div>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmWorkspaceOpen(false)}
+                disabled={submittingWorkspace}
+              >
+                Revisar
+              </Button>
+              <Button
+                onClick={submitWorkspace}
+                disabled={submittingWorkspace}
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold"
+              >
+                {submittingWorkspace ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+                Confirmar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
