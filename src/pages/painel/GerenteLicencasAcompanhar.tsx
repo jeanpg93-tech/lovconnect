@@ -16,9 +16,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { KeyRound, Search, Loader2, Copy, FlaskConical, CheckCircle2, RefreshCw, Infinity as InfinityIcon, ArrowUpRight, Trash2, XCircle, ChevronDown, ChevronUp, Info, RotateCcw, Zap, Sparkles } from "lucide-react";
+import { KeyRound, Search, Loader2, Copy, FlaskConical, CheckCircle2, RefreshCw, Infinity as InfinityIcon, ArrowUpRight, Trash2, XCircle, ChevronDown, ChevronUp, Info, RotateCcw, Zap, Sparkles, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import RefundSaleDialog, { type RefundSaleData } from "@/components/painel/RefundSaleDialog";
 
 const PLAN_DAYS: Record<string, number | null> = {
   pro_1d: 1,
@@ -117,6 +118,9 @@ export default function GerenteLicencasAcompanhar() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [resellers, setResellers] = useState<Record<string, string>>({});
   const [apiKeys, setApiKeys] = useState<Record<string, { label: string; reseller_id: string }>>({});
+  const [refundInfo, setRefundInfo] = useState<Record<string, { order_id: string; price_cents: number; refunded: boolean; reseller_id: string | null }>>({});
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundData, setRefundData] = useState<RefundSaleData | null>(null);
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [showExpired, setShowExpired] = useState<string>("all");
@@ -192,10 +196,10 @@ export default function GerenteLicencasAcompanhar() {
         supabase.from("resellers").select("id, display_name, user_id"),
         supabase.from("reseller_api_keys").select("id, label, reseller_id"),
         supabase.from("orders")
-          .select("license_key, reseller_id, api_key_id")
+          .select("id, license_key, reseller_id, api_key_id, price_cents")
           .not("license_key", "is", null),
         supabase.from("storefront_orders")
-          .select("license_key, reseller_id")
+          .select("license_key, reseller_id, price_cents")
           .not("license_key", "is", null),
       ]);
 
@@ -240,14 +244,38 @@ export default function GerenteLicencasAcompanhar() {
       });
       setApiKeys(keysMap);
 
-      const ordersMap: Record<string, { reseller_id: string; api_key_id: string | null }> = {};
+      const ordersMap: Record<string, { id: string; reseller_id: string; api_key_id: string | null; price_cents: number | null }> = {};
       (dbOrdersData ?? []).forEach((o: any) => {
-        ordersMap[o.license_key] = { reseller_id: o.reseller_id, api_key_id: o.api_key_id };
+        ordersMap[o.license_key] = { id: o.id, reseller_id: o.reseller_id, api_key_id: o.api_key_id, price_cents: o.price_cents ?? null };
       });
-      const storefrontMap: Record<string, { reseller_id: string }> = {};
+      const storefrontMap: Record<string, { reseller_id: string; price_cents: number | null }> = {};
       (storefrontData ?? []).forEach((o: any) => {
-        storefrontMap[o.license_key] = { reseller_id: o.reseller_id };
+        storefrontMap[o.license_key] = { reseller_id: o.reseller_id, price_cents: o.price_cents ?? null };
       });
+
+      // Carrega quais orders já foram estornados (kind license_purchase_refund)
+      const orderIds = (dbOrdersData ?? []).map((o: any) => o.id);
+      const refundedSet = new Set<string>();
+      if (orderIds.length > 0) {
+        const { data: refundTx } = await supabase
+          .from("balance_transactions")
+          .select("reference_id")
+          .eq("kind", "license_purchase_refund")
+          .in("reference_id", orderIds);
+        (refundTx ?? []).forEach((t: any) => { if (t.reference_id) refundedSet.add(t.reference_id); });
+      }
+      const refundMap: Record<string, { order_id: string; price_cents: number; refunded: boolean; reseller_id: string | null }> = {};
+      (dbOrdersData ?? []).forEach((o: any) => {
+        if (o.license_key && (o.price_cents ?? 0) > 0) {
+          refundMap[o.license_key] = {
+            order_id: o.id,
+            price_cents: o.price_cents,
+            refunded: refundedSet.has(o.id),
+            reseller_id: o.reseller_id ?? null,
+          };
+        }
+      });
+      setRefundInfo(refundMap);
 
       const usage = ((providerData as any)?.usage ?? []) as any[];
       const list: OrderRow[] = usage.map(u => {
@@ -437,6 +465,25 @@ export default function GerenteLicencasAcompanhar() {
     if (type === "revoke") handleRevoke(key, method);
     else if (type === "delete") handleDelete(key, method);
     else if (type === "reset") handleResetHWID(key, method);
+  };
+
+  // Retorna true se a licença está em um estado em que cabe estorno
+  const isCancelable = (o: OrderRow) => {
+    const s = (o.status || "").toLowerCase();
+    return ["revoked", "revogado", "revogada", "canceled", "cancelled", "cancelado", "queimado", "queimada"].includes(s);
+  };
+
+  const openRefundLicense = (o: OrderRow) => {
+    const info = refundInfo[o.license_key];
+    if (!info) return;
+    setRefundData({
+      tipo: "license",
+      provider_pedido_id: o.license_key,
+      reseller_label: (o.reseller_id && resellers[o.reseller_id]) || o.creator_email || null,
+      price_cents: info.price_cents,
+      extra_info: LABEL[o.license_type] || o.license_type,
+    });
+    setRefundDialogOpen(true);
   };
 
   const getGenerationType = (o: OrderRow) => {
@@ -665,6 +712,29 @@ export default function GerenteLicencasAcompanhar() {
                           </TableCell>
                           <TableCell className="text-right pr-6">
                             <div className="flex items-center justify-end gap-2">
+                              {(() => {
+                                const info = refundInfo[o.license_key];
+                                if (!info) return null;
+                                if (info.refunded) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sky-400" title="Já estornado">
+                                      <Undo2 className="h-2.5 w-2.5" /> Estornado
+                                    </span>
+                                  );
+                                }
+                                if (!isCancelable(o)) return null;
+                                return (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-rose-500 hover:bg-rose-500/10"
+                                    onClick={() => openRefundLicense(o)}
+                                    title={`Estornar (${(info.price_cents/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})})`}
+                                  >
+                                    <Undo2 className="h-4 w-4" />
+                                  </Button>
+                                );
+                              })()}
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -824,6 +894,29 @@ export default function GerenteLicencasAcompanhar() {
                       </div>
 
                       <div className="flex items-center justify-between pt-2 gap-1 overflow-x-auto pb-1 scrollbar-none">
+                        {(() => {
+                          const info = refundInfo[o.license_key];
+                          if (!info) return null;
+                          if (info.refunded) {
+                            return (
+                              <span className="inline-flex items-center justify-center gap-1 h-9 px-2 rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-400 text-[9px] font-bold uppercase shrink-0">
+                                <Undo2 className="h-3 w-3" /> Estornado
+                              </span>
+                            );
+                          }
+                          if (!isCancelable(o)) return null;
+                          return (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-9 flex-1 bg-white/5 text-rose-500 hover:bg-rose-500/10"
+                              onClick={() => openRefundLicense(o)}
+                              title="Estornar"
+                            >
+                              <Undo2 className="h-4 w-4" />
+                            </Button>
+                          );
+                        })()}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -925,6 +1018,13 @@ export default function GerenteLicencasAcompanhar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <RefundSaleDialog
+        open={refundDialogOpen}
+        onOpenChange={setRefundDialogOpen}
+        data={refundData}
+        onSuccess={() => { load(); }}
+      />
     </PageContainer>
   );
 }

@@ -50,6 +50,7 @@ const KIND_META: Record<string, { label: string; cls: string; icon: any }> = {
   refund:          { label: "Estorno",        cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",             icon: ArrowDownRight },
   panel_refund:    { label: "Estorno Painel", cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",             icon: ArrowDownRight },
   credit_purchase_refund: { label: "Estorno", cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",           icon: ArrowDownRight },
+  license_purchase_refund:{ label: "Estorno Licença", cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",   icon: ArrowDownRight },
   adjustment:      { label: "Ajuste Gerente", cls: "bg-violet-500/10 text-violet-500 border-violet-500/20",    icon: Zap },
   manual_credit:   { label: "Recarga Manual", cls: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", icon: ArrowDownRight },
   manual_debit:    { label: "Débito Manual",  cls: "bg-rose-500/10 text-rose-500 border-rose-500/20",          icon: ArrowUpRight },
@@ -113,7 +114,7 @@ export default function RevendedorTransacoes() {
         if (typeFilter === "manual" && !["adjustment", "manual_credit", "manual_debit"].includes(t.kind)) return false;
         if (typeFilter === "order" && !["order", "order_debit", "api_debit"].includes(t.kind)) return false;
         if (typeFilter === "bonus" && !["bonus", "affiliate_bonus"].includes(t.kind)) return false;
-        if (typeFilter === "refund" && !["refund", "panel_refund", "credit_purchase_refund"].includes(t.kind)) return false;
+        if (typeFilter === "refund" && !["refund", "panel_refund", "credit_purchase_refund", "license_purchase_refund"].includes(t.kind)) return false;
         if (typeFilter !== "manual" && typeFilter !== "order" && typeFilter !== "bonus" && typeFilter !== "refund" && t.kind !== typeFilter) return false;
       }
 
@@ -243,7 +244,7 @@ export default function RevendedorTransacoes() {
                           {t.reference_id && (
                             <div className="flex flex-col mt-0.5">
                               <span className="text-[9px] font-mono text-muted-foreground/40 block">Ref: {t.reference_id.split("-")[0]}</span>
-                              {(t.kind === "refund" || t.kind === "panel_refund" || t.kind === "credit_purchase_refund") && (
+                              {(t.kind === "refund" || t.kind === "panel_refund" || t.kind === "credit_purchase_refund" || t.kind === "license_purchase_refund") && (
                                 <span className="text-[9px] font-mono text-primary/60 block font-bold uppercase italic">Pedido Original: {t.reference_id.split("-")[0]}</span>
                               )}
                             </div>
@@ -296,7 +297,7 @@ export default function RevendedorTransacoes() {
                       {t.reference_id && (
                         <div className="flex flex-col mt-1">
                           <span className="text-[9px] font-mono text-muted-foreground/40 block">Ref: {t.reference_id.split("-")[0]}</span>
-                          {(t.kind === "refund" || t.kind === "panel_refund" || t.kind === "credit_purchase_refund") && (
+                          {(t.kind === "refund" || t.kind === "panel_refund" || t.kind === "credit_purchase_refund" || t.kind === "license_purchase_refund") && (
                             <span className="text-[9px] font-mono text-primary/60 block font-bold uppercase italic">Pedido Original: {t.reference_id.split("-")[0]}</span>
                           )}
                         </div>

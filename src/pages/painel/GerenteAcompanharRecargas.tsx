@@ -11,9 +11,10 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Wallet, Loader2, Copy, RefreshCw, Search, Coins, CheckCircle2, Clock, XCircle,
   Filter, ArrowUpRight, Zap, Eye, ExternalLink, History as HistoryIcon, Hand, Send,
-  Wrench, AlertTriangle, RotateCcw, ChevronDown, BarChart3,
+  Wrench, AlertTriangle, RotateCcw, ChevronDown, BarChart3, Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
+import RefundSaleDialog, { type RefundSaleData } from "@/components/painel/RefundSaleDialog";
 
 type Usage = {
   id: string;
@@ -23,6 +24,8 @@ type Usage = {
   created_at: string;
   responsavel_email?: string | null;
   responsavel_nome?: string | null;
+  price_cents?: number | null;
+  refunded?: boolean;
   raw?: any;
 };
 
@@ -72,6 +75,8 @@ export default function GerenteAcompanharRecargas() {
   } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [nowTick, setNowTick] = useState(() => Date.now());
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundData, setRefundData] = useState<RefundSaleData | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setNowTick(Date.now()), 1000);
@@ -157,7 +162,7 @@ export default function GerenteAcompanharRecargas() {
       if (ids.length > 0) {
         const { data: purchases } = await supabase
           .from("reseller_credit_purchases")
-          .select("provider_pedido_id, reseller_id, resellers:reseller_id(display_name, user_id)")
+          .select("provider_pedido_id, reseller_id, price_cents, status, resellers:reseller_id(display_name, user_id)")
           .in("provider_pedido_id", ids);
         const userIds = Array.from(new Set((purchases ?? []).map((p: any) => p.resellers?.user_id).filter(Boolean)));
         let emailMap = new Map<string, string>();
@@ -166,10 +171,15 @@ export default function GerenteAcompanharRecargas() {
           emailMap = new Map((profs ?? []).map((p: any) => [p.id, p.email]));
         }
         const respMap = new Map<string, { nome: string | null; email: string | null }>();
+        const priceMap = new Map<string, { price_cents: number | null; refunded: boolean }>();
         for (const p of (purchases ?? []) as any[]) {
           respMap.set(p.provider_pedido_id, {
             nome: p.resellers?.display_name ?? null,
             email: p.resellers?.user_id ? (emailMap.get(p.resellers.user_id) ?? null) : null,
+          });
+          priceMap.set(p.provider_pedido_id, {
+            price_cents: p.price_cents ?? null,
+            refunded: p.status === "estornado",
           });
         }
         for (const o of orders) {
@@ -177,6 +187,11 @@ export default function GerenteAcompanharRecargas() {
           if (r) {
             o.responsavel_nome = r.nome;
             o.responsavel_email = r.email;
+          }
+          const pr = priceMap.get(o.id);
+          if (pr) {
+            o.price_cents = pr.price_cents;
+            o.refunded = pr.refunded;
           }
         }
       }
@@ -584,9 +599,37 @@ export default function GerenteAcompanharRecargas() {
                             {new Date(u.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="Detalhes" onClick={() => { setDetailsData(u); setDetailsOpen(true); }}>
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
+                            <div className="flex items-center justify-end gap-1">
+                              {u.status.toLowerCase() === "cancelado" && !u.refunded && (u.price_cents ?? 0) > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-1.5 sm:px-2 text-[10px] font-bold uppercase border-rose-500/40 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20"
+                                  title="Estornar venda"
+                                  onClick={() => {
+                                    setRefundData({
+                                      tipo: "credits",
+                                      provider_pedido_id: u.id,
+                                      reseller_label: u.responsavel_nome || u.responsavel_email,
+                                      price_cents: u.price_cents ?? 0,
+                                      extra_info: u.license_type,
+                                    });
+                                    setRefundDialogOpen(true);
+                                  }}
+                                >
+                                  <Undo2 className="h-3.5 w-3.5 sm:mr-1" />
+                                  <span className="hidden sm:inline">Estornar</span>
+                                </Button>
+                              )}
+                              {u.refunded && (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sky-400">
+                                  <Undo2 className="h-2.5 w-2.5" /> Estornado
+                                </span>
+                              )}
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="Detalhes" onClick={() => { setDetailsData(u); setDetailsOpen(true); }}>
+                                <Eye className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -976,6 +1019,13 @@ export default function GerenteAcompanharRecargas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RefundSaleDialog
+        open={refundDialogOpen}
+        onOpenChange={setRefundDialogOpen}
+        data={refundData}
+        onSuccess={() => { loadAll(); }}
+      />
     </PageContainer>
   );
 }
