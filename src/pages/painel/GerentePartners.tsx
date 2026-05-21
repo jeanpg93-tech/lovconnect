@@ -66,7 +66,10 @@ export default function GerentePartners() {
 
   const minCredit = (amount: number) => creditBase[amount] ?? 0;
 
-  const partnerTiers = useMemo(() => tiers.filter((t) => t.is_hidden && t.is_active), [tiers]);
+  const partnerTiers = useMemo(
+    () => tiers.filter((t) => t.is_active && (t.is_hidden || t.slug === "partner")),
+    [tiers],
+  );
   const selectedTier = useMemo(() => tiers.find((t) => t.id === selectedTierId) ?? null, [tiers, selectedTierId]);
   const selectedReseller = useMemo(
     () => resellers.find((r) => r.id === selectedResellerId) ?? null,
