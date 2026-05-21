@@ -223,7 +223,7 @@ export function MobileNav() {
                 asChild
               >
                 <Link
-                  to={primaryRole === "gerente" ? "/painel/gerente/geracao-manual-creditos" : "/painel/revendedor/pedidos"}
+                  to={primaryRole === "gerente" ? "/painel/gerente/geracao-manual-creditos" : "/painel/revendedor/licencas"}
                   onClick={() => setIsCartModalOpen(false)}
                   className="flex items-center px-6"
                 >

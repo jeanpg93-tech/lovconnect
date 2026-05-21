@@ -77,7 +77,7 @@ const SERVICES = [
     price: 1990,
     icon: KeyRound,
     tag: "Semanal",
-    link: "/painel/revendedor/pedidos",
+    link: "/painel/revendedor/licencas",
     popular: false
   },
   {
@@ -88,7 +88,7 @@ const SERVICES = [
     price: 4990,
     icon: ShieldCheck,
     tag: "Mensal",
-    link: "/painel/revendedor/pedidos",
+    link: "/painel/revendedor/licencas",
     popular: true
   },
   {
@@ -99,7 +99,7 @@ const SERVICES = [
     price: 49700,
     icon: Crown,
     tag: "Premium",
-    link: "/painel/revendedor/pedidos",
+    link: "/painel/revendedor/licencas",
     popular: false
   },
   {

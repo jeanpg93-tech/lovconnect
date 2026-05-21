@@ -267,7 +267,7 @@ export default function RevendedorNiveis() {
               </div>
 
               <Button asChild variant="ghost" className="w-full h-12 rounded-2xl bg-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all border border-white/5">
-                <Link to="/painel/revendedor/pedidos">Ver Catálogo Completo <ArrowRight className="ml-2 h-3 w-3" /></Link>
+                <Link to="/painel/revendedor/licencas">Ver Catálogo Completo <ArrowRight className="ml-2 h-3 w-3" /></Link>
               </Button>
             </div>
           </Card>

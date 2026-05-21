@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { 
   Loader2, ShoppingCart, KeyRound, Copy, ChevronDown, FlaskConical, 
-  RefreshCcw, Ban, Trash2, MoreVertical, Sparkles, Crown, Package 
+  RefreshCcw, Ban, Trash2, MoreVertical, Sparkles, Crown, Package,
+  BookOpen, Zap, Globe, Terminal, FileDown, Puzzle, ShieldCheck
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
@@ -355,9 +357,26 @@ export default function RevendedorPedidos() {
 
       <div className="relative space-y-6">
         <PageHeader 
-          title="Fazer pedido" 
-          description="Compre licenças usando seu saldo. A entrega é instantânea." 
+          title="Licenças" 
+          description="Compre, gerencie e integre as licenças das suas extensões." 
         />
+
+        <Tabs defaultValue="plans" className="space-y-6">
+          <div className="flex items-center justify-center">
+            <TabsList className="bg-transparent h-12 gap-2 sm:gap-8 px-0 w-full sm:w-auto justify-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <TabsTrigger value="plans" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
+                Planos
+              </TabsTrigger>
+              <TabsTrigger value="instructions" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
+                Instruções
+              </TabsTrigger>
+              <TabsTrigger value="api" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
+                API's
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="plans" className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
 
         {tier && allTiers.length > 0 && Object.keys(partnerOverrides).length === 0 && (() => {
           const spent = tierState?.total_spent_cents ?? 0;
@@ -819,6 +838,145 @@ export default function RevendedorPedidos() {
           })
         )}
       </div>
+
+          </TabsContent>
+
+          <TabsContent value="instructions" className="animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
+            <div className="space-y-6">
+              <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-8">
+                <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+                <div className="relative flex items-start gap-4 mb-6">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
+                    <BookOpen className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Como usar</span>
+                    <h3 className="font-display text-2xl font-bold tracking-tight">Guia rápido das licenças</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Passo a passo para comprar, entregar e gerenciar licenças das extensões.</p>
+                  </div>
+                </div>
+                <ol className="space-y-3">
+                  {[
+                    { t: "Escolha a extensão", d: "Na aba Planos, selecione qual extensão será licenciada (Flow, Lovax, etc.)." },
+                    { t: "Escolha o pacote", d: "Cada plano (1 dia, 7, 15, 30 dias ou vitalícia) usa o preço definido pelo gerente conforme o seu nível." },
+                    { t: "Atribua a um cliente (opcional)", d: "Informe nome e WhatsApp do cliente para vincular a licença e enviar a chave automaticamente." },
+                    { t: "Confirme o pedido", d: "O valor é debitado do seu saldo e a chave é gerada na hora." },
+                    { t: "Gerencie a licença", d: "Use as ações (Resetar HWID, Revogar) na tabela 'Últimos pedidos' sempre que precisar." },
+                  ].map((s, i) => (
+                    <li key={i} className="flex items-start gap-3 p-3 rounded-xl bg-background/40 border border-border">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary text-[11px] font-black">{i + 1}</span>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{s.t}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{s.d}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
+                  <div className="flex items-center gap-2 text-primary"><Sparkles className="h-4 w-4" /><span className="text-[10px] font-black uppercase tracking-widest">Teste grátis</span></div>
+                  <p className="text-sm font-semibold">Licença TRIAL de 15 minutos</p>
+                  <p className="text-xs text-muted-foreground">Use o botão "Gerar Teste" no topo da aba Planos para criar uma chave gratuita por 15 minutos. O limite diário depende do seu nível.</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
+                  <div className="flex items-center gap-2 text-primary"><ShieldCheck className="h-4 w-4" /><span className="text-[10px] font-black uppercase tracking-widest">Resetar HWID</span></div>
+                  <p className="text-sm font-semibold">Cliente trocou de máquina?</p>
+                  <p className="text-xs text-muted-foreground">Em "Últimos pedidos", abra o menu da licença e clique em "Resetar HWID" para liberar o uso em outro dispositivo.</p>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="api" className="animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
+            {(() => {
+              const API_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reseller-api`;
+              const endpoints = [
+                { method: "GET",  path: "/status",                  desc: "Saúde da API" },
+                { method: "GET",  path: "/saldo",                   desc: "Saldo atual em centavos" },
+                { method: "GET",  path: "/planos",                  desc: "Planos disponíveis por extensão" },
+                { method: "POST", path: "/licencas",                desc: "Criar licença (comprar)" },
+                { method: "GET",  path: "/licencas",                desc: "Listar licenças geradas" },
+                { method: "GET",  path: "/licencas/{key}",          desc: "Consultar licença" },
+                { method: "POST", path: "/licencas/{key}/reset",    desc: "Resetar HWID" },
+                { method: "POST", path: "/licencas/{key}/revoke",   desc: "Revogar licença" },
+                { method: "POST", path: "/licencas/trial",          desc: "Gerar licença teste (15min)" },
+              ];
+              const fullSample = `# API de Licenças — exemplos\n# URL base: ${API_BASE}\n# Header obrigatório: X-API-Key: lov_live_xxxxxxxxxxxxxxxxxxxxxxxx\n\ncurl -X GET "${API_BASE}/planos" \\\n  -H "X-API-Key: SUA_API_KEY"\n\ncurl -X POST "${API_BASE}/licencas" \\\n  -H "X-API-Key: SUA_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "extension_id": "ext_xxx",\n    "license_type": "pro_30d",\n    "display_name": "Cliente João",\n    "whatsapp": "11912345678"\n  }'`;
+              return (
+                <div className="grid lg:grid-cols-1 gap-6">
+                  <div className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-8 space-y-6 transition-all hover:border-primary/40">
+                    <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+                    <div className="relative flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
+                          <Puzzle className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Revendedores</span>
+                          <h3 className="font-display text-2xl font-bold tracking-tight">API de Licenças</h3>
+                        </div>
+                      </div>
+                      <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">Online</span>
+                    </div>
+
+                    <p className="relative text-sm text-muted-foreground font-medium leading-relaxed">
+                      Gere, consulte e gerencie licenças das suas extensões via REST. Use o header <code className="font-mono text-primary">X-API-Key</code> em todas as requisições. Sua chave fica em "API de Chaves" no menu lateral.
+                    </p>
+
+                    <div className="relative space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-primary" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">URL base</span>
+                      </div>
+                      <div className="p-4 rounded-xl bg-secondary border border-border font-mono text-[11px] break-all">
+                        {API_BASE}
+                      </div>
+                    </div>
+
+                    <div className="relative space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Terminal className="h-4 w-4 text-primary" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Endpoints disponíveis</span>
+                      </div>
+                      <div className="rounded-xl border border-border overflow-hidden">
+                        {endpoints.map((e, i) => (
+                          <div key={i} className={cn("flex items-center gap-3 px-3 py-2.5 text-xs", i !== endpoints.length - 1 && "border-b border-border")}>
+                            <span className={cn(
+                              "px-2 py-0.5 rounded-md font-mono text-[9px] font-black tracking-wider shrink-0 w-12 text-center",
+                              e.method === "GET" ? "bg-emerald-500/10 text-emerald-500" : "bg-primary/10 text-primary"
+                            )}>{e.method}</span>
+                            <code className="font-mono text-[11px] text-foreground truncate">{e.path}</code>
+                            <span className="ml-auto text-[10px] text-muted-foreground truncate hidden sm:inline">{e.desc}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="relative flex flex-wrap gap-2 pt-2">
+                      <Button variant="outline" className="h-10 px-4 rounded-xl text-xs font-bold" asChild>
+                        <a href="/docs/apis-revendedor.pdf" target="_blank" rel="noopener noreferrer">
+                          <FileDown className="h-3.5 w-3.5 mr-2" /> PDF
+                        </a>
+                      </Button>
+                      <Button className="h-10 px-4 rounded-xl bg-primary text-white text-xs font-bold" onClick={() => { navigator.clipboard?.writeText(API_BASE); toast.success("URL base copiada!"); }}>
+                        <Copy className="h-3.5 w-3.5 mr-2" /> URL base
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        className="h-10 px-4 rounded-xl text-xs font-bold"
+                        onClick={() => { navigator.clipboard?.writeText(fullSample); toast.success("Cópia completa copiada!"); }}
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-2" /> Cópia completa
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </TabsContent>
+        </Tabs>
 
       <Dialog open={!!open} onOpenChange={(v) => !v && setOpen(null)}>
         <DialogContent className="bg-card border-border">
