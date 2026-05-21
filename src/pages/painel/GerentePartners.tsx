@@ -18,10 +18,12 @@ type Tier = {
   color: string;
   is_active: boolean;
   is_hidden: boolean;
+  min_spent_cents: number;
+  sort_order: number;
 };
 type Extension = { id: string; name: string };
 type Reseller = { id: string; display_name: string };
-type State = { reseller_id: string; forced_tier_id: string | null };
+type State = { reseller_id: string; forced_tier_id: string | null; total_spent_cents: number };
 type CreditPackage = { credits_amount: number; label: string };
 
 const LICENSE_TYPES: { key: string; label: string; short: string }[] = [
@@ -77,12 +79,28 @@ export default function GerentePartners() {
   );
 
   const partnersOfTier = useMemo(
-    () =>
-      Object.values(states)
-        .filter((s) => s.forced_tier_id === selectedTierId)
-        .map((s) => resellers.find((r) => r.id === s.reseller_id))
-        .filter(Boolean) as Reseller[],
-    [states, resellers, selectedTierId],
+    () => {
+      if (!selectedTierId) return [];
+      const activeTiers = [...tiers]
+        .filter((t) => t.is_active)
+        .sort((a, b) => a.min_spent_cents - b.min_spent_cents);
+      const naturalTierId = (spent: number) => {
+        let match = activeTiers[0]?.id ?? null;
+        for (const t of activeTiers) {
+          if (t.min_spent_cents <= spent) match = t.id;
+        }
+        return match;
+      };
+      const matched: Reseller[] = [];
+      for (const r of resellers) {
+        const st = states[r.id];
+        const forced = st?.forced_tier_id ?? null;
+        const effectiveTierId = forced ?? naturalTierId(st?.total_spent_cents ?? 0);
+        if (effectiveTierId === selectedTierId) matched.push(r);
+      }
+      return matched;
+    },
+    [states, resellers, selectedTierId, tiers],
   );
 
   const filteredPartners = useMemo(() => {
@@ -113,10 +131,10 @@ export default function GerentePartners() {
   const loadBase = async () => {
     setLoading(true);
     const [{ data: t }, { data: ex }, { data: r }, { data: s }, { data: cp }] = await Promise.all([
-      supabase.from("reseller_tiers").select("id,slug,name,color,is_active,is_hidden").order("sort_order"),
+      supabase.from("reseller_tiers").select("id,slug,name,color,is_active,is_hidden,min_spent_cents,sort_order").order("sort_order"),
       supabase.from("extensions").select("id,name").eq("is_active", true).order("name"),
       supabase.from("resellers").select("id,display_name").order("display_name"),
-      supabase.from("reseller_tier_state").select("reseller_id,forced_tier_id"),
+      supabase.from("reseller_tier_state").select("reseller_id,forced_tier_id,total_spent_cents"),
       supabase.from("credit_pricing_plans").select("credits_amount,label,price_cents,is_active").eq("is_active", true).order("credits_amount"),
     ]);
     const tierList = (t ?? []) as Tier[];
