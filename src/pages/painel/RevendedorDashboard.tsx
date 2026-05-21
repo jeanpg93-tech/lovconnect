@@ -350,7 +350,7 @@ export default function RevendedorDashboard() {
 
   return (
     <div className="space-y-6 pb-20 md:pb-0">
-      {/* HERO unificado: Dashboard Geral + Mago Revendovable */}
+      {/* HERO Dashboard Geral */}
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-background">
         {/* grid sutil de fundo */}
         <div
@@ -361,15 +361,31 @@ export default function RevendedorDashboard() {
             backgroundSize: "44px 44px",
           }}
         />
-        {/* aurora roxa atrás do mago */}
+        {/* auroras decorativas */}
         <div
-          className="absolute -right-20 top-1/2 -translate-y-1/2 h-[520px] w-[520px] rounded-full opacity-60 pointer-events-none blur-3xl"
+          className="absolute -right-32 -top-32 h-[520px] w-[520px] rounded-full opacity-50 pointer-events-none blur-3xl"
           style={{ background: "radial-gradient(circle, hsl(var(--primary) / 0.35), transparent 65%)" }}
         />
+        <div
+          className="absolute -left-40 -bottom-40 h-[460px] w-[460px] rounded-full opacity-40 pointer-events-none blur-3xl"
+          style={{ background: "radial-gradient(circle, hsl(160 84% 39% / 0.25), transparent 65%)" }}
+        />
+        {/* anel decorativo lado direito */}
+        <div className="absolute right-6 top-6 hidden lg:block pointer-events-none">
+          <div className="relative h-44 w-44">
+            <div className="absolute inset-0 rounded-full border border-primary/20" />
+            <div className="absolute inset-3 rounded-full border border-primary/15" />
+            <div className="absolute inset-6 rounded-full border border-primary/10" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 backdrop-blur shadow-red-glow">
+                <Sparkles className="h-7 w-7 text-primary" />
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <div className="relative grid gap-6 p-6 md:p-10">
-          {/* Lado esquerdo: título + filtros + mini stats */}
-          <div className="space-y-6">
+        <div className="relative p-6 md:p-10">
+          <div className="space-y-7">
             <div className="flex items-center gap-3 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
               <span className="flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
@@ -380,17 +396,26 @@ export default function RevendedorDashboard() {
               </span>
               <span className="text-border">·</span>
               <span>Painel do Revendedor</span>
+              {tier && (
+                <>
+                  <span className="text-border">·</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-primary normal-case tracking-normal">
+                    <Crown className="h-3 w-3" /> {tier.name}
+                  </span>
+                </>
+              )}
             </div>
 
-            <h1 className="font-display text-4xl md:text-6xl font-black leading-[0.95] tracking-tighter">
-              Dashboard
-              <br />
-              <span className="italic text-primary">Geral.</span>
-            </h1>
-
-            <p className="max-w-md text-sm md:text-base text-muted-foreground leading-relaxed">
-              Monitoramento em tempo real da sua operação. Vendas, recargas e licenças numa única interface.
-            </p>
+            <div>
+              <h1 className="font-display text-4xl md:text-6xl font-black leading-[0.95] tracking-tighter">
+                Dashboard
+                <br />
+                <span className="italic text-primary">Geral.</span>
+              </h1>
+              <p className="mt-4 max-w-xl text-sm md:text-base text-muted-foreground leading-relaxed">
+                Monitoramento em tempo real da sua operação. Vendas, recargas e licenças numa única interface.
+              </p>
+            </div>
 
             {/* CTAs */}
             <div className="flex flex-wrap gap-2">
@@ -406,25 +431,41 @@ export default function RevendedorDashboard() {
               </Button>
             </div>
 
-            {/* Mini stats inline */}
-            <div className="grid grid-cols-2 gap-3 max-w-md pt-2">
-              <div className="rounded-2xl border border-border bg-background/60 backdrop-blur p-4">
-                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            {/* Mini stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-emerald-500/40">
+                <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-emerald-500/10 blur-2xl" />
+                <div className="relative flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   <TrendingUp className="h-3 w-3 text-emerald-500" /> Hoje
                 </div>
-                <div className="mt-2 font-display text-2xl font-black text-emerald-500">
+                <div className="relative mt-2 font-display text-2xl font-black text-emerald-500">
                   {fmtBRL(today.cents)}
                 </div>
-                <div className="text-[10px] text-muted-foreground mt-0.5">{today.count} pedidos</div>
+                <div className="relative text-[10px] text-muted-foreground mt-0.5">{today.count} pedidos</div>
               </div>
-              <div className="rounded-2xl border border-border bg-background/60 backdrop-blur p-4">
-                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  <Users className="h-3 w-3 text-primary" /> Rede
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-primary/40">
+                <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-primary/10 blur-2xl" />
+                <div className="relative flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <Wallet className="h-3 w-3 text-primary" /> Saldo
                 </div>
-                <div className="mt-2 font-display text-2xl font-black">{stats.clients}</div>
-                <div className="text-[10px] text-muted-foreground mt-0.5">
-                  {stats.activeLicenses} licenças ativas
+                <div className="relative mt-2 font-display text-2xl font-black">{fmtBRL(balance)}</div>
+                <div className="relative text-[10px] text-muted-foreground mt-0.5">disponível</div>
+              </div>
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-blue-500/40">
+                <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-blue-500/10 blur-2xl" />
+                <div className="relative flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <Users className="h-3 w-3 text-blue-500" /> Rede
                 </div>
+                <div className="relative mt-2 font-display text-2xl font-black">{stats.clients}</div>
+                <div className="relative text-[10px] text-muted-foreground mt-0.5">clientes</div>
+              </div>
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-amber-500/40">
+                <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-amber-500/10 blur-2xl" />
+                <div className="relative flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <ShieldCheck className="h-3 w-3 text-amber-500" /> Licenças
+                </div>
+                <div className="relative mt-2 font-display text-2xl font-black">{stats.activeLicenses}</div>
+                <div className="relative text-[10px] text-muted-foreground mt-0.5">ativas</div>
               </div>
             </div>
           </div>
