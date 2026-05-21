@@ -8,7 +8,7 @@ import {
   Loader2, Store, MessageCircle, Copy, CheckCircle2, ArrowLeft, 
   ShieldCheck, QrCode, Tag, Sparkles, Download, Chrome, RefreshCw, 
   Key, AlertTriangle, ExternalLink, Star, Quote, Send, HelpCircle,
-  KeyRound, Coins
+  KeyRound, Coins, Zap, Hand
 } from "lucide-react";
 import { toast } from "sonner";
 import { StorefrontBackground } from "@/components/storefront/StorefrontBackground";
@@ -90,6 +90,7 @@ export default function PublicStorefront() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [packs, setPacks] = useState<Pack[]>([]);
   const [recharges, setRecharges] = useState<Recharge[]>([]);
+  const [rechargeMode, setRechargeMode] = useState<"automatico" | "manual">("automatico");
   const [activeTab, setActiveTab] = useState<"extension" | "recharge">("extension");
   const [testimonials, setTestimonials] = useState<any[]>([]);
   
@@ -252,6 +253,14 @@ export default function PublicStorefront() {
         .eq("is_active", true)
         .order("credits_amount", { ascending: true });
       if (rec) setRecharges(rec);
+
+      const { data: rs } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "recargas_settings")
+        .maybeSingle();
+      const mode = (rs?.value as any)?.active_mode;
+      if (mode === "manual" || mode === "automatico") setRechargeMode(mode);
 
       // Default active tab based on what is enabled
       if (s && !(s as any).show_extensions && (s as any).show_credits) {
