@@ -354,7 +354,7 @@ export default function RevendedorRecargas() {
       <div className="px-4 mb-12">
         <div className="container mx-auto max-w-5xl">
           <div className={cn(
-            "relative overflow-hidden rounded-3xl border p-8 md:p-12 bg-gradient-to-br",
+            "relative overflow-hidden rounded-2xl sm:rounded-3xl border p-5 sm:p-8 md:p-12 bg-gradient-to-br",
             activeMode === "automatico"
               ? "border-primary/20 from-card via-card to-primary/5"
               : "border-amber-500/20 from-card via-card to-amber-500/5"
@@ -465,14 +465,14 @@ export default function RevendedorRecargas() {
         <div className="container mx-auto max-w-7xl">
           <Tabs defaultValue="plans" className="space-y-12" id="plans-tabs">
             <div className="flex justify-center border-b border-border">
-              <TabsList className="bg-transparent h-12 gap-8 px-0">
-                <TabsTrigger value="plans" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-sm transition-all px-4">
+              <TabsList className="bg-transparent h-12 gap-2 sm:gap-8 px-0 w-full sm:w-auto justify-start sm:justify-center overflow-x-auto no-scrollbar">
+                <TabsTrigger value="plans" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
                   Planos
                 </TabsTrigger>
-                <TabsTrigger value="rules" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-sm transition-all px-4">
+                <TabsTrigger value="rules" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
                   Limite de uso
                 </TabsTrigger>
-                <TabsTrigger value="api" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-sm transition-all px-4">
+                <TabsTrigger value="api" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
                   API's
                 </TabsTrigger>
               </TabsList>
@@ -664,10 +664,10 @@ export default function RevendedorRecargas() {
                 </div>
 
                 {/* Footer Section Style */}
-                <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 p-16 text-white text-center space-y-8 shadow-lg shadow-primary/20">
-                   <h2 className="text-5xl md:text-6xl font-bold tracking-tighter ">Movimentando milhões de <br /> transações todos os dias.</h2>
-                   <p className="text-white/80 text-xl font-medium max-w-2xl mx-auto">Sem surpresas, sem letras miúdas. Aqui o preço é fixo e previsível em todas as suas operações.</p>
-                   <Button className="h-16 px-12 rounded-2xl bg-white text-primary font-bold   hover:bg-zinc-100 transition-all">
+                <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary to-primary/80 p-6 sm:p-10 md:p-16 text-white text-center space-y-5 sm:space-y-8 shadow-lg shadow-primary/20">
+                   <h2 className="text-2xl sm:text-4xl md:text-6xl font-bold tracking-tighter">Movimentando milhões de <br className="hidden sm:inline" /> transações todos os dias.</h2>
+                   <p className="text-white/80 text-sm sm:text-lg md:text-xl font-medium max-w-2xl mx-auto">Sem surpresas, sem letras miúdas. Aqui o preço é fixo e previsível em todas as suas operações.</p>
+                   <Button className="h-12 sm:h-16 px-8 sm:px-12 rounded-xl sm:rounded-2xl bg-white text-primary font-bold hover:bg-zinc-100 transition-all">
                       Abrir conta agora
                    </Button>
                 </div>
