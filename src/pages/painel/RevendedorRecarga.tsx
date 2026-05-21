@@ -812,139 +812,189 @@ export default function RevendedorRecargas() {
             </TabsContent>
 
             <TabsContent value="api" className="animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* API Automática */}
-                <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-8 space-y-8 transition-all hover:border-primary/40">
-                  <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-                  <div className="relative flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
-                        <Zap className="h-6 w-6" />
+              {(() => {
+                const API_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reseller-credits-api`;
+                const autoEndpoints = [
+                  { method: "GET", path: "/status", desc: "Saúde da API" },
+                  { method: "GET", path: "/saldo", desc: "Saldo atual" },
+                  { method: "GET", path: "/pacotes", desc: "Pacotes disponíveis" },
+                  { method: "GET", path: "/orcamento?creditos=100", desc: "Cotação prévia" },
+                  { method: "POST", path: "/pedidos", desc: "Criar pedido automático" },
+                  { method: "GET", path: "/pedidos", desc: "Listar pedidos" },
+                  { method: "GET", path: "/pedidos/{id}", desc: "Consultar pedido" },
+                  { method: "GET", path: "/transacoes", desc: "Histórico de saldo" },
+                  { method: "GET", path: "/estatisticas?periodo=30d", desc: "Totais e ticket médio" },
+                  { method: "GET", path: "/uso", desc: "Uso da sua API key" },
+                ];
+                const manualEndpoints = [
+                  { method: "GET", path: "/manual/info", desc: "E-mail do bot e SLA" },
+                  { method: "POST", path: "/pedidos-manual", desc: "Criar pedido manual" },
+                  { method: "POST", path: "/pedidos-manual/{id}/convite", desc: "Confirmar convite" },
+                  { method: "GET", path: "/pedidos-manual", desc: "Listar pedidos manuais" },
+                  { method: "GET", path: "/pedidos-manual/{id}", desc: "Consultar pedido manual" },
+                ];
+                const fullAuto = `# API Recargas Automáticas — exemplos\n# URL base: ${API_BASE}\n# Header obrigatório: X-API-Key: lov_live_xxxxxxxxxxxxxxxxxxxxxxxx\n\ncurl -X GET "${API_BASE}/saldo" \\\n  -H "X-API-Key: SUA_API_KEY"\n\ncurl -X POST "${API_BASE}/pedidos" \\\n  -H "X-API-Key: SUA_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "creditos": 100,\n    "tipo_entrega": "workspace_proprio",\n    "workspace_id": "ws_xxx"\n  }'`;
+                const fullManual = `# API Recargas Manuais — exemplos\n# URL base: ${API_BASE}\n# Header obrigatório: X-API-Key: lov_live_xxxxxxxxxxxxxxxxxxxxxxxx (scope recharges_manual)\n\ncurl -X POST "${API_BASE}/pedidos-manual" \\\n  -H "X-API-Key: SUA_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "creditos": 100,\n    "tipo_entrega": "workspace_proprio",\n    "workspace_name": "Meu Workspace"\n  }'\n\ncurl -X POST "${API_BASE}/pedidos-manual/UUID/convite" \\\n  -H "X-API-Key: SUA_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{ "workspace_name": "Meu Workspace", "invite_status": "sent" }'`;
+                return (
+                  <div className="grid lg:grid-cols-2 gap-6">
+                    {/* API Automática (Revendedor) */}
+                    <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-8 space-y-6 transition-all hover:border-primary/40">
+                      <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+                      <div className="relative flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
+                            <Zap className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Revendedores</span>
+                            <h3 className="font-display text-2xl font-bold tracking-tight">API Automática</h3>
+                          </div>
+                        </div>
+                        <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">Online</span>
                       </div>
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Automática</span>
-                        <h3 className="font-display text-2xl font-bold tracking-tight">API Automática</h3>
+
+                      <p className="relative text-sm text-muted-foreground font-medium leading-relaxed">
+                        Endpoints REST processados em tempo real. Saldo debitado na hora. Use o header <code className="font-mono text-primary">X-API-Key</code> em todas as requisições.
+                      </p>
+
+                      <div className="relative space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-primary" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">URL base</span>
+                        </div>
+                        <div className="p-4 rounded-xl bg-secondary border border-border font-mono text-[11px] break-all">
+                          {API_BASE}
+                        </div>
+                      </div>
+
+                      <div className="relative space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Terminal className="h-4 w-4 text-primary" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Endpoints disponíveis</span>
+                        </div>
+                        <div className="rounded-xl border border-border overflow-hidden">
+                          {autoEndpoints.map((e, i) => (
+                            <div key={i} className={cn("flex items-center gap-3 px-3 py-2.5 text-xs", i !== autoEndpoints.length - 1 && "border-b border-border")}>
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-md font-mono text-[9px] font-black tracking-wider shrink-0 w-12 text-center",
+                                e.method === "GET" ? "bg-emerald-500/10 text-emerald-500" : "bg-primary/10 text-primary"
+                              )}>{e.method}</span>
+                              <code className="font-mono text-[11px] text-foreground truncate">{e.path}</code>
+                              <span className="ml-auto text-[10px] text-muted-foreground truncate hidden sm:inline">{e.desc}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="relative flex flex-wrap gap-2 pt-2">
+                        <Button variant="outline" className="h-10 px-4 rounded-xl text-xs font-bold" asChild>
+                          <a href="/docs/apis-revendedor.pdf" target="_blank" rel="noopener noreferrer">
+                            <FileDown className="h-3.5 w-3.5 mr-2" /> PDF
+                          </a>
+                        </Button>
+                        <Button className="h-10 px-4 rounded-xl bg-primary text-white text-xs font-bold" onClick={() => { navigator.clipboard?.writeText(API_BASE); toast.success("URL base copiada!"); }}>
+                          <Copy className="h-3.5 w-3.5 mr-2" /> URL base
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          className="h-10 px-4 rounded-xl text-xs font-bold"
+                          onClick={() => { navigator.clipboard?.writeText(fullAuto); toast.success("Cópia completa copiada!"); }}
+                        >
+                          <Copy className="h-3.5 w-3.5 mr-2" /> Cópia completa
+                        </Button>
                       </div>
                     </div>
-                    <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">Online</span>
-                  </div>
 
-                  <p className="relative text-sm text-muted-foreground font-medium leading-relaxed">
-                    Integre sua operação via Webhooks e REST. Recargas processadas em tempo real, sem intervenção humana.
-                  </p>
-
-                  <div className="relative space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-primary" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">URL de Produção</span>
-                    </div>
-                    <div className="p-4 rounded-xl bg-secondary border border-border font-mono text-xs break-all">
-                      POST https://api.revendovable.com/v1/recharge
-                    </div>
-                  </div>
-
-                  <div className="relative grid grid-cols-2 gap-3">
-                    <div className="p-4 rounded-xl border border-border bg-background/40 space-y-1.5">
-                      <Cpu className="h-4 w-4 text-primary" />
-                      <div className="text-xs font-bold">Baixa Latência</div>
-                      <p className="text-[10px] text-muted-foreground">Resposta &lt; 200ms.</p>
-                    </div>
-                    <div className="p-4 rounded-xl border border-border bg-background/40 space-y-1.5">
-                      <Lock className="h-4 w-4 text-primary" />
-                      <div className="text-xs font-bold">AES-256</div>
-                      <p className="text-[10px] text-muted-foreground">Transações criptografadas.</p>
-                    </div>
-                  </div>
-
-                  <div className="relative flex flex-wrap gap-3 pt-2">
-                    <Button variant="outline" className="h-11 px-5 rounded-xl text-xs font-bold" asChild>
-                      <a href="/docs/apis-revendedor.pdf" target="_blank" rel="noopener noreferrer">
-                        <FileDown className="h-3.5 w-3.5 mr-2" /> Baixar PDF
-                      </a>
-                    </Button>
-                    <Button className="h-11 px-5 rounded-xl bg-primary text-white text-xs font-bold" onClick={() => { navigator.clipboard?.writeText("https://api.revendovable.com/v1/recharge"); toast.success("Endpoint Copiado!"); }}>
-                      <Copy className="h-3.5 w-3.5 mr-2" /> Endpoint
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="h-11 px-5 rounded-xl text-xs font-bold"
-                      onClick={() => {
-                        const fullRequest = `curl -X POST https://api.revendovable.com/v1/recharge \\\n  -H "Authorization: Bearer sk_rev_..." \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "plan": "recharge-500",\n    "target": "usr_99a",\n    "webhook_url": "https://seu-dominio.com/hook"\n  }'`;
-                        navigator.clipboard?.writeText(fullRequest);
-                        toast.success("Cópia completa copiada!");
-                      }}
-                    >
-                      <Copy className="h-3.5 w-3.5 mr-2" /> Cópia completa
-                    </Button>
-                  </div>
-                </div>
-
-                {/* API Manual (Gerente) */}
-                <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-8 space-y-8 transition-all hover:border-amber-500/40">
-                  <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-                  <div className="relative flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/30">
-                        <MessageCircle className="h-6 w-6" />
+                    {/* API Manual */}
+                    <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-8 space-y-6 transition-all hover:border-amber-500/40">
+                      <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+                      <div className="relative flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/30">
+                            <Hand className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">Suporte humano</span>
+                            <h3 className="font-display text-2xl font-bold tracking-tight">API Manual</h3>
+                          </div>
+                        </div>
+                        <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">SLA 24h</span>
                       </div>
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">Manual</span>
-                        <h3 className="font-display text-2xl font-bold tracking-tight">API Manual</h3>
+
+                      <p className="relative text-sm text-muted-foreground font-medium leading-relaxed">
+                        Fluxo manual processado pela equipe. Exige <strong>chave separada</strong> (scope <code className="font-mono text-amber-500">recharges_manual</code>). Saldo debitado na hora; entrega em até 24h.
+                      </p>
+
+                      <div className="relative space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-amber-500" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">URL base</span>
+                        </div>
+                        <div className="p-4 rounded-xl bg-secondary border border-border font-mono text-[11px] break-all">
+                          {API_BASE}
+                        </div>
+                      </div>
+
+                      <div className="relative space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Terminal className="h-4 w-4 text-amber-500" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Endpoints disponíveis</span>
+                        </div>
+                        <div className="rounded-xl border border-border overflow-hidden">
+                          {manualEndpoints.map((e, i) => (
+                            <div key={i} className={cn("flex items-center gap-3 px-3 py-2.5 text-xs", i !== manualEndpoints.length - 1 && "border-b border-border")}>
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-md font-mono text-[9px] font-black tracking-wider shrink-0 w-12 text-center",
+                                e.method === "GET" ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+                              )}>{e.method}</span>
+                              <code className="font-mono text-[11px] text-foreground truncate">{e.path}</code>
+                              <span className="ml-auto text-[10px] text-muted-foreground truncate hidden sm:inline">{e.desc}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="relative space-y-2">
+                        <div className="flex items-center gap-2">
+                          <ShieldAlert className="h-4 w-4 text-amber-500" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Fluxo em 4 passos</span>
+                        </div>
+                        <ul className="space-y-1.5">
+                          {[
+                            "Crie o pedido — POST /pedidos-manual",
+                            "Convide recarga@lovconnect.store como editor do workspace",
+                            "Confirme — POST /pedidos-manual/{id}/convite",
+                            "Acompanhe — GET /pedidos-manual/{id}",
+                          ].map((step, i) => (
+                            <li key={i} className="flex items-start gap-3 p-2.5 rounded-lg bg-background/40 border border-border">
+                              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500/15 text-amber-500 text-[10px] font-black">{i + 1}</span>
+                              <span className="text-[11px] font-medium text-foreground/90 leading-snug">{step}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="relative flex flex-wrap gap-2 pt-2">
+                        <Button variant="outline" className="h-10 px-4 rounded-xl text-xs font-bold border-amber-500/40 text-amber-600 hover:bg-amber-500/10 hover:text-amber-600" asChild>
+                          <a href="/docs/apis-revendedor.pdf" target="_blank" rel="noopener noreferrer">
+                            <FileDown className="h-3.5 w-3.5 mr-2" /> PDF
+                          </a>
+                        </Button>
+                        <Button className="h-10 px-4 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-500/90" onClick={() => { navigator.clipboard?.writeText(API_BASE); toast.success("URL base copiada!"); }}>
+                          <Copy className="h-3.5 w-3.5 mr-2" /> URL base
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          className="h-10 px-4 rounded-xl text-xs font-bold"
+                          onClick={() => { navigator.clipboard?.writeText(fullManual); toast.success("Cópia completa copiada!"); }}
+                        >
+                          <Copy className="h-3.5 w-3.5 mr-2" /> Cópia completa
+                        </Button>
                       </div>
                     </div>
-                    <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">Suporte</span>
                   </div>
-
-                  <p className="relative text-sm text-muted-foreground font-medium leading-relaxed">
-                    Atendimento humano fornecido diretamente pelo seu gerente. Ideal para pedidos personalizados, fora do padrão ou em alto volume.
-                  </p>
-
-                  <div className="relative space-y-3">
-                    <div className="flex items-center gap-2">
-                      <ShieldAlert className="h-4 w-4 text-amber-500" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Como funciona</span>
-                    </div>
-                    <ul className="space-y-2.5">
-                      {[
-                        "Envie o pedido com plano e quantidade ao seu gerente",
-                        "Confirme o pagamento via PIX direto com o time",
-                        "Receba a confirmação da entrega em até 24h"
-                      ].map((step, i) => (
-                        <li key={i} className="flex items-start gap-3 p-3 rounded-xl bg-background/40 border border-border">
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500/15 text-amber-500 text-[10px] font-black">{i + 1}</span>
-                          <span className="text-xs font-medium text-foreground/90 leading-relaxed">{step}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="relative grid grid-cols-2 gap-3">
-                    <div className="p-4 rounded-xl border border-border bg-background/40 space-y-1.5">
-                      <CheckCircle2 className="h-4 w-4 text-amber-500" />
-                      <div className="text-xs font-bold">Atendimento humano</div>
-                      <p className="text-[10px] text-muted-foreground">Direto com gerente.</p>
-                    </div>
-                    <div className="p-4 rounded-xl border border-border bg-background/40 space-y-1.5">
-                      <Sparkles className="h-4 w-4 text-amber-500" />
-                      <div className="text-xs font-bold">Sob demanda</div>
-                      <p className="text-[10px] text-muted-foreground">Pedidos personalizados.</p>
-                    </div>
-                  </div>
-
-                  <div className="relative flex flex-wrap gap-3 pt-2">
-                    <Button variant="outline" className="h-11 px-5 rounded-xl text-xs font-bold border-amber-500/40 text-amber-600 hover:bg-amber-500/10 hover:text-amber-600" asChild>
-                      <a href="/docs/apis-revendedor.pdf" target="_blank" rel="noopener noreferrer">
-                        <FileDown className="h-3.5 w-3.5 mr-2" /> Baixar PDF
-                      </a>
-                    </Button>
-                    <Button className="h-11 px-5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-500/90" asChild>
-                      <Link to="/painel/revendedor/avisos">
-                        <MessageCircle className="h-3.5 w-3.5 mr-2" /> Falar com gerente
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
             </TabsContent>
           </Tabs>
         </div>
