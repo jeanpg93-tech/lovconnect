@@ -485,7 +485,7 @@ SLA: até 24h úteis após o convite confirmado.
 
 ## Fluxo em 4 passos
 1. Crie o pedido — POST /pedidos-manual (saldo debitado na hora).
-2. Convide o bot — adicione recargas@revendovable.store como editor do workspace Lovable.
+2. Convide o bot — adicione recarga@lovconnect.store como editor do workspace Lovable.
 3. Confirme o convite — POST /pedidos-manual/{id}/convite com workspace_name e invite_status="sent".
 4. Aguarde a entrega — equipe processa em até 24h. Acompanhe via GET /pedidos-manual/{id}.
 
@@ -607,7 +607,7 @@ function EndpointsManual() {
         </p>
       </Card>
 
-      <DocBlock title="GET /manual/info — Info do fluxo manual" body={`curl -X GET "${API_BASE}/manual/info" \\\n  -H "X-API-Key: SUA_API_KEY"\n\n# Resposta\n{\n  "success": true,\n  "data": {\n    "emailBot": "recargas@revendovable.store",\n    "slaHoras": 24,\n    "instrucoes": [ ... ]\n  }\n}`} />
+      <DocBlock title="GET /manual/info — Info do fluxo manual" body={`curl -X GET "${API_BASE}/manual/info" \\\n  -H "X-API-Key: SUA_API_KEY"\n\n# Resposta\n{\n  "success": true,\n  "data": {\n    "emailBot": "recarga@lovconnect.store",\n    "slaHoras": 24,\n    "instrucoes": [ ... ]\n  }\n}`} />
 
       <DocBlock title="POST /pedidos-manual — Criar pedido manual" body={`curl -X POST "${API_BASE}/pedidos-manual" \\\n  -H "X-API-Key: SUA_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "creditos": 100,\n    "tipo_entrega": "workspace_proprio",\n    "workspace_name": "Meu Workspace"\n  }'\n\n# Retorna pedidoId, status="manual_pendente",\n# emailBot a convidar e proximoPasso.`} />
 
@@ -631,7 +631,7 @@ function DocsManual() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { n: 1, t: "Crie o pedido", d: "POST /pedidos-manual com recargas e tipo de entrega. Saldo é debitado na hora." },
-            { n: 2, t: "Convide o bot", d: "Adicione recargas@revendovable.store como editor do workspace Lovable." },
+            { n: 2, t: "Convide o bot", d: "Adicione recarga@lovconnect.store como editor do workspace Lovable." },
             { n: 3, t: "Confirme o convite", d: "POST /pedidos-manual/{id}/convite com workspace_name e status=sent." },
             { n: 4, t: "Aguarde a entrega", d: "Equipe processa em até 24h. Acompanhe via GET /pedidos-manual/{id}." },
           ].map(s => (

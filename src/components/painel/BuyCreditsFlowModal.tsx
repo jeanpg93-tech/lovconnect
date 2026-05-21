@@ -101,7 +101,7 @@ export function BuyCreditsFlowModal({
   const [savingMeta, setSavingMeta] = useState(false);
   const [policyOpen, setPolicyOpen] = useState(false);
 
-  const MANUAL_BOT_EMAIL = "recargas@revendovable.store";
+  const MANUAL_BOT_EMAIL = "recarga@lovconnect.store";
 
   const reset = () => {
     setStep("review");
