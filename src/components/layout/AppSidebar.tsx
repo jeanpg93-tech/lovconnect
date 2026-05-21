@@ -360,7 +360,26 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border px-3 py-3">
+      <SidebarHeader className="relative border-b border-sidebar-border px-3 py-3">
+        {primaryRole === "gerente" && (
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            title={collapsed ? "Expandir menu" : "Recolher menu"}
+            aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+            className={cn(
+              "absolute -right-3 top-3 z-20 hidden md:flex h-6 w-6 items-center justify-center rounded-full",
+              "border border-sidebar-border bg-sidebar text-muted-foreground/70 shadow-sm",
+              "transition-all hover:text-primary hover:border-primary/50 hover:bg-sidebar-accent",
+            )}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronLeft className="h-3.5 w-3.5" />
+            )}
+          </button>
+        )}
         {(() => {
           const name = profile.display_name?.trim() || profile.email?.split("@")[0] || "Usuário";
           const initial = (name[0] || "U").toUpperCase();
