@@ -354,7 +354,7 @@ export default function PublicRecharge() {
           {/* Header */}
           <div className="text-center space-y-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-200">
-              <Sparkles className="h-3 w-3" /> Entrega manual
+              <Sparkles className="h-3 w-3" /> SUA ENTREGA
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
               Pedido de{" "}
