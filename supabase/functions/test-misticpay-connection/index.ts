@@ -44,7 +44,9 @@ Deno.serve(async (req) => {
     );
     const { data: reseller } = await admin
       .from("resellers").select("id").eq("user_id", userId).maybeSingle();
-    if (!reseller) return json({ error: "Apenas revendedores" }, 403);
+    const { data: gerenteRole } = await admin
+      .from("user_roles").select("role").eq("user_id", userId).eq("role", "gerente").maybeSingle();
+    if (!reseller && !gerenteRole) return json({ error: "Apenas revendedores ou gerentes" }, 403);
 
     const attempts: Array<{
       path: string;
