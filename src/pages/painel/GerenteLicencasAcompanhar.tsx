@@ -249,7 +249,7 @@ export default function GerenteLicencasAcompanhar() {
         storefrontMap[o.license_key] = { reseller_id: o.reseller_id };
       });
 
-      const usage = (providerData?.usage ?? []) as any[];
+      const usage = ((providerData as any)?.usage ?? []) as any[];
       const list: OrderRow[] = usage.map(u => {
         const local = ordersMap[u.license_key];
         const sf = storefrontMap[u.license_key];
