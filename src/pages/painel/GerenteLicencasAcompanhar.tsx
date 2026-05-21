@@ -110,7 +110,7 @@ function computeStatus(o: { status: string }, exp: { expired: boolean; lifetime:
   return { kind: "active" as const, label: "Ativa", className: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)]" };
 }
 
-export default function GerenteTodasLicencas() {
+export default function GerenteLicencasAcompanhar() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [resellers, setResellers] = useState<Record<string, string>>({});
