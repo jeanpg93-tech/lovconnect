@@ -97,10 +97,9 @@ const groupsByRole: Record<AppRole, Group[]> = {
     { label: "Painel", items: [
       { title: "Dashboard", url: "/painel/revendedor", icon: LayoutDashboard },
       { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
+      { title: "Carteira", url: "/painel/revendedor/carteira", icon: Wallet },
       { title: "Transações", url: "/painel/revendedor/transacoes", icon: HistoryIcon },
       { title: "Indique e ganhe", url: "/painel/revendedor/indicacoes", icon: Gift },
-      { title: "Níveis", url: "/painel/revendedor/niveis", icon: Crown },
-      { title: "Ranking", url: "/painel/revendedor/ranking", icon: Award },
     ]},
     { label: "Vender", items: [
       { title: "Comprar Recargas", url: "/painel/revendedor/pedidos", icon: ShoppingCart },
@@ -414,7 +413,7 @@ export function AppSidebar() {
                 </div>
               )}
               <NavLink
-                to="/painel/revendedor/adicionar-saldo"
+                to="/painel/revendedor/carteira#saldo"
                 className="mt-2 flex w-full items-center justify-center rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Adicionar saldo
