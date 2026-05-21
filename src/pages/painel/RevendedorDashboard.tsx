@@ -201,7 +201,7 @@ export default function RevendedorDashboard() {
         ...recharges.map((rc: any) => ({
           id: rc.id,
           type: "recharge" as const,
-          title: `Recarga de ${rc.credits} recarga`,
+          title: `Recargas de ${rc.credits} recargas`,
           amount_cents: rc.price_cents,
           status: rc.status,
           created_at: rc.created_at
@@ -305,7 +305,7 @@ export default function RevendedorDashboard() {
     });
     return Object.entries(map)
       .map(([k, v]) => ({ 
-        name: k === "recharge" ? "Recarga de Recarga" : (LICENSE_LABELS[k] ?? k), 
+        name: k === "recharge" ? "Recargas de Recargas" : (LICENSE_LABELS[k] ?? k), 
         value: v 
       }))
       .sort((a, b) => b.value - a.value);
@@ -390,13 +390,13 @@ export default function RevendedorDashboard() {
             </h1>
 
             <p className="max-w-md text-sm md:text-base text-muted-foreground leading-relaxed">
-              Monitoramento em tempo real da sua operação. Vendas, recarga e licenças numa única interface.
+              Monitoramento em tempo real da sua operação. Vendas, recargas e licenças numa única interface.
             </p>
 
             {/* CTAs */}
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" className="rounded-xl shadow-red-glow">
-                <Link to="/painel/revendedor/recarga">
+                <Link to="/painel/revendedor/recargas">
                   <Zap className="mr-2 h-4 w-4" /> Centro de Abastecimento
                 </Link>
               </Button>

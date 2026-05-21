@@ -234,8 +234,8 @@ export default function RevendedorComprarCreditos() {
   return (
     <div className="max-w-5xl mx-auto">
       <PageHeader 
-        title="Comprar Recarga" 
-        description="Adquira pacotes de recarga Lovable para seus clientes com entrega instantânea." 
+        title="Comprar Recargas" 
+        description="Adquira pacotes de recargas Lovable para seus clientes com entrega instantânea." 
       />
 
       {/* Step indicator */}
@@ -344,7 +344,7 @@ export default function RevendedorComprarCreditos() {
                   <h3 className="relative font-display text-lg font-bold mb-1">{p.label}</h3>
                   <div className="relative flex items-baseline gap-2 mb-4">
                     <span className="text-3xl font-bold font-display text-primary">{p.credits_amount}</span>
-                    <span className="text-sm font-normal text-muted-foreground">recarga</span>
+                    <span className="text-sm font-normal text-muted-foreground">recargas</span>
                   </div>
 
                   <div className="relative mt-auto pt-4 border-t border-border/50 space-y-1.5">
@@ -421,7 +421,7 @@ export default function RevendedorComprarCreditos() {
               <div className="rounded-xl border border-border bg-card/30 p-4 text-sm text-muted-foreground flex gap-3">
                 <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <div>
-                  Após confirmar, o provedor gera um <strong>email do bot</strong>. Você convida esse email no workspace do cliente e clica em <strong>Confirmar Convite</strong> para liberar os recarga.
+                  Após confirmar, o provedor gera um <strong>email do bot</strong>. Você convida esse email no workspace do cliente e clica em <strong>Confirmar Convite</strong> para liberar os recargas.
                 </div>
               </div>
             </div>
@@ -437,7 +437,7 @@ export default function RevendedorComprarCreditos() {
                   <span className="font-medium">{selectedPlan?.label}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Recarga:</span>
+                  <span className="text-muted-foreground">Recargas:</span>
                   <span className="font-medium">{selectedPlan?.credits_amount}</span>
                 </div>
                 <div className="flex justify-between">
@@ -472,9 +472,9 @@ export default function RevendedorComprarCreditos() {
 
       {step === 3 && (() => {
         const orderId = lastOrder?.id ?? lastOrder?.pedidoId ?? "";
-        const trackUrl = `https://revendovable.store/recarga/${orderId}`;
+        const trackUrl = `https://revendovable.store/recargas/${orderId}`;
         const clientMsg =
-          `Olá! Seu pedido de ${lastOrder?.creditosEnviados ?? selectedPlan?.credits_amount ?? ""} recarga Lovable foi confirmado com sucesso. ✅\n\n` +
+          `Olá! Seu pedido de ${lastOrder?.creditosEnviados ?? selectedPlan?.credits_amount ?? ""} recargas Lovable foi confirmado com sucesso. ✅\n\n` +
           `Acompanhe o pedido em tempo real pelo link abaixo:\n${trackUrl}\n\n` +
           `Qualquer dúvida estou à disposição!`;
         return (
@@ -498,7 +498,7 @@ export default function RevendedorComprarCreditos() {
               Seu pedido foi confirmado!
             </h2>
             <p className="relative text-muted-foreground max-w-md mx-auto">
-              {lastOrder?.creditosEnviados ?? selectedPlan?.credits_amount ?? ""} recarga sendo entregues. Compartilhe o link de acompanhamento com seu cliente.
+              {lastOrder?.creditosEnviados ?? selectedPlan?.credits_amount ?? ""} recargas sendo entregues. Compartilhe o link de acompanhamento com seu cliente.
             </p>
           </div>
 
@@ -624,7 +624,7 @@ export default function RevendedorComprarCreditos() {
           <div>
             <div className="font-semibold mb-1">Acompanhamento</div>
             <p className="text-muted-foreground">
-              Você pode acompanhar o status de todos os seus pedidos de recarga na tela de "Licenças geradas".
+              Você pode acompanhar o status de todos os seus pedidos de recargas na tela de "Licenças geradas".
             </p>
           </div>
         </div>

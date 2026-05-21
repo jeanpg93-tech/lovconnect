@@ -41,7 +41,7 @@ const CATEGORIES: { value: Category; label: string; icon: any; color: string }[]
   { value: "alerta", label: "Alerta", icon: AlertTriangle, color: "text-destructive border-destructive/40 bg-destructive/10" },
   { value: "atualizacao", label: "Atualização", icon: Wrench, color: "text-blue-500 border-blue-500/40 bg-blue-500/10" },
   { value: "novidade", label: "Novidade", icon: Sparkles, color: "text-purple-500 border-purple-500/40 bg-purple-500/10" },
-  { value: "bonus", label: "Bônus de recarga", icon: Gift, color: "text-emerald-500 border-emerald-500/40 bg-emerald-500/10" },
+  { value: "bonus", label: "Bônus de recargas", icon: Gift, color: "text-emerald-500 border-emerald-500/40 bg-emerald-500/10" },
   { value: "geral", label: "Geral", icon: Megaphone, color: "text-muted-foreground border-border bg-muted" },
 ];
 

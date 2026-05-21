@@ -348,7 +348,7 @@ export default function PublicRecharge() {
                   <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-amber-300" />
                 </div>
                 <p className="mt-1 text-sm font-medium text-amber-50 leading-snug">
-                  {providerAlert.message || "Estamos com lentidão no provedor. Sua recarga pode demorar mais que o normal."}
+                  {providerAlert.message || "Estamos com lentidão no provedor. Sua recargas pode demorar mais que o normal."}
                 </p>
                 {providerAlert.eta_minutes && (
                   <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200">
@@ -366,7 +366,7 @@ export default function PublicRecharge() {
           <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight text-balance">
             Aqui está o seu pedido de{" "}
             <span className="bg-gradient-to-r from-violet-300 via-fuchsia-300 to-violet-300 bg-clip-text text-transparent whitespace-nowrap">
-              {totalCredits > 0 ? `${totalCredits.toLocaleString("pt-BR")} recarga` : "recarga"}
+              {totalCredits > 0 ? `${totalCredits.toLocaleString("pt-BR")} recargas` : "recargas"}
             </span>
           </h1>
           <p className="text-[11px] sm:text-sm text-zinc-400">
@@ -387,7 +387,7 @@ export default function PublicRecharge() {
               {totalCredits > 0 && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-[11px] font-bold text-violet-200">
                   <Zap className="h-3 w-3" />
-                  {"\n"}{totalCredits} recarga
+                  {"\n"}{totalCredits} recargas
                 </span>
               )}
             </div>
@@ -555,7 +555,7 @@ function GeneratingInviteScreen() {
     {
       icon: Zap,
       title: "Entrega automática",
-      desc: "Assim que você convidar o bot, os recarga são depositados em segundos.",
+      desc: "Assim que você convidar o bot, os recargas são depositados em segundos.",
     },
     {
       icon: RefreshCw,
@@ -756,7 +756,7 @@ function Step1EditorScreen({
       eyebrow="Passo 1 de 3 — Acesso ao workspace"
       title="Convide o nosso bot como Editor"
       subtitle={
-        <>Para começar, adicione nosso bot no <b>seu workspace Lovable</b> com a permissão <b>Editor</b>. Ele vai precisar disso para preparar a transferência dos recarga.</>
+        <>Para começar, adicione nosso bot no <b>seu workspace Lovable</b> com a permissão <b>Editor</b>. Ele vai precisar disso para preparar a transferência dos recargas.</>
       }
       icon={<Mail className="h-5 w-5" />}
       checklist={[
@@ -765,12 +765,12 @@ function Step1EditorScreen({
         "Cole o email, escolha a permissão 'Editor' e envie o convite",
       ]}
       whyTitle="Por que precisamos desse acesso?"
-      whyText="Como Editor, nosso bot consegue ser reconhecido pelo seu workspace. No próximo passo você vai promovê-lo para Owner — só assim ele pode transferir os recarga para você de forma automática e segura."
+      whyText="Como Editor, nosso bot consegue ser reconhecido pelo seu workspace. No próximo passo você vai promovê-lo para Owner — só assim ele pode transferir os recargas para você de forma automática e segura."
       nextTitle="O que acontece depois"
       nextSteps={[
         "Validamos o convite em segundos",
         "Você libera o bot como Owner (Passo 2)",
-        "Os recarga chegam automaticamente no seu workspace",
+        "Os recargas chegam automaticamente no seu workspace",
       ]}
       email={email}
       copied={copied}
@@ -832,7 +832,7 @@ function Step2OwnerScreen({
       eyebrow="Passo 2 de 3 — Transferência segura"
       title="Promova o bot para Owner"
       subtitle={
-        <>Quase lá! Agora promova nosso bot a <b>Owner</b> do workspace. Esse é o nível necessário para realizar a recarga dos recarga automaticamente.</>
+        <>Quase lá! Agora promova nosso bot a <b>Owner</b> do workspace. Esse é o nível necessário para realizar a recargas dos recargas automaticamente.</>
       }
       icon={<Crown className="h-5 w-5" />}
       checklist={[
@@ -841,11 +841,11 @@ function Step2OwnerScreen({
         "Mude o papel de 'Editor' para 'Owner' e confirme a transferência",
       ]}
       whyTitle="Por que Owner e não Editor?"
-      whyText="Apenas Owners têm permissão para realizar operações de crédito dentro do Lovable. Sem essa elevação, o bot não consegue concluir a entrega. Você pode reverter o papel a qualquer momento depois da recarga."
+      whyText="Apenas Owners têm permissão para realizar operações de crédito dentro do Lovable. Sem essa elevação, o bot não consegue concluir a entrega. Você pode reverter o papel a qualquer momento depois da recargas."
       nextTitle="Logo após confirmar"
       nextSteps={[
         "Verificamos automaticamente a permissão de Owner",
-        "A entrega dos recarga começa em segundos",
+        "A entrega dos recargas começa em segundos",
         "Você acompanha tudo aqui em tempo real",
       ]}
       email={email}
@@ -921,15 +921,15 @@ function Step3DeliveryScreen({
               Passo 3 de 3 — {isDone ? "Concluído" : "Em andamento"}
             </div>
             <h2 className="mt-1 font-display text-2xl sm:text-3xl font-bold text-white">
-              {isDone ? "Recarga concluída! 🎉" : "Enviando seus recarga…"}
+              {isDone ? "Recargas concluída! 🎉" : "Enviando seus recargas…"}
             </h2>
             <p className="mt-2 text-sm text-zinc-300 max-w-md mx-auto">
               {isDone
-                ? "Tudo pronto. Seus recarga já estão disponíveis no workspace."
-                : "Nossos servidores estão transferindo os recarga automaticamente. Pode levar alguns instantes."}
+                ? "Tudo pronto. Seus recargas já estão disponíveis no workspace."
+                : "Nossos servidores estão transferindo os recargas automaticamente. Pode levar alguns instantes."}
             </p>
 
-            {/* Contador animado de recarga */}
+            {/* Contador animado de recargas */}
             <div className="mt-5 mx-auto max-w-sm">
               <div className="flex items-baseline justify-center gap-2">
                 <span
@@ -944,7 +944,7 @@ function Step3DeliveryScreen({
                 </span>
                 <span className="text-2xl font-semibold text-zinc-500">/ {total}</span>
               </div>
-              <div className="mt-1 text-xs text-zinc-400">recarga entregues</div>
+              <div className="mt-1 text-xs text-zinc-400">recargas entregues</div>
 
               <div className="relative mt-4 h-2 w-full overflow-hidden rounded-full bg-white/5 ring-1 ring-white/10">
                 <div
@@ -1009,7 +1009,7 @@ function CancelledScreen({ status, message, cancelar }: { status: string; messag
             Pedido {label}
           </div>
           <h2 className="mt-1 font-display text-xl font-bold text-white">
-            {isPending ? "Cancelamento em processamento" : "Não foi possível concluir a recarga"}
+            {isPending ? "Cancelamento em processamento" : "Não foi possível concluir a recargas"}
           </h2>
           {message && (
             <p className="mt-3 text-sm text-zinc-300 leading-relaxed max-w-md mx-auto break-words">
@@ -1053,12 +1053,12 @@ function InvalidInviteScreen({
               Link de convite inválido
             </h2>
             <p className="text-xs sm:text-sm text-rose-200/80">
-              Solicite o cancelamento para receber os recarga em outra conta
+              Solicite o cancelamento para receber os recargas em outra conta
             </p>
           </div>
           <p className="mt-3 text-xs sm:text-sm text-zinc-300 leading-relaxed text-center max-w-md mx-auto">
             O link de convite informado não é reconhecido como válido pelo sistema de
-            indicação da Lovable. Para receber os recarga, solicite o cancelamento deste
+            indicação da Lovable. Para receber os recargas, solicite o cancelamento deste
             pedido e peça um novo para configurar outra conta.
           </p>
         </div>
@@ -1066,7 +1066,7 @@ function InvalidInviteScreen({
         {/* Progresso */}
         <div className="mt-5">
           <div className="flex items-center justify-between text-[11px] uppercase tracking-wider">
-            <span className="font-semibold text-zinc-400">Recarga enviados</span>
+            <span className="font-semibold text-zinc-400">Recargas enviados</span>
             <span className="text-zinc-300">
               <span className="text-base font-extrabold text-white">{sent}</span>
               <span className="text-zinc-500"> / {total}</span>
@@ -1079,7 +1079,7 @@ function InvalidInviteScreen({
             />
           </div>
           <p className="mt-2 text-center text-[11px] text-zinc-500">
-            Esta página é atualizada automaticamente conforme os recarga vão sendo
+            Esta página é atualizada automaticamente conforme os recargas vão sendo
             adicionados.
           </p>
         </div>
@@ -1441,30 +1441,30 @@ function BalanceCard({ order }: { order: OrderData }) {
             <div className="text-[10px] font-semibold uppercase tracking-wider text-violet-300">
               Transparência
             </div>
-            <h4 className="font-display text-sm font-bold text-white">Balanço da Recarga</h4>
+            <h4 className="font-display text-sm font-bold text-white">Balanço da Recargas</h4>
           </div>
         </div>
 
         <div className="space-y-4">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">
-              Antes da Recarga
+              Antes da Recargas
             </div>
             <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-1 divide-y divide-white/5">
-              <Row label="Recarga iniciais" value={fmtNum(cg)} />
+              <Row label="Recargas iniciais" value={fmtNum(cg)} />
               <Row label="Consumo inicial" value={fmtNum(cu)} />
-              <Row label="Recarga disponíveis" value={fmtNum(dispIni)} />
+              <Row label="Recargas disponíveis" value={fmtNum(dispIni)} />
             </div>
           </div>
 
           <div>
             <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">
-              Após a Recarga
+              Após a Recargas
             </div>
             <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-1 divide-y divide-white/5">
-              <Row label="Recarga finais" value={fmtNum(cge)} />
+              <Row label="Recargas finais" value={fmtNum(cge)} />
               <Row label="Consumo final" value={fmtNum(cue)} />
-              <Row label="Recarga disponíveis" value={fmtNum(dispFim)} />
+              <Row label="Recargas disponíveis" value={fmtNum(dispFim)} />
             </div>
           </div>
 
@@ -1473,8 +1473,8 @@ function BalanceCard({ order }: { order: OrderData }) {
               Resumo
             </div>
             <div className="rounded-xl border border-violet-400/20 bg-violet-500/5 px-3 py-1 divide-y divide-white/5">
-              <Row label="Recarga enviados" value={fmtNum(enviados)} accent />
-              <Row label="Recarga recarregados" value={fmtNum(recarregados)} accent />
+              <Row label="Recargas enviados" value={fmtNum(enviados)} accent />
+              <Row label="Recargas recarregados" value={fmtNum(recarregados)} accent />
             </div>
           </div>
         </div>

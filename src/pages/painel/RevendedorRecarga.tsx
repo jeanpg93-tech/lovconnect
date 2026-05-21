@@ -157,7 +157,7 @@ const CREDIT_PLANS = [
 type ApiPlan = { id: string; label: string; credits_amount: number; is_active: boolean; price_cents: number };
 type Tier = { id: string; name: string } | null;
 
-export default function RevendedorRecarga() {
+export default function RevendedorRecargas() {
   const { user } = useAuth();
   const [balance, setBalance] = useState(0);
   const [plans, setPlans] = useState<ApiPlan[]>([]);
@@ -286,7 +286,7 @@ export default function RevendedorRecarga() {
 
             <div className="space-y-3">
               <h1 className="text-4xl md:text-6xl font-bold tracking-tighter leading-[1.05]">
-                Recarga na <span className="italic text-primary">conta</span>
+                Recargas na <span className="italic text-primary">conta</span>
               </h1>
               <p className="text-sm md:text-base text-muted-foreground max-w-md mx-auto leading-relaxed">
                 Adicione saldo à sua conta e movimente sua revenda sem fricção.
@@ -392,9 +392,9 @@ export default function RevendedorRecarga() {
 
                 <p className="text-sm md:text-base text-muted-foreground leading-relaxed max-w-2xl">
                   {activeMode === "automatico" ? (
-                    <>No modo automático, todas as suas recarga são processadas <span className="text-foreground font-semibold">instantaneamente</span> assim que o PIX é confirmado. Sem intervenção manual, sem espera — o saldo cai direto na sua conta e fica disponível para uso imediato.</>
+                    <>No modo automático, todas as suas recargas são processadas <span className="text-foreground font-semibold">instantaneamente</span> assim que o PIX é confirmado. Sem intervenção manual, sem espera — o saldo cai direto na sua conta e fica disponível para uso imediato.</>
                   ) : (
-                    <>No modo manual, seus pedidos entram em uma <span className="text-foreground font-semibold">fila de processamento</span>. Após a confirmação do PIX, a equipe entrega os recarga diretamente no workspace do cliente. Você acompanha cada etapa em tempo real.</>
+                    <>No modo manual, seus pedidos entram em uma <span className="text-foreground font-semibold">fila de processamento</span>. Após a confirmação do PIX, a equipe entrega os recargas diretamente no workspace do cliente. Você acompanha cada etapa em tempo real.</>
                   )}
                 </p>
 
@@ -810,9 +810,9 @@ export default function RevendedorRecarga() {
               <History className="h-4 w-4" />
               <span className="hidden sm:inline">Vendas</span>
             </Link>
-            <Link to="/painel/revendedor/recarga" className="flex items-center gap-2 px-6 h-10 rounded-lg bg-primary text-white shadow-md transition-all font-semibold text-[11px]">
+            <Link to="/painel/revendedor/recargas" className="flex items-center gap-2 px-6 h-10 rounded-lg bg-primary text-white shadow-md transition-all font-semibold text-[11px]">
               <Zap className="h-4 w-4" />
-              <span>Recarga</span>
+              <span>Recargas</span>
             </Link>
           </div>
 

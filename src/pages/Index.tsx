@@ -76,7 +76,7 @@ const Index = () => {
             </h1>
 
             <p className="max-w-lg text-lg leading-relaxed text-muted-foreground">
-              Gerencie licenças, recarga e sua loja digital num só lugar. Pague em PIX, escale com níveis e venda com checkout próprio — sem burocracia.
+              Gerencie licenças, recargas e sua loja digital num só lugar. Pague em PIX, escale com níveis e venda com checkout próprio — sem burocracia.
             </p>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -114,7 +114,7 @@ const Index = () => {
               <div className="mt-6 space-y-3">
                 {[
                   { l: "Venda — Licença Premium", v: "+ R$ 197,00", t: "agora" },
-                  { l: "Recarga PIX", v: "+ R$ 500,00", t: "2m" },
+                  { l: "Recargas PIX", v: "+ R$ 500,00", t: "2m" },
                   { l: "Comissão indicação", v: "+ R$ 39,40", t: "5m" },
                 ].map((row, i) => (
                   <div key={i} className="flex items-center justify-between rounded-xl bg-muted/60 px-3 py-2.5 text-xs">
@@ -174,16 +174,16 @@ const Index = () => {
               Tudo que sua operação precisa.
             </h2>
             <p className="mt-4 text-muted-foreground">
-              Recarga, licenças, loja, integração PIX e WhatsApp — sem precisar costurar 5 ferramentas.
+              Recargas, licenças, loja, integração PIX e WhatsApp — sem precisar costurar 5 ferramentas.
             </p>
           </div>
 
           <div className="mx-auto mt-14 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { i: KeyRound, t: "Licenças", d: "Gere, distribua e resete chaves dos seus clientes em segundos." },
-              { i: Wallet, t: "Recarga PIX", d: "Receba recarga com PIX integrado e liberação automática." },
+              { i: Wallet, t: "Recargas PIX", d: "Receba recargas com PIX integrado e liberação automática." },
               { i: Store, t: "Loja própria", d: "Sua vitrine pública pra vender direto sem intermediário." },
-              { i: Crown, t: "Níveis e bônus", d: "Quanto mais escala, mais bônus de recarga você desbloqueia." },
+              { i: Crown, t: "Níveis e bônus", d: "Quanto mais escala, mais bônus de recargas você desbloqueia." },
               { i: Zap, t: "API completa", d: "Automatize criação e validação de chaves no seu sistema." },
               { i: ShieldCheck, t: "Anti-abuso", d: "Reembolsos auditados e proteções contra ataques." },
             ].map((f, i) => (

@@ -84,7 +84,7 @@ export default function PublicStorefront() {
   const [resetting, setResetting] = useState(false);
   const [downloadingExt, setDownloadingExt] = useState(false);
 
-  // Verificar Pedido (recarga)
+  // Verificar Pedido (recargas)
   const [checkOrderId, setCheckOrderId] = useState("");
   const [checkingOrder, setCheckingOrder] = useState(false);
   const [checkedOrder, setCheckedOrder] = useState<any | null>(null);
@@ -498,7 +498,7 @@ export default function PublicStorefront() {
                 >
                   <Coins className="h-4 w-4" />
                 </div>
-                <div className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap" style={{ color: activeTab === "recharge" ? color : undefined }}>Recarga na conta</div>
+                <div className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap" style={{ color: activeTab === "recharge" ? color : undefined }}>Recargas na conta</div>
                 <div
                   className={cn(
                     "h-1 w-1 rounded-full mt-0.5 transition-all",
@@ -549,11 +549,11 @@ export default function PublicStorefront() {
                 <div className="text-center space-y-3 py-4">
                   <CheckCircle2 className="h-12 w-12 mx-auto" style={{ color }} />
                   <h2 className="text-lg font-semibold">
-                    {order.product_type === "credits" ? "Recarga confirmada!" : order.amount_cents > 0 ? "Pagamento confirmado!" : "Chave teste gerada!"}
+                    {order.product_type === "credits" ? "Recargas confirmada!" : order.amount_cents > 0 ? "Pagamento confirmado!" : "Chave teste gerada!"}
                   </h2>
                   <p className="text-sm text-muted-foreground">
                     {order.product_type === "credits"
-                      ? `${order.credit_amount ?? ""} recarga foram registrados para processamento.`
+                      ? `${order.credit_amount ?? ""} recargas foram registrados para processamento.`
                       : order.amount_cents > 0
                       ? "Sua chave foi gerada e enviada no seu WhatsApp."
                       : "Copie sua chave abaixo. Ela tem validade de 30 minutos."}
@@ -611,7 +611,7 @@ export default function PublicStorefront() {
                     </Button>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      Aguardando confirmação… {order.product_type === "credits" ? "A recarga será processada após o pagamento." : "A chave será enviada no seu WhatsApp."}
+                      Aguardando confirmação… {order.product_type === "credits" ? "A recargas será processada após o pagamento." : "A chave será enviada no seu WhatsApp."}
                     </div>
                   </div>
                 </div>
@@ -626,7 +626,7 @@ export default function PublicStorefront() {
               <div className="text-center">
                 <div className="text-xs uppercase tracking-wider text-muted-foreground">Item selecionado</div>
                 <h2 className="text-lg font-semibold mt-1">
-                  {selLic ? labelFor(selLic) : `${recharges.find(r => r.id === selRec)?.credits_amount} Recarga`}
+                  {selLic ? labelFor(selLic) : `${recharges.find(r => r.id === selRec)?.credits_amount} Recargas`}
                 </h2>
                 <div className="text-3xl font-bold mt-2" style={{ color }}>
                   {selLic === "trial"
@@ -791,10 +791,10 @@ export default function PublicStorefront() {
                 )}
                 </>
               ) : (
-                /* Catálogo de Recarga */
+                /* Catálogo de Recargas */
                 recharges.length === 0 ? (
                   <div className="text-center py-12 text-sm text-muted-foreground">
-                    Nenhuma opção de recarga disponível.
+                    Nenhuma opção de recargas disponível.
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2.5 max-w-xl mx-auto">
@@ -820,10 +820,10 @@ export default function PublicStorefront() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-extrabold text-base leading-tight">
-                            {rec.credits_amount} <span className="text-xs font-medium text-muted-foreground">Recarga</span>
+                            {rec.credits_amount} <span className="text-xs font-medium text-muted-foreground">Recargas</span>
                           </div>
                           <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1">
-                            <Sparkles className="h-2.5 w-2.5" /> Recarga Imediata via PIX
+                            <Sparkles className="h-2.5 w-2.5" /> Recargas Imediata via PIX
                           </div>
                         </div>
                         <div className="text-right shrink-0">
@@ -1052,7 +1052,7 @@ export default function PublicStorefront() {
                         </div>
                         <h2 className="text-xl font-bold tracking-tight mb-2">Verificar Pedido</h2>
                         <p className="text-xs text-muted-foreground mb-6">
-                          Acompanhe o status da sua recarga informando o ID do pedido.
+                          Acompanhe o status da sua recargas informando o ID do pedido.
                         </p>
                         <div className="space-y-3 mt-auto">
                           <div className="relative">

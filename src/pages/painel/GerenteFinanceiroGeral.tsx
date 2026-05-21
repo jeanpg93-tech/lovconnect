@@ -154,7 +154,7 @@ export default function GerenteFinanceiroGeral() {
             Painel <span className="text-primary italic">Financeiro</span>
           </h1>
           <p className="max-w-2xl text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed px-2 sm:px-0">
-            Acompanhe depósitos, recarga e toda a saúde financeira do ecossistema em tempo real.
+            Acompanhe depósitos, recargas e toda a saúde financeira do ecossistema em tempo real.
           </p>
         </div>
 
@@ -189,11 +189,11 @@ export default function GerenteFinanceiroGeral() {
             ? ((rechargesTotal / rechargesCount) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) 
             : "R$ 0,00"}
           icon={TrendingUp}
-          hint={`Base: ${rechargesCount} recarga`}
+          hint={`Base: ${rechargesCount} recargas`}
           className="p-3.5 sm:p-6"
         />
         <StatCard
-          label="Qtde. Recarga"
+          label="Qtde. Recargas"
           value={rechargesCount}
           icon={Calendar}
           hint="Volume total"

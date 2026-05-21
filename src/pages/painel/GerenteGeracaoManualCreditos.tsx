@@ -93,7 +93,7 @@ const STEP = 20;
 const PACKS: PackDef[] = [
   {
     amount: 20,
-    label: "20 recarga",
+    label: "20 recargas",
     short: "Mínimo",
     icon: Coins,
     badge: "Início",
@@ -102,21 +102,21 @@ const PACKS: PackDef[] = [
   },
   {
     amount: 100,
-    label: "100 recarga",
+    label: "100 recargas",
     short: "Pequeno",
     icon: Zap,
     gradient: "from-sky-500/20 via-sky-500/5 to-transparent",
   },
   {
     amount: 200,
-    label: "200 recarga",
+    label: "200 recargas",
     short: "Médio",
     icon: Rocket,
     gradient: "from-blue-500/20 via-blue-500/5 to-transparent",
   },
   {
     amount: 500,
-    label: "500 recarga",
+    label: "500 recargas",
     short: "Grande",
     icon: Gem,
     badge: "Popular",
@@ -125,7 +125,7 @@ const PACKS: PackDef[] = [
   },
   {
     amount: 1000,
-    label: "1000 recarga",
+    label: "1000 recargas",
     short: "Enterprise",
     icon: Crown,
     badge: "Top",
@@ -134,7 +134,7 @@ const PACKS: PackDef[] = [
   },
   {
     amount: 2000,
-    label: "2000 recarga",
+    label: "2000 recargas",
     short: "Mega",
     icon: Flame,
     badge: "Pro",
@@ -369,7 +369,7 @@ export default function GerenteGeracaoManualCreditos() {
     <PageContainer>
       <PageHeader
         title="Geração Manual"
-        description="Compre recarga diretamente pelo painel via API do provedor."
+        description="Compre recargas diretamente pelo painel via API do provedor."
       />
 
       {/* Hero */}
@@ -382,9 +382,9 @@ export default function GerenteGeracaoManualCreditos() {
               <Sparkles className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h2 className="font-display text-xl font-semibold">Recarga em segundos</h2>
+              <h2 className="font-display text-xl font-semibold">Recargas em segundos</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Escolha um pacote, confirme e a recarga é debitada do saldo do provedor.
+                Escolha um pacote, confirme e a recargas é debitada do saldo do provedor.
               </p>
             </div>
           </div>
@@ -404,7 +404,7 @@ export default function GerenteGeracaoManualCreditos() {
         <div className="mt-6 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm text-muted-foreground animate-fade-in">
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
           <span>
-            Configure a API Key em <strong>Acompanhar Recarga → Configurações</strong> antes de gerar pedidos.
+            Configure a API Key em <strong>Acompanhar Recargas → Configurações</strong> antes de gerar pedidos.
           </span>
         </div>
       ) : (
@@ -475,7 +475,7 @@ export default function GerenteGeracaoManualCreditos() {
 
             <div className="grid gap-4">
               <div className="space-y-1.5">
-                <Label>Recarga (múltiplos de {STEP})</Label>
+                <Label>Recargas (múltiplos de {STEP})</Label>
                 <Input
                   type="number"
                   min={STEP}
@@ -488,7 +488,7 @@ export default function GerenteGeracaoManualCreditos() {
                   className="text-lg font-mono"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Mínimo {STEP} recarga. O valor abaixo vem direto do provedor.
+                  Mínimo {STEP} recargas. O valor abaixo vem direto do provedor.
                 </p>
               </div>
 
@@ -509,7 +509,7 @@ export default function GerenteGeracaoManualCreditos() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Recarga</div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Recargas</div>
                     <div className="mt-1 font-display text-2xl font-bold text-primary">{credits}</div>
                   </div>
                 </div>
@@ -546,7 +546,7 @@ export default function GerenteGeracaoManualCreditos() {
                 ) : (
                   <>
                     <ShoppingCart className="mr-2 h-4 w-4" />
-                    Gerar pedido {selected ? `· ${selected.label}` : `· ${credits} recarga`}
+                    Gerar pedido {selected ? `· ${selected.label}` : `· ${credits} recargas`}
                   </>
                 )}
               </Button>
@@ -565,7 +565,7 @@ export default function GerenteGeracaoManualCreditos() {
                 <div className="flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 className="h-4 w-4" />
                   <span className="text-xs font-semibold">
-                    Pedido criado · {lastOrder.creditos ?? credits} recarga
+                    Pedido criado · {lastOrder.creditos ?? credits} recargas
                   </span>
                 </div>
 
@@ -715,7 +715,7 @@ export default function GerenteGeracaoManualCreditos() {
                         <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
                           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Entregues</div>
                           <div className="mt-0.5 font-display text-sm font-bold text-emerald-500">
-                            {lastOrder.creditosEnviados} recarga
+                            {lastOrder.creditosEnviados} recargas
                           </div>
                         </div>
                       )}
@@ -724,7 +724,7 @@ export default function GerenteGeracaoManualCreditos() {
 
                   {(lastOrder.id || lastOrder.pedidoId) && (() => {
                     const oid = lastOrder.id ?? lastOrder.pedidoId!;
-                    const link = `${window.location.origin}/recarga/${oid}`;
+                    const link = `${window.location.origin}/recargas/${oid}`;
                     return (
                       <div className="rounded-xl border border-border bg-background/50 p-3">
                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">
@@ -798,7 +798,7 @@ export default function GerenteGeracaoManualCreditos() {
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pedido</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recarga</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recargas</th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Valor</th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Data</th>
@@ -807,7 +807,7 @@ export default function GerenteGeracaoManualCreditos() {
                 </thead>
                 <tbody>
                   {localOrders.map((o) => {
-                    const link = `${window.location.origin}/recarga/${o.pedido_id}`;
+                    const link = `${window.location.origin}/recargas/${o.pedido_id}`;
                     return (
                       <tr key={o.id} className="border-b border-border/60 transition-colors hover:bg-muted/20">
                         <td className="px-3 py-2.5">

@@ -40,8 +40,8 @@ type Transaction = {
 };
 
 const KIND_META: Record<string, { label: string; cls: string; icon: any }> = {
-  recharge:        { label: "Recarga",        cls: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",   icon: ArrowDownRight },
-  credit_purchase: { label: "Recarga",        cls: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",   icon: ArrowDownRight },
+  recharge:        { label: "Recargas",        cls: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",   icon: ArrowDownRight },
+  credit_purchase: { label: "Recargas",        cls: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",   icon: ArrowDownRight },
   bonus:           { label: "Bônus",          cls: "bg-amber-500/10 text-amber-500 border-amber-500/20",       icon: Gift },
   affiliate_bonus: { label: "Indicação",      cls: "bg-amber-500/10 text-amber-500 border-amber-500/20",       icon: Gift },
   order_debit:     { label: "Chave",          cls: "bg-blue-500/10 text-blue-500 border-blue-500/20",          icon: Key },
@@ -204,7 +204,7 @@ export default function RevendedorTransacoes() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="recharge">Recarga PIX</SelectItem>
+                <SelectItem value="recharge">Recargas PIX</SelectItem>
                 <SelectItem value="order">Vendas / Pedidos</SelectItem>
                 <SelectItem value="manual">Ajustes Gerente</SelectItem>
                 <SelectItem value="bonus">Indicação & Bônus</SelectItem>

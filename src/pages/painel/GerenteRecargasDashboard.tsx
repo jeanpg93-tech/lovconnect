@@ -30,7 +30,7 @@ type Pedido = {
   raw: any;
 };
 
-export default function GerenteRecargaDashboard() {
+export default function GerenteRecargasDashboard() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [saldo, setSaldo] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -213,7 +213,7 @@ export default function GerenteRecargaDashboard() {
     {
       label: "Taxa de Sucesso",
       value: `${data.successRate.toFixed(1)}%`,
-      hint: "Eficácia das recarga",
+      hint: "Eficácia das recargas",
       icon: CheckCircle2,
       gradient: "from-violet-500/20 via-violet-500/5 to-transparent",
       ring: "ring-violet-500/20",
@@ -232,7 +232,7 @@ export default function GerenteRecargaDashboard() {
             <div className="inline-flex items-center gap-1.5 rounded-full border bg-background/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur">
               <BarChart3 className="h-3 w-3" /> Painel do provedor
             </div>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight">Dashboard de Recarga</h1>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight">Dashboard de Recargas</h1>
             <p className="text-sm text-muted-foreground">Monitore desempenho, volume e saúde dos pedidos em tempo real.</p>
           </div>
           <div className="flex items-center gap-2">

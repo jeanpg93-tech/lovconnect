@@ -434,7 +434,7 @@ export default function RevendedorNiveis() {
                     />
                     <RewardCard
                       icon={Zap}
-                      label="Bônus de Recarga"
+                      label="Bônus de Recargas"
                       value={`${Number(selected.recharge_bonus_percent).toFixed(0)}%`}
                       hint="Saldo extra via PIX"
                       color={selected.color}

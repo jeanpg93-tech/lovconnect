@@ -85,36 +85,36 @@ const groupsByRole: Record<AppRole, Group[]> = {
     ]},
     { label: "Produtos", items: [
       { title: "Geração de Licenças", url: "/painel/gerente/geracao-manual", icon: Sparkles },
-      { title: "Geração de Recarga", url: "/painel/gerente/geracao-manual-creditos", icon: Coins },
+      { title: "Geração de Recargas", url: "/painel/gerente/geracao-manual-creditos", icon: Coins },
       { title: "Valores Extensões", url: "/painel/gerente/valores", icon: Tag },
       { title: "Todas as Licenças", url: "/painel/gerente/todas-licencas", icon: KeyRound },
       { title: "Upload Extensão", url: "/painel/gerente/upload-extensao", icon: Package },
     ]},
-    { label: "Recarga", items: [
-      { title: "Gerenciar Recarga", url: "/painel/gerente/recarga", icon: Coins },
+    { label: "Recargas", items: [
+      { title: "Gerenciar Recargas", url: "/painel/gerente/recargas", icon: Coins },
     ]},
   ],
   revendedor: [
     { label: "Painel", items: [
       { title: "Dashboard", url: "/painel/revendedor", icon: LayoutDashboard },
-      { title: "Recarga", url: "/painel/revendedor/recarga", icon: Zap },
+      { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
       { title: "Transações", url: "/painel/revendedor/transacoes", icon: HistoryIcon },
       { title: "Indique e ganhe", url: "/painel/revendedor/indicacoes", icon: Gift },
       { title: "Níveis", url: "/painel/revendedor/niveis", icon: Crown },
       { title: "Ranking", url: "/painel/revendedor/ranking", icon: Award },
     ]},
     { label: "Vender", items: [
-      { title: "Comprar Recarga", url: "/painel/revendedor/pedidos", icon: ShoppingCart },
-      { title: "Comprar Recarga", url: "/painel/revendedor/comprar-creditos", icon: Coins },
+      { title: "Comprar Recargas", url: "/painel/revendedor/pedidos", icon: ShoppingCart },
+      { title: "Comprar Recargas", url: "/painel/revendedor/comprar-creditos", icon: Coins },
       { title: "Meus Clientes", url: "/painel/revendedor/clientes", icon: Users },
       { title: "Minhas Vendas", url: "/painel/revendedor/licencas", icon: ShoppingBag },
       { title: "Minha Loja", url: "/painel/revendedor/loja", icon: Store, badge: "store-status" },
     ]},
     { label: "Configurar", items: [
       { title: "Preços de Extensões", url: "/painel/revendedor/extensoes", icon: Tag },
-      { title: "Preços de Recarga", url: "/painel/revendedor/creditos", icon: Coins },
+      { title: "Preços de Recargas", url: "/painel/revendedor/creditos", icon: Coins },
       { title: "API de Chaves", url: "/painel/revendedor/api", icon: KeyRound },
-      { title: "API de Recarga", url: "/painel/revendedor/api-recarga", icon: Coins },
+      { title: "API de Recargas", url: "/painel/revendedor/api-recargas", icon: Coins },
       { title: "Resetar chave", url: "/painel/revendedor/resetar-chave", icon: RotateCcw },
       { title: "Baixar Extensão", url: "/painel/revendedor/baixar-extensao", icon: Package },
       { title: "Instalar App", url: "/painel/revendedor/instalar-app", icon: Smartphone },
@@ -135,7 +135,7 @@ const dangerItemsByRole: Partial<Record<AppRole, { title: string; url: string; i
     ACCOUNT_ITEM,
     { title: "Gateway de pagamento", url: "/painel/gerente/gateway", icon: CreditCard },
     { title: "API Método", url: "/painel/gerente/api-provedor", icon: KeyRound },
-    { title: "API Recarga", url: "/painel/gerente/api-recarga", icon: Coins },
+    { title: "API Recargas", url: "/painel/gerente/api-recargas", icon: Coins },
     { title: "API Revendedor", url: "/painel/gerente/api-revendedor", icon: KeyRound },
     { title: "Resetar chave", url: "/painel/gerente/resetar-chave", icon: RotateCcw },
     { title: "Instalar App", url: "/painel/gerente/instalar-app", icon: Smartphone },
@@ -470,7 +470,7 @@ export function AppSidebar() {
             </NavLink>
 
             <NavLink
-              to="/painel/gerente/api-recarga"
+              to="/painel/gerente/api-recargas"
               className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2.5 transition-all hover:border-amber-500/40 hover:shadow-sm"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-500 transition-transform group-hover:scale-110">
@@ -518,7 +518,7 @@ export function AppSidebar() {
               <CreditCard className="h-4 w-4" />
             </NavLink>
             <NavLink
-              to="/painel/gerente/api-recarga"
+              to="/painel/gerente/api-recargas"
               className="flex h-8 w-8 items-center justify-center rounded-md border border-yellow-500/30 bg-yellow-500/10 text-yellow-500"
               title={creditsBalance != null ? `Saldo Provedor: R$ ${Number(creditsBalance).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Saldo no Provedor"}
             >

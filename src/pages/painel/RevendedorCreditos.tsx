@@ -160,7 +160,7 @@ export default function RevendedorCreditos() {
         }
       }
 
-      toast.success("Pacotes de recarga salvos");
+      toast.success("Pacotes de recargas salvos");
       closeDialog();
       load();
     } catch (e: any) {
@@ -192,8 +192,8 @@ export default function RevendedorCreditos() {
   return (
     <div>
       <PageHeader
-        title="Meus preços — Recarga"
-        description="Defina o preço de venda dos pacotes de recarga Lovable e acompanhe sua margem."
+        title="Meus preços — Recargas"
+        description="Defina o preço de venda dos pacotes de recargas Lovable e acompanhe sua margem."
         actions={
           <Button onClick={openDialog} disabled={plans.length === 0}>
             {activeCount > 0 ? (
@@ -243,7 +243,7 @@ export default function RevendedorCreditos() {
         <div className="text-sm">
           <div className="font-display font-semibold">Dica do dia</div>
           <p className="mt-0.5 text-muted-foreground">
-            Pacotes de <span className="text-foreground font-medium">100 recarga</span> costumam ter melhor conversão.
+            Pacotes de <span className="text-foreground font-medium">100 recargas</span> costumam ter melhor conversão.
             Use o pacote de <span className="text-foreground font-medium">10</span> como porta de entrada e o de{" "}
             <span className="text-foreground font-medium">500</span> como carro-chefe.
           </p>
@@ -256,7 +256,7 @@ export default function RevendedorCreditos() {
         </div>
       ) : plans.length === 0 ? (
         <div className="rounded-xl border border-border bg-card/60 p-10 text-center text-sm text-muted-foreground">
-          Nenhum pacote de recarga disponível no momento.
+          Nenhum pacote de recargas disponível no momento.
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-border bg-card/40 backdrop-blur-sm">
@@ -364,9 +364,9 @@ export default function RevendedorCreditos() {
       <Dialog open={open} onOpenChange={(v) => !v && closeDialog()}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Cadastrar preços de venda — Recarga</DialogTitle>
+            <DialogTitle>Cadastrar preços de venda — Recargas</DialogTitle>
             <DialogDescription>
-              Ative os pacotes de recarga que deseja vender e defina o preço final cobrado dos seus clientes.
+              Ative os pacotes de recargas que deseja vender e defina o preço final cobrado dos seus clientes.
             </DialogDescription>
           </DialogHeader>
 

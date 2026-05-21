@@ -26,7 +26,7 @@ type Intent = {
 const PRESETS = [20, 50, 100, 200, 500, 1000];
 
 const KIND_META: Record<string, { label: string; cls: string; icon: any }> = {
-  recharge:    { label: "Recarga",  cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", icon: ArrowDownRight },
+  recharge:    { label: "Recargas",  cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", icon: ArrowDownRight },
   bonus:       { label: "Bônus",    cls: "bg-amber-500/15 text-amber-400 border-amber-500/30",      icon: Gift },
   order:       { label: "Pedido",   cls: "bg-rose-500/15 text-rose-400 border-rose-500/30",         icon: ArrowUpRight },
   refund:      { label: "Estorno",  cls: "bg-sky-500/15 text-sky-400 border-sky-500/30",            icon: ArrowDownRight },
@@ -174,7 +174,7 @@ export default function RevendedorAdicionarSaldo() {
         description="Recarregue seu saldo via PIX e ganhe bônus de acordo com seu nível."
       />
 
-      {/* Hero: Saldo + Recarga */}
+      {/* Hero: Saldo + Recargas */}
       <div className="grid gap-4 lg:grid-cols-5">
         {/* Card de saldo */}
         <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-6 lg:col-span-2">
@@ -199,7 +199,7 @@ export default function RevendedorAdicionarSaldo() {
                 </span>
                 {bonusPct > 0 && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                    <Gift className="h-3 w-3" /> +{bonusPct}% em recarga
+                    <Gift className="h-3 w-3" /> +{bonusPct}% em recargas
                   </span>
                 )}
                 {Number(currentTier.discount_percent) > 0 && (
@@ -217,7 +217,7 @@ export default function RevendedorAdicionarSaldo() {
           </div>
         </div>
 
-        {/* Card de recarga */}
+        {/* Card de recargas */}
         <div className="rounded-2xl border border-border bg-card/60 p-6 backdrop-blur-sm lg:col-span-3">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -332,7 +332,7 @@ export default function RevendedorAdicionarSaldo() {
                 Suba de nível e ganhe mais
               </div>
               <div className="text-xs text-muted-foreground">
-                Quanto mais você gasta, maior seu desconto e bônus de recarga.
+                Quanto mais você gasta, maior seu desconto e bônus de recargas.
               </div>
             </div>
             <div className="text-right">
@@ -419,7 +419,7 @@ export default function RevendedorAdicionarSaldo() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="inline-flex items-center gap-1 text-muted-foreground">
-                        <Gift className="h-3 w-3" /> Bônus recarga
+                        <Gift className="h-3 w-3" /> Bônus recargas
                       </span>
                       <span className="font-semibold tabular-nums" style={{ color: t.color }}>
                         {Number(t.recharge_bonus_percent)}%

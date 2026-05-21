@@ -58,7 +58,7 @@ export default function GerentePartners() {
   // Origem do preço por célula: "override" | "reseller" | "plan" | "none"
   const [source, setSource] = useState<Record<string, "override" | "reseller" | "plan" | "none">>({});
 
-  // Recarga: chave = credits_amount (number como string)
+  // Recargas: chave = credits_amount (number como string)
   const [creditEffective, setCreditEffective] = useState<Record<number, number>>({});
   const [creditDraft, setCreditDraft] = useState<Record<number, number>>({});
   const [creditSource, setCreditSource] = useState<Record<number, "reseller" | "none">>({});
@@ -143,7 +143,7 @@ export default function GerentePartners() {
     setResellers((r ?? []) as Reseller[]);
     setCreditPackages(((cp ?? []) as any[]).map((p) => ({ credits_amount: p.credits_amount, label: p.label })));
 
-    // base costs (apenas recarga)
+    // base costs (apenas recargas)
     const cb: Record<number, number> = {};
     (cp ?? []).forEach((p: any) => {
       if (p.is_active && p.price_cents > 0) cb[p.credits_amount] = p.price_cents;
@@ -221,7 +221,7 @@ export default function GerentePartners() {
       }
     }
 
-    // Recarga
+    // Recargas
     const creditByAmount = new Map<number, number>();
     (creditRes ?? []).forEach((rp: any) => {
       if (rp.is_active && rp.price_cents > 0) {
@@ -269,12 +269,12 @@ export default function GerentePartners() {
   const save = async () => {
     if (!selectedResellerId) return;
 
-    // Validação: apenas recarga não podem ficar abaixo do custo base
+    // Validação: apenas recargas não podem ficar abaixo do custo base
     for (const pkg of creditPackages) {
       const v = Number(creditDraft[pkg.credits_amount] ?? 0);
       const base = minCredit(pkg.credits_amount);
       if (v > 0 && base > 0 && v <= base) {
-        toast.error(`${pkg.credits_amount} recarga: valor precisa ser maior que o custo base ${formatBRL(base)}`);
+        toast.error(`${pkg.credits_amount} recargas: valor precisa ser maior que o custo base ${formatBRL(base)}`);
         return;
       }
     }
@@ -716,12 +716,12 @@ export default function GerentePartners() {
                       )}
                     </div>
 
-                    {/* Card: matriz de preços de recarga */}
+                    {/* Card: matriz de preços de recargas */}
                     <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
                       <div className="px-4 sm:px-5 py-3 border-b border-border flex items-center gap-3">
                         <div className="h-6 w-1 bg-primary rounded-full" />
                         <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
-                          <Coins className="h-4 w-4 text-primary" /> Preços de recarga
+                          <Coins className="h-4 w-4 text-primary" /> Preços de recargas
                         </h3>
                       </div>
                       {loadingPrices ? (
@@ -730,7 +730,7 @@ export default function GerentePartners() {
                         </div>
                       ) : creditPackages.length === 0 ? (
                         <div className="p-8 text-center text-sm text-muted-foreground italic">
-                          Nenhum pacote de recarga cadastrado.
+                          Nenhum pacote de recargas cadastrado.
                         </div>
                       ) : (
                         <div className="grid gap-2 p-3 sm:p-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -753,7 +753,7 @@ export default function GerentePartners() {
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-sm font-bold tabular-nums">{pkg.credits_amount}</span>
-                                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">recarga</span>
+                                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">recargas</span>
                                     <span
                                       className={`ml-auto h-1.5 w-1.5 rounded-full ${dotColor}`}
                                       title={src === "reseller" ? "Personalizado" : "Sem preço definido"}

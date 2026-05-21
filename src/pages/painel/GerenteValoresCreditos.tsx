@@ -169,7 +169,7 @@ export default function GerenteValoresCreditos() {
       <PageHeader
         title={
           <h1 className="font-display text-4xl font-black tracking-tighter sm:text-5xl">
-            Valores <span className="text-primary italic">Recarga</span>
+            Valores <span className="text-primary italic">Recargas</span>
           </h1>
         }
         description="Defina o preço base de cada pacote e o preço final por nível de revendedor."
@@ -243,7 +243,7 @@ export default function GerenteValoresCreditos() {
                           {p.label}
                         </span>
                         <span className="font-mono text-[10px] uppercase text-muted-foreground/50 tracking-widest flex items-center gap-1.5">
-                          <Coins className="h-3 w-3" /> {p.credits_amount} recarga
+                          <Coins className="h-3 w-3" /> {p.credits_amount} recargas
                         </span>
                       </div>
                     </td>

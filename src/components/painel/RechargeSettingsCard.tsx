@@ -131,7 +131,7 @@ export function RechargeSettingsCard() {
                     value={draft.maintenance_message}
                     onChange={(e) => setDraft((d) => ({ ...d, maintenance_message: e.target.value }))}
                     rows={3}
-                    placeholder="Ex.: Estamos em manutenção, novas recarga em alguns minutos."
+                    placeholder="Ex.: Estamos em manutenção, novas recargas em alguns minutos."
                     className="mt-1 resize-none text-sm"
                     disabled={!draft.maintenance_enabled}
                   />
