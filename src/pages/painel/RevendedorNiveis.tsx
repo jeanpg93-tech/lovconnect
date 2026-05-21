@@ -158,21 +158,21 @@ export default function RevendedorNiveis() {
         >
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[100px]" />
           <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-3 flex flex-col items-center justify-center w-full">
+            <div className="space-y-3 flex flex-col items-center sm:items-start sm:block w-full">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary border border-primary/20">
                 <Rocket className="h-3 w-3 animate-bounce" /> Evolução de Carreira
               </div>
-              <h1 className="font-display text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-center">
+              <h1 className="font-display text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-center sm:text-left">
                 Suas <span className="text-primary">Patentes</span>
               </h1>
-              <p className="max-w-md text-sm font-medium text-muted-foreground leading-relaxed text-center">
+              <p className="max-w-md text-sm font-medium text-muted-foreground leading-relaxed text-center sm:text-left">
                 Aumente seu volume de depósitos para desbloquear benefícios de elite e reduzir seus custos operacionais.
               </p>
             </div>
             
-            <div className="flex-col gap-3 text-center flex items-center justify-center">
+            <div className="flex flex-col items-center sm:items-end gap-3 text-center sm:text-left">
               <div className="rounded-3xl border border-white/5 bg-black/40 p-6 backdrop-blur-xl shadow-inner">
-                <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center mb-1.5">Investimento Acumulado</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center sm:text-left mb-1.5">Investimento Acumulado</div>
                 <div className="font-display text-3xl font-black text-primary drop-shadow-glow-sm">
                   {formatBRL(totalSpent)}
                 </div>
@@ -196,7 +196,7 @@ export default function RevendedorNiveis() {
                     <Shield className="h-7 w-7" />
                   </div>
                   <div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">Sua Patente Atual</div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center sm:text-left">Sua Patente Atual</div>
                     <div className="text-2xl font-black uppercase tracking-tighter text-foreground">
                       {tiers[currentIdx]?.name || "Iniciante"}
                     </div>
@@ -212,7 +212,7 @@ export default function RevendedorNiveis() {
                 <div className="space-y-5">
                   <div className="flex items-end justify-between">
                     <div>
-                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center mb-1">Próxima Patente</div>
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center sm:text-left mb-1">Próxima Patente</div>
                       <div className="text-2xl font-black text-primary">{nextTier.name}</div>
                     </div>
                     <div className="text-3xl font-black">{Math.round(progressToNext)}%</div>
@@ -251,17 +251,17 @@ export default function RevendedorNiveis() {
                 </div>
                 <div>
                   <div className="text-sm font-black uppercase tracking-widest">Benefícios Ativos</div>
-                  <p className="text-[10px] text-muted-foreground font-bold text-center">Vantagens garantidas pelo seu nível atual</p>
+                  <p className="text-[10px] text-muted-foreground font-bold text-center sm:text-left">Vantagens garantidas pelo seu nível atual</p>
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-3xl bg-black/40 p-5 border border-white/5 shadow-inner group-hover:border-primary/20 transition-colors">
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center mb-1">Desconto</div>
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center sm:text-left mb-1">Desconto</div>
                   <div className="text-2xl font-black text-primary">{tiers[currentIdx]?.discount_percent || 0}%</div>
                 </div>
                 <div className="rounded-3xl bg-black/40 p-5 border border-white/5 shadow-inner group-hover:border-primary/20 transition-colors">
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center mb-1">Bônus PIX</div>
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center sm:text-left mb-1">Bônus PIX</div>
                   <div className="text-2xl font-black text-primary">{tiers[currentIdx]?.recharge_bonus_percent || 0}%</div>
                 </div>
               </div>
@@ -283,7 +283,7 @@ export default function RevendedorNiveis() {
             </div>
             <div>
               <h2 className="font-display text-3xl font-black tracking-tight">Trilha de Evolução</h2>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 text-center">Mapa de patentes e requisitos</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 text-center sm:text-left">Mapa de patentes e requisitos</p>
             </div>
           </div>
 

@@ -170,10 +170,12 @@ export default function RevendedorAdicionarSaldo() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Adicionar saldo"
-        description="Recarregue seu saldo via PIX e ganhe bônus de acordo com seu nível."
-      />
+      <div className="hidden sm:block">
+        <PageHeader
+          title="Adicionar saldo"
+          description="Recarregue seu saldo via PIX e ganhe bônus de acordo com seu nível."
+        />
+      </div>
 
       {/* Hero: Saldo + Recargas */}
       <div className="grid gap-4 lg:grid-cols-5">
@@ -181,17 +183,17 @@ export default function RevendedorAdicionarSaldo() {
         <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-6 lg:col-span-2">
           <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
           <div className="relative">
-            <div className="gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground flex items-center justify-center">
+            <div className="flex items-center justify-center sm:justify-start gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
               <Wallet className="h-3.5 w-3.5 text-primary" /> Saldo na Plataforma
             </div>
-            <div className="mt-3 gap-2 flex items-center justify-center">
+            <div className="mt-3 flex items-center justify-center sm:items-end sm:justify-start gap-2">
               <div className="font-display text-4xl font-bold tracking-tight">
                 {loading ? "—" : fmt(balanceCents)}
               </div>
             </div>
 
             {currentTier && (
-              <div className="mt-4 flex-wrap gap-2 flex items-center justify-center">
+              <div className="mt-4 flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 <span
                   className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
                   style={{ borderColor: currentTier.color, color: currentTier.color, backgroundColor: `${currentTier.color}15` }}
@@ -211,7 +213,7 @@ export default function RevendedorAdicionarSaldo() {
               </div>
             )}
 
-            <div className="mt-5 gap-1.5 text-[11px] text-muted-foreground flex items-center justify-center">
+            <div className="mt-5 flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-primary" />
               Pagamento seguro via PIX (Mystic Pay)
             </div>
@@ -220,15 +222,15 @@ export default function RevendedorAdicionarSaldo() {
 
         {/* Card de recargas */}
         <div className="rounded-2xl border border-border bg-card/60 p-6 backdrop-blur-sm lg:col-span-3">
-          <div className="items-center justify-between gap-3 text-center flex flex-col">
+          <div className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:justify-between sm:text-left gap-3">
             <div>
-              <div className="gap-2 font-display text-base font-semibold flex items-center justify-center">
+              <div className="flex items-center justify-center sm:justify-start gap-2 font-display text-base font-semibold">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
                   <Zap className="h-4 w-4" />
                 </span>
                 Recarregar agora
               </div>
-              <div className="mt-0.5 text-xs text-muted-foreground">
+              <div className="mt-0.5 text-xs text-muted-foreground text-center sm:text-left">
                 Recarga instantâneo após confirmação do PIX.
               </div>
             </div>
@@ -262,7 +264,7 @@ export default function RevendedorAdicionarSaldo() {
           </div>
 
           {/* Presets */}
-          <div className="mt-3 flex-wrap gap-1.5 flex items-center justify-center">
+          <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-1.5">
             {PRESETS.map((v) => {
               const selected = amountCents === v * 100;
               return (
@@ -324,27 +326,27 @@ export default function RevendedorAdicionarSaldo() {
       {/* Sequência de níveis */}
       {tiers.length > 0 && (
         <div className="rounded-2xl border border-border bg-card/60 p-6 backdrop-blur-sm">
-          <div className="flex-wrap gap-4 flex-col flex items-center justify-between">
+          <div className="flex flex-col flex-wrap items-center text-center sm:flex-row sm:items-end sm:justify-between sm:text-left gap-4">
             <div>
-              <div className="gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground flex items-center justify-center">
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                 <Crown className="h-3.5 w-3.5 text-primary" /> Sequência de níveis
               </div>
-              <div className="mt-1 font-display text-lg font-semibold text-center">
+              <div className="mt-1 font-display text-lg font-semibold text-center sm:text-left">
                 Suba de nível e ganhe mais
               </div>
-              <div className="text-xs text-muted-foreground text-center">
+              <div className="text-xs text-muted-foreground text-center sm:text-left">
                 Quanto mais você gasta, maior seu desconto e bônus de recargas.
               </div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground text-center">Total gasto</div>
-              <div className="font-display text-xl font-bold tabular-nums text-center">{fmt(totalSpentCents)}</div>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground text-center sm:text-right">Total gasto</div>
+              <div className="font-display text-xl font-bold tabular-nums text-center sm:text-right">{fmt(totalSpentCents)}</div>
             </div>
           </div>
 
           {tierProgress && (
             <div className="mt-5">
-              <div className="items-center justify-between text-xs text-muted-foreground flex flex-col">
+              <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between text-xs text-muted-foreground">
                 {tierProgress.next ? (
                   <>
                     <span>
