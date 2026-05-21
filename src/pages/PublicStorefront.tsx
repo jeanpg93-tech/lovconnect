@@ -54,18 +54,31 @@ type Storefront = {
 
 type Reseller = { id: string; display_name: string; slug: string; is_active: boolean };
 type Plan = { license_type: string; label: string; price_cents: number; customer_price_cents: number; is_active: boolean };
-type Pack = { license_type: string; price_cents: number; extension_id?: string };
+type Pack = { license_type: string; price_cents: number; extension_id?: string | null; method?: "flow" | "lovax"; label?: string; desc?: string };
 type Recharge = { id: string; credits_amount: number; price_cents: number };
 
 const FALLBACK_LABEL: Record<string, string> = {
   trial: "Chave Teste (30min)",
+  "1d": "1 dia",
+  "7d": "7 dias",
+  "30d": "30 dias",
+  "90d": "90 dias",
+  "365d": "365 dias",
   pro_1d: "Pro 1 dia",
   pro_7d: "Pro 7 dias",
   pro_15d: "Pro 15 dias",
   pro_30d: "Pro 30 dias",
   lifetime: "Vitalícia",
 };
-const ORDER = ["pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
+const FALLBACK_DESC: Record<string, string> = {
+  "1d": "Acesso por 24 horas",
+  "7d": "Acesso semanal",
+  "30d": "Acesso mensal",
+  "90d": "Acesso trimestral",
+  "365d": "Acesso anual",
+  lifetime: "Acesso permanente",
+};
+const ORDER = ["1d", "7d", "30d", "90d", "365d", "pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
 
 
 
