@@ -3,6 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -224,8 +231,16 @@ export default function GerenteUploadExtensao() {
           </div>
 
           <div className="space-y-1.5">
-            <Label>Nome da extensão</Label>
-            <Input value={ext?.name ?? ""} disabled className="opacity-80" />
+            <Label>Extensão/Método</Label>
+            <Select defaultValue="promptflow">
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o método" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="promptflow">Método - PromptFlow</SelectItem>
+                <SelectItem value="lovax">Método - LovaX</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-[140px,1fr]">
