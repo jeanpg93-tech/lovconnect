@@ -122,8 +122,7 @@ export default function RevendedorDashboard() {
 
   const [integrations, setIntegrations] = useState<{
     misticpay_enabled: boolean;
-    evolution_status: string;
-  }>({ misticpay_enabled: false, evolution_status: "disconnected" });
+  }>({ misticpay_enabled: false });
 
   useEffect(() => {
     if (!user) return;
@@ -221,7 +220,6 @@ export default function RevendedorDashboard() {
 
       setIntegrations({
         misticpay_enabled: integRes.data?.misticpay_enabled ?? false,
-        evolution_status: integRes.data?.connection_status ?? "disconnected",
       });
 
       // Lista detalhada de licenças ativas
