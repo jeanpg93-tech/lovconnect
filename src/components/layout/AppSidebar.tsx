@@ -35,7 +35,6 @@ import {
   ShoppingBag,
   Coins,
   BarChart3,
-  Gauge,
   Smartphone,
   Zap,
 } from "lucide-react";
