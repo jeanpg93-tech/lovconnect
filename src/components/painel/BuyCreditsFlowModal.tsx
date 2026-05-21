@@ -764,8 +764,7 @@ export function BuyCreditsFlowModal({
                           toast.error("Informe o nome do workspace");
                           return;
                         }
-                        const ok = await saveManualMetadata("sent");
-                        if (ok) setManualSubStep("tracking");
+                        setConfirmWorkspaceOpen(true);
                       }}
                       disabled={!workspaceName.trim() || savingMeta}
                       className="w-full sm:w-auto sm:min-w-[260px]"
