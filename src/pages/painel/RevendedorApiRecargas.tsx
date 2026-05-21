@@ -280,7 +280,7 @@ function TabInicio() {
           {[
             { n: 1, t: "Autenticação", d: "Inclua o header X-API-Key em todas as requisições." },
             { n: 2, t: "Consulte o saldo", d: "Antes de criar pedidos, verifique se tem saldo suficiente." },
-            { n: 3, t: "Crie pedidos", d: "Envie a quantidade de créditos e configure o tipo de entrega. O valor é debitado automaticamente." },
+            { n: 3, t: "Crie pedidos", d: "Envie a quantidade de recargas e configure o tipo de entrega. O valor é debitado automaticamente." },
           ].map((s) => (
             <div key={s.n} className="rounded-lg border border-border bg-secondary/30 p-3">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
@@ -311,10 +311,10 @@ function TabInicio() {
             <Shield className="h-4 w-4 text-primary" /> Limites e Regras
           </h4>
           <div className="mt-3 space-y-2 text-xs text-muted-foreground">
-            <div className="text-[11px] font-mono uppercase tracking-wider text-foreground">Créditos</div>
+            <div className="text-[11px] font-mono uppercase tracking-wider text-foreground">Recargas</div>
             <ul className="list-disc pl-4 space-y-1">
-              <li>Mínimo: <strong className="text-foreground">10</strong> créditos</li>
-              <li>Máximo: <strong className="text-foreground">5.000</strong> créditos</li>
+              <li>Mínimo: <strong className="text-foreground">10</strong> recargas</li>
+              <li>Máximo: <strong className="text-foreground">5.000</strong> recargas</li>
               <li>Múltiplos de: <strong className="text-foreground">10</strong></li>
             </ul>
           </div>
@@ -327,11 +327,11 @@ function TabInicio() {
           <table className="mt-3 w-full text-xs">
             <tbody className="divide-y divide-border">
               {[
-                ["10 créditos", "R$ 0,70"],
-                ["50 créditos", "R$ 3,50"],
-                ["100 créditos", "R$ 5,90"],
-                ["500 créditos", "R$ 23,90"],
-                ["1000 créditos", "R$ 41,90"],
+                ["10 recargas", "R$ 0,70"],
+                ["50 recargas", "R$ 3,50"],
+                ["100 recargas", "R$ 5,90"],
+                ["500 recargas", "R$ 23,90"],
+                ["1000 recargas", "R$ 41,90"],
               ].map(([k, v]) => (
                 <tr key={k}>
                   <td className="py-1.5 text-muted-foreground">{k}</td>
@@ -512,14 +512,14 @@ function TabErros() {
     ["403", "ACCOUNT_DISABLED", "Conta de revendedor desativada"],
     ["429", "RATE_LIMITED", "Limite de requisições excedido"],
     ["400", "INSUFFICIENT_BALANCE", "Saldo insuficiente para esta operação"],
-    ["400", "INVALID_CREDITS", "Quantidade de créditos inválida (10-5000, múltiplos de 10)"],
+    ["400", "INVALID_CREDITS", "Quantidade de recargas inválida (10-5000, múltiplos de 10)"],
     ["400", "MISSING_FIELDS", "Campos obrigatórios faltando"],
     ["400", "MISSING_CREDITS", "Parâmetro creditos não fornecido"],
-    ["400", "CREDITS_NOT_MULTIPLE_OF_10", "Créditos deve ser múltiplo de 10"],
+    ["400", "CREDITS_NOT_MULTIPLE_OF_10", "Recargas deve ser múltiplo de 10"],
     ["400", "INVALID_STATUS", "Status do pedido não permite a operação"],
     ["400", "INVALID_DELIVERY_TYPE", "Tipo de entrega inválido"],
     ["400", "DELIVERY_TYPE_LOCKED", "Tipo de entrega não pode ser alterado"],
-    ["400", "CREDITS_ALREADY_SENT", "Créditos já foram enviados, operação bloqueada"],
+    ["400", "CREDITS_ALREADY_SENT", "Recargas já foram enviados, operação bloqueada"],
     ["400", "ADMIN_PERMISSION_GRANTED", "Bot já tem permissão admin no workspace"],
     ["400", "MISSING_EMAIL", "Email não fornecido"],
     ["400", "INVALID_EMAIL", "Email em formato inválido"],
@@ -530,9 +530,9 @@ function TabErros() {
   const status: Array<[string, string, string]> = [
     ["aguardando", "neutral", "Pedido criado, aguardando configuração do workspace"],
     ["configurando", "info", "Cliente configurando tipo de entrega e workspace"],
-    ["recarregando", "info", "Bot fazendo farm de créditos no workspace"],
+    ["recarregando", "info", "Bot fazendo farm de recargas no workspace"],
     ["entregando", "info", "Bot entregando/transferindo o workspace para o cliente"],
-    ["sucesso", "success", "Créditos adicionados com sucesso"],
+    ["sucesso", "success", "Recargas adicionados com sucesso"],
     ["falha", "danger", "Erro no processamento"],
     ["queimado", "danger", "Problema no workspace"],
     ["cancelado", "neutral", "Pedido cancelado (pode solicitar reembolso proporcional)"],
@@ -950,10 +950,10 @@ function TabFluxoProprio() {
         <strong className="text-primary">Workspace Próprio</strong> — o cliente convida nosso bot para
         o workspace dele no Lovable. O fluxo tem duas fases: primeiro o bot identifica o workspace
         (convite com qualquer permissão), depois o cliente promove o bot para Owner. Após isso,
-        o farm de créditos inicia automaticamente.
+        o farm de recargas inicia automaticamente.
       </div>
 
-      <StepCard n={1} title="Criar o pedido" subtitle="Debita o saldo e reserva os créditos">
+      <StepCard n={1} title="Criar o pedido" subtitle="Debita o saldo e reserva os recargas">
         <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">POST /pedidos</div>
         <CodeBlock
           title="O que enviar"
@@ -1090,7 +1090,7 @@ function TabFluxoProprio() {
           <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
             <strong className="font-mono text-emerald-600 dark:text-emerald-400">"confirmado"</strong>
             <p className="mt-1 text-muted-foreground">
-              Bot entrou como Owner. O farm de créditos vai começar automaticamente. Siga para o passo 5.
+              Bot entrou como Owner. O farm de recargas vai começar automaticamente. Siga para o passo 5.
             </p>
           </div>
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
@@ -1167,7 +1167,7 @@ function TabExemplos() {
       <section className="space-y-3">
         <h3 className="font-display text-lg font-bold">Fluxo Completo: Workspace Novo</h3>
         <p className="text-xs text-muted-foreground">
-          Crie um pedido e entregue créditos em uma conta Lovable nova do cliente.
+          Crie um pedido e entregue recargas em uma conta Lovable nova do cliente.
         </p>
 
         <CodeBlock
@@ -1364,7 +1364,7 @@ export default function RevendedorApiRecargas() {
             API <span className="text-primary italic">Gerar Recargas</span>
           </h1>
         }
-        description="Integre seu sistema para criar pedidos de recarga de créditos Lovable automaticamente."
+        description="Integre seu sistema para criar pedidos de recarga de recargas Lovable automaticamente."
         icon={KeyRound}
       />
 

@@ -181,7 +181,7 @@ const Index = () => {
           <div className="mx-auto mt-14 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { i: KeyRound, t: "Licenças", d: "Gere, distribua e resete chaves dos seus clientes em segundos." },
-              { i: Wallet, t: "Recargas PIX", d: "Receba créditos com PIX integrado e liberação automática." },
+              { i: Wallet, t: "Recargas PIX", d: "Receba recargas com PIX integrado e liberação automática." },
               { i: Store, t: "Loja própria", d: "Sua vitrine pública pra vender direto sem intermediário." },
               { i: Crown, t: "Níveis e bônus", d: "Quanto mais escala, mais bônus de recarga você desbloqueia." },
               { i: Zap, t: "API completa", d: "Automatize criação e validação de chaves no seu sistema." },

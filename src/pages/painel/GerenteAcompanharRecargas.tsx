@@ -111,7 +111,7 @@ export default function GerenteAcompanharRecargas() {
         }
         return {
           id: p.id ?? p.pedidoId ?? "",
-          license_type: `Créditos (${p.creditos ?? "—"})`,
+          license_type: `Recargas (${p.creditos ?? "—"})`,
           license_key: p.linkCliente ?? p.id ?? p.pedidoId ?? "",
           status,
           created_at: p.criadoEm ?? p.dataCriacao ?? new Date().toISOString(),
@@ -451,7 +451,7 @@ export default function GerenteAcompanharRecargas() {
                   <thead className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                     <tr>
                       <th className="px-4 py-3 text-left font-semibold">Pedido</th>
-                      <th className="px-4 py-3 text-left font-semibold">Créditos</th>
+                      <th className="px-4 py-3 text-left font-semibold">Recargas</th>
                       <th className="px-4 py-3 text-left font-semibold">Link público</th>
                       <th className="px-4 py-3 text-left font-semibold">Responsável</th>
                       <th className="px-4 py-3 text-center font-semibold">Status</th>
@@ -550,7 +550,7 @@ export default function GerenteAcompanharRecargas() {
                 <thead className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Pedido</th>
-                    <th className="px-4 py-3 text-left font-semibold">Créditos</th>
+                    <th className="px-4 py-3 text-left font-semibold">Recargas</th>
                     <th className="px-4 py-3 text-left font-semibold">Workspace</th>
                     <th className="px-4 py-3 text-left font-semibold">Responsável</th>
                     <th className="px-4 py-3 text-center font-semibold">Status</th>
@@ -586,7 +586,7 @@ export default function GerenteAcompanharRecargas() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{m.credits} créditos</td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">{m.credits} recargas</td>
                         <td className="px-4 py-3 text-xs">
                           {m.workspace_name ? (
                             <span className="font-medium text-foreground">{m.workspace_name}</span>

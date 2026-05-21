@@ -553,7 +553,7 @@ export default function PublicStorefront() {
                   </h2>
                   <p className="text-sm text-muted-foreground">
                     {order.product_type === "credits"
-                      ? `${order.credit_amount ?? ""} créditos foram registrados para processamento.`
+                      ? `${order.credit_amount ?? ""} recargas foram registrados para processamento.`
                       : order.amount_cents > 0
                       ? "Sua chave foi gerada e enviada no seu WhatsApp."
                       : "Copie sua chave abaixo. Ela tem validade de 30 minutos."}
@@ -626,7 +626,7 @@ export default function PublicStorefront() {
               <div className="text-center">
                 <div className="text-xs uppercase tracking-wider text-muted-foreground">Item selecionado</div>
                 <h2 className="text-lg font-semibold mt-1">
-                  {selLic ? labelFor(selLic) : `${recharges.find(r => r.id === selRec)?.credits_amount} Créditos`}
+                  {selLic ? labelFor(selLic) : `${recharges.find(r => r.id === selRec)?.credits_amount} Recargas`}
                 </h2>
                 <div className="text-3xl font-bold mt-2" style={{ color }}>
                   {selLic === "trial"
@@ -820,7 +820,7 @@ export default function PublicStorefront() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-extrabold text-base leading-tight">
-                            {rec.credits_amount} <span className="text-xs font-medium text-muted-foreground">Créditos</span>
+                            {rec.credits_amount} <span className="text-xs font-medium text-muted-foreground">Recargas</span>
                           </div>
                           <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1">
                             <Sparkles className="h-2.5 w-2.5" /> Recarga Imediata via PIX

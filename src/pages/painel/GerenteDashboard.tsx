@@ -311,7 +311,7 @@ export default function GerenteDashboard() {
         created_at: o.created_at,
         status: o.status === 'paid' ? 'completed' : o.status,
         is_test: false,
-        license_type: o.product_type === 'credit' ? `${o.credit_amount ?? ''} créditos` : (o.license_type || 'loja'),
+        license_type: o.product_type === 'credit' ? `${o.credit_amount ?? ''} recargas` : (o.license_type || 'loja'),
         price_cents: Number(o.price_cents ?? 0),
         reseller_name: rMap.get(o.reseller_id) ?? "—",
         extension_name: eMap.get(o.extension_id) ?? "—",
@@ -698,7 +698,7 @@ export default function GerenteDashboard() {
                     });
                     const kindLabels: Record<string, string> = {
                       deposit: "Depósito", recharge: "Recarga", bonus: "Bônus", refund: "Estorno",
-                      adjustment: "Ajuste", license_purchase: "Compra licença", credit_purchase: "Compra créditos",
+                      adjustment: "Ajuste", license_purchase: "Compra licença", credit_purchase: "Compra recargas",
                       order: "Pedido", debit: "Débito", order_debit: "Pedido",
                       manual_credit: "Crédito manual", credit_purchase_refund: "Estorno compra",
                       credit_recharge_api: "Recarga API",
@@ -741,7 +741,7 @@ export default function GerenteDashboard() {
                                       {isSaleLike ? (
                                         <>
                                           <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : "bg-sky-500/15 text-sky-600 border-sky-500/30"}`}>
-                                            <StoreIcon className="h-2.5 w-2.5" /> {isCreditPurchase ? "Créditos" : "Extensão"}
+                                            <StoreIcon className="h-2.5 w-2.5" /> {isCreditPurchase ? "Recargas" : "Extensão"}
                                           </span>
                                           <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isStoreSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"}`}>
                                             {isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}

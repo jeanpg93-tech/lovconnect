@@ -201,7 +201,7 @@ export default function RevendedorDashboard() {
         ...recharges.map((rc: any) => ({
           id: rc.id,
           type: "recharge" as const,
-          title: `Recarga de ${rc.credits} créditos`,
+          title: `Recarga de ${rc.credits} recargas`,
           amount_cents: rc.price_cents,
           status: rc.status,
           created_at: rc.created_at
@@ -305,7 +305,7 @@ export default function RevendedorDashboard() {
     });
     return Object.entries(map)
       .map(([k, v]) => ({ 
-        name: k === "recharge" ? "Recarga de Créditos" : (LICENSE_LABELS[k] ?? k), 
+        name: k === "recharge" ? "Recarga de Recargas" : (LICENSE_LABELS[k] ?? k), 
         value: v 
       }))
       .sort((a, b) => b.value - a.value);
@@ -390,7 +390,7 @@ export default function RevendedorDashboard() {
             </h1>
 
             <p className="max-w-md text-sm md:text-base text-muted-foreground leading-relaxed">
-              Monitoramento em tempo real da sua operação. Vendas, créditos e licenças numa única interface.
+              Monitoramento em tempo real da sua operação. Vendas, recargas e licenças numa única interface.
             </p>
 
             {/* CTAs */}

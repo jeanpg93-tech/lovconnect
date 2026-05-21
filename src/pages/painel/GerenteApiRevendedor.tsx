@@ -34,7 +34,7 @@ export default function GerenteApiRevendedor() {
             API <span className="text-primary italic">Revendedor</span>
           </h1>
         }
-        description="Documentação oficial da API de recargas de créditos para revendedores."
+        description="Documentação oficial da API de recargas de recargas para revendedores."
         icon={KeyRound}
       />
 
@@ -47,7 +47,7 @@ export default function GerenteApiRevendedor() {
           {[
             { n: 1, t: "Crie uma chave", d: "Em 'Painel > Integrações', gere uma chave lov_live_…" },
             { n: 2, t: "Autentique", d: "Envie o header X-API-Key em todas as requisições." },
-            { n: 3, t: "Compre créditos", d: "Consulte saldo, calcule orçamentos, crie e acompanhe pedidos." },
+            { n: 3, t: "Compre recargas", d: "Consulte saldo, calcule orçamentos, crie e acompanhe pedidos." },
           ].map((s) => (
             <div key={s.n} className="rounded-lg border border-border bg-secondary/30 p-3">
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
@@ -71,7 +71,7 @@ export default function GerenteApiRevendedor() {
             <Shield className="h-4 w-4 text-primary" /> Regras e Limites
           </h4>
           <div className="mt-3 space-y-2">
-            <div><strong>Quantidade:</strong> 10 a 5000 créditos, em múltiplos de 10.</div>
+            <div><strong>Quantidade:</strong> 10 a 5000 recargas, em múltiplos de 10.</div>
             <div className="border-t border-border pt-2">
               <strong>Preços:</strong> definidos pelo seu nível. Consulte sempre via{" "}
               <code className="font-mono bg-secondary/60 px-1 rounded">/orcamento</code>.
@@ -112,7 +112,7 @@ export default function GerenteApiRevendedor() {
       {/* ORCAMENTO */}
       <DocBlock
         title="GET /orcamento?creditos={qtd} — Calcular orçamento"
-        body={`# Calcula o preço para uma quantidade específica de créditos
+        body={`# Calcula o preço para uma quantidade específica de recargas
 # sem criar pedido. Verifica também se há saldo suficiente.
 
 curl -X GET "${BASE_URL}/orcamento?creditos=100" \\
@@ -302,7 +302,7 @@ curl -X POST "${BASE_URL}/pedidos" \\
       {/* EMAIL LOVABLE */}
       <DocBlock
         title="PUT /pedidos/{id}/email-lovable — Atualizar email Lovable"
-        body={`# Só pode ser alterado antes de enviar créditos.
+        body={`# Só pode ser alterado antes de enviar recargas.
 
 curl -X PUT "${BASE_URL}/pedidos/UUID_DO_PEDIDO/email-lovable" \\
   -H "X-API-Key: SUA_API_KEY" \\
@@ -341,7 +341,7 @@ curl -X POST "${BASE_URL}/pedidos/UUID_DO_PEDIDO/confirmar-convite" \\
 
 # Retornos possíveis em statusVerificacaoConvite (via GET /pedidos/{id}):
 #   confirmado          → Bot encontrou o convite com permissão de Owner.
-#                         O farm de créditos inicia automaticamente.
+#                         O farm de recargas inicia automaticamente.
 #   permissao_incorreta → Bot recebeu o convite SEM permissão de Owner.
 #                         Cliente deve promover o bot a Owner.
 #   nao_encontrado      → Bot não encontrou nenhum convite.
@@ -403,7 +403,7 @@ curl -X POST "${BASE_URL}/pedidos/UUID_DO_PEDIDO/confirmar-convite" \\
       <DocBlock
         title="POST /pedidos/{id}/cancelar — Cancelar pedido"
         body={`# Apenas pedidos com status "aguardando" ou "configurando"
-# e SEM créditos enviados.
+# e SEM recargas enviados.
 
 curl -X POST "${BASE_URL}/pedidos/UUID_DO_PEDIDO/cancelar" \\
   -H "X-API-Key: SUA_API_KEY"
@@ -460,9 +460,9 @@ curl -X POST "${BASE_URL}/pedidos/UUID_DO_PEDIDO/reembolso" \\
               ["novo", "Pedido recém-criado, ainda sem configuração."],
               ["aguardando", "Aguardando o cliente configurar a entrega."],
               ["configurando", "Configuração em andamento (link/convite)."],
-              ["recarregando", "Bot está recarregando os créditos no workspace."],
+              ["recarregando", "Bot está recarregando os recargas no workspace."],
               ["entregando", "Entrega final em curso."],
-              ["sucesso", "Créditos entregues com sucesso."],
+              ["sucesso", "Recargas entregues com sucesso."],
               ["falha", "Erro no processamento — saldo estornado."],
               ["queimado", "Pedido invalidado por uso indevido."],
               ["cancelado", "Cancelado pelo revendedor/cliente."],

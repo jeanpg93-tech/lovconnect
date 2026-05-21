@@ -93,7 +93,7 @@ const STEP = 20;
 const PACKS: PackDef[] = [
   {
     amount: 20,
-    label: "20 créditos",
+    label: "20 recargas",
     short: "Mínimo",
     icon: Coins,
     badge: "Início",
@@ -102,21 +102,21 @@ const PACKS: PackDef[] = [
   },
   {
     amount: 100,
-    label: "100 créditos",
+    label: "100 recargas",
     short: "Pequeno",
     icon: Zap,
     gradient: "from-sky-500/20 via-sky-500/5 to-transparent",
   },
   {
     amount: 200,
-    label: "200 créditos",
+    label: "200 recargas",
     short: "Médio",
     icon: Rocket,
     gradient: "from-blue-500/20 via-blue-500/5 to-transparent",
   },
   {
     amount: 500,
-    label: "500 créditos",
+    label: "500 recargas",
     short: "Grande",
     icon: Gem,
     badge: "Popular",
@@ -125,7 +125,7 @@ const PACKS: PackDef[] = [
   },
   {
     amount: 1000,
-    label: "1000 créditos",
+    label: "1000 recargas",
     short: "Enterprise",
     icon: Crown,
     badge: "Top",
@@ -134,7 +134,7 @@ const PACKS: PackDef[] = [
   },
   {
     amount: 2000,
-    label: "2000 créditos",
+    label: "2000 recargas",
     short: "Mega",
     icon: Flame,
     badge: "Pro",
@@ -369,7 +369,7 @@ export default function GerenteGeracaoManualCreditos() {
     <PageContainer>
       <PageHeader
         title="Geração Manual"
-        description="Compre créditos diretamente pelo painel via API do provedor."
+        description="Compre recargas diretamente pelo painel via API do provedor."
       />
 
       {/* Hero */}
@@ -475,7 +475,7 @@ export default function GerenteGeracaoManualCreditos() {
 
             <div className="grid gap-4">
               <div className="space-y-1.5">
-                <Label>Créditos (múltiplos de {STEP})</Label>
+                <Label>Recargas (múltiplos de {STEP})</Label>
                 <Input
                   type="number"
                   min={STEP}
@@ -488,7 +488,7 @@ export default function GerenteGeracaoManualCreditos() {
                   className="text-lg font-mono"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Mínimo {STEP} créditos. O valor abaixo vem direto do provedor.
+                  Mínimo {STEP} recargas. O valor abaixo vem direto do provedor.
                 </p>
               </div>
 
@@ -509,7 +509,7 @@ export default function GerenteGeracaoManualCreditos() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Créditos</div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Recargas</div>
                     <div className="mt-1 font-display text-2xl font-bold text-primary">{credits}</div>
                   </div>
                 </div>
@@ -546,7 +546,7 @@ export default function GerenteGeracaoManualCreditos() {
                 ) : (
                   <>
                     <ShoppingCart className="mr-2 h-4 w-4" />
-                    Gerar pedido {selected ? `· ${selected.label}` : `· ${credits} créditos`}
+                    Gerar pedido {selected ? `· ${selected.label}` : `· ${credits} recargas`}
                   </>
                 )}
               </Button>
@@ -565,7 +565,7 @@ export default function GerenteGeracaoManualCreditos() {
                 <div className="flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 className="h-4 w-4" />
                   <span className="text-xs font-semibold">
-                    Pedido criado · {lastOrder.creditos ?? credits} créditos
+                    Pedido criado · {lastOrder.creditos ?? credits} recargas
                   </span>
                 </div>
 
@@ -715,7 +715,7 @@ export default function GerenteGeracaoManualCreditos() {
                         <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
                           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Entregues</div>
                           <div className="mt-0.5 font-display text-sm font-bold text-emerald-500">
-                            {lastOrder.creditosEnviados} créditos
+                            {lastOrder.creditosEnviados} recargas
                           </div>
                         </div>
                       )}
@@ -798,7 +798,7 @@ export default function GerenteGeracaoManualCreditos() {
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pedido</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Créditos</th>
+                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recargas</th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Valor</th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Data</th>

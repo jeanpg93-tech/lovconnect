@@ -134,7 +134,7 @@ export function StorefrontPreview({
                 )}
                 {showCredits && (
                   <div className="rounded-lg border bg-card/80 backdrop-blur p-2 text-left flex items-center justify-between">
-                    <div className="text-xs font-medium">Recarga 50 Créditos</div>
+                    <div className="text-xs font-medium">Recarga 50 Recargas</div>
                     <div className="text-xs font-bold" style={{ color }}>R$ 45,00</div>
                   </div>
                 )}

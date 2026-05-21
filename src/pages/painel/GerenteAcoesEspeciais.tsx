@@ -116,11 +116,11 @@ export default function GerenteAcoesEspeciais() {
           </CardContent>
         </Card>
 
-        {/* Desconto em Créditos */}
+        {/* Desconto em Recargas */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Desconto em Créditos</CardTitle>
-            <CardDescription>Porcentagem de desconto aplicada na compra de pacotes de créditos.</CardDescription>
+            <CardTitle className="text-lg">Desconto em Recargas</CardTitle>
+            <CardDescription>Porcentagem de desconto aplicada na compra de pacotes de recargas.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">

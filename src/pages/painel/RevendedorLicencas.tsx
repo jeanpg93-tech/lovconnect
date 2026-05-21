@@ -45,7 +45,7 @@ const PLAN_DAYS: Record<string, number | null> = {
   pro_30d: 30,
   trial: 15 / (24 * 60), // 15 minutos
   lifetime: null,
-  credits: null, // Créditos não expiram
+  credits: null, // Recargas não expiram
 };
 
 type Order = {
@@ -73,7 +73,7 @@ const LABEL: Record<string, string> = {
   pro_30d: "Pro 30 dias",
   lifetime: "Vitalícia",
   trial: "Teste 15min",
-  credits: "Pacote de Créditos",
+  credits: "Pacote de Recargas",
 };
 
 const formatBRL = (cents: number) =>
@@ -163,7 +163,7 @@ export default function RevendedorLicencas() {
     if (!r) { setLoading(false); return; }
     setResellerId(r.id);
 
-    // Sincroniza status dos pedidos de créditos pendentes com o provedor antes de listar
+    // Sincroniza status dos pedidos de recargas pendentes com o provedor antes de listar
     try {
       await invokeAuthenticatedFunction("lovable-credits-api?action=sync_my_pending", { method: "POST" });
     } catch (e) {
@@ -287,7 +287,7 @@ export default function RevendedorLicencas() {
   const requestRefund = async (o: Order) => {
     const pedidoId = getProviderOrderId(o);
     if (!pedidoId) return toast.error("ID do pedido no provedor não encontrado");
-    if (!confirm("Solicitar reembolso proporcional dos créditos não enviados? O valor será creditado no seu saldo.")) return;
+    if (!confirm("Solicitar reembolso proporcional dos recargas não enviados? O valor será creditado no seu saldo.")) return;
     setActionLoading(`${o.id}:refund`);
     const { data, error } = await invokeAuthenticatedFunction(`lovable-credits-api?action=refund_order&id=${pedidoId}`, { method: "POST" });
     setActionLoading(null);
@@ -396,7 +396,7 @@ export default function RevendedorLicencas() {
       <div className="relative space-y-6">
         <PageHeader
           title="Minhas Vendas"
-          description="Histórico completo das chaves geradas e recargas de créditos da sua conta."
+          description="Histórico completo das chaves geradas e recargas de recargas da sua conta."
         />
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -525,7 +525,7 @@ export default function RevendedorLicencas() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-medium text-zinc-300">
-                            {o.product_type === "credits" ? `Créditos (${o.credit_amount})` : (LABEL[o.license_type] ?? o.license_type)}
+                            {o.product_type === "credits" ? `Recargas (${o.credit_amount})` : (LABEL[o.license_type] ?? o.license_type)}
                           </span>
                           {o.is_test && (
                             <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-[9px] font-bold uppercase text-amber-500">
@@ -697,7 +697,7 @@ export default function RevendedorLicencas() {
 
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline" className="border-primary/20 bg-primary/5 text-[9px] font-bold text-primary">
-                      {o.product_type === "credits" ? `Créditos (${o.credit_amount})` : (LABEL[o.license_type] ?? o.license_type)}
+                      {o.product_type === "credits" ? `Recargas (${o.credit_amount})` : (LABEL[o.license_type] ?? o.license_type)}
                     </Badge>
                     {o.is_test && (
                       <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-[9px] font-bold text-amber-500 uppercase">Teste</Badge>
@@ -845,7 +845,7 @@ export default function RevendedorLicencas() {
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-zinc-400">Produto:</span>
                         <span className="text-sm font-bold text-primary">
-                          {detailsTarget.product_type === "credits" ? `Créditos (${detailsTarget.credit_amount})` : (LABEL[detailsTarget.license_type] ?? detailsTarget.license_type)}
+                          {detailsTarget.product_type === "credits" ? `Recargas (${detailsTarget.credit_amount})` : (LABEL[detailsTarget.license_type] ?? detailsTarget.license_type)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">

@@ -243,7 +243,7 @@ export default function GerenteValoresCreditos() {
                           {p.label}
                         </span>
                         <span className="font-mono text-[10px] uppercase text-muted-foreground/50 tracking-widest flex items-center gap-1.5">
-                          <Coins className="h-3 w-3" /> {p.credits_amount} créditos
+                          <Coins className="h-3 w-3" /> {p.credits_amount} recargas
                         </span>
                       </div>
                     </td>
