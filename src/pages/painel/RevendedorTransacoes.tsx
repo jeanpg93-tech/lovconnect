@@ -244,7 +244,7 @@ export default function RevendedorTransacoes() {
                           {t.reference_id && (
                             <div className="flex flex-col mt-0.5">
                               <span className="text-[9px] font-mono text-muted-foreground/40 block">Ref: {t.reference_id.split("-")[0]}</span>
-                              {(t.kind === "refund" || t.kind === "panel_refund" || t.kind === "credit_purchase_refund") && (
+                              {(t.kind === "refund" || t.kind === "panel_refund" || t.kind === "credit_purchase_refund" || t.kind === "license_purchase_refund") && (
                                 <span className="text-[9px] font-mono text-primary/60 block font-bold uppercase italic">Pedido Original: {t.reference_id.split("-")[0]}</span>
                               )}
                             </div>
