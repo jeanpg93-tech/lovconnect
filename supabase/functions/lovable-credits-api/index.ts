@@ -221,6 +221,22 @@ Deno.serve(async (req) => {
           });
         }
 
+        // Bloqueia compra de créditos quando houver vendas da loja aguardando saldo
+        {
+          const { data: hasPending } = await adminClient.rpc("has_pending_storefront_orders", {
+            _reseller_id: resellerId,
+          });
+          if (hasPending) {
+            return new Response(JSON.stringify({
+              error: "Você tem vendas da loja aguardando saldo. Regularize seu saldo antes de comprar créditos.",
+              code: "PENDING_BALANCE",
+            }), {
+              status: 409,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+
         const body = await req.json().catch(() => ({}));
         const creditos = parseInt(body?.creditos ?? "0", 10);
         const tipoEntrega = (body?.tipo_entrega ?? "workspace_proprio").toString();

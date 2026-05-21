@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { PanelRoutes } from "./PanelRoutes";
 import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { MobileNav } from "./MobileNav";
+import { PendingBalanceBanner } from "@/components/painel/PendingBalanceBanner";
 
 export default function AppLayout() {
   const { user, loading: authLoading } = useAuth();
@@ -57,6 +58,7 @@ export default function AppLayout() {
           <main className="relative flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden pt-[calc(env(safe-area-inset-top)+4.5rem)] md:!pt-6">
             <div className="pointer-events-none absolute inset-0 bg-grid bg-grid-fade opacity-40" />
             <div className="relative">
+              {primaryRole === "revendedor" && <PendingBalanceBanner />}
               <PanelRoutes />
             </div>
           </main>

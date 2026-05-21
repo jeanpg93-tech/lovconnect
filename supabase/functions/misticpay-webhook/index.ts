@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
   switch (type) {
@@ -16,6 +18,23 @@ function mapTypeToProviderBody(type: string): Record<string, unknown> {
     case "pro_30d": return { days: 30 };
     case "lifetime": return { lifetime: true };
     default: return { days: 30 };
+  }
+}
+
+async function triggerReleasePending(orderIds: string[]) {
+  for (const id of orderIds) {
+    try {
+      await fetch(`${SUPABASE_URL}/functions/v1/release-pending-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({ order_id: id }),
+      });
+    } catch (e) {
+      console.warn("release-pending-order invoke failed", id, e);
+    }
   }
 }
 
@@ -108,6 +127,21 @@ Deno.serve(async (req) => {
           paid_at: new Date().toISOString(),
           raw_response: payload,
         }).eq("id", intent.id);
+
+        // Após creditar saldo, tenta liberar vendas em espera
+        try {
+          const { data: released } = await admin.rpc("try_release_pending_orders", {
+            _reseller_id: intent.reseller_id,
+          });
+          const ids = Array.isArray(released) ? released.filter(Boolean) : [];
+          if (ids.length > 0) {
+            // Não await para não travar webhook
+            triggerReleasePending(ids as string[]);
+          }
+        } catch (e) {
+          console.warn("try_release_pending_orders failed", e);
+        }
+
         return json({ ok: true, kind: "recharge" });
       }
 
@@ -181,10 +215,71 @@ Deno.serve(async (req) => {
     }
 
     if (storeOrder.product_type === "credits" || storeOrder.product_type === "recharge" || storeOrder.license_type === "credits") {
+      // Marca como pago (recebemos o PIX), agora tenta cobrar custo do revendedor
       await admin.from("storefront_orders").update({
-        status: "completed",
+        status: "paid",
         paid_at: new Date().toISOString(),
         raw_response: payload,
+      }).eq("id", storeOrder.id);
+
+      // Calcula custo do pacote para o revendedor
+      let credits_cost = 0;
+      try {
+        const credits = Number(storeOrder.credit_amount ?? 0);
+        if (credits > 0) {
+          const { data: plan } = await admin
+            .from("credit_pricing_plans")
+            .select("id")
+            .eq("credits_amount", credits)
+            .eq("is_active", true)
+            .maybeSingle();
+          if (plan?.id) {
+            const { data: c } = await admin.rpc("get_credit_pack_cost", {
+              _reseller_id: storeOrder.reseller_id,
+              _plan_id: plan.id,
+            });
+            credits_cost = Number(c ?? 0);
+          }
+        }
+      } catch (e) {
+        console.warn("get_credit_pack_cost failed", e);
+      }
+
+      if (credits_cost > 0) {
+        const { data: debitOk } = await admin.rpc("debit_reseller_balance", {
+          _reseller_id: storeOrder.reseller_id,
+          _amount_cents: credits_cost,
+          _kind: "order_debit",
+          _description: `Venda Loja: ${storeOrder.credit_amount ?? 0} créditos`,
+          _reference_id: storeOrder.id,
+        });
+
+        if (!debitOk) {
+          // Sem saldo → aguarda recarga
+          await admin.from("storefront_orders").update({
+            status: "awaiting_balance",
+            cost_cents: credits_cost,
+          }).eq("id", storeOrder.id);
+
+          await admin.from("pending_storefront_charges").insert({
+            order_id: storeOrder.id,
+            reseller_id: storeOrder.reseller_id,
+            cost_cents: credits_cost,
+            product_type: "credits",
+          });
+
+          return json({ ok: true, kind: "storefront_credits_awaiting_balance" });
+        }
+
+        await admin.rpc("add_reseller_spent", {
+          _reseller_id: storeOrder.reseller_id,
+          _amount_cents: credits_cost,
+        });
+      }
+
+      await admin.from("storefront_orders").update({
+        status: "completed",
+        cost_cents: credits_cost,
       }).eq("id", storeOrder.id);
 
       try {
@@ -196,7 +291,7 @@ Deno.serve(async (req) => {
           license_type: "credits",
           product_type: "credits",
           credit_amount: storeOrder.credit_amount,
-          price_cents: Number(storeOrder.price_cents ?? 0),
+          price_cents: credits_cost,
           status: "completed",
           is_test: false,
           provider_response: payload,
@@ -327,7 +422,7 @@ Deno.serve(async (req) => {
     }
 
     if (cost_cents > 0) {
-      const { error: debitErr } = await admin.rpc("force_debit_reseller_balance", {
+      const { data: debitOk } = await admin.rpc("debit_reseller_balance", {
         _reseller_id: storeOrder.reseller_id,
         _amount_cents: cost_cents,
         _kind: "order_debit",
@@ -335,14 +430,27 @@ Deno.serve(async (req) => {
         _reference_id: storeOrder.id,
       });
 
-      if (debitErr) {
-        console.error("[webhook] Failed to debit reseller balance", debitErr);
-      } else {
-        await admin.rpc("add_reseller_spent", {
-          _reseller_id: storeOrder.reseller_id,
-          _amount_cents: cost_cents,
+      if (!debitOk) {
+        // Sem saldo → coloca em espera, não chama provedor
+        await admin.from("storefront_orders").update({
+          status: "awaiting_balance",
+          cost_cents,
+        }).eq("id", storeOrder.id);
+
+        await admin.from("pending_storefront_charges").insert({
+          order_id: storeOrder.id,
+          reseller_id: storeOrder.reseller_id,
+          cost_cents,
+          product_type: "license",
         });
+
+        return json({ ok: true, kind: "storefront_order_awaiting_balance" });
       }
+
+      await admin.rpc("add_reseller_spent", {
+        _reseller_id: storeOrder.reseller_id,
+        _amount_cents: cost_cents,
+      });
     }
 
     let providerData: any = null;

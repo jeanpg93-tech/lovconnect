@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { usePendingStorefrontCharges } from "@/hooks/usePendingStorefrontCharges";
 
 type Plan = { license_type: string; label: string; price_cents: number; cost_cents: number; min_price_cents?: number; is_active: boolean };
 type MethodId = "flow" | "lovax";
@@ -85,6 +86,7 @@ const TRIAL_PLAN: Plan = {
 };
 
 export default function RevendedorPedidos() {
+  const { hasPending: pendingBalance, count: pendingCount } = usePendingStorefrontCharges();
   const { user } = useAuth();
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -689,6 +691,10 @@ export default function RevendedorPedidos() {
                           </div>
                           <Button
                             onClick={() => {
+                              if (pendingBalance) {
+                                toast.error("Regularize seu saldo antes de gerar novas licenças.");
+                                return;
+                              }
                               setOpenMethodCtx({ method: selectedMethod, pack: pk, cost_cents: cost });
                               setIsTest(false);
                               setOpen({
@@ -699,11 +705,15 @@ export default function RevendedorPedidos() {
                                 is_active: true,
                               });
                             }}
+                            disabled={pendingBalance}
+                            title={pendingBalance ? "Regularize seu saldo antes de continuar" : undefined}
                             className="relative h-11 px-6 font-bold transition-all sm:h-12 sm:w-full overflow-hidden bg-white/5 text-white hover:bg-primary hover:text-black"
                           >
                             <div className="relative flex items-center justify-center gap-2">
                               <ShoppingCart className="h-4 w-4" />
-                              <span className="text-xs uppercase tracking-widest sm:text-sm">Gerar</span>
+                              <span className="text-xs uppercase tracking-widest sm:text-sm">
+                                {pendingBalance ? "Regularize saldo" : "Gerar"}
+                              </span>
                             </div>
                           </Button>
                         </div>

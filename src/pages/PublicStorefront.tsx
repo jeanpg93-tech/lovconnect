@@ -623,6 +623,16 @@ export default function PublicStorefront() {
                     </>
                   )}
                 </div>
+              ) : orderStatus === "awaiting_balance" ? (
+                <div className="text-center space-y-3 py-4">
+                  <div className="mx-auto h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+                    <QrCode className="h-6 w-6 text-amber-500" />
+                  </div>
+                  <h2 className="text-lg font-semibold">Pagamento confirmado!</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Aguardando o lojista liberar sua entrega. Você será notificado em instantes.
+                  </p>
+                </div>
               ) : orderStatus === "failed" ? (
                 <div className="text-center text-sm text-destructive py-4">
                   O pagamento falhou ou foi cancelado. Tente novamente.
@@ -1241,6 +1251,8 @@ export default function PublicStorefront() {
                                     ? "Falhou"
                                     : checkedOrder.status === "pending"
                                     ? "Pendente"
+                                    : checkedOrder.status === "awaiting_balance"
+                                    ? "Aguardando lojista"
                                     : checkedOrder.status}
                                 </span>
                               </div>
