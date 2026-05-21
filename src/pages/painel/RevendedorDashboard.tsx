@@ -519,25 +519,26 @@ export default function RevendedorDashboard() {
       )}
 
       {/* TOPO: saldo / nível */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {/* Card de Saldo Premium */}
-        <div className="group relative overflow-hidden rounded-2xl border border-primary/20 bg-card p-4 md:p-5 transition-all duration-300 hover:shadow-md">
-          <div className="relative z-10 flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between mb-2 md:mb-4">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Wallet className="h-4 w-4 md:h-5 md:w-5" />
-                </div>
-                <span className="text-xs md:text-sm font-bold">Saldo</span>
+      <div className="grid gap-4 md:grid-cols-4">
+        {/* Card de Saldo compacto */}
+        <div className="group relative overflow-hidden rounded-2xl border border-primary/20 bg-card p-3 transition-all duration-300 hover:shadow-md">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                <Wallet className="h-4 w-4" />
               </div>
-              <Button asChild size="sm" variant="ghost" className="h-7 md:h-8 px-2 text-[10px] md:text-xs text-primary">
-                <Link to="/painel/revendedor/adicionar-saldo">Recarregar</Link>
-              </Button>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Saldo</div>
+                <div className="font-display text-base font-black tracking-tight text-primary truncate">
+                  {fmtBRL(balance)}
+                </div>
+              </div>
             </div>
-            
-            <div className="font-display text-2xl md:text-3xl font-black tracking-tight text-primary">
-              {fmtBRL(balance)}
-            </div>
+            <Button asChild size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary shrink-0">
+              <Link to="/painel/revendedor/adicionar-saldo" aria-label="Recarregar">
+                <PlusCircle className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -592,6 +593,69 @@ export default function RevendedorDashboard() {
           </div>
         </div>
       </div>
+
+      {/* LICENÇAS ATIVAS */}
+      <section className="rounded-2xl border border-border bg-card p-4 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base md:text-lg font-bold flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 md:h-5 md:w-5 text-purple-500" />
+            Licenças Ativas
+            <span className="ml-1 inline-flex items-center justify-center rounded-full bg-purple-500/10 text-purple-500 px-2 py-0.5 text-[10px] font-black">
+              {activeLicensesList.length}
+            </span>
+          </h3>
+          <Button asChild variant="ghost" size="sm" className="text-xs">
+            <Link to="/painel/revendedor/clientes">
+              Ver todos <ArrowRight className="ml-1 h-3 w-3" />
+            </Link>
+          </Button>
+        </div>
+        {activeLicensesList.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-background/40 p-6 text-center text-sm text-muted-foreground">
+            Nenhuma licença ativa no momento.
+          </div>
+        ) : (
+          <div className="max-h-80 overflow-y-auto pr-1 -mr-1">
+            <ul className="divide-y divide-border/60">
+              {activeLicensesList.map((lic) => {
+                const isLifetime = !lic.expires_at;
+                const expDate = lic.expires_at ? new Date(lic.expires_at) : null;
+                const expired = expDate ? expDate.getTime() < Date.now() : false;
+                return (
+                  <li key={lic.id} className="flex items-center gap-3 py-2.5">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500">
+                      <ShieldCheck className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="truncate text-sm font-bold">
+                          {clientMap[lic.client_id] ?? "Cliente"}
+                        </span>
+                        <span className="text-border">·</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {extMap[lic.extension_id] ?? "Extensão"}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {isLifetime ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-500">
+                            <InfinityIcon className="h-3 w-3" /> Vitalícia
+                          </span>
+                        ) : (
+                          <span className={cn("inline-flex items-center gap-1", expired ? "text-destructive" : "text-muted-foreground")}>
+                            {expired ? "Expirada em " : "Expira em "}
+                            {format(expDate as Date, "dd MMM yyyy", { locale: ptBR })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </section>
 
       {/* INDICADORES RÁPIDOS */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
