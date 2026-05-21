@@ -357,9 +357,26 @@ export default function RevendedorPedidos() {
 
       <div className="relative space-y-6">
         <PageHeader 
-          title="Fazer pedido" 
-          description="Compre licenças usando seu saldo. A entrega é instantânea." 
+          title="Licenças" 
+          description="Compre, gerencie e integre as licenças das suas extensões." 
         />
+
+        <Tabs defaultValue="plans" className="space-y-6">
+          <div className="flex items-center justify-center">
+            <TabsList className="bg-transparent h-12 gap-2 sm:gap-8 px-0 w-full sm:w-auto justify-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <TabsTrigger value="plans" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
+                Planos
+              </TabsTrigger>
+              <TabsTrigger value="instructions" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
+                Instruções
+              </TabsTrigger>
+              <TabsTrigger value="api" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground font-semibold text-xs sm:text-sm transition-all px-3 sm:px-4">
+                API's
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="plans" className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
 
         {tier && allTiers.length > 0 && Object.keys(partnerOverrides).length === 0 && (() => {
           const spent = tierState?.total_spent_cents ?? 0;
