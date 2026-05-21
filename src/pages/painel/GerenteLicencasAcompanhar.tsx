@@ -148,6 +148,26 @@ export default function GerenteLicencasAcompanhar() {
   const load = async () => {
     setLoading(true);
     try {
+      const sess = (await supabase.auth.getSession()).data.session;
+      const accessToken = sess?.access_token ?? "";
+      const SUPA_URL = (import.meta as any).env.VITE_SUPABASE_URL as string;
+      const SUPA_ANON = (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+      const fetchFn = async (path: string) => {
+        try {
+          const r = await fetch(`${SUPA_URL}/functions/v1/${path}`, {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${accessToken}`,
+              "apikey": SUPA_ANON,
+              "Content-Type": "application/json",
+            },
+          });
+          const data = await r.json().catch(() => ({}));
+          return { data, error: r.ok ? null : { message: data?.error || `HTTP ${r.status}` } };
+        } catch (e: any) {
+          return { data: null, error: { message: e?.message || "network error" } };
+        }
+      };
       const [
         { data: providerData, error: providerError },
         { data: lovaxData, error: lovaxError },
@@ -156,8 +176,8 @@ export default function GerenteLicencasAcompanhar() {
         { data: dbOrdersData },
         { data: storefrontData },
       ] = await Promise.all([
-        supabase.functions.invoke("provider-api?action=usage-all", { method: "GET" }),
-        supabase.functions.invoke("lovax-api?action=usage&limit=500", { method: "GET" }),
+        fetchFn("provider-api?action=usage-all"),
+        fetchFn("lovax-api?action=usage&limit=500"),
         supabase.from("resellers").select("id, display_name, user_id"),
         supabase.from("reseller_api_keys").select("id, label, reseller_id"),
         supabase.from("orders")
