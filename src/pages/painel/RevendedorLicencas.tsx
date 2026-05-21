@@ -584,7 +584,7 @@ export default function RevendedorLicencas() {
                                   ) : (
                                     <DropdownMenuItem
                                       className="text-xs focus:bg-primary focus:text-black"
-                                      onClick={() => window.open(`https://revendovable.store/recargas/${getProviderOrderId(o) ?? o.id}`, "_blank", "noopener,noreferrer")}
+                                      onClick={() => window.open(`https://lovconnect.store/recargas/${getProviderOrderId(o) ?? o.id}`, "_blank", "noopener,noreferrer")}
                                     >
                                       <ExternalLink className="mr-2 h-3.5 w-3.5" /> Abrir pedido
                                     </DropdownMenuItem>
@@ -671,7 +671,7 @@ export default function RevendedorLicencas() {
                                   <Coins className="mr-2 h-3.5 w-3.5" /> Solicitar reembolso
                                 </DropdownMenuItem>
                               ) : (
-                                <DropdownMenuItem onClick={() => window.open(`https://revendovable.store/recargas/${getProviderOrderId(o) ?? o.id}`, "_blank")}>
+                                <DropdownMenuItem onClick={() => window.open(`https://lovconnect.store/recargas/${getProviderOrderId(o) ?? o.id}`, "_blank")}>
                                   <ExternalLink className="mr-2 h-3.5 w-3.5" /> Abrir pedido
                                 </DropdownMenuItem>
                               )}
