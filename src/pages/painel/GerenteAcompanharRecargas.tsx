@@ -33,6 +33,7 @@ type ManualOrder = {
   price_cents: number;
   status: string;
   created_at: string;
+  updated_at?: string | null;
   tipo_entrega: string;
   workspace_name?: string | null;
   invite_status?: string | null;
@@ -184,7 +185,7 @@ export default function GerenteAcompanharRecargas() {
   const loadManualOrders = async () => {
     const { data: rows } = await supabase
       .from("reseller_credit_purchases")
-      .select("id, provider_pedido_id, credits, price_cents, status, created_at, tipo_entrega, provider_response, reseller_id, resellers:reseller_id(display_name, user_id)")
+      .select("id, provider_pedido_id, credits, price_cents, status, created_at, updated_at, tipo_entrega, provider_response, reseller_id, resellers:reseller_id(display_name, user_id)")
       .contains("provider_response", { manual: true } as any)
       .order("created_at", { ascending: false })
       .limit(500);
