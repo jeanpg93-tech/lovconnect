@@ -669,6 +669,21 @@ export default function GerenteAcompanharRecargas() {
                                     <CheckCircle2 className="mr-1 h-3 w-3" /> Concluído
                                   </Button>
                                 )}
+                                {(s === "manual_aceito" || s === "manual_iniciado") && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                    title="Voltar para Pendente"
+                                    onClick={() => {
+                                      if (confirm("Voltar este pedido para o status Pendente?")) {
+                                        setManualStatus(m, "manual_pendente", { force: true });
+                                      }
+                                    }}
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button size="sm" variant="destructive" className="h-7 w-7 p-0" title="Sem sucesso">
