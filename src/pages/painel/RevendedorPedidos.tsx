@@ -301,6 +301,7 @@ export default function RevendedorPedidos() {
             display_name: name,
             whatsapp: wa,
             is_test: isTest,
+            method: isTest ? selectedMethod : undefined,
           },
         });
     setSubmitting(false);
@@ -437,54 +438,6 @@ export default function RevendedorPedidos() {
 
           <TabsContent value="plans" className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700 outline-none">
 
-        {/* Card destacado: Teste grátis 15min */}
-        {(() => {
-          const dailyLimit = resellerId === '97959674-f4bd-4eb3-9fa1-37cd115a77df' 
-            ? 50 
-            : Number(tier?.test_keys_per_day ?? 10);
-          const used = testsLast24h;
-          const remaining = Math.max(0, dailyLimit - used);
-          const blocked = dailyLimit <= 0 || remaining <= 0;
-          return (
-            <Card className="group relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 backdrop-blur-xl">
-              <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
-              <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/30 shadow-[0_0_20px_rgba(var(--primary),0.2)] transition-transform group-hover:scale-105">
-                    <Sparkles className="h-7 w-7" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-display text-lg font-black text-white">Teste Grátis 15 Minutos</h3>
-                      <Badge className="bg-primary text-[10px] font-bold text-black uppercase">Grátis</Badge>
-                    </div>
-                    <p className="text-xs text-zinc-400 leading-relaxed max-w-md">
-                      Gere uma licença <span className="text-primary font-bold">TRIAL</span> de 15min para seus clientes conhecerem o sistema sem custo.
-                    </p>
-                    <div className="pt-1 flex items-center gap-3">
-                      <div className="flex items-center gap-1.5">
-                        <div className={cn("h-1.5 w-1.5 rounded-full", blocked ? "bg-rose-500" : "bg-emerald-500")} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                          {remaining}/{dailyLimit} Restantes
-                        </span>
-                      </div>
-                      <span className="text-[9px] text-zinc-600 uppercase tracking-tighter">Reseta a cada 24h</span>
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => openOrder(TRIAL_PLAN, true)}
-                  disabled={blocked}
-                  className="h-12 w-full bg-primary font-bold text-black hover:bg-primary/90 active:scale-[0.98] sm:h-11 sm:w-auto sm:px-8 disabled:opacity-50 shadow-[0_0_20px_rgba(var(--primary),0.3)]"
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  {blocked ? "Limite atingido" : "Gerar Teste"}
-                </Button>
-              </div>
-            </Card>
-          );
-        })()}
-
       {loading ? (
         <div className="flex h-32 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -614,6 +567,57 @@ export default function RevendedorPedidos() {
                   );
                 })}
               </div>
+            );
+          })()}
+
+          {/* Card destacado: Teste grátis 15min (do método selecionado) */}
+          {(() => {
+            const dailyLimit = resellerId === '97959674-f4bd-4eb3-9fa1-37cd115a77df'
+              ? 50
+              : Number(tier?.test_keys_per_day ?? 10);
+            const used = testsLast24h;
+            const remaining = Math.max(0, dailyLimit - used);
+            const blocked = dailyLimit <= 0 || remaining <= 0;
+            return (
+              <Card className="group relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 backdrop-blur-xl">
+                <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
+                <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/30 shadow-[0_0_20px_rgba(var(--primary),0.2)] transition-transform group-hover:scale-105">
+                      <Sparkles className="h-7 w-7" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-display text-lg font-black text-white">Teste Grátis 15 Minutos</h3>
+                        <Badge className="bg-primary text-[10px] font-bold text-black uppercase">Grátis</Badge>
+                        <Badge variant="outline" className="border-primary/30 text-[10px] font-bold uppercase text-primary">
+                          {METHOD_LABEL[selectedMethod]}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-zinc-400 leading-relaxed max-w-md">
+                        Gere uma licença <span className="text-primary font-bold">TRIAL</span> de 15min no método <span className="text-white font-bold">{METHOD_LABEL[selectedMethod]}</span> para seus clientes conhecerem o sistema sem custo.
+                      </p>
+                      <div className="pt-1 flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                          <div className={cn("h-1.5 w-1.5 rounded-full", blocked ? "bg-rose-500" : "bg-emerald-500")} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                            {remaining}/{dailyLimit} Restantes
+                          </span>
+                        </div>
+                        <span className="text-[9px] text-zinc-600 uppercase tracking-tighter">Reseta a cada 24h</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => openOrder(TRIAL_PLAN, true)}
+                    disabled={blocked}
+                    className="h-12 w-full bg-primary font-bold text-black hover:bg-primary/90 active:scale-[0.98] sm:h-11 sm:w-auto sm:px-8 disabled:opacity-50 shadow-[0_0_20px_rgba(var(--primary),0.3)]"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {blocked ? "Limite atingido" : `Gerar Teste ${METHOD_LABEL[selectedMethod]}`}
+                  </Button>
+                </div>
+              </Card>
             );
           })()}
         </div>
