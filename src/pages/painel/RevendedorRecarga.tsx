@@ -826,7 +826,7 @@ export default function RevendedorRecargas() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         plan={modalPlan}
-        costPrice={modalPlan ? (costs[modalPlan.credits_amount] ?? modalPlan.price_cents) : 0}
+        costPrice={modalPlan ? (resellerPrices[modalPlan.credits_amount] ?? costs[modalPlan.credits_amount] ?? modalPlan.price_cents) : 0}
         balance={balance}
         onSuccess={refreshBalance}
         mode={activeMode}
