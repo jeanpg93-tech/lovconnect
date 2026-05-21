@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
@@ -30,8 +31,17 @@ const queryClient = new QueryClient({
 });
 
 const RouteFallback = () => (
-  <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
-    Carregando…
+  <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center">
+    <div className="relative flex h-16 w-16 items-center justify-center">
+      <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" />
+      <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 border border-primary/30">
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
+      </div>
+    </div>
+    <div className="space-y-1">
+      <p className="text-sm font-semibold text-foreground">Carregando</p>
+      <p className="text-xs text-muted-foreground">Só um instante…</p>
+    </div>
   </div>
 );
 
