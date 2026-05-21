@@ -287,6 +287,31 @@ export default function PublicRecharge() {
     setTimeout(() => setCopied(false), 1800);
   };
 
+  const submitWorkspace = async () => {
+    if (!orderId) return;
+    const name = workspaceInput.trim();
+    if (!name) {
+      toast.error("Informe o nome do workspace");
+      return;
+    }
+    setSubmittingWorkspace(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        `lovable-credits-public?action=set_workspace&id=${orderId}`,
+        { method: "POST", body: { workspace_name: name } }
+      );
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Erro");
+      setWorkspaceSaved(true);
+      toast.success("Workspace enviado! Aguardando a equipe iniciar.");
+      await loadOrder(true);
+    } catch (e: any) {
+      toast.error(e.message ?? "Falha ao enviar workspace");
+    } finally {
+      setSubmittingWorkspace(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
