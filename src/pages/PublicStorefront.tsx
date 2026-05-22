@@ -197,6 +197,7 @@ export default function PublicStorefront() {
     product_type?: string | null; credit_amount?: number | null;
   } | null>(null);
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [licenseKey, setLicenseKey] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
@@ -301,7 +302,7 @@ export default function PublicStorefront() {
         if (data?.order) {
           setOrderStatus(data.order.status);
           if (data.order.license_key) setLicenseKey(data.order.license_key);
-          if (["completed", "failed", "refunded"].includes(data.order.status)) {
+          if (["completed", "failed", "refunded", "cancelado"].includes(data.order.status)) {
             if (pollRef.current) window.clearInterval(pollRef.current);
           }
         }
@@ -633,7 +634,7 @@ export default function PublicStorefront() {
                     Aguardando o lojista liberar sua entrega. Você será notificado em instantes.
                   </p>
                 </div>
-              ) : orderStatus === "failed" ? (
+              ) : orderStatus === "failed" || orderStatus === "cancelado" ? (
                 <div className="text-center text-sm text-destructive py-4">
                   O pagamento falhou ou foi cancelado. Tente novamente.
                 </div>
@@ -671,6 +672,39 @@ export default function PublicStorefront() {
                     <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
                       <Loader2 className="h-3 w-3 animate-spin" />
                       Aguardando confirmação… {order.product_type === "credits" ? "A recargas será processada após o pagamento." : "A chave será enviada no seu WhatsApp."}
+                    </div>
+                    <div className="pt-3 border-t mt-3">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs text-muted-foreground hover:text-destructive"
+                        disabled={cancelling}
+                        onClick={async () => {
+                          if (!order?.id) return;
+                          if (!confirm("Cancelar esta compra? Só é possível antes do pagamento do PIX.")) return;
+                          setCancelling(true);
+                          try {
+                            const { data, error } = await supabase.functions.invoke("cancel-storefront-order", {
+                              body: { order_id: order.id },
+                            });
+                            if (error || (data as any)?.error) {
+                              toast.error((data as any)?.error === "cannot_cancel"
+                                ? "Não é mais possível cancelar — pagamento já foi processado."
+                                : (data as any)?.error ?? error?.message ?? "Falha ao cancelar");
+                            } else {
+                              setOrderStatus("cancelado");
+                              if (pollRef.current) window.clearInterval(pollRef.current);
+                              toast.success("Compra cancelada");
+                            }
+                          } finally {
+                            setCancelling(false);
+                          }
+                        }}
+                      >
+                        {cancelling ? <Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> : <X className="h-3 w-3 mr-1.5" />}
+                        Cancelar compra
+                      </Button>
                     </div>
                   </div>
                 </div>
