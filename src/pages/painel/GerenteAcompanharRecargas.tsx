@@ -709,6 +709,23 @@ export default function GerenteAcompanharRecargas() {
                           ) : (
                             <span className="text-muted-foreground">— aguardando convite</span>
                           )}
+                          {(m.customer_name || m.customer_whatsapp) && (
+                            <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-muted-foreground">
+                              {m.customer_name && (
+                                <span className="text-foreground/80">👤 {m.customer_name}</span>
+                              )}
+                              {m.customer_whatsapp && (
+                                <a
+                                  href={`https://wa.me/${m.customer_whatsapp.replace(/\D+/g, "")}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-mono text-emerald-500 hover:underline w-fit"
+                                >
+                                  {m.customer_whatsapp}
+                                </a>
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-xs">
                           {m.responsavel_nome || m.responsavel_email ? (
