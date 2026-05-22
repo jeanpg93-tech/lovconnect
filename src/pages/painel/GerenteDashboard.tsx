@@ -206,7 +206,7 @@ export default function GerenteDashboard() {
       withTimeout(supabase.functions.invoke("provider-api?action=gateway-balance") as any, 8000, { data: null, error: null }),
       withTimeout(supabase.functions.invoke("lovable-credits-api?action=balance", { method: "GET" }) as any, 8000, { data: null, error: null }),
       supabase.from("recharge_intents").select("amount_cents").not("paid_at", "is", null).gte("paid_at", todayIsoEarly),
-      supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id").order("created_at", { ascending: false }).limit(100),
+      supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id, reference_id").order("created_at", { ascending: false }).limit(100),
     ]);
 
     const balanceAny: any = balanceRes;
@@ -370,20 +370,21 @@ export default function GerenteDashboard() {
     }
 
     // Enriquecimento: busca customer info de orders + credit_purchases recentes
-    // e cruza com balance_transactions por (reseller_id, price_cents, bucket de tempo ~60s).
+    // e cruza com balance_transactions por reference_id (estornos) e por
+    // (reseller_id, price_cents, bucket de tempo ~60s) para compras.
     const enrichSince = movesData.length
       ? new Date(Math.min(...movesData.map((m: any) => new Date(m.created_at).getTime())) - 120_000).toISOString()
       : new Date(Date.now() - 24 * 3600_000).toISOString();
     const [{ data: enrichOrders }, { data: enrichCredits }] = await Promise.all([
       supabase
         .from("orders")
-        .select("reseller_id,price_cents,created_at,license_type,is_test, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
+        .select("id,reseller_id,price_cents,created_at,license_type,is_test, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
         .gte("created_at", enrichSince)
         .order("created_at", { ascending: false })
         .limit(300),
       supabase
         .from("reseller_credit_purchases")
-        .select("reseller_id,price_cents,credits,created_at,customer_name,customer_whatsapp")
+        .select("id,reseller_id,price_cents,credits,created_at,customer_name,customer_whatsapp")
         .gte("created_at", enrichSince)
         .order("created_at", { ascending: false })
         .limit(300),
@@ -391,6 +392,7 @@ export default function GerenteDashboard() {
 
     type EnrichVal = { customer_name?: string | null; customer_whatsapp?: string | null; detail?: string | null };
     const enrichMap = new Map<string, EnrichVal>();
+    const enrichById = new Map<string, EnrichVal>();
     const bucket = (iso: string) => Math.floor(new Date(iso).getTime() / 60_000);
     const keyOf = (resellerId: string, cents: number, iso: string) =>
       `${resellerId}|${Math.abs(cents)}|${bucket(iso)}`;
@@ -407,32 +409,46 @@ export default function GerenteDashboard() {
     };
     (enrichOrders ?? []).forEach((o: any) => {
       if (!o.reseller_id || !o.price_cents) return;
-      const k = keyOf(o.reseller_id, o.price_cents, o.created_at);
-      enrichMap.set(k, {
+      const val: EnrichVal = {
         customer_name: o.customer?.display_name ?? null,
         customer_whatsapp: o.customer?.whatsapp ?? null,
         detail: describeLic(o.license_type) + (o.is_test ? " (teste)" : ""),
-      });
+      };
+      enrichMap.set(keyOf(o.reseller_id, o.price_cents, o.created_at), val);
+      if (o.id) enrichById.set(o.id, val);
     });
     (enrichCredits ?? []).forEach((c: any) => {
       if (!c.reseller_id || !c.price_cents) return;
-      const k = keyOf(c.reseller_id, c.price_cents, c.created_at);
-      enrichMap.set(k, {
+      const val: EnrichVal = {
         customer_name: c.customer_name ?? null,
         customer_whatsapp: c.customer_whatsapp ?? null,
         detail: `Recarga • ${c.credits} crédito${c.credits === 1 ? "" : "s"}`,
-      });
+      };
+      enrichMap.set(keyOf(c.reseller_id, c.price_cents, c.created_at), val);
+      if (c.id) enrichById.set(c.id, val);
     });
+
+    const REFUND_KINDS = new Set([
+      "refund", "credit_purchase_refund", "estorno", "reembolso", "cancelado", "cancellation",
+    ]);
 
     setCreditMovements(
       movesData.map((m: any) => {
         const cents = Number(m.amount_cents ?? 0);
-        // tenta o bucket exato e o anterior (latência de ~1min entre debit e insert do pedido)
-        const k1 = keyOf(m.reseller_id, cents, m.created_at);
-        const prev = new Date(new Date(m.created_at).getTime() - 60_000).toISOString();
-        const next = new Date(new Date(m.created_at).getTime() + 60_000).toISOString();
-        const enrich =
-          enrichMap.get(k1) ?? enrichMap.get(keyOf(m.reseller_id, cents, prev)) ?? enrichMap.get(keyOf(m.reseller_id, cents, next));
+        // Estornos/cancelamentos carregam reference_id apontando para a compra original
+        let enrich: EnrichVal | undefined;
+        if (m.reference_id) enrich = enrichById.get(m.reference_id);
+        // Fallback por bucket de tempo (compra original)
+        if (!enrich) {
+          const k1 = keyOf(m.reseller_id, cents, m.created_at);
+          const prev = new Date(new Date(m.created_at).getTime() - 60_000).toISOString();
+          const next = new Date(new Date(m.created_at).getTime() + 60_000).toISOString();
+          enrich = enrichMap.get(k1) ?? enrichMap.get(keyOf(m.reseller_id, cents, prev)) ?? enrichMap.get(keyOf(m.reseller_id, cents, next));
+        }
+        const isRefund = REFUND_KINDS.has(String(m.kind));
+        const detail = enrich?.detail
+          ? (isRefund ? `Estorno de: ${enrich.detail}` : enrich.detail)
+          : null;
         return {
           id: m.id,
           created_at: m.created_at,
@@ -442,7 +458,7 @@ export default function GerenteDashboard() {
           reseller_name: moveNameMap.get(m.reseller_id) ?? "—",
           customer_name: enrich?.customer_name ?? null,
           customer_whatsapp: enrich?.customer_whatsapp ?? null,
-          detail: enrich?.detail ?? null,
+          detail,
         };
       }),
     );
