@@ -77,14 +77,43 @@ const STATUS_LABELS: Record<string, string> = {
   completed: "Concluído",
   failed: "Falhou",
   refunded: "Reembolsado",
+  reembolsado: "Reembolsado",
+  estornado: "Estornado",
+  cancelado: "Cancelado",
+  canceled: "Cancelado",
+  cancelled: "Cancelado",
+  revoked: "Revogado",
+  manual_concluido: "Concluído (manual)",
+  manual_aceito: "Aceito (manual)",
+  manual_confirmado: "Confirmado (manual)",
+  manual_entregue: "Entregue (manual)",
+  aguardando: "Aguardando",
+  aguardando_avaliacao: "Em análise",
+  processando: "Processando",
+  sucesso: "Concluído",
+  falha: "Falhou",
+  erro: "Erro",
 };
 
-const STATUS_TONE: Record<string, string> = {
-  pending: "bg-amber-500/10 text-amber-500 border-amber-500/40",
-  completed: "bg-emerald-500/10 text-emerald-500 border-emerald-500/40",
-  failed: "bg-destructive/10 text-destructive border-destructive/40",
-  refunded: "bg-muted text-muted-foreground border-border",
-};
+const CANCELED_STATUSES = new Set([
+  "refunded", "reembolsado", "estornado",
+  "canceled", "cancelled", "cancelado",
+  "revoked",
+]);
+
+const SUCCESS_STATUSES = new Set(["completed", "sucesso", "manual_concluido", "manual_entregue"]);
+const PENDING_STATUSES = new Set([
+  "pending", "aguardando", "aguardando_avaliacao", "processando",
+  "manual_aceito", "manual_confirmado",
+]);
+const FAILED_STATUSES = new Set(["failed", "falha", "erro"]);
+
+function activityTone(status: string): "success" | "canceled" | "pending" | "failed" {
+  if (SUCCESS_STATUSES.has(status)) return "success";
+  if (CANCELED_STATUSES.has(status)) return "canceled";
+  if (PENDING_STATUSES.has(status)) return "pending";
+  return "failed";
+}
 
 const PIE_COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#3b82f6", "#a855f7", "#ef4444"];
 
@@ -164,8 +193,8 @@ export default function RevendedorDashboard() {
         supabase.from("reseller_tiers").select("name,min_spent_cents,is_active").eq("is_active", true).order("min_spent_cents", { ascending: true }),
         supabase.from("profiles").select("*", { count: "exact", head: true }).eq("reseller_id", r.id),
         supabase.from("client_extensions").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("status", "active"),
-        supabase.from("orders").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("is_test", false).in("status", ["failed", "refunded"]),
-        supabase.from("orders").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("is_test", false).in("status", ["refunded", "revoked", "canceled", "cancelled"]),
+        supabase.from("orders").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("is_test", false).in("status", ["failed", "falha", "erro"]),
+        supabase.from("orders").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("is_test", false).in("status", ["refunded", "reembolsado", "estornado", "revoked", "canceled", "cancelled", "cancelado"]),
         supabase.from("orders").select("id,license_type,price_cents,status,created_at,client_id,extension_id,is_test,notes").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
         supabase.from("reseller_credit_purchases").select("id,credits,price_cents,status,created_at").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
         supabase.from("reseller_integrations").select("misticpay_enabled,connection_status").eq("reseller_id", r.id).maybeSingle(),
@@ -284,7 +313,10 @@ export default function RevendedorDashboard() {
   }, [user, resellerId, reload]);
 
   // Agregações
-  const completed = useMemo(() => activities.filter((a) => a.status === "completed" && !(a.type === "sale" && a.metadata?.is_test)), [activities]);
+  const completed = useMemo(
+    () => activities.filter((a) => SUCCESS_STATUSES.has(a.status) && !(a.type === "sale" && a.metadata?.is_test)),
+    [activities],
+  );
 
   const salesWindow = (days: number) => {
     const cutoff = subDays(new Date(), days);
@@ -658,14 +690,20 @@ export default function RevendedorDashboard() {
             {activities.length === 0 ? (
               <div className="py-8 md:py-12 text-center text-xs md:text-sm text-muted-foreground">Nenhuma atividade registrada.</div>
             ) : (
-              activities.slice(0, 5).map((activity) => (
+              activities.slice(0, 8).map((activity) => {
+                const tone = activityTone(activity.status);
+                const toneClasses = {
+                  success: { bg: "bg-emerald-500/10 text-emerald-500", text: "text-emerald-500" },
+                  canceled: { bg: "bg-muted text-muted-foreground", text: "text-muted-foreground" },
+                  pending: { bg: "bg-amber-500/10 text-amber-500", text: "text-amber-500" },
+                  failed: { bg: "bg-destructive/10 text-destructive", text: "text-destructive" },
+                }[tone];
+                const Icon = tone === "success" ? CheckCircle2 : XCircle;
+                return (
                 <div key={activity.id} className="flex items-center justify-between p-2.5 md:p-3 rounded-xl border border-border/50 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
-                    <div className={cn(
-                      "flex h-7 w-7 md:h-8 md:w-8 shrink-0 items-center justify-center rounded-lg",
-                      activity.status === 'completed' ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive"
-                    )}>
-                      {activity.status === 'completed' ? <CheckCircle2 className="h-3.5 w-3.5 md:h-4 md:w-4" /> : <XCircle className="h-3.5 w-3.5 md:h-4 md:w-4" />}
+                    <div className={cn("flex h-7 w-7 md:h-8 md:w-8 shrink-0 items-center justify-center rounded-lg", toneClasses.bg)}>
+                      <Icon className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs md:text-sm font-bold truncate">
@@ -675,13 +713,14 @@ export default function RevendedorDashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs md:text-sm font-bold">{fmtBRL(activity.amount_cents)}</div>
-                    <div className={cn("text-[9px] md:text-[10px] font-bold uppercase", activity.status === 'completed' ? "text-emerald-500" : "text-destructive")}>
+                    <div className={cn("text-xs md:text-sm font-bold", tone === "canceled" && "line-through text-muted-foreground")}>{fmtBRL(activity.amount_cents)}</div>
+                    <div className={cn("text-[9px] md:text-[10px] font-bold uppercase", toneClasses.text)}>
                       {STATUS_LABELS[activity.status] || activity.status}
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

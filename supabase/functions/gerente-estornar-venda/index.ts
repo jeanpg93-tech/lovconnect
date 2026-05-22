@@ -117,6 +117,12 @@ Deno.serve(async (req) => {
     });
     if (cErr) return json({ error: cErr.message }, 500);
 
+    // Marca o pedido como reembolsado para sair da receita/atividades positivas
+    await svc
+      .from("orders")
+      .update({ status: "reembolsado" })
+      .eq("id", order.id);
+
     await svc.from("admin_audit_logs").insert({
       user_id: userId,
       action: "refund_sale",
