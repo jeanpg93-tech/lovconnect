@@ -1534,7 +1534,9 @@ export default function RevendedorRecargas() {
                   return (
                     (c.id ?? "").toLowerCase().includes(q) ||
                     (c.provider_pedido_id ?? "").toLowerCase().includes(q) ||
-                    (c.workspace_name ?? "").toLowerCase().includes(q)
+                    (c.workspace_name ?? "").toLowerCase().includes(q) ||
+                    (c.customer_name ?? "").toLowerCase().includes(q) ||
+                    (c.customer_whatsapp ?? "").toLowerCase().includes(q)
                   );
                 }
                 const o = item.loja!;
