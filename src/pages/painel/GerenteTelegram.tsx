@@ -19,6 +19,8 @@ type Settings = {
   notify_signups: boolean;
   notify_refunds: boolean;
   notify_reseller_activity: boolean;
+  notify_low_balance: boolean;
+  low_balance_threshold_cents: number;
 };
 
 export default function GerenteTelegram() {
@@ -65,6 +67,16 @@ export default function GerenteTelegram() {
       .eq("id", 1);
     if (error) toast.error(error.message);
     else load();
+  };
+
+  const saveThreshold = async (reais: number) => {
+    const cents = Math.max(0, Math.round(reais * 100));
+    const { error } = await supabase
+      .from("telegram_settings")
+      .update({ low_balance_threshold_cents: cents } as any)
+      .eq("id", 1);
+    if (error) toast.error(error.message);
+    else { toast.success("Limite salvo"); load(); }
   };
 
   const copy = (text: string) => {
