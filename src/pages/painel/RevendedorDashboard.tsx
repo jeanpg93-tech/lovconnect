@@ -545,12 +545,13 @@ export default function RevendedorDashboard() {
       )}
 
       {/* INDICADORES RÁPIDOS */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         {[
           { label: "Hoje", count: today.count, cents: today.cents, icon: Zap, color: "text-primary", bg: "bg-primary/5" },
           { label: "7 dias", count: last7.count, cents: last7.cents, icon: Activity, color: "text-blue-500", bg: "bg-blue-500/5" },
           { label: "30 dias", count: last30.count, cents: last30.cents, icon: Package, color: "text-emerald-500", bg: "bg-emerald-500/5" },
-          { label: "Ativas", count: stats.activeLicenses, cents: null, icon: ShieldCheck, color: "text-purple-500", bg: "bg-purple-500/5" }
+          { label: "Ativas", count: stats.activeLicenses, cents: null, icon: ShieldCheck, color: "text-purple-500", bg: "bg-purple-500/5" },
+          { label: "Canceladas", count: stats.canceledOrders, cents: null, icon: XCircle, color: "text-destructive", bg: "bg-destructive/5" },
         ].map((item, i) => (
           <div key={i} className="rounded-2xl border border-border bg-card p-4 transition-all duration-300 hover:shadow-sm">
             <div className="gap-2 mb-2 flex items-center justify-start">
