@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
       // kind === 'credit_purchase'
       const { data: c } = await admin
         .from('reseller_credit_purchases')
-        .select('id,reseller_id,price_cents,status')
+        .select('id,reseller_id,price_cents,status,provider_pedido_id')
         .eq('id', referenceId)
         .maybeSingle();
       if (!c || c.reseller_id !== resellerId) {
@@ -132,6 +132,42 @@ Deno.serve(async (req) => {
       }
       amountCents = Number(c.price_cents) || 0;
       description = `Estorno compra de créditos ${String(c.id).slice(0, 8)}`;
+
+      // Marca o pedido (orders) vinculado a esta compra de créditos como reembolsado,
+      // para que o dashboard pare de contabilizá-lo como venda/receita.
+      try {
+        const providerPedidoId =
+          (c as any)?.provider_pedido_id ??
+          null;
+        // Busca pelo provider_pedido_id quando existir; caso contrário, casa por nota.
+        const orderQuery = admin
+          .from('orders')
+          .select('id,status,notes')
+          .eq('reseller_id', resellerId)
+          .eq('product_type', 'credits')
+          .in('status', ['completed', 'sucesso', 'success']);
+        const { data: candidateOrders } = await orderQuery;
+        const match = (candidateOrders ?? []).find((o: any) =>
+          providerPedidoId
+            ? String((o as any)?.notes ?? '').includes(String(providerPedidoId))
+            : false,
+        );
+        // Fallback: tenta achar pela referência da própria compra (id) na nota.
+        const fallback = match
+          ? null
+          : (candidateOrders ?? []).find((o: any) =>
+              String((o as any)?.notes ?? '').includes(String(referenceId)),
+            );
+        const target = match ?? fallback;
+        if (target?.id) {
+          await admin
+            .from('orders')
+            .update({ status: 'reembolsado' })
+            .eq('id', target.id);
+        }
+      } catch (_e) {
+        // não bloqueia o reembolso se a atualização do pedido falhar
+      }
     }
 
     if (amountCents <= 0) {
