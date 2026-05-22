@@ -2356,6 +2356,81 @@ export type Database = {
           },
         ]
       }
+      telegram_outbox: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          parse_mode: string | null
+          sent_at: string | null
+          text: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          parse_mode?: string | null
+          sent_at?: string | null
+          text: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          parse_mode?: string | null
+          sent_at?: string | null
+          text?: string
+        }
+        Relationships: []
+      }
+      telegram_settings: {
+        Row: {
+          chat_id: number | null
+          created_at: string
+          id: number
+          notify_recharges: boolean
+          notify_refunds: boolean
+          notify_reseller_activity: boolean
+          notify_sales: boolean
+          notify_signups: boolean
+          paired_at: string | null
+          pairing_code: string | null
+          pairing_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          chat_id?: number | null
+          created_at?: string
+          id?: number
+          notify_recharges?: boolean
+          notify_refunds?: boolean
+          notify_reseller_activity?: boolean
+          notify_sales?: boolean
+          notify_signups?: boolean
+          paired_at?: string | null
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chat_id?: number | null
+          created_at?: string
+          id?: number
+          notify_recharges?: boolean
+          notify_refunds?: boolean
+          notify_reseller_activity?: boolean
+          notify_sales?: boolean
+          notify_signups?: boolean
+          paired_at?: string | null
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tier_credit_prices: {
         Row: {
           created_at: string
@@ -2616,6 +2691,9 @@ export type Database = {
       }
       reject_user: { Args: { _user_id: string }; Returns: undefined }
       reset_daily_test_keys: { Args: never; Returns: undefined }
+      telegram_enqueue: { Args: { _text: string }; Returns: undefined }
+      telegram_generate_pairing_code: { Args: never; Returns: string }
+      telegram_unpair: { Args: never; Returns: undefined }
       try_release_pending_orders: {
         Args: { _reseller_id: string }
         Returns: string[]

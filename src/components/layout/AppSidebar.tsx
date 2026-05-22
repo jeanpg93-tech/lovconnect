@@ -23,6 +23,7 @@ import {
   Crown,
   MessageSquare,
   UserCog,
+  Send,
   Sparkles,
   UserCheck,
   Gift,
@@ -78,6 +79,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Aprovações", url: "/painel/gerente/aprovacoes", icon: UserCheck },
       { title: "Avisos", url: "/painel/gerente/avisos", icon: Megaphone },
       { title: "Ações Especiais", url: "/painel/gerente/acoes-especiais", icon: Sparkles },
+      { title: "Bot Telegram", url: "/painel/gerente/telegram", icon: Send },
     ]},
     { label: "Rede", items: [
       { title: "Revendedores", url: "/painel/gerente/revendedores", icon: Store },
