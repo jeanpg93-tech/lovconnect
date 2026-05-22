@@ -67,6 +67,10 @@ export default function GerentePartners() {
   // Preços de créditos do tier atual do parceiro
   const [tierCreditPrices, setTierCreditPrices] = useState<Record<number, number>>({});
 
+  // Sessões minimizáveis
+  const [licOpen, setLicOpen] = useState(true);
+  const [creditOpen, setCreditOpen] = useState(true);
+
   const partnerTiers = useMemo(
     () => tiers.filter((t) => t.is_active && (t.is_hidden || t.slug === "partner")),
     [tiers],
