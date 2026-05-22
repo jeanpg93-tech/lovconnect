@@ -58,6 +58,13 @@ import { format, subDays, startOfMonth, subMonths, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import ManagerPricingIssuesBanner from "@/components/painel/ManagerPricingIssuesBanner";
+import { useAllPricingIssues } from "@/hooks/useAllPricingIssues";
+
+function PricingIssuesAlert() {
+  const { resellers } = useAllPricingIssues({ pollMs: 60_000 });
+  return <ManagerPricingIssuesBanner resellers={resellers} />;
+}
 
 type Stats = {
   ext: number;
@@ -478,6 +485,7 @@ export default function GerenteDashboard() {
 
   return (
     <div className="space-y-6 sm:space-y-10 animate-in fade-in duration-700 max-w-7xl mx-auto px-1 sm:px-0">
+      <PricingIssuesAlert />
       {/* HERO */}
       <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card">
         <div className="pointer-events-none absolute inset-0 opacity-[0.04]"

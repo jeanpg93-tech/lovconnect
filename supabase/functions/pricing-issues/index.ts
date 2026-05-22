@@ -243,6 +243,52 @@ Deno.serve(async (req) => {
       body = await req.json().catch(() => ({}));
     }
 
+    // Manager scan: agrega problemas de todos os revendedores ativos
+    if (body.scan === "all") {
+      const { data: roleData } = await svc
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "gerente")
+        .maybeSingle();
+      if (!roleData) return json({ error: "forbidden" }, 403);
+
+      const { data: resellers } = await svc
+        .from("resellers")
+        .select("id,display_name,slug")
+        .eq("is_active", true)
+        .order("display_name");
+
+      const list = resellers ?? [];
+      const results = await Promise.all(
+        list.map(async (r: any) => {
+          try {
+            const ctx = await resolveContext(svc, r.id);
+            const { issues } = buildIssues(ctx);
+            if (issues.length === 0) return null;
+            return {
+              reseller_id: r.id,
+              display_name: r.display_name,
+              slug: r.slug,
+              issues,
+              has_critical: issues.some((i) => i.severity === "critical"),
+              has_warning: issues.some((i) => i.severity === "warning"),
+            };
+          } catch {
+            return null;
+          }
+        }),
+      );
+      const filtered = results.filter(Boolean) as any[];
+      return json({
+        scope: "all",
+        resellers: filtered,
+        total_resellers_with_issues: filtered.length,
+        has_critical: filtered.some((r) => r.has_critical),
+        has_warning: filtered.some((r) => r.has_warning),
+      });
+    }
+
     // Determine target reseller
     let resellerId: string | null = null;
     if (body.reseller_id) {
