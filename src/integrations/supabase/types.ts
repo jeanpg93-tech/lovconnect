@@ -1493,6 +1493,44 @@ export type Database = {
           },
         ]
       }
+      reseller_credit_cost_overrides: {
+        Row: {
+          created_at: string
+          credits_amount: number
+          id: string
+          is_active: boolean
+          price_cents: number
+          reseller_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits_amount: number
+          id?: string
+          is_active?: boolean
+          price_cents?: number
+          reseller_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits_amount?: number
+          id?: string
+          is_active?: boolean
+          price_cents?: number
+          reseller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_credit_cost_overrides_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reseller_credit_prices: {
         Row: {
           created_at: string | null
