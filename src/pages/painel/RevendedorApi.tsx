@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
+import CopyAllDocsButton from "@/components/api/CopyAllDocsButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -579,6 +580,7 @@ export default function RevendedorApi() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [usage, setUsage] = useState<Usage[]>([]);
   const [loading, setLoading] = useState(true);
+  const docsRef = useRef<HTMLDivElement>(null);
 
   // novo / criada
   const [newOpen, setNewOpen] = useState(false);
@@ -657,6 +659,7 @@ export default function RevendedorApi() {
       <PageHeader
         title="API de Chaves"
         description="Gere licenças programaticamente. Cada chamada debita do seu saldo na plataforma."
+        actions={<CopyAllDocsButton containerRef={docsRef} fileName="api-licencas-revendedor.md" />}
       />
 
       <ApiKeysCard
@@ -682,6 +685,21 @@ export default function RevendedorApi() {
         <TabsContent value="exemplos"><TabExemplos /></TabsContent>
         <TabsContent value="historico"><TabHistorico usage={usage} /></TabsContent>
       </Tabs>
+
+      {/* Espelho oculto usado pelo "Copiar documentação completa" para
+          coletar o conteúdo de todas as abas de uma vez. */}
+      <div
+        ref={docsRef}
+        aria-hidden="true"
+        className="sr-only"
+        style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}
+      >
+        <h2>Início Rápido</h2><TabInicio />
+        <h2>Endpoints</h2><TabEndpoints />
+        <h2>Erros</h2><TabErros />
+        <h2>Exemplos</h2><TabExemplos />
+        <h2>Histórico</h2><TabHistorico usage={usage} />
+      </div>
 
       {/* Modal criar */}
       <Dialog open={newOpen} onOpenChange={(v) => { setNewOpen(v); if (!v) setCreatedKey(null); }}>
