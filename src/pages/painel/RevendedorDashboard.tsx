@@ -72,6 +72,24 @@ const LICENSE_LABELS: Record<string, string> = {
   lifetime: "Vitalícia",
 };
 
+function describeLicense(license_type?: string | null) {
+  if (!license_type) return "Licença";
+  if (LICENSE_LABELS[license_type]) return `Licença ${LICENSE_LABELS[license_type]}`;
+  const m = /^(flow|lovax|pro)[_-]?(\d+d|lifetime|trial.*)$/i.exec(license_type);
+  if (m) {
+    const method = m[1].toLowerCase() === "flow" ? "Flow" : m[1].toLowerCase() === "lovax" ? "Lovax" : "Pro";
+    const pack = m[2].toLowerCase();
+    const packLbl =
+      pack === "lifetime" ? "vitalícia" :
+      pack.startsWith("trial") ? "trial" :
+      pack.endsWith("d") ? `${pack.replace("d", "")} ${pack === "1d" ? "dia" : "dias"}` :
+      pack;
+    return `Licença ${method} • ${packLbl}`;
+  }
+  if (/credit|recarga/i.test(license_type)) return "Compra de créditos";
+  return `Licença ${license_type}`;
+}
+
 const STATUS_LABELS: Record<string, string> = {
   pending: "Pendente",
   completed: "Concluído",
@@ -195,8 +213,8 @@ export default function RevendedorDashboard() {
         supabase.from("client_extensions").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("status", "active"),
         supabase.from("orders").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("is_test", false).in("status", ["failed", "falha", "erro"]),
         supabase.from("orders").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("is_test", false).in("status", ["refunded", "reembolsado", "estornado", "revoked", "canceled", "cancelled", "cancelado"]),
-        supabase.from("orders").select("id,license_type,price_cents,status,created_at,client_id,extension_id,is_test,notes").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
-        supabase.from("reseller_credit_purchases").select("id,credits,price_cents,status,created_at").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
+        supabase.from("orders").select("id,license_type,price_cents,status,created_at,client_id,extension_id,is_test,notes, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
+        supabase.from("reseller_credit_purchases").select("id,credits,price_cents,status,created_at,customer_name,customer_whatsapp").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
         supabase.from("reseller_integrations").select("misticpay_enabled,connection_status").eq("reseller_id", r.id).maybeSingle(),
         supabase.from("announcements").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
       ]);
@@ -219,23 +237,30 @@ export default function RevendedorDashboard() {
         ...ords.map((o: any) => ({
           id: o.id,
           type: "sale" as const,
-          title: "Venda",
+          title: describeLicense(o.license_type),
           amount_cents: o.price_cents,
           status: o.status,
           created_at: o.created_at,
           metadata: {
             extension_id: o.extension_id,
             license_type: o.license_type,
-            is_test: o.is_test
+            is_test: o.is_test,
+            customer_name: o.customer?.display_name ?? null,
+            customer_whatsapp: o.customer?.whatsapp ?? null,
           }
         })),
         ...recharges.map((rc: any) => ({
           id: rc.id,
           type: "recharge" as const,
-          title: `Recargas de ${rc.credits} recargas`,
+          title: `Recarga • ${rc.credits} crédito${rc.credits === 1 ? "" : "s"}`,
           amount_cents: rc.price_cents,
           status: rc.status,
-          created_at: rc.created_at
+          created_at: rc.created_at,
+          metadata: {
+            credits: rc.credits,
+            customer_name: rc.customer_name ?? null,
+            customer_whatsapp: rc.customer_whatsapp ?? null,
+          }
         }))
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -707,9 +732,33 @@ export default function RevendedorDashboard() {
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs md:text-sm font-bold truncate">
-                        {activity.type === 'sale' ? (extMap[activity.metadata?.extension_id || ""] || activity.title) : activity.title}
+                        {activity.title}
+                        {activity.type === 'sale' && extMap[activity.metadata?.extension_id || ""] ? (
+                          <span className="ml-1 text-muted-foreground font-normal">· {extMap[activity.metadata.extension_id]}</span>
+                        ) : null}
                       </div>
                       <div className="text-[9px] md:text-[10px] text-muted-foreground">{format(new Date(activity.created_at), "dd MMM, HH:mm", { locale: ptBR })}</div>
+                      {(activity.metadata?.customer_name || activity.metadata?.customer_whatsapp) && (
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] md:text-[10px] pt-0.5">
+                          {activity.metadata?.customer_name && (
+                            <span className="font-semibold text-foreground/80 truncate max-w-[180px]">👤 {activity.metadata.customer_name}</span>
+                          )}
+                          {activity.metadata?.customer_whatsapp && (
+                            <>
+                              <span className="text-muted-foreground/60">·</span>
+                              <a
+                                href={`https://wa.me/${String(activity.metadata.customer_whatsapp).replace(/\D+/g, "")}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-mono text-emerald-500 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {activity.metadata.customer_whatsapp}
+                              </a>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">
