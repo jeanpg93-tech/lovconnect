@@ -220,6 +220,8 @@ export default function RevendedorRecargas() {
     status: string;
     tipo_entrega: string | null;
     workspace_name: string | null;
+    customer_name?: string | null;
+    customer_whatsapp?: string | null;
     provider_pedido_id: string | null;
     created_at: string;
     updated_at: string;
@@ -265,7 +267,7 @@ export default function RevendedorRecargas() {
   const loadRecentCreditPurchases = async (rid: string) => {
     const { data } = await supabase
       .from("reseller_credit_purchases")
-      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,provider_pedido_id,created_at,updated_at,error_message")
+      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,customer_name,customer_whatsapp,provider_pedido_id,created_at,updated_at,error_message")
       .eq("reseller_id", rid)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -325,7 +327,7 @@ export default function RevendedorRecargas() {
     setLoadingAllCreditPurchases(true);
     const { data } = await supabase
       .from("reseller_credit_purchases")
-      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,provider_pedido_id,created_at,updated_at,error_message")
+      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,customer_name,customer_whatsapp,provider_pedido_id,created_at,updated_at,error_message")
       .eq("reseller_id", resellerId)
       .order("created_at", { ascending: false })
       .limit(1000);
@@ -1532,7 +1534,9 @@ export default function RevendedorRecargas() {
                   return (
                     (c.id ?? "").toLowerCase().includes(q) ||
                     (c.provider_pedido_id ?? "").toLowerCase().includes(q) ||
-                    (c.workspace_name ?? "").toLowerCase().includes(q)
+                    (c.workspace_name ?? "").toLowerCase().includes(q) ||
+                    (c.customer_name ?? "").toLowerCase().includes(q) ||
+                    (c.customer_whatsapp ?? "").toLowerCase().includes(q)
                   );
                 }
                 const o = item.loja!;
@@ -1721,6 +1725,26 @@ export default function RevendedorRecargas() {
                                   <>
                                     <span>·</span>
                                     <span>WS: {c!.workspace_name}</span>
+                                  </>
+                                ) : null}
+                                {isManual && c!.customer_name ? (
+                                  <>
+                                    <span>·</span>
+                                    <span>👤 {c!.customer_name}</span>
+                                  </>
+                                ) : null}
+                                {isManual && c!.customer_whatsapp ? (
+                                  <>
+                                    <span>·</span>
+                                    <a
+                                      href={`https://wa.me/${c!.customer_whatsapp.replace(/\D+/g, "")}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-mono text-emerald-500 hover:underline"
+                                      title="Abrir no WhatsApp"
+                                    >
+                                      {c!.customer_whatsapp}
+                                    </a>
                                   </>
                                 ) : null}
                                 {!isManual && o!.buyer_name ? (

@@ -41,6 +41,8 @@ type ManualOrder = {
   workspace_name?: string | null;
   invite_status?: string | null;
   notes?: string | null;
+  customer_name?: string | null;
+  customer_whatsapp?: string | null;
   responsavel_nome?: string | null;
   responsavel_email?: string | null;
   raw?: any;
@@ -206,7 +208,7 @@ export default function GerenteAcompanharRecargas() {
   const loadManualOrders = async () => {
     const { data: rows } = await supabase
       .from("reseller_credit_purchases")
-      .select("id, provider_pedido_id, credits, price_cents, status, created_at, updated_at, tipo_entrega, provider_response, reseller_id, resellers:reseller_id(display_name, user_id)")
+      .select("id, provider_pedido_id, credits, price_cents, status, created_at, updated_at, tipo_entrega, customer_name, customer_whatsapp, provider_response, reseller_id, resellers:reseller_id(display_name, user_id)")
       .contains("provider_response", { manual: true } as any)
       .order("created_at", { ascending: false })
       .limit(500);
@@ -240,6 +242,8 @@ export default function GerenteAcompanharRecargas() {
         workspace_name: meta?.workspace_name ?? null,
         invite_status: meta?.invite_status ?? null,
         notes: meta?.notes ?? null,
+        customer_name: r.customer_name ?? null,
+        customer_whatsapp: r.customer_whatsapp ?? null,
         responsavel_nome: r.resellers?.display_name ?? null,
         responsavel_email: r.resellers?.user_id ? (emailMap.get(r.resellers.user_id) ?? null) : null,
         raw: r,
@@ -704,6 +708,23 @@ export default function GerenteAcompanharRecargas() {
                             </code>
                           ) : (
                             <span className="text-muted-foreground">— aguardando convite</span>
+                          )}
+                          {(m.customer_name || m.customer_whatsapp) && (
+                            <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-muted-foreground">
+                              {m.customer_name && (
+                                <span className="text-foreground/80">👤 {m.customer_name}</span>
+                              )}
+                              {m.customer_whatsapp && (
+                                <a
+                                  href={`https://wa.me/${m.customer_whatsapp.replace(/\D+/g, "")}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-mono text-emerald-500 hover:underline w-fit"
+                                >
+                                  {m.customer_whatsapp}
+                                </a>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td className="px-4 py-3 text-xs">
