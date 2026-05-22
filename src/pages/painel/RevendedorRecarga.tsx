@@ -1431,14 +1431,94 @@ export default function RevendedorRecargas() {
         <div className="mx-auto max-w-7xl">
           {(() => {
             const list = allCreditPurchases ?? recentCreditPurchases;
-            const filtered = list.filter((c) => {
-              if (cpStatusFilter !== "all" && c.status !== cpStatusFilter) return false;
+            // Normaliza manual + loja num shape unificado de renderização
+            type UnifiedItem = {
+              key: string;
+              origin: "manual" | "loja";
+              created_at: string;
+              credits: number;
+              price_cents: number;
+              cost_cents: number | null;
+              status: string;
+              status_group: "pending" | "delivered" | "failed";
+              error_message: string | null;
+              // manual
+              manual?: CreditPurchaseRow;
+              // loja
+              loja?: StorefrontCreditRow;
+            };
+            const manualMapped: UnifiedItem[] = list.map((c) => {
+              const group: UnifiedItem["status_group"] =
+                ["sucesso","entregue","completed","manual_entregue"].includes(c.status) ? "delivered"
+                : ["cancelado","cancelled","canceled","falha","failed"].includes(c.status) ? "failed"
+                : "pending";
+              return {
+                key: `m:${c.id}`,
+                origin: "manual",
+                created_at: c.created_at,
+                credits: c.credits,
+                price_cents: c.price_cents,
+                cost_cents: null,
+                status: c.status,
+                status_group: group,
+                error_message: c.error_message,
+                manual: c,
+              };
+            });
+            const lojaMapped: UnifiedItem[] = storefrontCredits.map((o) => {
+              const group: UnifiedItem["status_group"] =
+                o.status === "completed" ? "delivered"
+                : ["failed","cancelado"].includes(o.status) ? "failed"
+                : "pending";
+              return {
+                key: `l:${o.id}`,
+                origin: "loja",
+                created_at: o.created_at,
+                credits: o.credit_amount ?? 0,
+                price_cents: o.price_cents ?? 0,
+                cost_cents: o.cost_cents,
+                status: o.status,
+                status_group: group,
+                error_message: o.error_message,
+                loja: o,
+              };
+            });
+            const merged = [...manualMapped, ...lojaMapped].sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+            const filtered = merged.filter((item) => {
+              if (cpOriginFilter !== "all" && item.origin !== cpOriginFilter) return false;
+              if (cpStatusFilter !== "all") {
+                // Status filter agora opera por grupo (compatível entre manual e loja)
+                const groupForFilter: Record<string, UnifiedItem["status_group"][]> = {
+                  pending: ["pending"],
+                  delivered: ["delivered"],
+                  failed: ["failed"],
+                  // mantém compatibilidade com filtros antigos
+                  aguardando: ["pending"],
+                  processando: ["pending"],
+                  sucesso: ["delivered"],
+                  cancelado: ["failed"],
+                  falha: ["failed"],
+                };
+                const allowed = groupForFilter[cpStatusFilter] ?? null;
+                if (allowed && !allowed.includes(item.status_group)) return false;
+              }
               if (cpSearch.trim()) {
                 const q = cpSearch.trim().toLowerCase();
+                if (item.origin === "manual") {
+                  const c = item.manual!;
+                  return (
+                    (c.id ?? "").toLowerCase().includes(q) ||
+                    (c.provider_pedido_id ?? "").toLowerCase().includes(q) ||
+                    (c.workspace_name ?? "").toLowerCase().includes(q)
+                  );
+                }
+                const o = item.loja!;
                 return (
-                  (c.id ?? "").toLowerCase().includes(q) ||
-                  (c.provider_pedido_id ?? "").toLowerCase().includes(q) ||
-                  (c.workspace_name ?? "").toLowerCase().includes(q)
+                  (o.short_code ?? "").toLowerCase().includes(q) ||
+                  (o.buyer_name ?? "").toLowerCase().includes(q) ||
+                  (o.buyer_whatsapp ?? "").toLowerCase().includes(q)
                 );
               }
               return true;
