@@ -220,6 +220,50 @@ export function MobileNav() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4">
+              {primaryRole === "revendedor" && (
+                <>
+                  <Button
+                    variant="ghost"
+                    className="group relative h-24 w-full bg-zinc-900/40 border border-white/5 p-0 overflow-hidden rounded-[2rem] transition-all hover:bg-zinc-800/60 active:scale-[0.98]"
+                    asChild
+                  >
+                    <Link
+                      to="/painel/revendedor/api"
+                      onClick={() => setIsCartModalOpen(false)}
+                      className="flex items-center px-6"
+                    >
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500 text-black group-hover:scale-110 transition-transform">
+                        <KeyRound className="h-6 w-6" />
+                      </div>
+                      <div className="ml-4 text-left">
+                        <span className="block text-xl font-bold text-white tracking-tight">API Licenças</span>
+                        <span className="block text-xs font-medium text-zinc-500 uppercase tracking-widest">Gerar chave API</span>
+                      </div>
+                    </Link>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    className="group relative h-24 w-full bg-zinc-900/40 border border-white/5 p-0 overflow-hidden rounded-[2rem] transition-all hover:bg-zinc-800/60 active:scale-[0.98]"
+                    asChild
+                  >
+                    <Link
+                      to="/painel/revendedor/api-recargas"
+                      onClick={() => setIsCartModalOpen(false)}
+                      className="flex items-center px-6"
+                    >
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500 text-black group-hover:scale-110 transition-transform">
+                        <Coins className="h-6 w-6" />
+                      </div>
+                      <div className="ml-4 text-left">
+                        <span className="block text-xl font-bold text-white tracking-tight">API Recargas</span>
+                        <span className="block text-xs font-medium text-zinc-500 uppercase tracking-widest">Gerar chave API</span>
+                      </div>
+                    </Link>
+                  </Button>
+                </>
+              )}
+
               <Button
                 variant="ghost"
                 className="group relative h-24 w-full bg-zinc-900/40 border border-white/5 p-0 overflow-hidden rounded-[2rem] transition-all hover:bg-zinc-800/60 active:scale-[0.98]"
