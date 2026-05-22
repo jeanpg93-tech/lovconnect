@@ -206,6 +206,13 @@ export default function PublicStorefront() {
   const [securityNoticeOpen, setSecurityConfirmOpen] = useState(false);
   const pollRef = useRef<number | null>(null);
 
+  // Tick a cada segundo enquanto há pedido pendente, para o cronômetro de expiração do PIX.
+  useEffect(() => {
+    if (!order?.expires_at || orderStatus !== "pending") return;
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, [order?.expires_at, orderStatus]);
+
   useEffect(() => {
     (async () => {
       if (!slug) return;
