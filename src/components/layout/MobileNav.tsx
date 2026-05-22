@@ -315,6 +315,60 @@ export function MobileNav() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isApiModalOpen} onOpenChange={setIsApiModalOpen}>
+        <DialogContent className="border-none bg-[#09090b]/95 backdrop-blur-2xl p-0 overflow-hidden rounded-[2.5rem] mx-4 max-w-[calc(100%-2rem)] shadow-2xl ring-1 ring-white/10">
+          <div className="p-8">
+            <DialogHeader className="mb-8">
+              <DialogTitle className="text-3xl font-black tracking-tight text-white">Chaves APIs</DialogTitle>
+              <DialogDescription className="text-zinc-500 font-medium">
+                Acesse a tela correta para gerar suas chaves de integração.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4">
+              <Button
+                variant="ghost"
+                className="group relative h-24 w-full bg-zinc-900/40 border border-white/5 p-0 overflow-hidden rounded-[2rem] transition-all hover:bg-zinc-800/60 active:scale-[0.98]"
+                asChild
+              >
+                <Link
+                  to="/painel/revendedor/api"
+                  onClick={() => setIsApiModalOpen(false)}
+                  className="flex items-center px-6"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500 text-black group-hover:scale-110 transition-transform">
+                    <KeyRound className="h-6 w-6" />
+                  </div>
+                  <div className="ml-4 text-left">
+                    <span className="block text-xl font-bold text-white tracking-tight">Gerar API Licenças</span>
+                    <span className="block text-xs font-medium text-zinc-500 uppercase tracking-widest">Chave para vender licenças</span>
+                  </div>
+                </Link>
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="group relative h-24 w-full bg-zinc-900/40 border border-white/5 p-0 overflow-hidden rounded-[2rem] transition-all hover:bg-zinc-800/60 active:scale-[0.98]"
+                asChild
+              >
+                <Link
+                  to="/painel/revendedor/api-recargas"
+                  onClick={() => setIsApiModalOpen(false)}
+                  className="flex items-center px-6"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500 text-black group-hover:scale-110 transition-transform">
+                    <Coins className="h-6 w-6" />
+                  </div>
+                  <div className="ml-4 text-left">
+                    <span className="block text-xl font-bold text-white tracking-tight">Gerar API Recargas</span>
+                    <span className="block text-xs font-medium text-zinc-500 uppercase tracking-widest">Automáticas e manuais</span>
+                  </div>
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isWalletModalOpen} onOpenChange={setIsWalletModalOpen}>
         <DialogContent className="border-none bg-[#09090b]/95 backdrop-blur-3xl p-0 overflow-hidden rounded-[2.5rem] mx-4 max-w-[calc(100%-2rem)] shadow-2xl ring-1 ring-white/10">
           <div className="p-8">
