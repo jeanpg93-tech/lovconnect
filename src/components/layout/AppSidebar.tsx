@@ -337,7 +337,32 @@ export function AppSidebar() {
       fetchCreditsBalance();
       fetchLovax();
     }, 60_000);
-    return () => { cancelled = true; clearInterval(id); };
+
+    // Método de entrega ativo (compartilhado via app_settings)
+    const fetchActiveMethod = async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "licencas.delivery.method")
+        .maybeSingle();
+      const v = (data?.value as any)?.method;
+      if (!cancelled && (v === "flow" || v === "lovax")) setActiveMethod(v);
+    };
+    fetchActiveMethod();
+    const ch = supabase
+      .channel("sidebar-active-method")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "app_settings", filter: "key=eq.licencas.delivery.method" },
+        fetchActiveMethod
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      supabase.removeChannel(ch);
+    };
   }, [primaryRole]);
 
   // Aplica scrollbars finos/vermelhos só no painel do admin (gerente)
