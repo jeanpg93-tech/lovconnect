@@ -210,18 +210,13 @@ export default function GerentePartners() {
 
     // Custo do tier por pack (flow e lovax compartilham → priorizamos flow, fallback lovax)
     const lv = (licencasValores ?? {}) as any;
-    const tierLicCost = (packId: string): number => {
-      const fromTier =
-        Number(lv?.flow?.[packId]?.[tierId ?? ""] ?? 0) ||
-        Number(lv?.lovax?.[packId]?.[tierId ?? ""] ?? 0);
-      if (fromTier > 0) return fromTier;
-      if (isPartnerTier && ouroTier?.id) {
-        return (
-          Number(lv?.flow?.[packId]?.[ouroTier.id] ?? 0) ||
-          Number(lv?.lovax?.[packId]?.[ouroTier.id] ?? 0)
-        );
-      }
-      return 0;
+    // licencas.valores está em REAIS (ex: 5.02) → convertemos para centavos
+    const reaisToCents = (v: any) => Math.round(Number(v ?? 0) * 100);
+    const readPackCents = (packId: string, tId: string): number => {
+      return (
+        reaisToCents(lv?.flow?.[packId]?.[tId]) ||
+        reaisToCents(lv?.lovax?.[packId]?.[tId])
+      );
     };
 
     const lEff: Record<string, number> = {};
@@ -232,16 +227,12 @@ export default function GerentePartners() {
         lSrc[pack.id] = "override";
       } else {
         // Tenta tier real
-        const direct =
-          Number(lv?.flow?.[pack.id]?.[tierId ?? ""] ?? 0) ||
-          Number(lv?.lovax?.[pack.id]?.[tierId ?? ""] ?? 0);
+        const direct = tierId ? readPackCents(pack.id, tierId) : 0;
         if (direct > 0) {
           lEff[pack.id] = direct;
           lSrc[pack.id] = "tier";
         } else if (isPartnerTier && ouroTier?.id) {
-          const fromOuro =
-            Number(lv?.flow?.[pack.id]?.[ouroTier.id] ?? 0) ||
-            Number(lv?.lovax?.[pack.id]?.[ouroTier.id] ?? 0);
+          const fromOuro = readPackCents(pack.id, ouroTier.id);
           if (fromOuro > 0) {
             lEff[pack.id] = fromOuro;
             lSrc[pack.id] = "ouro";
