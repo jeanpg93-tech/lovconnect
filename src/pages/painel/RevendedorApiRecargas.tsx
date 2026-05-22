@@ -190,17 +190,17 @@ function ApiKeyCard({
                 variant="outline"
                 onClick={() => setConfirmOpen(true)}
                 disabled={resetting}
-                className="h-7 px-2 text-xs"
+                className="h-8 w-full px-3 text-xs sm:h-7 sm:w-auto sm:px-2"
               >
                 {resetting ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}
-                Resetar chave
+                {keyRow ? "Resetar chave" : "Gerar chave"}
               </Button>
             </div>
           </div>
 
           <div className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-background/60 px-3 py-2.5">
             <code className="flex-1 truncate font-mono text-xs">
-              {loading ? "Carregando…" : keyRow ? display : "Nenhuma chave ativa — clique em Resetar chave"}
+              {loading ? "Carregando…" : keyRow ? display : "Nenhuma chave ativa — clique em Gerar chave"}
             </code>
             {keyRow && (
               <>
@@ -223,16 +223,17 @@ function ApiKeyCard({
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Resetar API Key?</DialogTitle>
+            <DialogTitle>{keyRow ? "Resetar API Key?" : "Gerar API Key?"}</DialogTitle>
             <DialogDescription>
-              A chave atual será revogada imediatamente e uma nova será gerada. Sistemas que usam a antiga
-              vão parar de funcionar.
+              {keyRow
+                ? "A chave atual será revogada imediatamente e uma nova será gerada. Sistemas que usam a antiga vão parar de funcionar."
+                : "Uma nova chave será gerada para você integrar as recargas no seu sistema."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmOpen(false)}>Cancelar</Button>
             <Button onClick={handleReset} disabled={resetting} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              {resetting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Resetar e gerar nova"}
+              {resetting ? <Loader2 className="h-4 w-4 animate-spin" /> : keyRow ? "Resetar e gerar nova" : "Gerar chave"}
             </Button>
           </DialogFooter>
         </DialogContent>
