@@ -154,11 +154,10 @@ Deno.serve(async (req) => {
     if (debitErr) return json({ error: debitErr.message }, 500);
     if (debitOk === false) return json({ error: "Saldo insuficiente" }, 402);
 
-    const license_key = genKey(method, pack_id);
     const license_type = `${method}_${pack_id}`;
-
     const notesObj = { method, pack_id, display_name, whatsapp: whatsapp || null };
 
+    // cria pedido pendente
     const { data: order, error: orderErr } = await svc
       .from("orders")
       .insert({
@@ -166,25 +165,120 @@ Deno.serve(async (req) => {
         client_id,
         license_type,
         price_cents,
-        status: "completed",
-        license_key,
+        status: "pending",
         product_type: "extension",
         notes: JSON.stringify(notesObj),
       })
       .select("id")
       .single();
 
-    if (orderErr) {
-      // tentar estornar
+    if (orderErr || !order) {
       await svc.rpc("credit_reseller_balance", {
         _reseller_id: reseller_id,
         _amount_cents: price_cents,
         _kind: "refund",
-        _description: `Estorno falha gerar licença ${method}/${pack_id}`,
+        _description: `Estorno falha criar pedido ${method}/${pack_id}`,
         _reference_id: null,
       });
-      return json({ error: orderErr.message }, 500);
+      return json({ error: orderErr?.message ?? "Falha ao criar pedido" }, 500);
     }
+
+    const refund = async (reason: string, providerResp?: unknown) => {
+      await svc.rpc("credit_reseller_balance", {
+        _reseller_id: reseller_id,
+        _amount_cents: price_cents,
+        _kind: "refund",
+        _description: `Estorno ${method}/${pack_id}: ${reason}`,
+        _reference_id: order.id,
+      });
+      await svc.from("orders").update({
+        status: "refunded",
+        error_message: reason,
+        provider_response: providerResp ?? null,
+      }).eq("id", order.id);
+    };
+
+    // chama o provedor correspondente ao método ativo
+    let providerData: any = null;
+    let license_key: string | null = null;
+    try {
+      if (method === "lovax") {
+        const { data: settings } = await svc
+          .from("app_settings")
+          .select("key,value")
+          .in("key", ["lovax_api_token", "lovax_base_url"]);
+        const tk = settings?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined;
+        const bs = (settings?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined)
+          || DEFAULT_LOVAX_BASE;
+        if (!tk) {
+          await refund("MétodoLovax não configurado pelo gerente");
+          return json({ error: "MétodoLovax não configurado pelo gerente" }, 500);
+        }
+        const r = await fetch(bs, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tk}`, "x-api-key": tk, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "generate_license",
+            payload: {
+              customer_name: display_name,
+              days: packToLovaxDays(pack_id),
+              hours: 0,
+              minutes: 0,
+              max_devices: 1,
+            },
+          }),
+        });
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        if (!r.ok || !providerData?.success) {
+          await refund(providerData?.error ?? `Lovax retornou ${r.status}`, providerData);
+          return json({ error: "Falha no MétodoLovax", details: providerData }, 502);
+        }
+        license_key = providerData?.license?.license_key ?? providerData?.license_key ?? providerData?.key ?? null;
+      } else {
+        const { data: cfg } = await svc
+          .from("provider_settings")
+          .select("api_key,base_url")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
+        const base = cfg?.base_url ?? DEFAULT_FLOW_BASE;
+        if (!apiKey) {
+          await refund("MétodoFlow não configurado pelo gerente");
+          return json({ error: "MétodoFlow não configurado pelo gerente" }, 500);
+        }
+        const r = await fetch(`${base}/generate-license`, {
+          method: "POST",
+          headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...packToFlowBody(pack_id),
+            display_name,
+          }),
+        });
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        if (!r.ok) {
+          await refund(`MétodoFlow retornou ${r.status}`, providerData);
+          return json({ error: "Falha no MétodoFlow", details: providerData }, 502);
+        }
+        license_key = providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
+      }
+    } catch (e) {
+      await refund(e instanceof Error ? e.message : "Erro no provedor");
+      return json({ error: "Erro ao chamar provedor" }, 502);
+    }
+
+    if (!license_key) {
+      await refund("Provedor não retornou chave de licença", providerData);
+      return json({ error: "Provedor não retornou chave de licença" }, 502);
+    }
+
+    await svc.from("orders").update({
+      status: "completed",
+      license_key,
+      provider_response: providerData,
+    }).eq("id", order.id);
 
     return json({
       ok: true,
