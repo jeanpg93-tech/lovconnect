@@ -53,6 +53,8 @@ import {
   ,FileDown
   ,Loader2
   ,RefreshCcw
+  ,X
+  ,Store
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -232,6 +234,24 @@ export default function RevendedorRecargas() {
   const [refundingCreditPurchaseId, setRefundingCreditPurchaseId] = useState<string | null>(null);
   const [syncingCreditPurchases, setSyncingCreditPurchases] = useState(false);
 
+  // Vendas de créditos vindas da Loja (storefront_orders, product_type='credits')
+  type StorefrontCreditRow = {
+    id: string;
+    short_code: string | null;
+    status: string;
+    price_cents: number | null;
+    cost_cents: number | null;
+    credit_amount: number | null;
+    paid_at: string | null;
+    created_at: string;
+    buyer_name: string | null;
+    buyer_whatsapp: string | null;
+    error_message: string | null;
+  };
+  const [storefrontCredits, setStorefrontCredits] = useState<StorefrontCreditRow[]>([]);
+  const [cpOriginFilter, setCpOriginFilter] = useState<"all" | "manual" | "loja">("all");
+  const [cancellingStorefrontId, setCancellingStorefrontId] = useState<string | null>(null);
+
   const loadCreditPurchaseRefunds = async (rid: string) => {
     const { data } = await supabase
       .from("refund_requests")
@@ -249,6 +269,35 @@ export default function RevendedorRecargas() {
       .order("created_at", { ascending: false })
       .limit(20);
     setRecentCreditPurchases((data ?? []) as CreditPurchaseRow[]);
+  };
+
+  const loadStorefrontCredits = async (rid: string) => {
+    const { data } = await supabase
+      .from("storefront_orders")
+      .select("id,short_code,status,price_cents,cost_cents,credit_amount,paid_at,created_at,buyer_name,buyer_whatsapp,error_message")
+      .eq("reseller_id", rid)
+      .eq("product_type", "credits")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setStorefrontCredits((data ?? []) as StorefrontCreditRow[]);
+  };
+
+  const cancelStorefrontOrder = async (orderId: string, shortCode: string | null) => {
+    if (!confirm(`Cancelar a venda #${shortCode ?? orderId.slice(0, 8)}? Só é possível antes do pagamento PIX.`)) return;
+    setCancellingStorefrontId(orderId);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-storefront-order", {
+        body: { order_id: orderId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Venda cancelada");
+      if (resellerId) loadStorefrontCredits(resellerId);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao cancelar venda");
+    } finally {
+      setCancellingStorefrontId(null);
+    }
   };
   const loadAllCreditPurchases = async () => {
     if (!resellerId) return;
@@ -362,6 +411,7 @@ export default function RevendedorRecargas() {
       loadRechargeRefunds(r.id);
       loadRecentCreditPurchases(r.id);
       loadCreditPurchaseRefunds(r.id);
+      loadStorefrontCredits(r.id);
       // Em background: pergunta ao provider o status das compras "em aberto" e atualiza local.
       syncCreditPurchases(r.id);
 
@@ -1381,14 +1431,94 @@ export default function RevendedorRecargas() {
         <div className="mx-auto max-w-7xl">
           {(() => {
             const list = allCreditPurchases ?? recentCreditPurchases;
-            const filtered = list.filter((c) => {
-              if (cpStatusFilter !== "all" && c.status !== cpStatusFilter) return false;
+            // Normaliza manual + loja num shape unificado de renderização
+            type UnifiedItem = {
+              key: string;
+              origin: "manual" | "loja";
+              created_at: string;
+              credits: number;
+              price_cents: number;
+              cost_cents: number | null;
+              status: string;
+              status_group: "pending" | "delivered" | "failed";
+              error_message: string | null;
+              // manual
+              manual?: CreditPurchaseRow;
+              // loja
+              loja?: StorefrontCreditRow;
+            };
+            const manualMapped: UnifiedItem[] = list.map((c) => {
+              const group: UnifiedItem["status_group"] =
+                ["sucesso","entregue","completed","manual_entregue"].includes(c.status) ? "delivered"
+                : ["cancelado","cancelled","canceled","falha","failed"].includes(c.status) ? "failed"
+                : "pending";
+              return {
+                key: `m:${c.id}`,
+                origin: "manual",
+                created_at: c.created_at,
+                credits: c.credits,
+                price_cents: c.price_cents,
+                cost_cents: null,
+                status: c.status,
+                status_group: group,
+                error_message: c.error_message,
+                manual: c,
+              };
+            });
+            const lojaMapped: UnifiedItem[] = storefrontCredits.map((o) => {
+              const group: UnifiedItem["status_group"] =
+                o.status === "completed" ? "delivered"
+                : ["failed","cancelado"].includes(o.status) ? "failed"
+                : "pending";
+              return {
+                key: `l:${o.id}`,
+                origin: "loja",
+                created_at: o.created_at,
+                credits: o.credit_amount ?? 0,
+                price_cents: o.price_cents ?? 0,
+                cost_cents: o.cost_cents,
+                status: o.status,
+                status_group: group,
+                error_message: o.error_message,
+                loja: o,
+              };
+            });
+            const merged = [...manualMapped, ...lojaMapped].sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+            const filtered = merged.filter((item) => {
+              if (cpOriginFilter !== "all" && item.origin !== cpOriginFilter) return false;
+              if (cpStatusFilter !== "all") {
+                // Status filter agora opera por grupo (compatível entre manual e loja)
+                const groupForFilter: Record<string, UnifiedItem["status_group"][]> = {
+                  pending: ["pending"],
+                  delivered: ["delivered"],
+                  failed: ["failed"],
+                  // mantém compatibilidade com filtros antigos
+                  aguardando: ["pending"],
+                  processando: ["pending"],
+                  sucesso: ["delivered"],
+                  cancelado: ["failed"],
+                  falha: ["failed"],
+                };
+                const allowed = groupForFilter[cpStatusFilter] ?? null;
+                if (allowed && !allowed.includes(item.status_group)) return false;
+              }
               if (cpSearch.trim()) {
                 const q = cpSearch.trim().toLowerCase();
+                if (item.origin === "manual") {
+                  const c = item.manual!;
+                  return (
+                    (c.id ?? "").toLowerCase().includes(q) ||
+                    (c.provider_pedido_id ?? "").toLowerCase().includes(q) ||
+                    (c.workspace_name ?? "").toLowerCase().includes(q)
+                  );
+                }
+                const o = item.loja!;
                 return (
-                  (c.id ?? "").toLowerCase().includes(q) ||
-                  (c.provider_pedido_id ?? "").toLowerCase().includes(q) ||
-                  (c.workspace_name ?? "").toLowerCase().includes(q)
+                  (o.short_code ?? "").toLowerCase().includes(q) ||
+                  (o.buyer_name ?? "").toLowerCase().includes(q) ||
+                  (o.buyer_whatsapp ?? "").toLowerCase().includes(q)
                 );
               }
               return true;
@@ -1497,11 +1627,19 @@ export default function RevendedorRecargas() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os status</SelectItem>
-                      <SelectItem value="aguardando">Aguardando</SelectItem>
-                      <SelectItem value="processando">Processando</SelectItem>
-                      <SelectItem value="sucesso">Entregue</SelectItem>
-                      <SelectItem value="cancelado">Cancelado</SelectItem>
-                      <SelectItem value="falha">Falhou</SelectItem>
+                      <SelectItem value="pending">Pendente/Aguardando</SelectItem>
+                      <SelectItem value="delivered">Entregue</SelectItem>
+                      <SelectItem value="failed">Cancelado/Falhou</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={cpOriginFilter} onValueChange={(v) => setCpOriginFilter(v as any)}>
+                    <SelectTrigger className="h-9 w-[160px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tudo</SelectItem>
+                      <SelectItem value="manual">Manual (painel)</SelectItem>
+                      <SelectItem value="loja">Loja</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1513,39 +1651,66 @@ export default function RevendedorRecargas() {
                     </div>
                   ) : (
                     <div className="divide-y divide-border">
-                      {filtered.map((c) => {
-                        const trackId = c.provider_pedido_id ?? c.id;
+                      {filtered.map((item) => {
+                        const isManual = item.origin === "manual";
+                        const c = item.manual;
+                        const o = item.loja;
+                        const trackId = isManual ? (c!.provider_pedido_id ?? c!.id) : (o!.short_code ?? o!.id);
+                        const rowId = isManual ? c!.id : o!.id;
+                        const originBadge = isManual ? (
+                          <Badge variant="outline" className="text-[9px] font-bold uppercase border-blue-500/30 bg-blue-500/10 text-blue-500">
+                            Manual
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] font-bold uppercase border-violet-500/30 bg-violet-500/10 text-violet-500">
+                            <Store className="h-2.5 w-2.5 mr-1" /> Loja
+                          </Badge>
+                        );
+                        const isLojaPending = !isManual && o!.status === "pending" && !o!.paid_at;
                         return (
                           <div
-                            key={c.id}
+                            key={item.key}
                             className="flex flex-wrap items-center gap-3 px-3 py-3 sm:px-4 text-xs hover:bg-background/40 transition-colors"
                           >
                             <div className="flex-1 min-w-[200px] space-y-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-display text-base font-black text-foreground">
-                                  {c.credits} créditos
+                                  {item.credits} créditos
                                 </span>
                                 <Badge
                                   variant="outline"
                                   className="text-[9px] font-bold uppercase border-white/10 bg-white/5 text-muted-foreground"
                                 >
-                                  {formatBRL(c.price_cents)}
+                                  {formatBRL(item.price_cents)}
                                 </Badge>
-                                {c.tipo_entrega ? (
+                                {originBadge}
+                                {isManual && c!.tipo_entrega ? (
                                   <Badge
                                     variant="outline"
                                     className="text-[9px] font-bold uppercase border-white/10 bg-white/5 text-muted-foreground"
                                   >
-                                    {c.tipo_entrega}
+                                    {c!.tipo_entrega}
                                   </Badge>
                                 ) : null}
                               </div>
                               <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                <span>Criada: {fmtDate(c.created_at)}</span>
-                                {c.workspace_name ? (
+                                <span>Criada: {fmtDate(item.created_at)}</span>
+                                {isManual && c!.workspace_name ? (
                                   <>
                                     <span>·</span>
-                                    <span>WS: {c.workspace_name}</span>
+                                    <span>WS: {c!.workspace_name}</span>
+                                  </>
+                                ) : null}
+                                {!isManual && o!.buyer_name ? (
+                                  <>
+                                    <span>·</span>
+                                    <span>👤 {o!.buyer_name}</span>
+                                  </>
+                                ) : null}
+                                {!isManual && o!.buyer_whatsapp ? (
+                                  <>
+                                    <span>·</span>
+                                    <span className="font-mono text-emerald-500">{o!.buyer_whatsapp}</span>
                                   </>
                                 ) : null}
                               </div>
@@ -1571,15 +1736,15 @@ export default function RevendedorRecargas() {
                                   <Copy className="h-3 w-3" />
                                 </button>
                               </div>
-                              {c.error_message ? (
-                                <p className="text-[10px] text-rose-500 truncate max-w-[400px]" title={c.error_message}>
-                                  {c.error_message}
+                              {item.error_message ? (
+                                <p className="text-[10px] text-rose-500 truncate max-w-[400px]" title={item.error_message}>
+                                  {item.error_message}
                                 </p>
                               ) : null}
                             </div>
-                            <div className="shrink-0">{renderStatus(c.status)}</div>
-                            {isRefundable(c.status) && (
-                              refundedCreditPurchaseIds.has(c.id) ? (
+                            <div className="shrink-0">{renderStatus(item.status)}</div>
+                            {isManual && isRefundable(item.status) && (
+                              refundedCreditPurchaseIds.has(rowId) ? (
                                 <Badge variant="outline" className="text-[10px] font-bold uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
                                   Reembolsado
                                 </Badge>
@@ -1588,12 +1753,27 @@ export default function RevendedorRecargas() {
                                   size="sm"
                                   variant="outline"
                                   className="h-7 px-2 text-[10px] font-bold border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
-                                  disabled={refundingCreditPurchaseId === c.id}
-                                  onClick={() => requestCreditPurchaseRefund({ id: c.id, price_cents: c.price_cents })}
+                                  disabled={refundingCreditPurchaseId === rowId}
+                                  onClick={() => requestCreditPurchaseRefund({ id: rowId, price_cents: item.price_cents })}
                                 >
-                                  {refundingCreditPurchaseId === c.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reembolso"}
+                                  {refundingCreditPurchaseId === rowId ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reembolso"}
                                 </Button>
                               )
+                            )}
+                            {isLojaPending && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2 text-[10px] font-bold border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
+                                disabled={cancellingStorefrontId === rowId}
+                                onClick={() => cancelStorefrontOrder(rowId, o!.short_code)}
+                              >
+                                {cancellingStorefrontId === rowId ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <><X className="h-3 w-3 mr-1" /> Cancelar</>
+                                )}
+                              </Button>
                             )}
                           </div>
                         );

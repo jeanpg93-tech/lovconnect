@@ -13,7 +13,7 @@ import {
   Chrome, KeyRound, LifeBuoy, MessageCircle, Settings, Palette,
   ShoppingBag, HelpCircle, Zap, Eye, Globe, MessageSquare, Star, Trash2, Plus,
   TrendingUp, Users, DollarSign, Calendar, Package, Coins,
-  Dot, Waves, Sparkles, Sun, Hexagon, Triangle, X, RefreshCw
+  Dot, Waves, Sparkles, Sun, Hexagon, Triangle
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -131,25 +131,6 @@ export default function RevendedorMinhaLoja() {
     chartData: [] as { name: string; tentativas: number; vendas: number }[],
   });
 
-  type StorefrontOrderRow = {
-    id: string;
-    short_code: string | null;
-    status: string;
-    price_cents: number | null;
-    cost_cents: number | null;
-    product_type: string | null;
-    license_type: string | null;
-    credit_amount: number | null;
-    paid_at: string | null;
-    created_at: string;
-    buyer_name: string | null;
-    buyer_whatsapp: string | null;
-    error_message: string | null;
-  };
-  const [recentOrders, setRecentOrders] = useState<StorefrontOrderRow[]>([]);
-  const [loadingOrders, setLoadingOrders] = useState(false);
-  const [orderStatusFilter, setOrderStatusFilter] = useState<string>("all");
-  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
   const slugify = (s: string) =>
     s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -400,40 +381,6 @@ export default function RevendedorMinhaLoja() {
     if (resellerId) fetchStats(resellerId, period);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period, resellerId]);
-
-  const fetchRecentOrders = async (rId: string) => {
-    setLoadingOrders(true);
-    const { data, error } = await supabase
-      .from("storefront_orders")
-      .select("id, short_code, status, price_cents, cost_cents, product_type, license_type, credit_amount, paid_at, created_at, buyer_name, buyer_whatsapp, error_message")
-      .eq("reseller_id", rId)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (!error && data) setRecentOrders(data as StorefrontOrderRow[]);
-    setLoadingOrders(false);
-  };
-
-  useEffect(() => {
-    if (resellerId) fetchRecentOrders(resellerId);
-  }, [resellerId]);
-
-  const handleCancelOrder = async (order: StorefrontOrderRow) => {
-    if (!confirm(`Cancelar a venda #${order.short_code ?? order.id.slice(0, 8)}? Só é possível antes do pagamento PIX.`)) return;
-    setCancellingOrderId(order.id);
-    try {
-      const { data, error } = await supabase.functions.invoke("cancel-storefront-order", {
-        body: { order_id: order.id },
-      });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("Venda cancelada");
-      if (resellerId) fetchRecentOrders(resellerId);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao cancelar venda");
-    } finally {
-      setCancellingOrderId(null);
-    }
-  };
 
   const handleLogoUpload = async (file: File) => {
     if (!resellerId) return;
@@ -737,137 +684,6 @@ export default function RevendedorMinhaLoja() {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="overflow-hidden shadow-sm">
-            <CardHeader className="border-b bg-muted/30 pb-4">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div>
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <ShoppingBag className="h-4 w-4 text-primary" /> Vendas Recentes
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Pedidos dos seus compradores na vitrine. Cancele antes do pagamento PIX.
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
-                    <SelectTrigger className="w-[160px] h-8 text-xs font-bold">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos status</SelectItem>
-                      <SelectItem value="pending">Aguardando PIX</SelectItem>
-                      <SelectItem value="paid">Pago</SelectItem>
-                      <SelectItem value="awaiting_balance">Aguardando saldo</SelectItem>
-                      <SelectItem value="completed">Concluído</SelectItem>
-                      <SelectItem value="failed">Falhou</SelectItem>
-                      <SelectItem value="cancelado">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8"
-                    onClick={() => resellerId && fetchRecentOrders(resellerId)}
-                    disabled={loadingOrders}
-                  >
-                    <RefreshCw className={cn("h-3.5 w-3.5", loadingOrders && "animate-spin")} />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {loadingOrders ? (
-                <div className="p-8 flex items-center justify-center text-muted-foreground text-xs">
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando vendas…
-                </div>
-              ) : (() => {
-                const filtered = recentOrders.filter(o =>
-                  orderStatusFilter === "all" ? true : o.status === orderStatusFilter
-                );
-                if (filtered.length === 0) {
-                  return (
-                    <div className="p-8 text-center text-xs text-muted-foreground">
-                      Nenhuma venda {orderStatusFilter === "all" ? "" : "com esse status "}encontrada.
-                    </div>
-                  );
-                }
-                const statusMap: Record<string, { label: string; cls: string }> = {
-                  pending: { label: "Aguardando PIX", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
-                  paid: { label: "Pago", cls: "bg-blue-500/15 text-blue-600 border-blue-500/30" },
-                  awaiting_balance: { label: "Aguardando saldo", cls: "bg-orange-500/15 text-orange-600 border-orange-500/30" },
-                  completed: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
-                  failed: { label: "Falhou", cls: "bg-red-500/15 text-red-600 border-red-500/30" },
-                  cancelado: { label: "Cancelado", cls: "bg-muted text-muted-foreground border-border" },
-                  refunded: { label: "Reembolsado", cls: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
-                };
-                return (
-                  <div className="divide-y">
-                    {filtered.map(o => {
-                      const s = statusMap[o.status] ?? { label: o.status, cls: "bg-muted text-muted-foreground border-border" };
-                      const isPending = o.status === "pending" && !o.paid_at;
-                      const productLabel = o.product_type === "credits"
-                        ? `${o.credit_amount ?? 0} créditos`
-                        : (o.license_type ?? o.product_type ?? "Produto");
-                      const price = ((o.price_cents ?? 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
-                      const cost = ((o.cost_cents ?? 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
-                      return (
-                        <div key={o.id} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <span className="text-xs font-mono font-bold">#{o.short_code ?? o.id.slice(0, 8)}</span>
-                              <Badge className={cn("h-5 px-2 text-[10px] font-bold border", s.cls)}>{s.label}</Badge>
-                              <span className="text-[10px] text-muted-foreground">
-                                {new Date(o.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
-                              </span>
-                            </div>
-                            <div className="text-xs font-medium truncate">
-                              {productLabel}
-                              {o.buyer_name && <span className="text-muted-foreground"> · {o.buyer_name}</span>}
-                              {o.buyer_whatsapp && <span className="text-muted-foreground"> · {o.buyer_whatsapp}</span>}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground mt-0.5">
-                              Venda: R$ {price} · Custo: R$ {cost}
-                              {o.error_message && <span className="text-red-500"> · {o.error_message}</span>}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {o.short_code && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8"
-                                asChild
-                              >
-                                <a href={`/recargas/${o.short_code}`} target="_blank" rel="noreferrer">
-                                  <ExternalLink className="h-3.5 w-3.5" />
-                                </a>
-                              </Button>
-                            )}
-                            {isPending && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-red-600 border-red-500/30 hover:bg-red-500/10"
-                                disabled={cancellingOrderId === o.id}
-                                onClick={() => handleCancelOrder(o)}
-                              >
-                                {cancellingOrderId === o.id ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <><X className="h-3.5 w-3.5 mr-1" /> Cancelar</>
-                                )}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
             </CardContent>
           </Card>
 
