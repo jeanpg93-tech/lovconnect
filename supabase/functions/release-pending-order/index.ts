@@ -19,6 +19,46 @@ function mapTypeToProviderBody(type: string): Record<string, unknown> {
   }
 }
 
+async function createProviderCreditOrder(admin: any, order: any, costCents: number) {
+  const { data: master } = await admin
+    .from("app_settings").select("value").eq("key", "lovable_credits_master").maybeSingle();
+  const apiKey = (master?.value?.api_key as string | undefined) ?? null;
+  if (!apiKey) return { ok: false as const, error: "Provedor de créditos não configurado" };
+  let providerData: any = null;
+  try {
+    const r = await fetch("https://lojinhalovable.com/api/v1/revenda/pedidos", {
+      method: "POST",
+      headers: { "X-API-Key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ creditos: order.credit_amount, tipo_entrega: "workspace_proprio" }),
+    });
+    const txt = await r.text();
+    try { providerData = JSON.parse(txt); } catch { providerData = { raw: txt }; }
+    if (!r.ok || providerData?.success === false) {
+      return { ok: false as const, error: providerData?.error ?? `Provedor retornou ${r.status}`, providerData };
+    }
+  } catch (e) {
+    return { ok: false as const, error: e instanceof Error ? e.message : "erro provedor de créditos" };
+  }
+  const payload = providerData?.data ?? providerData;
+  const providerPedidoId: string | null = payload?.pedidoId ?? payload?.id ?? null;
+  if (!providerPedidoId) return { ok: false as const, error: "Provedor não retornou pedidoId", providerData };
+  try {
+    await admin.from("reseller_credit_purchases").insert({
+      reseller_id: order.reseller_id,
+      credits: order.credit_amount,
+      price_cents: costCents,
+      cost_cents: costCents || null,
+      status: payload?.status ?? "processando",
+      tipo_entrega: "workspace_proprio",
+      provider_pedido_id: providerPedidoId,
+      provider_response: providerData,
+      customer_name: order.buyer_name ?? null,
+      customer_whatsapp: order.buyer_whatsapp ?? null,
+    });
+  } catch (e) { console.warn("reseller_credit_purchases insert (release) failed", e); }
+  return { ok: true as const, providerPedidoId, providerData };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -44,7 +84,29 @@ Deno.serve(async (req) => {
 
     // Créditos: já está pago, só marca completed e registra orders
     if (order.product_type === "credits" || order.license_type === "credits") {
-      await admin.from("storefront_orders").update({ status: "completed" }).eq("id", order.id);
+      const credits_cost = Number(order.cost_cents ?? 0);
+      const prov = await createProviderCreditOrder(admin, order, credits_cost);
+      if (!prov.ok) {
+        if (credits_cost > 0) {
+          await admin.rpc("credit_reseller_balance", {
+            _reseller_id: order.reseller_id,
+            _amount_cents: credits_cost,
+            _kind: "order_refund",
+            _description: `Estorno (falha provedor créditos release): ${order.id}`,
+            _reference_id: order.id,
+          });
+        }
+        await admin.from("storefront_orders").update({
+          status: "failed",
+          error_message: prov.error,
+        }).eq("id", order.id);
+        return json({ ok: false, error: prov.error }, 502);
+      }
+      const inviteLink = `/recargas/${prov.providerPedidoId}`;
+      await admin.from("storefront_orders").update({
+        status: "completed",
+        invite_link: inviteLink,
+      }).eq("id", order.id);
       try {
         await admin.from("orders").insert({
           reseller_id: order.reseller_id,
@@ -54,13 +116,13 @@ Deno.serve(async (req) => {
           license_type: "credits",
           product_type: "credits",
           credit_amount: order.credit_amount,
-          price_cents: Number(order.cost_cents ?? 0),
+          price_cents: credits_cost,
           status: "completed",
           is_test: false,
-          notes: `Venda da Loja • ${order.buyer_name} • ${order.credit_amount ?? 0} créditos (liberado após recarga)`,
+          notes: `Venda da Loja • ${order.buyer_name} • ${order.credit_amount ?? 0} créditos (liberado após recarga) • Provedor: ${prov.providerPedidoId}`,
         });
       } catch (e) { console.warn("orders insert (release credits) failed", e); }
-      return json({ ok: true, kind: "credits_released" });
+      return json({ ok: true, kind: "credits_released", invite_link: inviteLink });
     }
 
     // Licença: chama provedor
