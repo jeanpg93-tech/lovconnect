@@ -212,6 +212,7 @@ export default function GerenteTelegram() {
               { key: "notify_signups", label: "🆕 Novos cadastros", desc: "Cadastros aguardando aprovação" },
               { key: "notify_refunds", label: "↩️ Reembolsos", desc: "Estornos e reembolsos processados" },
               { key: "notify_reseller_activity", label: "⚙️ Outras movimentações", desc: "Débitos manuais, créditos manuais, ajustes" },
+              { key: "notify_low_balance", label: "🔻 Saldo baixo (provedor / lojinha)", desc: "Alerta quando o saldo do provedor ou do gateway PIX cai abaixo do limite" },
             ].map((opt) => (
               <div key={opt.key} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 p-3">
                 <div className="min-w-0">
@@ -224,6 +225,28 @@ export default function GerenteTelegram() {
                 />
               </div>
             ))}
+
+            {settings?.notify_low_balance && (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">📉 Limite de saldo baixo</div>
+                  <div className="text-xs text-muted-foreground">
+                    Alerta quando saldo do provedor OU do gateway PIX cair abaixo deste valor (R$).
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">R$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    defaultValue={((settings.low_balance_threshold_cents ?? 5000) / 100).toFixed(0)}
+                    onBlur={(e) => saveThreshold(Number(e.currentTarget.value || 0))}
+                    className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm text-right"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl border border-border bg-muted/20 p-4">
