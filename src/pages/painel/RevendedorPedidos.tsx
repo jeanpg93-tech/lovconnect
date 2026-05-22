@@ -176,12 +176,14 @@ export default function RevendedorPedidos() {
     setAvailableMethods(methods);
 
     const enabledRaw = (deliverySetting?.value as any)?.method;
-    const enabled: MethodId | null =
-      enabledRaw === "flow" || enabledRaw === "lovax" ? enabledRaw : null;
+    // Default para "flow" quando o gerente ainda não persistiu a escolha —
+    // assim o método não selecionado sempre aparece como Indisponível e o backend recusa a venda.
+    const enabled: MethodId =
+      enabledRaw === "flow" || enabledRaw === "lovax" ? enabledRaw : "flow";
     setEnabledMethod(enabled);
     // Força a seleção para o método habilitado (se houver e estiver disponível)
     setSelectedMethod((cur) => {
-      if (enabled && methods.includes(enabled)) return enabled;
+      if (methods.includes(enabled)) return enabled;
       return methods.includes(cur) ? cur : (methods[0] ?? "flow");
     });
 

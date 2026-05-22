@@ -46,6 +46,23 @@ Deno.serve(async (req) => {
 
     if (!ALLOWED_METHODS.includes(method)) return json({ error: "Método inválido" }, 400);
     if (!ALLOWED_PACKS.includes(pack_id)) return json({ error: "Pacote inválido" }, 400);
+
+    // Enforce: only the method enabled by the manager can be sold.
+    {
+      const { data: enabledRow } = await svc
+        .from("app_settings")
+        .select("value")
+        .eq("key", "licencas.delivery.method")
+        .maybeSingle();
+      const enabled = String(((enabledRow?.value as any)?.method ?? "flow")).toLowerCase();
+      if ((enabled === "flow" || enabled === "lovax") && enabled !== method) {
+        return json({
+          error: `O método "${method}" está desabilitado pelo gerente. Apenas "${enabled}" pode gerar licenças no momento.`,
+          code: "method_disabled",
+        }, 403);
+      }
+    }
+
     if (display_name.length < 2) return json({ error: "Nome obrigatório" }, 400);
     if (whatsapp && (whatsapp.length < 10 || whatsapp.length > 13)) {
       return json({ error: "WhatsApp inválido" }, 400);
