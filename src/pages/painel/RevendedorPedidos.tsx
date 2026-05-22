@@ -294,6 +294,35 @@ export default function RevendedorPedidos() {
     setRefundedOrderIds(new Set((data ?? []).map((r: any) => r.reference_id)));
   };
 
+  const loadStorefrontLicenses = async (rid: string) => {
+    const { data } = await supabase
+      .from("storefront_orders")
+      .select("id,short_code,status,license_key,license_type,price_cents,cost_cents,paid_at,created_at,buyer_name,buyer_whatsapp,error_message,product_type")
+      .eq("reseller_id", rid)
+      .neq("product_type", "credits")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    setStorefrontLicenses((data ?? []) as StorefrontLicRow[]);
+  };
+
+  const cancelStorefrontOrder = async (orderId: string, shortCode: string | null) => {
+    if (!confirm(`Cancelar a venda #${shortCode ?? orderId.slice(0, 8)}? Só é possível antes do pagamento PIX.`)) return;
+    setCancellingStorefrontId(orderId);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-storefront-order", {
+        body: { order_id: orderId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Venda cancelada");
+      if (resellerId) loadStorefrontLicenses(resellerId);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao cancelar venda");
+    } finally {
+      setCancellingStorefrontId(null);
+    }
+  };
+
   const requestRefund = async (o: Order) => {
     if (!confirm(`Solicitar reembolso de ${(o.price_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} para o seu saldo?`)) return;
     setRefundingId(o.id);
