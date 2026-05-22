@@ -232,14 +232,27 @@ export default function MethodPriceTable({ method }: { method: Method }) {
             const empty = !base;
             const myPrice = overrides[pkg.id];
             const isEditing = editing === pkg.id;
+            const blockInfo = blocked[issueKey.license(method, pkg.id)];
             return (
               <div
                 key={pkg.id}
                 className={cn(
-                  "grid grid-cols-1 gap-3 px-4 py-3.5 transition-colors hover:bg-card/70 md:grid-cols-12 md:items-center",
+                  "relative grid grid-cols-1 gap-3 px-4 py-3.5 transition-colors hover:bg-card/70 md:grid-cols-12 md:items-center",
                   empty && "opacity-70",
+                  blockInfo?.severity === "critical" && "bg-destructive/5 border-l-4 border-l-destructive",
+                  blockInfo?.severity === "warning" && "bg-amber-500/5 border-l-4 border-l-amber-500",
                 )}
+                title={blockInfo ? `Vendas bloqueadas: ${blockInfo.reason}` : undefined}
               >
+                {blockInfo && (
+                  <div className="absolute right-2 top-2 md:right-3">
+                    {blockInfo.severity === "critical" ? (
+                      <AlertCircle className="h-4 w-4 text-destructive animate-pulse" />
+                    ) : (
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    )}
+                  </div>
+                )}
                 <div className="md:col-span-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background/60 text-primary">
