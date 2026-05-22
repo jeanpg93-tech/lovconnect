@@ -71,6 +71,18 @@ export default function GerentePartners() {
   const [licOpen, setLicOpen] = useState(true);
   const [creditOpen, setCreditOpen] = useState(true);
 
+  // Texto bruto dos inputs (para não perder estado intermediário ao digitar)
+  const [licText, setLicText] = useState<Record<string, string>>({});
+  const [creditText, setCreditText] = useState<Record<number, string>>({});
+
+  const centsToText = (c: number) => (c > 0 ? (c / 100).toFixed(2) : "");
+  const textToCents = (s: string) => {
+    const cleaned = s.replace(",", ".").trim();
+    if (!cleaned) return 0;
+    const n = parseFloat(cleaned);
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0;
+  };
+
   const partnerTiers = useMemo(
     () => tiers.filter((t) => t.is_active && (t.is_hidden || t.slug === "partner")),
     [tiers],
@@ -279,9 +291,11 @@ export default function GerentePartners() {
     setLicEffective(lEff);
     setLicSource(lSrc);
     setLicDraft({ ...lEff });
+    setLicText(Object.fromEntries(Object.entries(lEff).map(([k, v]) => [k, centsToText(v as number)])));
     setCreditEffective(cEff);
     setCreditSource(cSrc);
     setCreditDraft({ ...cEff });
+    setCreditText(Object.fromEntries(Object.entries(cEff).map(([k, v]) => [Number(k), centsToText(v as number)])) as Record<number, string>);
     setLoadingPrices(false);
   };
 
@@ -289,15 +303,15 @@ export default function GerentePartners() {
 
   useEffect(() => {
     setSelectedResellerId("");
-    setLicEffective({}); setLicDraft({}); setLicSource({});
-    setCreditEffective({}); setCreditDraft({}); setCreditSource({});
+    setLicEffective({}); setLicDraft({}); setLicSource({}); setLicText({});
+    setCreditEffective({}); setCreditDraft({}); setCreditSource({}); setCreditText({});
   }, [selectedTierId]);
 
   useEffect(() => {
     if (selectedResellerId) loadEffectivePrices(selectedResellerId);
     else {
-      setLicEffective({}); setLicDraft({}); setLicSource({});
-      setCreditEffective({}); setCreditDraft({}); setCreditSource({});
+      setLicEffective({}); setLicDraft({}); setLicSource({}); setLicText({});
+      setCreditEffective({}); setCreditDraft({}); setCreditSource({}); setCreditText({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedResellerId, creditPackages.length]);
@@ -387,6 +401,8 @@ export default function GerentePartners() {
   const resetDraft = () => {
     setLicDraft({ ...licEffective });
     setCreditDraft({ ...creditEffective });
+    setLicText(Object.fromEntries(Object.entries(licEffective).map(([k, v]) => [k, centsToText(v as number)])));
+    setCreditText(Object.fromEntries(Object.entries(creditEffective).map(([k, v]) => [Number(k), centsToText(v as number)])) as Record<number, string>);
   };
 
   if (loading) {
@@ -635,7 +651,7 @@ export default function GerentePartners() {
                         <div className="grid gap-2 p-3 sm:p-4 sm:grid-cols-2 lg:grid-cols-3">
                           {LICENSE_PACKS.map((pack) => {
                             const cents = licDraft[pack.id] ?? 0;
-                            const reais = cents > 0 ? (cents / 100).toFixed(2) : "";
+                            const reais = licText[pack.id] ?? centsToText(cents);
                             const src = licSource[pack.id] ?? "none";
                             const dirty = (licDraft[pack.id] ?? 0) !== (licEffective[pack.id] ?? 0);
                             const dotColor =
@@ -675,15 +691,19 @@ export default function GerentePartners() {
                                       R$
                                     </span>
                                     <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
+                                      type="text"
+                                      inputMode="decimal"
                                       placeholder="—"
                                       value={reais}
                                       onChange={(e) => {
                                         const v = e.target.value;
-                                        const c = v === "" ? 0 : Math.max(0, Math.round(parseFloat(v) * 100));
+                                        setLicText((prev) => ({ ...prev, [pack.id]: v }));
+                                        const c = textToCents(v);
                                         setLicDraft((prev) => ({ ...prev, [pack.id]: c }));
+                                      }}
+                                      onBlur={(e) => {
+                                        const c = textToCents(e.target.value);
+                                        setLicText((prev) => ({ ...prev, [pack.id]: centsToText(c) }));
                                       }}
                                       className={`h-9 pl-7 text-right font-mono text-xs tabular-nums transition-all ${
                                         dirty
@@ -747,7 +767,7 @@ export default function GerentePartners() {
                         <div className="grid gap-2 p-3 sm:p-4 sm:grid-cols-2 lg:grid-cols-3">
                           {creditPackages.map((pkg) => {
                             const cents = creditDraft[pkg.credits_amount] ?? 0;
-                            const reais = cents > 0 ? (cents / 100).toFixed(2) : "";
+                            const reais = creditText[pkg.credits_amount] ?? centsToText(cents);
                             const src = creditSource[pkg.credits_amount] ?? "none";
                             const dirty = (creditDraft[pkg.credits_amount] ?? 0) !== (creditEffective[pkg.credits_amount] ?? 0);
                             const dotColor =
@@ -788,15 +808,19 @@ export default function GerentePartners() {
                                       R$
                                     </span>
                                     <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
+                                      type="text"
+                                      inputMode="decimal"
                                       placeholder="—"
                                       value={reais}
                                       onChange={(e) => {
                                         const v = e.target.value;
-                                        const c = v === "" ? 0 : Math.max(0, Math.round(parseFloat(v) * 100));
+                                        setCreditText((prev) => ({ ...prev, [pkg.credits_amount]: v }));
+                                        const c = textToCents(v);
                                         setCreditDraft((prev) => ({ ...prev, [pkg.credits_amount]: c }));
+                                      }}
+                                      onBlur={(e) => {
+                                        const c = textToCents(e.target.value);
+                                        setCreditText((prev) => ({ ...prev, [pkg.credits_amount]: centsToText(c) }));
                                       }}
                                       className={`h-9 pl-7 text-right font-mono text-xs tabular-nums transition-all ${
                                         dirty
