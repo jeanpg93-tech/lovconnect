@@ -4,12 +4,15 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Sparkles, Zap, Beaker } from "lucide-react";
 import MethodPriceTable from "@/components/painel/MethodPriceTable";
 import RevendedorCreditos from "./RevendedorCreditos";
+import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
+import { usePricingIssues } from "@/hooks/usePricingIssues";
 
 export default function RevendedorPrecos() {
   const [tab, setTab] = useState<string>(() => {
     const p = new URLSearchParams(window.location.search).get("tab");
     return p && ["promptflow", "lovax", "recargas"].includes(p) ? p : "promptflow";
   });
+  const { issues } = usePricingIssues({ pollMs: 30_000 });
 
   return (
     <div>
@@ -17,6 +20,8 @@ export default function RevendedorPrecos() {
         title="Precificação"
         description="Defina seus preços de venda para extensões e recargas."
       />
+
+      {issues.length > 0 && <PricingIssuesBanner issues={issues} className="mb-5" />}
 
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsList className="mb-5 grid w-full grid-cols-3 md:inline-flex md:w-auto">
