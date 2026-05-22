@@ -166,8 +166,10 @@ export default function GerentePartners() {
     (s ?? []).forEach((row: any) => { stateMap[row.reseller_id] = row; });
     setStates(stateMap);
 
-    const firstHidden = tierList.find((x) => x.is_hidden && x.is_active);
-    if (firstHidden) setSelectedTierId((cur) => cur || firstHidden.id);
+    const firstPartner =
+      tierList.find((x) => x.is_active && (x.is_hidden || x.slug === "partner")) ||
+      tierList.find((x) => x.is_active && (x.name || "").toLowerCase().includes("partner"));
+    if (firstPartner) setSelectedTierId((cur) => cur || firstPartner.id);
     setLoading(false);
   };
 
