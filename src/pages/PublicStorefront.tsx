@@ -209,7 +209,14 @@ export default function PublicStorefront() {
   // Tick a cada segundo enquanto há pedido pendente, para o cronômetro de expiração do PIX.
   useEffect(() => {
     if (!order?.expires_at || orderStatus !== "pending") return;
-    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    const t = window.setInterval(() => {
+      const n = Date.now();
+      setNow(n);
+      if (order.expires_at && new Date(order.expires_at).getTime() <= n) {
+        setOrderStatus("expirado");
+        if (pollRef.current) window.clearInterval(pollRef.current);
+      }
+    }, 1000);
     return () => window.clearInterval(t);
   }, [order?.expires_at, orderStatus]);
 
