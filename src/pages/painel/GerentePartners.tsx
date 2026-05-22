@@ -291,9 +291,11 @@ export default function GerentePartners() {
     setLicEffective(lEff);
     setLicSource(lSrc);
     setLicDraft({ ...lEff });
+    setLicText(Object.fromEntries(Object.entries(lEff).map(([k, v]) => [k, centsToText(v as number)])));
     setCreditEffective(cEff);
     setCreditSource(cSrc);
     setCreditDraft({ ...cEff });
+    setCreditText(Object.fromEntries(Object.entries(cEff).map(([k, v]) => [Number(k), centsToText(v as number)])) as Record<number, string>);
     setLoadingPrices(false);
   };
 
@@ -301,15 +303,15 @@ export default function GerentePartners() {
 
   useEffect(() => {
     setSelectedResellerId("");
-    setLicEffective({}); setLicDraft({}); setLicSource({});
-    setCreditEffective({}); setCreditDraft({}); setCreditSource({});
+    setLicEffective({}); setLicDraft({}); setLicSource({}); setLicText({});
+    setCreditEffective({}); setCreditDraft({}); setCreditSource({}); setCreditText({});
   }, [selectedTierId]);
 
   useEffect(() => {
     if (selectedResellerId) loadEffectivePrices(selectedResellerId);
     else {
-      setLicEffective({}); setLicDraft({}); setLicSource({});
-      setCreditEffective({}); setCreditDraft({}); setCreditSource({});
+      setLicEffective({}); setLicDraft({}); setLicSource({}); setLicText({});
+      setCreditEffective({}); setCreditDraft({}); setCreditSource({}); setCreditText({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedResellerId, creditPackages.length]);
@@ -399,6 +401,8 @@ export default function GerentePartners() {
   const resetDraft = () => {
     setLicDraft({ ...licEffective });
     setCreditDraft({ ...creditEffective });
+    setLicText(Object.fromEntries(Object.entries(licEffective).map(([k, v]) => [k, centsToText(v as number)])));
+    setCreditText(Object.fromEntries(Object.entries(creditEffective).map(([k, v]) => [Number(k), centsToText(v as number)])) as Record<number, string>);
   };
 
   if (loading) {
