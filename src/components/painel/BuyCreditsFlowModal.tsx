@@ -511,6 +511,7 @@ export function BuyCreditsFlowModal({
               <button
                 type="button"
                 onClick={() => setAgreed((v) => !v)}
+                aria-label="Aceitar políticas"
                 className={cn(
                   "w-full flex items-start gap-3 rounded-xl border p-4 text-left transition-all",
                   agreed
