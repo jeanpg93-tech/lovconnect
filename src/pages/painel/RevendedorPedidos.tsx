@@ -10,7 +10,7 @@ import {
   Loader2, ShoppingCart, KeyRound, Copy, ChevronDown, FlaskConical, 
   RefreshCcw, Ban, Trash2, MoreVertical, Sparkles, Crown, Package,
   BookOpen, Zap, Globe, Terminal, FileDown, Puzzle, ShieldCheck,
-  ArrowRight, Wallet, Search
+  ArrowRight, Wallet, Search, Store, X
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
