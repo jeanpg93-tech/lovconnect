@@ -13,7 +13,7 @@ import {
   Chrome, KeyRound, LifeBuoy, MessageCircle, Settings, Palette,
   ShoppingBag, HelpCircle, Zap, Eye, Globe, MessageSquare, Star, Trash2, Plus,
   TrendingUp, Users, DollarSign, Calendar, Package, Coins,
-  Dot, Waves, Sparkles, Sun, Hexagon, Triangle, X, RefreshCw
+  Dot, Waves, Sparkles, Sun, Hexagon, Triangle
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
