@@ -82,7 +82,11 @@ Deno.serve(async (req) => {
       const b1 = Number(valores?.[method]?.[pack_id]?.[tier.id] ?? 0);
       const b2 = b1 > 0 ? 0 : Number(valores?.[otherMethod]?.[pack_id]?.[tier.id] ?? 0);
       let brl = b1 > 0 ? b1 : b2;
-      if (brl <= 0 && tier.is_hidden && ouro?.id) {
+      const isPartnerLike =
+        tier?.is_hidden ||
+        String(tier?.slug || "").toLowerCase() === "partner" ||
+        String(tier?.name || "").toLowerCase().includes("partner");
+      if (brl <= 0 && isPartnerLike && ouro?.id) {
         const o1 = Number(valores?.[method]?.[pack_id]?.[ouro.id] ?? 0);
         const o2 = o1 > 0 ? 0 : Number(valores?.[otherMethod]?.[pack_id]?.[ouro.id] ?? 0);
         brl = o1 > 0 ? o1 : o2;

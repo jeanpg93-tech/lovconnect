@@ -523,7 +523,11 @@ Deno.serve(async (req) => {
       const other = m === "flow" ? "lovax" : "flow";
       let brl = Number(valores?.[m]?.[p]?.[tier?.id] ?? 0);
       if (brl <= 0) brl = Number(valores?.[other]?.[p]?.[tier?.id] ?? 0);
-      if (brl <= 0 && tier?.is_hidden && ouro?.id) {
+      const isPartnerLike =
+        tier?.is_hidden ||
+        String(tier?.slug || "").toLowerCase() === "partner" ||
+        String(tier?.name || "").toLowerCase().includes("partner");
+      if (brl <= 0 && isPartnerLike && ouro?.id) {
         brl = Number(valores?.[m]?.[p]?.[ouro.id] ?? 0);
         if (brl <= 0) brl = Number(valores?.[other]?.[p]?.[ouro.id] ?? 0);
       }
@@ -614,7 +618,11 @@ Deno.serve(async (req) => {
     } else {
       let brl = Number(valores?.[metodo]?.[pacote]?.[tier.id] ?? 0);
       if (brl <= 0) brl = Number(valores?.[otherMethod]?.[pacote]?.[tier.id] ?? 0);
-      if (brl <= 0 && tier.is_hidden && ouro?.id) {
+      const isPartnerLike =
+        tier?.is_hidden ||
+        String(tier?.slug || "").toLowerCase() === "partner" ||
+        String(tier?.name || "").toLowerCase().includes("partner");
+      if (brl <= 0 && isPartnerLike && ouro?.id) {
         brl = Number(valores?.[metodo]?.[pacote]?.[ouro.id] ?? 0);
         if (brl <= 0) brl = Number(valores?.[otherMethod]?.[pacote]?.[ouro.id] ?? 0);
       }
