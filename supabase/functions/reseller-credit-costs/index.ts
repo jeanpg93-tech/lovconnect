@@ -103,6 +103,16 @@ Deno.serve(async (req) => {
     if (credits != null) costs[credits] = Number(row.price_cents ?? 0);
   });
 
+  // Overrides individuais de CUSTO definidos pelo gerente (sobrepõem o tier/Ouro)
+  const { data: overrides } = await svc
+    .from("reseller_credit_cost_overrides")
+    .select("credits_amount,price_cents,is_active")
+    .eq("reseller_id", reseller.id)
+    .eq("is_active", true);
+  (overrides ?? []).forEach((row: { credits_amount: number; price_cents: number }) => {
+    if (row.price_cents > 0) costs[row.credits_amount] = Number(row.price_cents);
+  });
+
   const effectiveTier = allTiers.find((tier) => tier.id === effectiveTierId) ?? null;
 
   return json({
