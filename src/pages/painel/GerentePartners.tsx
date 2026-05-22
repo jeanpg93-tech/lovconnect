@@ -152,18 +152,24 @@ export default function GerentePartners() {
 
   const loadBase = async () => {
     setLoading(true);
-    const [{ data: t }, { data: ex }, { data: r }, { data: s }, { data: cp }] = await Promise.all([
+    const [{ data: t }, { data: ex }, { data: r }, { data: s }, { data: cp }, { data: lv }] = await Promise.all([
       supabase.from("reseller_tiers").select("id,slug,name,color,is_active,is_hidden,min_spent_cents,sort_order").order("sort_order"),
       supabase.from("extensions").select("id,name").eq("is_active", true).order("name"),
       supabase.from("resellers").select("id,display_name").order("display_name"),
       supabase.from("reseller_tier_state").select("reseller_id,forced_tier_id,total_spent_cents"),
       supabase.from("credit_pricing_plans").select("credits_amount,label,price_cents,is_active").eq("is_active", true).order("credits_amount"),
+      supabase.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
     ]);
     const tierList = (t ?? []) as Tier[];
     setTiers(tierList);
     setExtensions((ex ?? []) as Extension[]);
     setResellers((r ?? []) as Reseller[]);
     setCreditPackages(((cp ?? []) as any[]).map((p) => ({ credits_amount: p.credits_amount, label: p.label })));
+    setLicencasValores(((lv as any)?.value ?? {}) as Record<string, any>);
+    const ouro =
+      tierList.find((x) => (x.slug || "").toLowerCase() === "ouro") ??
+      tierList.find((x) => x.name.toLowerCase().includes("ouro"));
+    setOuroTierId(ouro?.id ?? null);
 
     // base costs (apenas recargas)
     const cb: Record<number, number> = {};
