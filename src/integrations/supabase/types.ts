@@ -1575,6 +1575,8 @@ export type Database = {
           cost_cents: number | null
           created_at: string
           credits: number
+          customer_name: string | null
+          customer_whatsapp: string | null
           email_conta_lovable: string | null
           error_message: string | null
           id: string
@@ -1593,6 +1595,8 @@ export type Database = {
           cost_cents?: number | null
           created_at?: string
           credits: number
+          customer_name?: string | null
+          customer_whatsapp?: string | null
           email_conta_lovable?: string | null
           error_message?: string | null
           id?: string
@@ -1611,6 +1615,8 @@ export type Database = {
           cost_cents?: number | null
           created_at?: string
           credits?: number
+          customer_name?: string | null
+          customer_whatsapp?: string | null
           email_conta_lovable?: string | null
           error_message?: string | null
           id?: string
