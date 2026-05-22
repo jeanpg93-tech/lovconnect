@@ -206,7 +206,7 @@ export default function GerenteDashboard() {
       withTimeout(supabase.functions.invoke("provider-api?action=gateway-balance") as any, 8000, { data: null, error: null }),
       withTimeout(supabase.functions.invoke("lovable-credits-api?action=balance", { method: "GET" }) as any, 8000, { data: null, error: null }),
       supabase.from("recharge_intents").select("amount_cents").not("paid_at", "is", null).gte("paid_at", todayIsoEarly),
-      supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id").order("created_at", { ascending: false }).limit(100),
+      supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id, reference_id").order("created_at", { ascending: false }).limit(100),
     ]);
 
     const balanceAny: any = balanceRes;
