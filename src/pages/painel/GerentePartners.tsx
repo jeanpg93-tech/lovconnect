@@ -329,76 +329,77 @@ export default function GerentePartners() {
     setSaving(true);
 
     // === LICENÇAS (overrides de custo) ===
-    // Salvamos somente quando o gerente realmente personalizou (diff em relação ao herdado)
-    const licRows = LICENSE_PACKS
-      .map((pack) => {
-        const v = Number(licDraft[pack.id] ?? 0);
-        const changed = v !== Number(licEffective[pack.id] ?? 0);
-        const wasOverride = licSource[pack.id] === "override";
-        if ((changed || wasOverride) && v > 0) {
-          return {
-            reseller_id: selectedResellerId,
-            pack_id: pack.id,
-            price_cents: Math.round(v),
-            is_active: true,
-          };
-        }
-        return null;
-      })
-      .filter(Boolean) as any[];
-
-    const { error: delErr } = await supabase
-      .from("reseller_license_cost_overrides")
-      .delete()
-      .eq("reseller_id", selectedResellerId);
-    if (delErr) {
-      toast.error(delErr.message);
-      setSaving(false);
-      return;
-    }
-    if (licRows.length) {
-      const { error } = await supabase.from("reseller_license_cost_overrides").insert(licRows);
-      if (error) {
-        toast.error(error.message);
-        setSaving(false);
-        return;
+    // Para cada pack: persistir (upsert) se tiver valor > 0 e (o usuário tocou OU diferente do herdado OU já era override).
+    // Apagar (override -> herdado) se o valor for 0/vazio E já existia override.
+    const licUpserts: any[] = [];
+    const licDeletes: string[] = [];
+    for (const pack of LICENSE_PACKS) {
+      const v = Number(licDraft[pack.id] ?? 0);
+      const wasOverride = licSource[pack.id] === "override";
+      const touched = !!licTouched[pack.id];
+      const changed = v !== Number(licEffective[pack.id] ?? 0);
+      if (v > 0 && (touched || changed || wasOverride)) {
+        licUpserts.push({
+          reseller_id: selectedResellerId,
+          pack_id: pack.id,
+          price_cents: Math.round(v),
+          is_active: true,
+        });
+      } else if (v <= 0 && wasOverride) {
+        licDeletes.push(pack.id);
       }
+    }
+    if (licDeletes.length) {
+      const { error } = await supabase
+        .from("reseller_license_cost_overrides")
+        .delete()
+        .eq("reseller_id", selectedResellerId)
+        .in("pack_id", licDeletes);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+    }
+    if (licUpserts.length) {
+      const { error } = await supabase
+        .from("reseller_license_cost_overrides")
+        .upsert(licUpserts, { onConflict: "reseller_id,pack_id" });
+      if (error) { toast.error(error.message); setSaving(false); return; }
     }
 
     // === CRÉDITOS (overrides de custo) ===
-    const creditRows = creditPackages
-      .map((pkg) => {
-        const v = Number(creditDraft[pkg.credits_amount] ?? 0);
-        const changed = v !== Number(creditEffective[pkg.credits_amount] ?? 0);
-        const wasOverride = creditSource[pkg.credits_amount] === "override";
-        if ((changed || wasOverride) && v > 0) {
-          return {
-            reseller_id: selectedResellerId,
-            credits_amount: pkg.credits_amount,
-            price_cents: Math.round(v),
-            is_active: true,
-          };
-        }
-        return null;
-      })
-      .filter(Boolean) as any[];
-
-    const { error: delCredErr } = await supabase
-      .from("reseller_credit_cost_overrides")
-      .delete()
-      .eq("reseller_id", selectedResellerId);
-    if (delCredErr) {
-      toast.error(delCredErr.message);
-      setSaving(false);
-      return;
-    }
-    if (creditRows.length) {
-      const { error } = await supabase.from("reseller_credit_cost_overrides").insert(creditRows);
-      if (error) {
-        toast.error(error.message);
-        setSaving(false);
-        return;
+    const credUpserts: any[] = [];
+    const credDeletes: number[] = [];
+    for (const pkg of creditPackages) {
+      // Prioriza o texto digitado (mais confiável que creditDraft em casos de race)
+      const raw = creditText[pkg.credits_amount];
+      const v = raw !== undefined
+        ? textToCents(raw)
+        : Number(creditDraft[pkg.credits_amount] ?? 0);
+      const wasOverride = creditSource[pkg.credits_amount] === "override";
+      const touched = !!creditTouched[pkg.credits_amount];
+      const changed = v !== Number(creditEffective[pkg.credits_amount] ?? 0);
+      if (v > 0 && (touched || changed || wasOverride)) {
+        credUpserts.push({
+          reseller_id: selectedResellerId,
+          credits_amount: pkg.credits_amount,
+          price_cents: Math.round(v),
+          is_active: true,
+        });
+      } else if (v <= 0 && wasOverride) {
+        credDeletes.push(pkg.credits_amount);
       }
+    }
+    if (credDeletes.length) {
+      const { error } = await supabase
+        .from("reseller_credit_cost_overrides")
+        .delete()
+        .eq("reseller_id", selectedResellerId)
+        .in("credits_amount", credDeletes);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+    }
+    if (credUpserts.length) {
+      const { error } = await supabase
+        .from("reseller_credit_cost_overrides")
+        .upsert(credUpserts, { onConflict: "reseller_id,credits_amount" });
+      if (error) { toast.error(error.message); setSaving(false); return; }
     }
 
     toast.success(`Custos salvos para ${selectedReseller?.display_name}`);
