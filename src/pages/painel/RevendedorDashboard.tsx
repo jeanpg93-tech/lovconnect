@@ -732,9 +732,33 @@ export default function RevendedorDashboard() {
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs md:text-sm font-bold truncate">
-                        {activity.type === 'sale' ? (extMap[activity.metadata?.extension_id || ""] || activity.title) : activity.title}
+                        {activity.title}
+                        {activity.type === 'sale' && extMap[activity.metadata?.extension_id || ""] ? (
+                          <span className="ml-1 text-muted-foreground font-normal">· {extMap[activity.metadata.extension_id]}</span>
+                        ) : null}
                       </div>
                       <div className="text-[9px] md:text-[10px] text-muted-foreground">{format(new Date(activity.created_at), "dd MMM, HH:mm", { locale: ptBR })}</div>
+                      {(activity.metadata?.customer_name || activity.metadata?.customer_whatsapp) && (
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] md:text-[10px] pt-0.5">
+                          {activity.metadata?.customer_name && (
+                            <span className="font-semibold text-foreground/80 truncate max-w-[180px]">👤 {activity.metadata.customer_name}</span>
+                          )}
+                          {activity.metadata?.customer_whatsapp && (
+                            <>
+                              <span className="text-muted-foreground/60">·</span>
+                              <a
+                                href={`https://wa.me/${String(activity.metadata.customer_whatsapp).replace(/\D+/g, "")}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-mono text-emerald-500 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {activity.metadata.customer_whatsapp}
+                              </a>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">
