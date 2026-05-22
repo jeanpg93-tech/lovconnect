@@ -1,0 +1,2 @@
+ALTER TABLE public.refund_requests DROP CONSTRAINT IF EXISTS refund_requests_kind_check;
+ALTER TABLE public.refund_requests ADD CONSTRAINT refund_requests_kind_check CHECK (kind = ANY (ARRAY['recharge'::text, 'license'::text, 'credit_purchase'::text]));
