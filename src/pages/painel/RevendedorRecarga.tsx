@@ -1091,6 +1091,20 @@ export default function RevendedorRecargas() {
                         Endpoints REST processados em tempo real. Saldo debitado na hora. Use o header <code className="font-mono text-primary">X-API-Key</code> em todas as requisições.
                       </p>
 
+                      <div className="relative rounded-2xl border border-primary/30 bg-primary/10 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-bold text-foreground">Chave API Automática</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Clique abaixo para criar ou resetar sua chave de recargas automáticas.</p>
+                          </div>
+                          <Button asChild className="h-11 rounded-xl bg-primary px-5 text-xs font-bold text-primary-foreground hover:bg-primary/90">
+                            <Link to="/painel/revendedor/api-recargas">
+                              <KeyRound className="mr-2 h-4 w-4" /> Gerar chave API
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+
                       <div className="relative space-y-3">
                         <div className="flex items-center gap-2">
                           <Globe className="h-4 w-4 text-primary" />
@@ -1158,6 +1172,20 @@ export default function RevendedorRecargas() {
                       <p className="relative text-sm text-muted-foreground font-medium leading-relaxed">
                         Fluxo manual processado pela equipe. Exige <strong>chave separada</strong> (scope <code className="font-mono text-amber-500">recharges_manual</code>). Saldo debitado na hora; entrega em até 24h.
                       </p>
+
+                      <div className="relative rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-bold text-foreground">Chave API Manual</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Clique abaixo para criar ou resetar sua chave de recargas manuais.</p>
+                          </div>
+                          <Button asChild className="h-11 rounded-xl bg-amber-500 px-5 text-xs font-bold text-primary-foreground hover:bg-amber-500/90">
+                            <Link to="/painel/revendedor/api-recargas">
+                              <KeyRound className="mr-2 h-4 w-4" /> Gerar chave API
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
 
                       <div className="relative space-y-3">
                         <div className="flex items-center gap-2">
