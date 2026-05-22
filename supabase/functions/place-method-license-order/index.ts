@@ -12,10 +12,32 @@ const ALLOWED_PACKS = ["1d", "7d", "30d", "90d", "365d", "lifetime"];
 
 const onlyDigits = (s: string) => (s ?? "").toString().replace(/\D+/g, "");
 
-const genKey = (method: string, pack: string) => {
-  const rnd = crypto.randomUUID().replace(/-/g, "").toUpperCase().slice(0, 16);
-  return `${method.toUpperCase()}-${pack.toUpperCase()}-${rnd}`;
-};
+const DEFAULT_FLOW_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+const DEFAULT_LOVAX_BASE = "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
+
+function packToFlowBody(pack: string): Record<string, unknown> {
+  switch (pack) {
+    case "1d": return { days: 1 };
+    case "7d": return { days: 7 };
+    case "30d": return { days: 30 };
+    case "90d": return { days: 90 };
+    case "365d": return { days: 365 };
+    case "lifetime": return { lifetime: true };
+    default: return { days: 30 };
+  }
+}
+
+function packToLovaxDays(pack: string): number {
+  switch (pack) {
+    case "1d": return 1;
+    case "7d": return 7;
+    case "30d": return 30;
+    case "90d": return 90;
+    case "365d": return 365;
+    case "lifetime": return 36500;
+    default: return 30;
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
