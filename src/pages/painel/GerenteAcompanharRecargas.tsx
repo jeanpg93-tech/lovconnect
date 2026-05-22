@@ -184,6 +184,42 @@ export default function GerenteAcompanharRecargas() {
             refunded: p.status === "estornado",
           });
         }
+        // Fallback: pedidos criados pelo fluxo automático/storefront ficam em provider_credit_orders
+        const missing = ids.filter((id: string) => !respMap.has(id));
+        if (missing.length > 0) {
+          const { data: providerOrders } = await supabase
+            .from("provider_credit_orders")
+            .select("pedido_id, user_id, preco_cents")
+            .in("pedido_id", missing);
+          const pcoUserIds = Array.from(new Set((providerOrders ?? []).map((p: any) => p.user_id).filter(Boolean)));
+          let pcoProfMap = new Map<string, { email: string | null; display_name: string | null }>();
+          if (pcoUserIds.length > 0) {
+            const { data: profs } = await supabase
+              .from("profiles")
+              .select("id, email, display_name")
+              .in("id", pcoUserIds);
+            pcoProfMap = new Map((profs ?? []).map((p: any) => [p.id, { email: p.email, display_name: p.display_name }]));
+            // tenta também pegar display_name de resellers para esses user_ids
+            const { data: rs } = await supabase
+              .from("resellers")
+              .select("user_id, display_name")
+              .in("user_id", pcoUserIds);
+            for (const r of (rs ?? []) as any[]) {
+              const cur = pcoProfMap.get(r.user_id);
+              pcoProfMap.set(r.user_id, { email: cur?.email ?? null, display_name: r.display_name ?? cur?.display_name ?? null });
+            }
+          }
+          for (const po of (providerOrders ?? []) as any[]) {
+            const prof = pcoProfMap.get(po.user_id);
+            respMap.set(po.pedido_id, {
+              nome: prof?.display_name ?? null,
+              email: prof?.email ?? null,
+            });
+            if (!priceMap.has(po.pedido_id)) {
+              priceMap.set(po.pedido_id, { price_cents: po.preco_cents ?? null, refunded: false });
+            }
+          }
+        }
         for (const o of orders) {
           const r = respMap.get(o.id);
           if (r) {
