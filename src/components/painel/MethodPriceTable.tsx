@@ -173,7 +173,11 @@ export default function MethodPriceTable({ method }: { method: Method }) {
     const otherMethod: Method = method === "flow" ? "lovax" : "flow";
     const mineOther = Number(prices?.[otherMethod]?.[id]?.[tier?.id] ?? 0);
     if (mineOther > 0) return mineOther;
-    if (tier?.is_hidden && ouroTier?.id) {
+    const isPartnerLike =
+      tier?.is_hidden ||
+      (tier?.slug || "").toLowerCase() === "partner" ||
+      (tier?.name || "").toLowerCase().includes("partner");
+    if (isPartnerLike && ouroTier?.id) {
       const ouro = Number(prices?.[method]?.[id]?.[ouroTier.id] ?? 0);
       if (ouro > 0) return ouro;
       const ouroOther = Number(prices?.[otherMethod]?.[id]?.[ouroTier.id] ?? 0);
