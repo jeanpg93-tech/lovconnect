@@ -266,6 +266,25 @@ export default function RevendedorPedidos() {
   const [refundedOrderIds, setRefundedOrderIds] = useState<Set<string>>(new Set());
   const [refundingId, setRefundingId] = useState<string | null>(null);
 
+  // Vendas de licença feitas pela Loja (storefront)
+  type StorefrontLicRow = {
+    id: string;
+    short_code: string | null;
+    status: string;
+    license_key: string | null;
+    license_type: string;
+    price_cents: number | null;
+    cost_cents: number | null;
+    paid_at: string | null;
+    created_at: string;
+    buyer_name: string | null;
+    buyer_whatsapp: string | null;
+    error_message: string | null;
+  };
+  const [storefrontLicenses, setStorefrontLicenses] = useState<StorefrontLicRow[]>([]);
+  const [licOriginFilter, setLicOriginFilter] = useState<"all" | "manual" | "loja">("all");
+  const [cancellingStorefrontId, setCancellingStorefrontId] = useState<string | null>(null);
+
   const loadRefunds = async (rid: string) => {
     const { data } = await supabase
       .from("refund_requests")
