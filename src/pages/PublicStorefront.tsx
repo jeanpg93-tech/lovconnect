@@ -199,6 +199,7 @@ export default function PublicStorefront() {
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [licenseKey, setLicenseKey] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [securityNoticeOpen, setSecurityConfirmOpen] = useState(false);
@@ -302,6 +303,7 @@ export default function PublicStorefront() {
         if (data?.order) {
           setOrderStatus(data.order.status);
           if (data.order.license_key) setLicenseKey(data.order.license_key);
+          if (data.order.invite_link) setInviteLink(data.order.invite_link);
           if (["completed", "failed", "refunded", "cancelado"].includes(data.order.status)) {
             if (pollRef.current) window.clearInterval(pollRef.current);
           }
