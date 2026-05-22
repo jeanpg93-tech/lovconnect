@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -112,6 +112,7 @@ export default function RevendedorDashboard() {
     clients: 0,
     activeLicenses: 0,
     failedOrders: 0,
+    canceledOrders: 0,
   });
 
   const [activities, setActivities] = useState<ActivityItem[]>([]);
@@ -126,19 +127,17 @@ export default function RevendedorDashboard() {
     misticpay_enabled: boolean;
   }>({ misticpay_enabled: false });
 
-  useEffect(() => {
+  const reload = useCallback(async (opts: { silent?: boolean } = {}) => {
     if (!user) return;
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
+    if (!opts.silent) setLoading(true);
+    try {
       const { data: r } = await supabase
         .from("resellers")
         .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (!r || cancelled) {
-        setLoading(false);
+      if (!r) {
+        if (!opts.silent) setLoading(false);
         return;
       }
       setResellerId(r.id);
@@ -153,6 +152,7 @@ export default function RevendedorDashboard() {
         clientsRes,
         licensesRes,
         failedRes,
+        canceledRes,
         ordersRes,
         rechargesRes,
         integRes,
@@ -165,13 +165,12 @@ export default function RevendedorDashboard() {
         supabase.from("profiles").select("*", { count: "exact", head: true }).eq("reseller_id", r.id),
         supabase.from("client_extensions").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("status", "active"),
         supabase.from("orders").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("is_test", false).in("status", ["failed", "refunded"]),
+        supabase.from("orders").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("is_test", false).in("status", ["refunded", "revoked", "canceled", "cancelled"]),
         supabase.from("orders").select("id,license_type,price_cents,status,created_at,client_id,extension_id,is_test,notes").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
         supabase.from("reseller_credit_purchases").select("id,credits,price_cents,status,created_at").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
         supabase.from("reseller_integrations").select("misticpay_enabled,connection_status").eq("reseller_id", r.id).maybeSingle(),
         supabase.from("announcements").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
       ]);
-
-      if (cancelled) return;
 
       setBalance(balanceRes.data?.balance_cents ?? 0);
       const spent = tierStateRes.data?.total_spent_cents ?? 0;
@@ -218,6 +217,7 @@ export default function RevendedorDashboard() {
         clients: clientsRes.count ?? 0,
         activeLicenses: licensesRes.count ?? 0,
         failedOrders: failedRes.count ?? 0,
+        canceledOrders: canceledRes.count ?? 0,
       });
 
       setIntegrations({
@@ -231,7 +231,6 @@ export default function RevendedorDashboard() {
         .eq("reseller_id", r.id)
         .eq("status", "active")
         .order("created_at", { ascending: false });
-      if (cancelled) return;
       const activeList = (activeLicData ?? []) as any[];
       setActiveLicensesList(activeList);
 
@@ -252,23 +251,37 @@ export default function RevendedorDashboard() {
           ? supabase.from("profiles").select("id,display_name,email").in("id", cliIds)
           : Promise.resolve({ data: [] as any[] }),
       ]);
-      if (cancelled) return;
       setExtMap(Object.fromEntries((extData.data ?? []).map((e: any) => [e.id, e.name])));
       setClientMap(
         Object.fromEntries(
           (cliData.data ?? []).map((p: any) => [p.id, p.display_name || p.email || "Cliente"]),
         ),
       );
-      } catch (e) {
-        console.error("[RevendedorDashboard] load failed", e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    } catch (e) {
+      console.error("[RevendedorDashboard] load failed", e);
+    } finally {
+      if (!opts.silent) setLoading(false);
+    }
   }, [user]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  // Realtime: refetch silenciosamente quando algo do revendedor mudar
+  // (reembolso, cancelamento de venda, recarga, mudança de saldo etc).
+  useEffect(() => {
+    if (!user || !resellerId) return;
+    const filter = `reseller_id=eq.${resellerId}`;
+    const ch = supabase
+      .channel(`revendedor-dashboard-${resellerId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "reseller_balances", filter }, () => reload({ silent: true }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter }, () => reload({ silent: true }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "reseller_credit_purchases", filter }, () => reload({ silent: true }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "reseller_tier_state", filter }, () => reload({ silent: true }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, resellerId, reload]);
 
   // Agregações
   const completed = useMemo(() => activities.filter((a) => a.status === "completed" && !(a.type === "sale" && a.metadata?.is_test)), [activities]);
@@ -532,12 +545,13 @@ export default function RevendedorDashboard() {
       )}
 
       {/* INDICADORES RÁPIDOS */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         {[
           { label: "Hoje", count: today.count, cents: today.cents, icon: Zap, color: "text-primary", bg: "bg-primary/5" },
           { label: "7 dias", count: last7.count, cents: last7.cents, icon: Activity, color: "text-blue-500", bg: "bg-blue-500/5" },
           { label: "30 dias", count: last30.count, cents: last30.cents, icon: Package, color: "text-emerald-500", bg: "bg-emerald-500/5" },
-          { label: "Ativas", count: stats.activeLicenses, cents: null, icon: ShieldCheck, color: "text-purple-500", bg: "bg-purple-500/5" }
+          { label: "Ativas", count: stats.activeLicenses, cents: null, icon: ShieldCheck, color: "text-purple-500", bg: "bg-purple-500/5" },
+          { label: "Canceladas", count: stats.canceledOrders, cents: null, icon: XCircle, color: "text-destructive", bg: "bg-destructive/5" },
         ].map((item, i) => (
           <div key={i} className="rounded-2xl border border-border bg-card p-4 transition-all duration-300 hover:shadow-sm">
             <div className="gap-2 mb-2 flex items-center justify-start">
