@@ -61,6 +61,11 @@ import { useToast } from "@/hooks/use-toast";
 import ManagerPricingIssuesBanner from "@/components/painel/ManagerPricingIssuesBanner";
 import { useAllPricingIssues } from "@/hooks/useAllPricingIssues";
 
+function PricingIssuesAlert() {
+  const { resellers } = useAllPricingIssues({ pollMs: 60_000 });
+  return <ManagerPricingIssuesBanner resellers={resellers} />;
+}
+
 type Stats = {
   ext: number;
   rev: number;
