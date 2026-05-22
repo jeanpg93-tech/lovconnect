@@ -1399,8 +1399,9 @@ export default function RevendedorRecargas() {
                                 <Badge
                                   variant="outline"
                                   className="text-[9px] font-bold uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                                  title={`Bônus de ${Math.round((r.bonus_cents / r.amount_cents) * 100)}% concedido pelo seu nível na hora da recarga`}
                                 >
-                                  +{formatBRL(r.bonus_cents)} bônus
+                                  +{formatBRL(r.bonus_cents)} bônus ({Math.round((r.bonus_cents / r.amount_cents) * 100)}% do seu nível)
                                 </Badge>
                               ) : null}
                               {r.provider ? (

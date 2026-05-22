@@ -71,11 +71,28 @@ Deno.serve(async (req) => {
 
       if (status === "COMPLETO") {
         const total = Number(intent.amount_cents) + Number(intent.bonus_cents ?? 0);
+        // Busca o nível atual para descrever explicitamente o bônus aplicado
+        let tierLabel = "";
+        if (intent.bonus_cents && Number(intent.bonus_cents) > 0) {
+          try {
+            const { data: rtier } = await admin.rpc("get_reseller_tier", {
+              _reseller_id: intent.reseller_id,
+            });
+            const rtierRow: any = Array.isArray(rtier) ? rtier[0] : rtier;
+            const pct = Math.round(
+              (Number(intent.bonus_cents) / Number(intent.amount_cents)) * 100,
+            );
+            const name = rtierRow?.name ? ` ${rtierRow.name}` : "";
+            tierLabel = ` — bônus${name} ${pct}% (+R$ ${(Number(intent.bonus_cents) / 100).toFixed(2)})`;
+          } catch (_e) {
+            tierLabel = ` (+ bônus R$ ${(Number(intent.bonus_cents) / 100).toFixed(2)})`;
+          }
+        }
         const { error: credErr } = await admin.rpc("credit_reseller_balance", {
           _reseller_id: intent.reseller_id,
           _amount_cents: total,
           _kind: "recharge",
-          _description: `Recarga MisticPay${intent.bonus_cents ? ` (+ bônus ${intent.bonus_cents / 100} BRL)` : ""}`,
+          _description: `Recarga MisticPay${tierLabel}`,
           _reference_id: intent.id,
         });
         if (credErr) {
