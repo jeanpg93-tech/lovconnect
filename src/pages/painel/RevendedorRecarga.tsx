@@ -270,6 +270,35 @@ export default function RevendedorRecargas() {
       .limit(20);
     setRecentCreditPurchases((data ?? []) as CreditPurchaseRow[]);
   };
+
+  const loadStorefrontCredits = async (rid: string) => {
+    const { data } = await supabase
+      .from("storefront_orders")
+      .select("id,short_code,status,price_cents,cost_cents,credit_amount,paid_at,created_at,buyer_name,buyer_whatsapp,error_message")
+      .eq("reseller_id", rid)
+      .eq("product_type", "credits")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setStorefrontCredits((data ?? []) as StorefrontCreditRow[]);
+  };
+
+  const cancelStorefrontOrder = async (orderId: string, shortCode: string | null) => {
+    if (!confirm(`Cancelar a venda #${shortCode ?? orderId.slice(0, 8)}? Só é possível antes do pagamento PIX.`)) return;
+    setCancellingStorefrontId(orderId);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-storefront-order", {
+        body: { order_id: orderId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Venda cancelada");
+      if (resellerId) loadStorefrontCredits(resellerId);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao cancelar venda");
+    } finally {
+      setCancellingStorefrontId(null);
+    }
+  };
   const loadAllCreditPurchases = async () => {
     if (!resellerId) return;
     setLoadingAllCreditPurchases(true);
