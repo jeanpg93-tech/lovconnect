@@ -234,6 +234,24 @@ export default function RevendedorRecargas() {
   const [refundingCreditPurchaseId, setRefundingCreditPurchaseId] = useState<string | null>(null);
   const [syncingCreditPurchases, setSyncingCreditPurchases] = useState(false);
 
+  // Vendas de créditos vindas da Loja (storefront_orders, product_type='credits')
+  type StorefrontCreditRow = {
+    id: string;
+    short_code: string | null;
+    status: string;
+    price_cents: number | null;
+    cost_cents: number | null;
+    credit_amount: number | null;
+    paid_at: string | null;
+    created_at: string;
+    buyer_name: string | null;
+    buyer_whatsapp: string | null;
+    error_message: string | null;
+  };
+  const [storefrontCredits, setStorefrontCredits] = useState<StorefrontCreditRow[]>([]);
+  const [cpOriginFilter, setCpOriginFilter] = useState<"all" | "manual" | "loja">("all");
+  const [cancellingStorefrontId, setCancellingStorefrontId] = useState<string | null>(null);
+
   const loadCreditPurchaseRefunds = async (rid: string) => {
     const { data } = await supabase
       .from("refund_requests")
