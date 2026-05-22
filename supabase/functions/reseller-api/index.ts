@@ -593,15 +593,37 @@ Deno.serve(async (req) => {
       return json({ error: "Nível do revendedor não definido" }, 400);
     }
 
-    const { data: setting } = await svc.from("app_settings")
-      .select("value").eq("key", "licencas.valores").maybeSingle();
+    // Cascata custo: override individual -> tier -> Partner→Ouro -> método irmão
+    const [{ data: setting }, { data: ovRow }, { data: tiersAll }] = await Promise.all([
+      svc.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
+      svc.from("reseller_license_cost_overrides")
+        .select("price_cents,is_active")
+        .eq("reseller_id", reseller.id)
+        .eq("pack_id", pacote)
+        .eq("is_active", true)
+        .maybeSingle(),
+      svc.from("reseller_tiers").select("id,slug,name,is_hidden").eq("is_active", true),
+    ]);
     const valores = (setting?.value ?? {}) as Record<string, any>;
-    const priceBrl = Number(valores?.[metodo]?.[pacote]?.[tier.id] ?? 0);
-    if (!priceBrl || priceBrl <= 0) {
+    const otherMethod = metodo === "flow" ? "lovax" : "flow";
+    const ouro = (tiersAll ?? []).find((t: any) => (t.slug || "").toLowerCase() === "ouro")
+      ?? (tiersAll ?? []).find((t: any) => (t.name || "").toLowerCase().includes("ouro"));
+    let price_cents = 0;
+    if (ovRow?.price_cents && ovRow.price_cents > 0) {
+      price_cents = Number(ovRow.price_cents);
+    } else {
+      let brl = Number(valores?.[metodo]?.[pacote]?.[tier.id] ?? 0);
+      if (brl <= 0) brl = Number(valores?.[otherMethod]?.[pacote]?.[tier.id] ?? 0);
+      if (brl <= 0 && tier.is_hidden && ouro?.id) {
+        brl = Number(valores?.[metodo]?.[pacote]?.[ouro.id] ?? 0);
+        if (brl <= 0) brl = Number(valores?.[otherMethod]?.[pacote]?.[ouro.id] ?? 0);
+      }
+      price_cents = Math.round(brl * 100);
+    }
+    if (!price_cents || price_cents <= 0) {
       await logUsage(400, { error_message: "Preço não configurado" });
       return json({ error: "Preço não configurado para esse pacote no seu nível" }, 400);
     }
-    const price_cents = Math.round(priceBrl * 100);
     const license_type = `${metodo}_${pacote}`;
 
     // Cria pedido pendente
