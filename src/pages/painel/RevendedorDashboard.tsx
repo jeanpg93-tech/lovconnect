@@ -690,14 +690,20 @@ export default function RevendedorDashboard() {
             {activities.length === 0 ? (
               <div className="py-8 md:py-12 text-center text-xs md:text-sm text-muted-foreground">Nenhuma atividade registrada.</div>
             ) : (
-              activities.slice(0, 5).map((activity) => (
+              activities.slice(0, 8).map((activity) => {
+                const tone = activityTone(activity.status);
+                const toneClasses = {
+                  success: { bg: "bg-emerald-500/10 text-emerald-500", text: "text-emerald-500" },
+                  canceled: { bg: "bg-muted text-muted-foreground", text: "text-muted-foreground" },
+                  pending: { bg: "bg-amber-500/10 text-amber-500", text: "text-amber-500" },
+                  failed: { bg: "bg-destructive/10 text-destructive", text: "text-destructive" },
+                }[tone];
+                const Icon = tone === "success" ? CheckCircle2 : XCircle;
+                return (
                 <div key={activity.id} className="flex items-center justify-between p-2.5 md:p-3 rounded-xl border border-border/50 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
-                    <div className={cn(
-                      "flex h-7 w-7 md:h-8 md:w-8 shrink-0 items-center justify-center rounded-lg",
-                      activity.status === 'completed' ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive"
-                    )}>
-                      {activity.status === 'completed' ? <CheckCircle2 className="h-3.5 w-3.5 md:h-4 md:w-4" /> : <XCircle className="h-3.5 w-3.5 md:h-4 md:w-4" />}
+                    <div className={cn("flex h-7 w-7 md:h-8 md:w-8 shrink-0 items-center justify-center rounded-lg", toneClasses.bg)}>
+                      <Icon className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs md:text-sm font-bold truncate">
@@ -707,13 +713,14 @@ export default function RevendedorDashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs md:text-sm font-bold">{fmtBRL(activity.amount_cents)}</div>
-                    <div className={cn("text-[9px] md:text-[10px] font-bold uppercase", activity.status === 'completed' ? "text-emerald-500" : "text-destructive")}>
+                    <div className={cn("text-xs md:text-sm font-bold", tone === "canceled" && "line-through text-muted-foreground")}>{fmtBRL(activity.amount_cents)}</div>
+                    <div className={cn("text-[9px] md:text-[10px] font-bold uppercase", toneClasses.text)}>
                       {STATUS_LABELS[activity.status] || activity.status}
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
