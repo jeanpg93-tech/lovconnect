@@ -77,14 +77,43 @@ const STATUS_LABELS: Record<string, string> = {
   completed: "Concluído",
   failed: "Falhou",
   refunded: "Reembolsado",
+  reembolsado: "Reembolsado",
+  estornado: "Estornado",
+  cancelado: "Cancelado",
+  canceled: "Cancelado",
+  cancelled: "Cancelado",
+  revoked: "Revogado",
+  manual_concluido: "Concluído (manual)",
+  manual_aceito: "Aceito (manual)",
+  manual_confirmado: "Confirmado (manual)",
+  manual_entregue: "Entregue (manual)",
+  aguardando: "Aguardando",
+  aguardando_avaliacao: "Em análise",
+  processando: "Processando",
+  sucesso: "Concluído",
+  falha: "Falhou",
+  erro: "Erro",
 };
 
-const STATUS_TONE: Record<string, string> = {
-  pending: "bg-amber-500/10 text-amber-500 border-amber-500/40",
-  completed: "bg-emerald-500/10 text-emerald-500 border-emerald-500/40",
-  failed: "bg-destructive/10 text-destructive border-destructive/40",
-  refunded: "bg-muted text-muted-foreground border-border",
-};
+const CANCELED_STATUSES = new Set([
+  "refunded", "reembolsado", "estornado",
+  "canceled", "cancelled", "cancelado",
+  "revoked",
+]);
+
+const SUCCESS_STATUSES = new Set(["completed", "sucesso", "manual_concluido", "manual_entregue"]);
+const PENDING_STATUSES = new Set([
+  "pending", "aguardando", "aguardando_avaliacao", "processando",
+  "manual_aceito", "manual_confirmado",
+]);
+const FAILED_STATUSES = new Set(["failed", "falha", "erro"]);
+
+function activityTone(status: string): "success" | "canceled" | "pending" | "failed" {
+  if (SUCCESS_STATUSES.has(status)) return "success";
+  if (CANCELED_STATUSES.has(status)) return "canceled";
+  if (PENDING_STATUSES.has(status)) return "pending";
+  return "failed";
+}
 
 const PIE_COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#3b82f6", "#a855f7", "#ef4444"];
 
