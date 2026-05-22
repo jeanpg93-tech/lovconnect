@@ -205,7 +205,7 @@ export default function MethodPriceTable({ method }: { method: Method }) {
         <div className="divide-y divide-border">
           {packages.map((pkg) => {
             const Icon = pkg.icon;
-            const base = Number(tierMap(pkg.id)[tier.id] ?? 0);
+            const base = computeBase(pkg.id);
             const empty = !base;
             const myPrice = overrides[pkg.id];
             const isEditing = editing === pkg.id;
