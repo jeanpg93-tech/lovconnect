@@ -8,7 +8,7 @@ import {
   Loader2, Store, MessageCircle, Copy, CheckCircle2, ArrowLeft, 
   ShieldCheck, QrCode, Tag, Sparkles, Download, Chrome, RefreshCw, 
   Key, AlertTriangle, ExternalLink, Star, Quote, Send, HelpCircle,
-  KeyRound, Coins, Zap, Hand
+  KeyRound, Coins, Zap, Hand, X
 } from "lucide-react";
 import { toast } from "sonner";
 import { StorefrontBackground } from "@/components/storefront/StorefrontBackground";
