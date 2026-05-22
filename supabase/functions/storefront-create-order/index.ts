@@ -294,6 +294,7 @@ Deno.serve(async (req) => {
       qr_code_base64: d.qrCodeBase64,
       copy_paste: d.copyPaste,
       amount_cents: price_cents,
+      expires_at: expiresAtIso,
     });
   } catch (e) {
     console.error("storefront-create-order", e);
