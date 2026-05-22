@@ -709,6 +709,7 @@ export default function GerentePartners() {
                                         setLicText((prev) => ({ ...prev, [pack.id]: v }));
                                         const c = textToCents(v);
                                         setLicDraft((prev) => ({ ...prev, [pack.id]: c }));
+                                        setLicTouched((prev) => ({ ...prev, [pack.id]: true }));
                                       }}
                                       onBlur={(e) => {
                                         const c = textToCents(e.target.value);
@@ -826,6 +827,7 @@ export default function GerentePartners() {
                                         setCreditText((prev) => ({ ...prev, [pkg.credits_amount]: v }));
                                         const c = textToCents(v);
                                         setCreditDraft((prev) => ({ ...prev, [pkg.credits_amount]: c }));
+                                        setCreditTouched((prev) => ({ ...prev, [pkg.credits_amount]: true }));
                                       }}
                                       onBlur={(e) => {
                                         const c = textToCents(e.target.value);
