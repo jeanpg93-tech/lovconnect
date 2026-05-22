@@ -2202,6 +2202,7 @@ export type Database = {
           credit_amount: number | null
           delivery_type: string | null
           error_message: string | null
+          expires_at: string | null
           extension_id: string | null
           id: string
           invite_link: string | null
@@ -2229,6 +2230,7 @@ export type Database = {
           credit_amount?: number | null
           delivery_type?: string | null
           error_message?: string | null
+          expires_at?: string | null
           extension_id?: string | null
           id?: string
           invite_link?: string | null
@@ -2256,6 +2258,7 @@ export type Database = {
           credit_amount?: number | null
           delivery_type?: string | null
           error_message?: string | null
+          expires_at?: string | null
           extension_id?: string | null
           id?: string
           invite_link?: string | null
