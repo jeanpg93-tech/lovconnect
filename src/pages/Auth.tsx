@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LovMainLogo } from "@/components/LovMainLogo";
 import { toast } from "sonner";
 import { signInSchema, signUpSchema, forgotPasswordSchema } from "@/lib/auth-schemas";
-import { ArrowLeft, Loader2, Mail, Lock, User as UserIcon, Ticket, AlertTriangle, MessageCircle } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Lock, User as UserIcon, Ticket, AlertTriangle, MessageCircle, Eye, EyeOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
 type Mode = "signin" | "signup" | "forgot";
@@ -28,6 +28,7 @@ const Auth = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [invalidCodeOpen, setInvalidCodeOpen] = useState(false);
   const [whatIsCodeOpen, setWhatIsCodeOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const supportWhatsappUrl = "https://wa.me/5511936183472?text=Olá,%20preciso%20de%20um%20código%20de%20afiliado%20para%20me%20cadastrar.";
 
   useEffect(() => {
@@ -277,12 +278,17 @@ const Auth = () => {
                           Esqueceu?
                         </button>
                       </div>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-                        <Input id="signin-password" type="password" autoComplete="current-password" value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="rounded-none border-border/50 bg-background/40 pl-9 text-xs placeholder:text-muted-foreground/30 focus-visible:ring-primary/30" placeholder="••••••••" />
-                      </div>
+                       <div className="relative">
+                         <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+                         <Input id="signin-password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password}
+                           onChange={(e) => setPassword(e.target.value)}
+                           className="rounded-none border-border/50 bg-background/40 pl-9 pr-10 text-xs placeholder:text-muted-foreground/30 focus-visible:ring-primary/30" placeholder="••••••••" />
+                         <button type="button" onClick={() => setShowPassword((v) => !v)}
+                           aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-primary transition-colors">
+                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                         </button>
+                       </div>
                       {errors.password && <p className="text-[10px] text-destructive uppercase tracking-widest">{errors.password}</p>}
                     </div>
                     <Button type="submit" disabled={loading} className="w-full rounded-none border border-primary/60 bg-transparent h-12 text-[11px] font-bold uppercase tracking-[0.3em] text-foreground hover:bg-primary/10 hover:shadow-[0_0_20px_hsl(var(--primary)/0.3)]">
@@ -317,12 +323,17 @@ const Auth = () => {
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="signup-password" className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Senha</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-                        <Input id="signup-password" type="password" autoComplete="new-password" value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="rounded-none border-border/50 bg-background/40 pl-9 text-xs placeholder:text-muted-foreground/30 focus-visible:ring-primary/30" placeholder="MÍN. 8 CARACTERES" />
-                      </div>
+                       <div className="relative">
+                         <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+                         <Input id="signup-password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={password}
+                           onChange={(e) => setPassword(e.target.value)}
+                           className="rounded-none border-border/50 bg-background/40 pl-9 pr-10 text-xs placeholder:text-muted-foreground/30 focus-visible:ring-primary/30" placeholder="MÍN. 8 CARACTERES" />
+                         <button type="button" onClick={() => setShowPassword((v) => !v)}
+                           aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-primary transition-colors">
+                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                         </button>
+                       </div>
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="signup-affiliate" className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Código de Convite</Label>
