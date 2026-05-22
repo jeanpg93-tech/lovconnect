@@ -1343,6 +1343,17 @@ export default function PublicStorefront() {
                                   </span>
                                 </div>
                               )}
+                              {checkedOrder.status === "completed" && checkedOrder.invite_link && (
+                                <a
+                                  href={checkedOrder.invite_link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-bold text-white"
+                                  style={{ backgroundColor: color }}
+                                >
+                                  Acessar minhas recargas
+                                </a>
+                              )}
                             </div>
                           )}
                         </div>
