@@ -368,15 +368,83 @@ export default function GerenteDashboard() {
       moveNameMap = new Map(rMap);
       (extraRs ?? []).forEach((r: any) => moveNameMap.set(r.id, r.display_name));
     }
+
+    // Enriquecimento: busca customer info de orders + credit_purchases recentes
+    // e cruza com balance_transactions por (reseller_id, price_cents, bucket de tempo ~60s).
+    const enrichSince = movesData.length
+      ? new Date(Math.min(...movesData.map((m: any) => new Date(m.created_at).getTime())) - 120_000).toISOString()
+      : new Date(Date.now() - 24 * 3600_000).toISOString();
+    const [{ data: enrichOrders }, { data: enrichCredits }] = await Promise.all([
+      supabase
+        .from("orders")
+        .select("reseller_id,price_cents,created_at,license_type,is_test, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
+        .gte("created_at", enrichSince)
+        .order("created_at", { ascending: false })
+        .limit(300),
+      supabase
+        .from("reseller_credit_purchases")
+        .select("reseller_id,price_cents,credits,created_at,customer_name,customer_whatsapp")
+        .gte("created_at", enrichSince)
+        .order("created_at", { ascending: false })
+        .limit(300),
+    ]);
+
+    type EnrichVal = { customer_name?: string | null; customer_whatsapp?: string | null; detail?: string | null };
+    const enrichMap = new Map<string, EnrichVal>();
+    const bucket = (iso: string) => Math.floor(new Date(iso).getTime() / 60_000);
+    const keyOf = (resellerId: string, cents: number, iso: string) =>
+      `${resellerId}|${Math.abs(cents)}|${bucket(iso)}`;
+    const describeLic = (lt?: string | null) => {
+      if (!lt) return "Licença";
+      const m = /^(flow|lovax|pro)[_-]?(\d+d|lifetime|trial.*)$/i.exec(lt);
+      if (m) {
+        const method = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+        const pack = m[2].toLowerCase();
+        const packLbl = pack === "lifetime" ? "vitalícia" : pack.startsWith("trial") ? "trial" : pack.endsWith("d") ? `${pack.replace("d", "")} ${pack === "1d" ? "dia" : "dias"}` : pack;
+        return `Licença ${method} • ${packLbl}`;
+      }
+      return `Licença ${lt}`;
+    };
+    (enrichOrders ?? []).forEach((o: any) => {
+      if (!o.reseller_id || !o.price_cents) return;
+      const k = keyOf(o.reseller_id, o.price_cents, o.created_at);
+      enrichMap.set(k, {
+        customer_name: o.customer?.display_name ?? null,
+        customer_whatsapp: o.customer?.whatsapp ?? null,
+        detail: describeLic(o.license_type) + (o.is_test ? " (teste)" : ""),
+      });
+    });
+    (enrichCredits ?? []).forEach((c: any) => {
+      if (!c.reseller_id || !c.price_cents) return;
+      const k = keyOf(c.reseller_id, c.price_cents, c.created_at);
+      enrichMap.set(k, {
+        customer_name: c.customer_name ?? null,
+        customer_whatsapp: c.customer_whatsapp ?? null,
+        detail: `Recarga • ${c.credits} crédito${c.credits === 1 ? "" : "s"}`,
+      });
+    });
+
     setCreditMovements(
-      movesData.map((m: any) => ({
-        id: m.id,
-        created_at: m.created_at,
-        amount_cents: Number(m.amount_cents ?? 0),
-        kind: m.kind,
-        description: m.description,
-        reseller_name: moveNameMap.get(m.reseller_id) ?? "—",
-      })),
+      movesData.map((m: any) => {
+        const cents = Number(m.amount_cents ?? 0);
+        // tenta o bucket exato e o anterior (latência de ~1min entre debit e insert do pedido)
+        const k1 = keyOf(m.reseller_id, cents, m.created_at);
+        const prev = new Date(new Date(m.created_at).getTime() - 60_000).toISOString();
+        const next = new Date(new Date(m.created_at).getTime() + 60_000).toISOString();
+        const enrich =
+          enrichMap.get(k1) ?? enrichMap.get(keyOf(m.reseller_id, cents, prev)) ?? enrichMap.get(keyOf(m.reseller_id, cents, next));
+        return {
+          id: m.id,
+          created_at: m.created_at,
+          amount_cents: cents,
+          kind: m.kind,
+          description: m.description,
+          reseller_name: moveNameMap.get(m.reseller_id) ?? "—",
+          customer_name: enrich?.customer_name ?? null,
+          customer_whatsapp: enrich?.customer_whatsapp ?? null,
+          detail: enrich?.detail ?? null,
+        };
+      }),
     );
 
 
