@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
-  Loader2, Save, Crown, Users, Tag, Search, Sparkles, RotateCcw, CheckCircle2, Pencil, Coins, Calendar,
+  Loader2, Save, Crown, Users, Tag, Search, Sparkles, RotateCcw, CheckCircle2, Pencil, Coins, Calendar, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
