@@ -2391,6 +2391,10 @@ export type Database = {
           chat_id: number | null
           created_at: string
           id: number
+          last_low_gateway_alert_at: string | null
+          last_low_provider_alert_at: string | null
+          low_balance_threshold_cents: number
+          notify_low_balance: boolean
           notify_recharges: boolean
           notify_refunds: boolean
           notify_reseller_activity: boolean
@@ -2405,6 +2409,10 @@ export type Database = {
           chat_id?: number | null
           created_at?: string
           id?: number
+          last_low_gateway_alert_at?: string | null
+          last_low_provider_alert_at?: string | null
+          low_balance_threshold_cents?: number
+          notify_low_balance?: boolean
           notify_recharges?: boolean
           notify_refunds?: boolean
           notify_reseller_activity?: boolean
@@ -2419,6 +2427,10 @@ export type Database = {
           chat_id?: number | null
           created_at?: string
           id?: number
+          last_low_gateway_alert_at?: string | null
+          last_low_provider_alert_at?: string | null
+          low_balance_threshold_cents?: number
+          notify_low_balance?: boolean
           notify_recharges?: boolean
           notify_refunds?: boolean
           notify_reseller_activity?: boolean
