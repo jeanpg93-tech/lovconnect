@@ -402,7 +402,22 @@ export default function RevendedorCreditos() {
                   </div>
                   {d.enabled && (
                     <div className="space-y-1">
-                      <Label className="text-xs">Seu preço de venda</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Seu preço de venda</Label>
+                        {(() => {
+                          const priceCents = Math.round(parseFloat((d.price || "0").replace(",", ".")) * 100);
+                          if (costCents > 0 && priceCents > 0) {
+                            const pct = ((priceCents - costCents) / costCents) * 100;
+                            const tone = pct >= 100 ? "text-emerald-400" : pct >= 50 ? "text-amber-400" : pct > 0 ? "text-sky-400" : "text-destructive";
+                            return (
+                              <span className={cn("text-[10px] font-mono", tone)}>
+                                {pct >= 0 ? "+" : ""}{pct.toFixed(0)}% sobre o custo
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
                       <div className="relative">
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
                         <Input
@@ -418,6 +433,22 @@ export default function RevendedorCreditos() {
                           }
                         />
                       </div>
+                      {sugg && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 w-full text-[11px]"
+                          onClick={() =>
+                            setDraft((prev) => ({
+                              ...prev,
+                              [p.credits_amount]: { enabled: true, price: sugg },
+                            }))
+                          }
+                        >
+                          <Sparkles className="h-3 w-3 mr-1" /> Usar preço sugerido (R$ {sugg})
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
