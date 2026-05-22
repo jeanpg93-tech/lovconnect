@@ -134,6 +134,8 @@ const dangerItemsByRole: Partial<Record<AppRole, { title: string; url: string; i
   ],
   revendedor: [
     ACCOUNT_ITEM,
+    { title: "API Licenças", url: "/painel/revendedor/api", icon: KeyRound },
+    { title: "API Recargas", url: "/painel/revendedor/api-recargas", icon: Coins },
     { title: "MisticPay (PIX)", url: "/painel/revendedor/integracoes/misticpay", icon: CreditCard },
   ],
   cliente: [
