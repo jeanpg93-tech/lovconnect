@@ -313,7 +313,10 @@ export default function RevendedorDashboard() {
   }, [user, resellerId, reload]);
 
   // Agregações
-  const completed = useMemo(() => activities.filter((a) => a.status === "completed" && !(a.type === "sale" && a.metadata?.is_test)), [activities]);
+  const completed = useMemo(
+    () => activities.filter((a) => SUCCESS_STATUSES.has(a.status) && !(a.type === "sale" && a.metadata?.is_test)),
+    [activities],
+  );
 
   const salesWindow = (days: number) => {
     const cutoff = subDays(new Date(), days);
