@@ -480,7 +480,7 @@ export default function GerenteDashboard() {
 
   return (
     <div className="space-y-6 sm:space-y-10 animate-in fade-in duration-700 max-w-7xl mx-auto px-1 sm:px-0">
-      <ManagerPricingIssuesBannerWrapper />
+      <PricingIssuesAlert />
       {/* HERO */}
       <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card">
         <div className="pointer-events-none absolute inset-0 opacity-[0.04]"
