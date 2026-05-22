@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
-  Loader2, Save, Crown, Users, Tag, Search, Sparkles, RotateCcw, CheckCircle2, Pencil, Coins, Calendar,
+  Loader2, Save, Crown, Users, Tag, Search, Sparkles, RotateCcw, CheckCircle2, Pencil, Coins, Calendar, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -66,6 +66,10 @@ export default function GerentePartners() {
   const [ouroCreditPrices, setOuroCreditPrices] = useState<Record<number, number>>({});
   // Preços de créditos do tier atual do parceiro
   const [tierCreditPrices, setTierCreditPrices] = useState<Record<number, number>>({});
+
+  // Sessões minimizáveis
+  const [licOpen, setLicOpen] = useState(true);
+  const [creditOpen, setCreditOpen] = useState(true);
 
   const partnerTiers = useMemo(
     () => tiers.filter((t) => t.is_active && (t.is_hidden || t.slug === "partner")),
@@ -404,54 +408,41 @@ export default function GerentePartners() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Card: seleção de nível parceiro */}
-          <div className="rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="h-8 w-1 bg-primary rounded-full" />
-              <div>
-                <h3 className="font-display text-lg font-bold tracking-tight flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" /> Nível parceiro
-                </h3>
-                <p className="text-[11px] text-muted-foreground">Selecione o nível oculto para gerenciar seus parceiros.</p>
+          {/* Header compacto: nível Partner + contagem */}
+          {selectedTier && (
+            <div className="rounded-3xl border border-border bg-card p-4 sm:p-5 shadow-sm flex flex-wrap items-center gap-3">
+              <div
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl shrink-0"
+                style={{ background: `${selectedTier.color}22`, color: selectedTier.color }}
+              >
+                <Sparkles className="h-4 w-4" />
               </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex-1 min-w-[240px] max-w-md">
-                <Select value={selectedTierId} onValueChange={setSelectedTierId}>
-                  <SelectTrigger className="h-11 bg-card border-border">
-                    <SelectValue placeholder="Selecione um nível" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {partnerTiers.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        <span className="inline-flex items-center gap-2">
-                          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: t.color }} />
-                          {t.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {selectedTier && (
-                <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2">
+              <div className="leading-tight">
+                <div className="text-sm font-bold flex items-center gap-2">
+                  Nível
                   <span
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg"
-                    style={{ background: `${selectedTier.color}22`, color: selectedTier.color }}
+                    className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                    style={{ background: `${selectedTier.color}1f`, color: selectedTier.color }}
                   >
-                    <Users className="h-3.5 w-3.5" />
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: selectedTier.color }} />
+                    {selectedTier.name}
                   </span>
-                  <div className="leading-tight">
-                    <div className="text-sm font-bold tabular-nums">{partnersOfTier.length}</div>
-                    <div className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">
-                      parceiro{partnersOfTier.length === 1 ? "" : "s"}
-                    </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Defina custos individuais para cada parceiro deste nível.
+                </p>
+              </div>
+              <div className="ml-auto inline-flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2">
+                <Users className="h-3.5 w-3.5 text-primary" />
+                <div className="leading-tight">
+                  <div className="text-sm font-bold tabular-nums">{partnersOfTier.length}</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">
+                    parceiro{partnersOfTier.length === 1 ? "" : "s"}
                   </div>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
           {selectedTier && (
             <div className="space-y-6">
@@ -617,13 +608,24 @@ export default function GerentePartners() {
 
                     {/* Card: matriz de preços */}
                     <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
-                      <div className="px-4 sm:px-5 py-3 border-b border-border flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setLicOpen((v) => !v)}
+                        className="w-full px-4 sm:px-5 py-3 border-b border-border flex items-center gap-3 hover:bg-muted/30 transition-colors"
+                        aria-expanded={licOpen}
+                      >
                         <div className="h-6 w-1 bg-primary rounded-full" />
                         <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
                           <Tag className="h-4 w-4 text-primary" /> Custo de licenças (PromptFlow / LovaX)
                         </h3>
-                      </div>
-                      {loadingPrices ? (
+                        <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px] tabular-nums">
+                          {LICENSE_PACKS.length}
+                        </Badge>
+                        <ChevronDown
+                          className={`ml-auto h-4 w-4 text-muted-foreground transition-transform ${licOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {licOpen && (loadingPrices ? (
                         <div className="flex h-40 items-center justify-center">
                           <Loader2 className="h-5 w-5 animate-spin text-primary" />
                         </div>
@@ -709,18 +711,29 @@ export default function GerentePartners() {
                             );
                           })}
                         </div>
-                      )}
+                      ))}
                     </div>
 
                     {/* Card: matriz de preços de recargas */}
                     <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
-                      <div className="px-4 sm:px-5 py-3 border-b border-border flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setCreditOpen((v) => !v)}
+                        className="w-full px-4 sm:px-5 py-3 border-b border-border flex items-center gap-3 hover:bg-muted/30 transition-colors"
+                        aria-expanded={creditOpen}
+                      >
                         <div className="h-6 w-1 bg-primary rounded-full" />
                         <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
                           <Coins className="h-4 w-4 text-primary" /> Custo de recargas
                         </h3>
-                      </div>
-                      {loadingPrices ? (
+                        <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px] tabular-nums">
+                          {creditPackages.length}
+                        </Badge>
+                        <ChevronDown
+                          className={`ml-auto h-4 w-4 text-muted-foreground transition-transform ${creditOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {creditOpen && (loadingPrices ? (
                         <div className="flex h-32 items-center justify-center">
                           <Loader2 className="h-5 w-5 animate-spin text-primary" />
                         </div>
@@ -811,7 +824,7 @@ export default function GerentePartners() {
                             );
                           })}
                         </div>
-                      )}
+                      ))}
                     </div>
 
                     <div className="rounded-2xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground flex items-start gap-2">
