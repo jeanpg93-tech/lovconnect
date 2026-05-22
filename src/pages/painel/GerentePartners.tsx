@@ -71,6 +71,18 @@ export default function GerentePartners() {
   const [licOpen, setLicOpen] = useState(true);
   const [creditOpen, setCreditOpen] = useState(true);
 
+  // Texto bruto dos inputs (para não perder estado intermediário ao digitar)
+  const [licText, setLicText] = useState<Record<string, string>>({});
+  const [creditText, setCreditText] = useState<Record<number, string>>({});
+
+  const centsToText = (c: number) => (c > 0 ? (c / 100).toFixed(2) : "");
+  const textToCents = (s: string) => {
+    const cleaned = s.replace(",", ".").trim();
+    if (!cleaned) return 0;
+    const n = parseFloat(cleaned);
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0;
+  };
+
   const partnerTiers = useMemo(
     () => tiers.filter((t) => t.is_active && (t.is_hidden || t.slug === "partner")),
     [tiers],
