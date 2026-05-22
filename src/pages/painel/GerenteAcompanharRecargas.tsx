@@ -208,7 +208,7 @@ export default function GerenteAcompanharRecargas() {
   const loadManualOrders = async () => {
     const { data: rows } = await supabase
       .from("reseller_credit_purchases")
-      .select("id, provider_pedido_id, credits, price_cents, status, created_at, updated_at, tipo_entrega, provider_response, reseller_id, resellers:reseller_id(display_name, user_id)")
+      .select("id, provider_pedido_id, credits, price_cents, status, created_at, updated_at, tipo_entrega, customer_name, customer_whatsapp, provider_response, reseller_id, resellers:reseller_id(display_name, user_id)")
       .contains("provider_response", { manual: true } as any)
       .order("created_at", { ascending: false })
       .limit(500);
@@ -242,6 +242,8 @@ export default function GerenteAcompanharRecargas() {
         workspace_name: meta?.workspace_name ?? null,
         invite_status: meta?.invite_status ?? null,
         notes: meta?.notes ?? null,
+        customer_name: r.customer_name ?? null,
+        customer_whatsapp: r.customer_whatsapp ?? null,
         responsavel_nome: r.resellers?.display_name ?? null,
         responsavel_email: r.resellers?.user_id ? (emailMap.get(r.resellers.user_id) ?? null) : null,
         raw: r,
