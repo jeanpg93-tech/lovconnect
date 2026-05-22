@@ -19,8 +19,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // 1. Set up listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
+      // Avoid causing re-renders on TOKEN_REFRESHED/visibility events when
+      // the actual user hasn't changed. This prevents pages from "refreshing"
+      // every time the user switches tabs or comes back to the window.
+      setSession((prev) => {
+        if (prev?.user?.id === newSession?.user?.id) return prev;
+        return newSession;
+      });
+      setUser((prev) => {
+        if (prev?.id === newSession?.user?.id) return prev;
+        return newSession?.user ?? null;
+      });
       setLoading(false);
     });
 
