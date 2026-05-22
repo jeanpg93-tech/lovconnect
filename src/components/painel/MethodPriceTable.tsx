@@ -109,17 +109,16 @@ export default function MethodPriceTable({ method }: { method: Method }) {
     if (!resellerId) return;
     // validações de proteção (não alteram preços existentes, só impedem novos salvamentos ruins)
     if (newValue !== null && Number.isFinite(newValue) && newValue > 0) {
-      const base = computeBase(pkgId);
-      if (base <= 0) {
+      const baseReais = computeBase(pkgId); // em reais
+      if (baseReais <= 0) {
         toast.warning("Custo deste produto ainda não foi definido pelo gerente. Aguarde a regularização antes de cadastrar o preço.");
         return;
       }
-      const cents = Math.round(newValue * 100);
-      if (cents < base) {
-        toast.error(`O valor R$ ${newValue.toFixed(2)} está abaixo do custo (R$ ${(base / 100).toFixed(2)}). Você teria prejuízo.`);
+      if (newValue < baseReais) {
+        toast.error(`O valor R$ ${newValue.toFixed(2)} está abaixo do custo (R$ ${baseReais.toFixed(2)}). Você teria prejuízo.`);
         return;
       }
-      if (cents === base) {
+      if (newValue === baseReais) {
         toast.warning("Esse preço é igual ao custo. Você não teria lucro. Aumente o valor para vender.");
         return;
       }
@@ -187,21 +186,21 @@ export default function MethodPriceTable({ method }: { method: Method }) {
     allTiers.find((t) => (t.name || "").toLowerCase().includes("ouro"));
   const computeBase = (id: PackId): number => {
     const ov = costOverrides[id];
-    if (ov && ov > 0) return ov * 100; // costOverrides já está em reais → cents
+    if (ov && ov > 0) return ov;
     const mine = Number(prices?.[method]?.[id]?.[tier?.id] ?? 0);
-    if (mine > 0) return Math.round(mine * 100);
+    if (mine > 0) return mine;
     const otherMethod: Method = method === "flow" ? "lovax" : "flow";
     const mineOther = Number(prices?.[otherMethod]?.[id]?.[tier?.id] ?? 0);
-    if (mineOther > 0) return Math.round(mineOther * 100);
+    if (mineOther > 0) return mineOther;
     const isPartnerLike =
       tier?.is_hidden ||
       (tier?.slug || "").toLowerCase() === "partner" ||
       (tier?.name || "").toLowerCase().includes("partner");
     if (isPartnerLike && ouroTier?.id) {
       const ouro = Number(prices?.[method]?.[id]?.[ouroTier.id] ?? 0);
-      if (ouro > 0) return Math.round(ouro * 100);
+      if (ouro > 0) return ouro;
       const ouroOther = Number(prices?.[otherMethod]?.[id]?.[ouroTier.id] ?? 0);
-      if (ouroOther > 0) return Math.round(ouroOther * 100);
+      if (ouroOther > 0) return ouroOther;
     }
     return 0;
   };
