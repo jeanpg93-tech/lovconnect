@@ -251,6 +251,7 @@ export default function RevendedorRecargas() {
   const [storefrontCredits, setStorefrontCredits] = useState<StorefrontCreditRow[]>([]);
   const [cpOriginFilter, setCpOriginFilter] = useState<"all" | "manual" | "loja">("all");
   const [cancellingStorefrontId, setCancellingStorefrontId] = useState<string | null>(null);
+  const [cancellingCreditPurchaseId, setCancellingCreditPurchaseId] = useState<string | null>(null);
 
   const loadCreditPurchaseRefunds = async (rid: string) => {
     const { data } = await supabase
@@ -297,6 +298,26 @@ export default function RevendedorRecargas() {
       toast.error(e?.message ?? "Falha ao cancelar venda");
     } finally {
       setCancellingStorefrontId(null);
+    }
+  };
+  const cancelCreditPurchase = async (purchaseId: string) => {
+    if (!confirm(`Cancelar esta compra de créditos? Só é possível antes do pagamento PIX.`)) return;
+    setCancellingCreditPurchaseId(purchaseId);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-credit-purchase", {
+        body: { purchase_id: purchaseId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Compra cancelada");
+      if (resellerId) {
+        loadRecentCreditPurchases(resellerId);
+        if (allCreditPurchases) loadAllCreditPurchases();
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao cancelar compra");
+    } finally {
+      setCancellingCreditPurchaseId(null);
     }
   };
   const loadAllCreditPurchases = async () => {
