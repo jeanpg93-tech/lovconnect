@@ -755,3 +755,9 @@ function IntegrationRow({
     </Link>
   );
 }
+
+function PricingIssuesBannerSlot() {
+  const { issues } = usePricingIssues({ pollMs: 60_000 });
+  if (issues.length === 0) return null;
+  return <PricingIssuesBanner issues={issues} />;
+}
