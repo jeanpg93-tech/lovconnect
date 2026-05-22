@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.telegram-dispatch]
 verify_jwt = false
+
+[functions.telegram-balance-check]
+verify_jwt = false
