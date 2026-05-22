@@ -43,6 +43,8 @@ export default function MethodPriceTable({ method }: { method: Method }) {
   const [tier, setTier] = useState<any>(null);
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Partial<Record<PackId, number>>>({});
+  const [costOverrides, setCostOverrides] = useState<Partial<Record<PackId, number>>>({});
+  const [allTiers, setAllTiers] = useState<Array<{ id: string; name: string; slug: string; is_hidden: boolean; min_spent_cents: number }>>([]);
   const [editing, setEditing] = useState<PackId | null>(null);
   const [draft, setDraft] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -57,7 +59,7 @@ export default function MethodPriceTable({ method }: { method: Method }) {
         .eq("user_id", user.id)
         .maybeSingle();
       setResellerId(r?.id ?? null);
-      const [{ data: setting }, { data: tierData }, ovRes] = await Promise.all([
+      const [{ data: setting }, { data: tierData }, ovRes, ovCostRes, tiersAllRes] = await Promise.all([
         supabase.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
         r ? supabase.rpc("get_reseller_tier", { _reseller_id: r.id }) : Promise.resolve({ data: null }),
         r
@@ -67,6 +69,18 @@ export default function MethodPriceTable({ method }: { method: Method }) {
               .eq("reseller_id", r.id)
               .eq("method", method)
           : Promise.resolve({ data: [] } as any),
+        r
+          ? supabase
+              .from("reseller_license_cost_overrides")
+              .select("pack_id, price_cents, is_active")
+              .eq("reseller_id", r.id)
+              .eq("is_active", true)
+          : Promise.resolve({ data: [] } as any),
+        supabase
+          .from("reseller_tiers")
+          .select("id,name,slug,is_hidden,min_spent_cents,sort_order")
+          .eq("is_active", true)
+          .order("sort_order"),
       ]);
       const value = (setting?.value ?? { flow: {}, lovax: {} }) as PriceMap;
       setPrices({ flow: value.flow ?? {}, lovax: value.lovax ?? {} });
@@ -78,6 +92,13 @@ export default function MethodPriceTable({ method }: { method: Method }) {
         ovMap[row.pack_id as PackId] = row.price_cents / 100;
       });
       setOverrides(ovMap);
+      const costRows = ((ovCostRes as any)?.data ?? []) as { pack_id: string; price_cents: number }[];
+      const costMap: Partial<Record<PackId, number>> = {};
+      costRows.forEach((row) => {
+        costMap[row.pack_id as PackId] = row.price_cents / 100;
+      });
+      setCostOverrides(costMap);
+      setAllTiers((tiersAllRes.data ?? []) as any[]);
       setLoading(false);
     })();
   }, [user, method]);
@@ -136,7 +157,30 @@ export default function MethodPriceTable({ method }: { method: Method }) {
   }
 
   const packages = PACKAGES_BY_METHOD[method];
-  const tierMap = (id: PackId) => prices?.[method]?.[id] ?? {};
+  // Cascata para "Preço base" (custo do revendedor):
+  // 1) override individual em reseller_license_cost_overrides (definido pelo gerente)
+  // 2) licencas.valores[method][pack][tier.id]
+  // 3) se tier é Partner/oculto e nada acima: licencas.valores[method][pack][ouro.id]
+  // 4) tenta o mesmo no método irmão (flow<->lovax) — custos são iguais
+  const ouroTier =
+    allTiers.find((t) => (t.slug || "").toLowerCase() === "ouro") ??
+    allTiers.find((t) => (t.name || "").toLowerCase().includes("ouro"));
+  const computeBase = (id: PackId): number => {
+    const ov = costOverrides[id];
+    if (ov && ov > 0) return ov;
+    const mine = Number(prices?.[method]?.[id]?.[tier?.id] ?? 0);
+    if (mine > 0) return mine;
+    const otherMethod: Method = method === "flow" ? "lovax" : "flow";
+    const mineOther = Number(prices?.[otherMethod]?.[id]?.[tier?.id] ?? 0);
+    if (mineOther > 0) return mineOther;
+    if (tier?.is_hidden && ouroTier?.id) {
+      const ouro = Number(prices?.[method]?.[id]?.[ouroTier.id] ?? 0);
+      if (ouro > 0) return ouro;
+      const ouroOther = Number(prices?.[otherMethod]?.[id]?.[ouroTier.id] ?? 0);
+      if (ouroOther > 0) return ouroOther;
+    }
+    return 0;
+  };
 
   return (
     <div>
@@ -161,7 +205,7 @@ export default function MethodPriceTable({ method }: { method: Method }) {
         <div className="divide-y divide-border">
           {packages.map((pkg) => {
             const Icon = pkg.icon;
-            const base = Number(tierMap(pkg.id)[tier.id] ?? 0);
+            const base = computeBase(pkg.id);
             const empty = !base;
             const myPrice = overrides[pkg.id];
             const isEditing = editing === pkg.id;

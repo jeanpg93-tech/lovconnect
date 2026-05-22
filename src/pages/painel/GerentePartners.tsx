@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
-  Loader2, Save, Crown, Users, Tag, Search, Sparkles, RotateCcw, CheckCircle2, Pencil, Coins,
+  Loader2, Save, Crown, Users, Tag, Search, Sparkles, RotateCcw, CheckCircle2, Pencil, Coins, Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,6 +25,15 @@ type Extension = { id: string; name: string };
 type Reseller = { id: string; display_name: string };
 type State = { reseller_id: string; forced_tier_id: string | null; total_spent_cents: number };
 type CreditPackage = { credits_amount: number; label: string };
+type LicensePack = { id: string; label: string };
+const LICENSE_PACKS: LicensePack[] = [
+  { id: "1d", label: "1 dia" },
+  { id: "7d", label: "7 dias" },
+  { id: "30d", label: "30 dias" },
+  { id: "90d", label: "90 dias" },
+  { id: "365d", label: "365 dias" },
+  { id: "lifetime", label: "Vitalício" },
+];
 
 const LICENSE_TYPES: { key: string; label: string; short: string }[] = [
   { key: "pro_1d", label: "Pro 1 dia", short: "1d" },
@@ -62,6 +71,16 @@ export default function GerentePartners() {
   const [creditEffective, setCreditEffective] = useState<Record<number, number>>({});
   const [creditDraft, setCreditDraft] = useState<Record<number, number>>({});
   const [creditSource, setCreditSource] = useState<Record<number, "reseller" | "ouro" | "none">>({});
+
+  // Custo de licenças por pacote (flow/lovax compartilham o mesmo custo).
+  // Chave = pack_id. cents.
+  const [licCostEffective, setLicCostEffective] = useState<Record<string, number>>({});
+  const [licCostDraft, setLicCostDraft] = useState<Record<string, number>>({});
+  const [licCostSource, setLicCostSource] = useState<Record<string, "override" | "tier" | "ouro" | "none">>({});
+
+  // licencas.valores cache para mostrar fallback Partner→Ouro
+  const [licencasValores, setLicencasValores] = useState<Record<string, any>>({});
+  const [ouroTierId, setOuroTierId] = useState<string | null>(null);
 
   // Preços de créditos do nível Ouro (fallback para Partners sem preço definido)
   const [ouroCreditPrices, setOuroCreditPrices] = useState<Record<number, number>>({});
@@ -133,18 +152,24 @@ export default function GerentePartners() {
 
   const loadBase = async () => {
     setLoading(true);
-    const [{ data: t }, { data: ex }, { data: r }, { data: s }, { data: cp }] = await Promise.all([
+    const [{ data: t }, { data: ex }, { data: r }, { data: s }, { data: cp }, { data: lv }] = await Promise.all([
       supabase.from("reseller_tiers").select("id,slug,name,color,is_active,is_hidden,min_spent_cents,sort_order").order("sort_order"),
       supabase.from("extensions").select("id,name").eq("is_active", true).order("name"),
       supabase.from("resellers").select("id,display_name").order("display_name"),
       supabase.from("reseller_tier_state").select("reseller_id,forced_tier_id,total_spent_cents"),
       supabase.from("credit_pricing_plans").select("credits_amount,label,price_cents,is_active").eq("is_active", true).order("credits_amount"),
+      supabase.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
     ]);
     const tierList = (t ?? []) as Tier[];
     setTiers(tierList);
     setExtensions((ex ?? []) as Extension[]);
     setResellers((r ?? []) as Reseller[]);
     setCreditPackages(((cp ?? []) as any[]).map((p) => ({ credits_amount: p.credits_amount, label: p.label })));
+    setLicencasValores(((lv as any)?.value ?? {}) as Record<string, any>);
+    const ouro =
+      tierList.find((x) => (x.slug || "").toLowerCase() === "ouro") ??
+      tierList.find((x) => x.name.toLowerCase().includes("ouro"));
+    setOuroTierId(ouro?.id ?? null);
 
     // base costs (apenas recargas)
     const cb: Record<number, number> = {};

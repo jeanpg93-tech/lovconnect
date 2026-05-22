@@ -1819,6 +1819,36 @@ export type Database = {
         }
         Relationships: []
       }
+      reseller_license_cost_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          pack_id: string
+          price_cents: number
+          reseller_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          pack_id: string
+          price_cents?: number
+          reseller_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          pack_id?: string
+          price_cents?: number
+          reseller_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reseller_license_prices: {
         Row: {
           created_at: string

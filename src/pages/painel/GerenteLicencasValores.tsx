@@ -101,14 +101,10 @@ export default function GerenteLicencasValores() {
         }
       }
 
-      setTiers(
-        ((tierData ?? []) as Tier[]).filter(
-          (t) =>
-            !t.is_hidden &&
-            t.slug?.toLowerCase() !== "partner" &&
-            !/partner/i.test(t.name)
-        )
-      );
+      // Mostra TODOS os níveis ativos, incluindo os ocultos (ex.: Partner),
+      // para que o gerente possa definir o custo base de licenças também
+      // para esses níveis. O fallback Partner→Ouro só entra se nada for definido.
+      setTiers((tierData ?? []) as Tier[]);
       setLoadingTiers(false);
     })();
   }, []);
