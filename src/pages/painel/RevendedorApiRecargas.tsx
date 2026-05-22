@@ -163,7 +163,7 @@ function ApiKeyCard({
           accent === "amber" ? "bg-amber-500/10" : "bg-primary/10"
         }`} />
         <div className="relative">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-3">
               <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
                 accent === "amber" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "bg-primary/15 text-primary"
@@ -175,7 +175,7 @@ function ApiKeyCard({
                 <p className="text-xs text-muted-foreground">{subtitle}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
               {keyRow ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 className="h-3 w-3" /> API ativa

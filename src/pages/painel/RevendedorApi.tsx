@@ -82,7 +82,7 @@ function ApiKeysCard({
     <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5">
       <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
       <div className="relative">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
               <KeyRound className="h-5 w-5" />
@@ -94,7 +94,7 @@ function ApiKeysCard({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
             {active.length > 0 ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-3 w-3" /> {active.length} ativa{active.length > 1 ? "s" : ""}
