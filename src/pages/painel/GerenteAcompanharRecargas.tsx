@@ -41,6 +41,8 @@ type ManualOrder = {
   workspace_name?: string | null;
   invite_status?: string | null;
   notes?: string | null;
+  customer_name?: string | null;
+  customer_whatsapp?: string | null;
   responsavel_nome?: string | null;
   responsavel_email?: string | null;
   raw?: any;
