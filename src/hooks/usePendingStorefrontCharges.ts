@@ -51,7 +51,7 @@ export function usePendingStorefrontCharges() {
   useEffect(() => {
     if (!resellerId) return;
     const channel = supabase
-      .channel(`pending-charges-${resellerId}`)
+      .channel(`pending-charges-${resellerId}-${Math.random().toString(36).slice(2, 8)}`)
       .on(
         "postgres_changes",
         {
