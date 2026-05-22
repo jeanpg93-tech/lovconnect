@@ -75,6 +75,10 @@ export default function GerentePartners() {
   const [licText, setLicText] = useState<Record<string, string>>({});
   const [creditText, setCreditText] = useState<Record<number, string>>({});
 
+  // Marca quais campos o usuário tocou (para garantir persistência independente do diff)
+  const [licTouched, setLicTouched] = useState<Record<string, boolean>>({});
+  const [creditTouched, setCreditTouched] = useState<Record<number, boolean>>({});
+
   const centsToText = (c: number) => (c > 0 ? (c / 100).toFixed(2) : "");
   const textToCents = (s: string) => {
     const cleaned = s.replace(",", ".").trim();
@@ -296,6 +300,8 @@ export default function GerentePartners() {
     setCreditSource(cSrc);
     setCreditDraft({ ...cEff });
     setCreditText(Object.fromEntries(Object.entries(cEff).map(([k, v]) => [Number(k), centsToText(v as number)])) as Record<number, string>);
+    setLicTouched({});
+    setCreditTouched({});
     setLoadingPrices(false);
   };
 
@@ -305,6 +311,7 @@ export default function GerentePartners() {
     setSelectedResellerId("");
     setLicEffective({}); setLicDraft({}); setLicSource({}); setLicText({});
     setCreditEffective({}); setCreditDraft({}); setCreditSource({}); setCreditText({});
+    setLicTouched({}); setCreditTouched({});
   }, [selectedTierId]);
 
   useEffect(() => {
@@ -312,6 +319,7 @@ export default function GerentePartners() {
     else {
       setLicEffective({}); setLicDraft({}); setLicSource({}); setLicText({});
       setCreditEffective({}); setCreditDraft({}); setCreditSource({}); setCreditText({});
+      setLicTouched({}); setCreditTouched({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedResellerId, creditPackages.length]);
