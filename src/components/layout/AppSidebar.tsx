@@ -493,14 +493,24 @@ export function AppSidebar() {
           <div className="space-y-2 px-2 pt-3">
             <NavLink
               to="/painel/gerente/api-provedor"
-              className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2.5 transition-all hover:border-blue-500/40 hover:shadow-sm"
+              className={cn(
+                "group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-card p-2.5 transition-all hover:shadow-sm",
+                activeMethod === "flow"
+                  ? "border-blue-500/60 ring-1 ring-blue-500/40 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]"
+                  : "border-border hover:border-blue-500/40"
+              )}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-500 transition-transform group-hover:scale-110">
                 <Zap className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
-                  MétodoFlow
+                <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
+                  <span>MétodoFlow</span>
+                  {activeMethod === "flow" && (
+                    <span className="rounded-full bg-blue-500/15 px-1.5 py-[1px] text-[8px] font-bold tracking-wider text-blue-500">
+                      ATIVO
+                    </span>
+                  )}
                 </div>
                 <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
                   {balanceLoading && providerUsage === null
@@ -515,14 +525,24 @@ export function AppSidebar() {
 
             <NavLink
               to="/painel/gerente/todas-licencas?tab=api"
-              className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2.5 transition-all hover:border-violet-500/40 hover:shadow-sm"
+              className={cn(
+                "group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-card p-2.5 transition-all hover:shadow-sm",
+                activeMethod === "lovax"
+                  ? "border-violet-500/60 ring-1 ring-violet-500/40"
+                  : "border-border hover:border-violet-500/40"
+              )}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-500 transition-transform group-hover:scale-110">
                 <Sparkles className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
-                  MétodoLovax
+                <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
+                  <span>MétodoLovax</span>
+                  {activeMethod === "lovax" && (
+                    <span className="rounded-full bg-violet-500/15 px-1.5 py-[1px] text-[8px] font-bold tracking-wider text-violet-500">
+                      ATIVO
+                    </span>
+                  )}
                 </div>
                 <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
                   {lovaxLoading && lovaxUsage === null
