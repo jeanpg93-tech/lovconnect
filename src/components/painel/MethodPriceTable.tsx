@@ -157,7 +157,30 @@ export default function MethodPriceTable({ method }: { method: Method }) {
   }
 
   const packages = PACKAGES_BY_METHOD[method];
-  const tierMap = (id: PackId) => prices?.[method]?.[id] ?? {};
+  // Cascata para "Preço base" (custo do revendedor):
+  // 1) override individual em reseller_license_cost_overrides (definido pelo gerente)
+  // 2) licencas.valores[method][pack][tier.id]
+  // 3) se tier é Partner/oculto e nada acima: licencas.valores[method][pack][ouro.id]
+  // 4) tenta o mesmo no método irmão (flow<->lovax) — custos são iguais
+  const ouroTier =
+    allTiers.find((t) => (t.slug || "").toLowerCase() === "ouro") ??
+    allTiers.find((t) => (t.name || "").toLowerCase().includes("ouro"));
+  const computeBase = (id: PackId): number => {
+    const ov = costOverrides[id];
+    if (ov && ov > 0) return ov;
+    const mine = Number(prices?.[method]?.[id]?.[tier?.id] ?? 0);
+    if (mine > 0) return mine;
+    const otherMethod: Method = method === "flow" ? "lovax" : "flow";
+    const mineOther = Number(prices?.[otherMethod]?.[id]?.[tier?.id] ?? 0);
+    if (mineOther > 0) return mineOther;
+    if (tier?.is_hidden && ouroTier?.id) {
+      const ouro = Number(prices?.[method]?.[id]?.[ouroTier.id] ?? 0);
+      if (ouro > 0) return ouro;
+      const ouroOther = Number(prices?.[otherMethod]?.[id]?.[ouroTier.id] ?? 0);
+      if (ouroOther > 0) return ouroOther;
+    }
+    return 0;
+  };
 
   return (
     <div>
