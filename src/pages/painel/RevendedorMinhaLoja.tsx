@@ -382,40 +382,6 @@ export default function RevendedorMinhaLoja() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period, resellerId]);
 
-  const fetchRecentOrders = async (rId: string) => {
-    setLoadingOrders(true);
-    const { data, error } = await supabase
-      .from("storefront_orders")
-      .select("id, short_code, status, price_cents, cost_cents, product_type, license_type, credit_amount, paid_at, created_at, buyer_name, buyer_whatsapp, error_message")
-      .eq("reseller_id", rId)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (!error && data) setRecentOrders(data as StorefrontOrderRow[]);
-    setLoadingOrders(false);
-  };
-
-  useEffect(() => {
-    if (resellerId) fetchRecentOrders(resellerId);
-  }, [resellerId]);
-
-  const handleCancelOrder = async (order: StorefrontOrderRow) => {
-    if (!confirm(`Cancelar a venda #${order.short_code ?? order.id.slice(0, 8)}? Só é possível antes do pagamento PIX.`)) return;
-    setCancellingOrderId(order.id);
-    try {
-      const { data, error } = await supabase.functions.invoke("cancel-storefront-order", {
-        body: { order_id: order.id },
-      });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("Venda cancelada");
-      if (resellerId) fetchRecentOrders(resellerId);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao cancelar venda");
-    } finally {
-      setCancellingOrderId(null);
-    }
-  };
-
   const handleLogoUpload = async (file: File) => {
     if (!resellerId) return;
     setUploading(true);
