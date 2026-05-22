@@ -59,7 +59,10 @@ export default function GerenteTelegram() {
   };
 
   const toggle = async (field: keyof Settings, value: boolean) => {
-    const { error } = await supabase.from("telegram_settings").update({ [field]: value }).eq("id", 1);
+    const { error } = await supabase
+      .from("telegram_settings")
+      .update({ [field]: value } as any)
+      .eq("id", 1);
     if (error) toast.error(error.message);
     else load();
   };
