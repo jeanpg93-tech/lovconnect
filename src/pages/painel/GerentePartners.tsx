@@ -629,118 +629,94 @@ export default function GerentePartners() {
                       <div className="px-4 sm:px-5 py-3 border-b border-border flex items-center gap-3">
                         <div className="h-6 w-1 bg-primary rounded-full" />
                         <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
-                          <Tag className="h-4 w-4 text-primary" /> Preços por extensão
+                          <Tag className="h-4 w-4 text-primary" /> Custo de licenças (PromptFlow / LovaX)
                         </h3>
                       </div>
                       {loadingPrices ? (
                         <div className="flex h-40 items-center justify-center">
                           <Loader2 className="h-5 w-5 animate-spin text-primary" />
                         </div>
-                      ) : extensions.length === 0 ? (
-                        <div className="p-8 text-center text-sm text-muted-foreground italic">
-                          Nenhuma extensão ativa cadastrada.
-                        </div>
                       ) : (
-                        <div className="overflow-auto">
-                          <table className="w-full table-fixed text-sm" style={{ minWidth: 760 }}>
-                            <colgroup>
-                              <col style={{ width: "30%" }} />
-                              {LICENSE_TYPES.map((lt) => (
-                                <col key={lt.key} style={{ width: `${70 / LICENSE_TYPES.length}%` }} />
-                              ))}
-                            </colgroup>
-                            <thead className="bg-muted/40 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                              <tr>
-                                <th className="px-4 py-3 text-left font-bold">
-                                  <span className="inline-flex items-center gap-1.5">
-                                    <Tag className="h-3 w-3" /> Extensão
-                                  </span>
-                                </th>
-                                {LICENSE_TYPES.map((lt) => (
-                                  <th key={lt.key} className="px-2 py-3 text-center font-bold">
-                                    {lt.label}
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {extensions.map((ext, idx) => (
-                                <tr
-                                  key={ext.id}
-                                  className={`border-t border-border transition-colors hover:bg-muted/30 ${
-                                    idx % 2 === 0 ? "" : "bg-muted/10"
-                                  }`}
-                                >
-                                  <td className="px-4 py-2.5">
-                                    <div className="font-bold text-foreground truncate">{ext.name}</div>
-                                  </td>
-                                  {LICENSE_TYPES.map((lt) => {
-                                    const k = `${ext.id}|${lt.key}`;
-                                    const cents = draft[k] ?? 0;
-                                    const reais = cents > 0 ? (cents / 100).toFixed(2) : "";
-                                    const src = source[k] ?? "none";
-                                    const dirty = (draft[k] ?? 0) !== (effective[k] ?? 0);
-                                    const dotColor =
-                                      src === "override"
-                                        ? "bg-primary"
-                                        : src === "reseller"
-                                        ? "bg-blue-500/70"
-                                        : src === "plan"
-                                        ? "bg-muted-foreground/50"
-                                        : "bg-transparent";
-                                    return (
-                                      <td key={lt.key} className="px-2 py-1.5">
-                                        <div className="relative mx-auto flex w-32 items-center">
-                                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
-                                            R$
-                                          </span>
-                                          <span
-                                            className={`pointer-events-none absolute -left-1 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${dotColor}`}
-                                            title={
-                                              src === "override"
-                                                ? "Personalizado deste parceiro"
-                                                : src === "reseller"
-                                                ? "Preço por revendedor"
-                                                : src === "plan"
-                                                ? "Plano global"
-                                                : "Sem preço"
-                                            }
-                                          />
-                                          <Input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            placeholder="—"
-                                            value={reais}
-                                            onChange={(e) => {
-                                              const v = e.target.value;
-                                              const c = v === "" ? 0 : Math.max(0, Math.round(parseFloat(v) * 100));
-                                              setDraft((prev) => ({ ...prev, [k]: c }));
-                                            }}
-                                            className={`h-9 w-32 pl-7 text-right font-mono text-xs tabular-nums transition-all ${
-                                              dirty
-                                                ? "border-amber-500/60 bg-amber-500/5 ring-1 ring-amber-500/20"
-                                                : src === "override"
-                                                ? "border-primary/30 bg-primary/5"
-                                                : ""
-                                            }`}
-                                          />
-                                          {dirty && (
-                                            <Pencil className="pointer-events-none absolute -right-4 top-1/2 h-3 w-3 -translate-y-1/2 text-amber-500" />
-                                          )}
-                                        </div>
-                                        {dirty && effective[k] > 0 && (
-                                          <div className="mt-0.5 text-right text-[9px] font-mono text-muted-foreground">
-                                            antes: {formatBRL(effective[k])}
-                                          </div>
-                                        )}
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                        <div className="grid gap-2 p-3 sm:p-4 sm:grid-cols-2 lg:grid-cols-3">
+                          {LICENSE_PACKS.map((pack) => {
+                            const cents = licDraft[pack.id] ?? 0;
+                            const reais = cents > 0 ? (cents / 100).toFixed(2) : "";
+                            const src = licSource[pack.id] ?? "none";
+                            const dirty = (licDraft[pack.id] ?? 0) !== (licEffective[pack.id] ?? 0);
+                            const dotColor =
+                              src === "override"
+                                ? "bg-primary"
+                                : src === "tier"
+                                ? "bg-blue-500/70"
+                                : src === "ouro"
+                                ? "bg-amber-400"
+                                : "bg-muted-foreground/40";
+                            const dotTitle =
+                              src === "override"
+                                ? "Custo personalizado deste parceiro"
+                                : src === "tier"
+                                ? `Custo do nível ${selectedTier?.name ?? ""}`
+                                : src === "ouro"
+                                ? "Herdado do nível Ouro"
+                                : "Sem custo definido";
+                            return (
+                              <div
+                                key={pack.id}
+                                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 hover:border-primary/30 transition-all"
+                              >
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                  <Calendar className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-sm font-bold">{pack.label}</span>
+                                    <span
+                                      className={`ml-auto h-1.5 w-1.5 rounded-full ${dotColor}`}
+                                      title={dotTitle}
+                                    />
+                                  </div>
+                                  <div className="relative mt-1">
+                                    <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                                      R$
+                                    </span>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      placeholder="—"
+                                      value={reais}
+                                      onChange={(e) => {
+                                        const v = e.target.value;
+                                        const c = v === "" ? 0 : Math.max(0, Math.round(parseFloat(v) * 100));
+                                        setLicDraft((prev) => ({ ...prev, [pack.id]: c }));
+                                      }}
+                                      className={`h-9 pl-7 text-right font-mono text-xs tabular-nums transition-all ${
+                                        dirty
+                                          ? "border-amber-500/60 bg-amber-500/5 ring-1 ring-amber-500/20"
+                                          : src === "override"
+                                          ? "border-primary/30 bg-primary/5"
+                                          : ""
+                                      }`}
+                                    />
+                                    {dirty && (
+                                      <Pencil className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-amber-500" />
+                                    )}
+                                  </div>
+                                  {licEffective[pack.id] > 0 && (
+                                    <div className="mt-1 text-right text-[9px] font-mono text-muted-foreground">
+                                      {dirty
+                                        ? <>antes: {formatBRL(licEffective[pack.id])}</>
+                                        : src === "ouro"
+                                        ? <>herdado do Ouro</>
+                                        : src === "tier"
+                                        ? <>custo do nível</>
+                                        : null}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -750,7 +726,7 @@ export default function GerentePartners() {
                       <div className="px-4 sm:px-5 py-3 border-b border-border flex items-center gap-3">
                         <div className="h-6 w-1 bg-primary rounded-full" />
                         <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
-                          <Coins className="h-4 w-4 text-primary" /> Preços de recargas
+                          <Coins className="h-4 w-4 text-primary" /> Custo de recargas
                         </h3>
                       </div>
                       {loadingPrices ? (
@@ -768,20 +744,22 @@ export default function GerentePartners() {
                             const reais = cents > 0 ? (cents / 100).toFixed(2) : "";
                             const src = creditSource[pkg.credits_amount] ?? "none";
                             const dirty = (creditDraft[pkg.credits_amount] ?? 0) !== (creditEffective[pkg.credits_amount] ?? 0);
-                            const base = minCredit(pkg.credits_amount);
-                            const belowBase = base > 0 && cents > 0 && cents <= base;
                             const dotColor =
-                              src === "reseller"
+                              src === "override"
                                 ? "bg-primary"
+                                : src === "tier"
+                                ? "bg-blue-500/70"
                                 : src === "ouro"
                                 ? "bg-amber-400"
                                 : "bg-muted-foreground/40";
                             const dotTitle =
-                              src === "reseller"
-                                ? "Personalizado"
+                              src === "override"
+                                ? "Custo personalizado deste parceiro"
+                                : src === "tier"
+                                ? `Custo do nível ${selectedTier?.name ?? ""}`
                                 : src === "ouro"
                                 ? "Herdado do nível Ouro"
-                                : "Sem preço definido";
+                                : "Sem custo definido";
                             return (
                               <div
                                 key={pkg.credits_amount}
@@ -806,38 +784,35 @@ export default function GerentePartners() {
                                     <Input
                                       type="number"
                                       step="0.01"
-                                      min={base > 0 ? (base / 100).toFixed(2) : "0"}
+                                      min="0"
                                       placeholder="—"
                                       value={reais}
                                       onChange={(e) => {
                                         const v = e.target.value;
-                                        let c = v === "" ? 0 : Math.max(0, Math.round(parseFloat(v) * 100));
-                                        if (c > 0 && base > 0 && c <= base) {
-                                          toast.warning(`Valor precisa ser maior que ${formatBRL(base)} (custo base)`);
-                                          c = base + 1;
-                                        }
+                                        const c = v === "" ? 0 : Math.max(0, Math.round(parseFloat(v) * 100));
                                         setCreditDraft((prev) => ({ ...prev, [pkg.credits_amount]: c }));
                                       }}
                                       className={`h-9 pl-7 text-right font-mono text-xs tabular-nums transition-all ${
-                                        belowBase
-                                          ? "border-destructive/60 bg-destructive/5 ring-1 ring-destructive/30"
-                                          : dirty
+                                        dirty
                                           ? "border-amber-500/60 bg-amber-500/5 ring-1 ring-amber-500/20"
-                                          : src === "reseller"
+                                          : src === "override"
                                           ? "border-primary/30 bg-primary/5"
                                           : ""
                                       }`}
-                                      title={base > 0 ? `Custo base: ${formatBRL(base)}` : undefined}
                                     />
                                     {dirty && (
                                       <Pencil className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-amber-500" />
                                     )}
                                   </div>
-                                  {base > 0 && (
+                                  {creditEffective[pkg.credits_amount] > 0 && (
                                     <div className="mt-1 text-right text-[9px] font-mono text-muted-foreground">
-                                      {dirty && creditEffective[pkg.credits_amount] > 0
+                                      {dirty
                                         ? <>antes: {formatBRL(creditEffective[pkg.credits_amount])}</>
-                                        : <>base: {formatBRL(base)}</>}
+                                        : src === "ouro"
+                                        ? <>herdado do Ouro</>
+                                        : src === "tier"
+                                        ? <>custo do nível</>
+                                        : null}
                                     </div>
                                   )}
                                 </div>
@@ -851,7 +826,7 @@ export default function GerentePartners() {
                     <div className="rounded-2xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground flex items-start gap-2">
                       <Sparkles className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                       <span>
-                        Os valores já vêm preenchidos com o preço atual de cada revendedor. Campos que você não alterar continuam herdando o preço normal — só vira <span className="font-bold text-foreground">personalizado</span> se você mudar o valor.
+                        Aqui você define o <span className="font-bold text-foreground">custo</span> que será descontado do saldo deste parceiro a cada venda. O preço de venda continua sendo definido pelo próprio revendedor. Campos não alterados continuam herdando o custo do nível (ou de <span className="font-bold text-foreground">Ouro</span> se for Partner).
                       </span>
                     </div>
                   </>
