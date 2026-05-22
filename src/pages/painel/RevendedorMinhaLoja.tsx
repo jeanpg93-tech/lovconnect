@@ -131,25 +131,6 @@ export default function RevendedorMinhaLoja() {
     chartData: [] as { name: string; tentativas: number; vendas: number }[],
   });
 
-  type StorefrontOrderRow = {
-    id: string;
-    short_code: string | null;
-    status: string;
-    price_cents: number | null;
-    cost_cents: number | null;
-    product_type: string | null;
-    license_type: string | null;
-    credit_amount: number | null;
-    paid_at: string | null;
-    created_at: string;
-    buyer_name: string | null;
-    buyer_whatsapp: string | null;
-    error_message: string | null;
-  };
-  const [recentOrders, setRecentOrders] = useState<StorefrontOrderRow[]>([]);
-  const [loadingOrders, setLoadingOrders] = useState(false);
-  const [orderStatusFilter, setOrderStatusFilter] = useState<string>("all");
-  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
   const slugify = (s: string) =>
     s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
