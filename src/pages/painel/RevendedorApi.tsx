@@ -104,8 +104,8 @@ function ApiKeysCard({
                 <CircleAlert className="h-3 w-3" /> Sem chave
               </span>
             )}
-            <Button size="sm" onClick={onNew} className="h-7 bg-primary px-2 text-xs text-primary-foreground hover:bg-primary/90">
-              <Plus className="mr-1 h-3 w-3" /> Nova chave
+            <Button size="sm" onClick={onNew} className="h-10 w-full bg-primary px-4 text-xs font-bold uppercase tracking-wide text-primary-foreground hover:bg-primary/90 sm:w-auto">
+              <Plus className="mr-1.5 h-4 w-4" /> Gerar chave API
             </Button>
           </div>
         </div>
@@ -117,7 +117,7 @@ function ApiKeysCard({
             </div>
           ) : keys.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border bg-background/40 p-6 text-center text-xs text-muted-foreground">
-              Nenhuma chave criada ainda. Clique em <strong>Nova chave</strong> para começar.
+              Nenhuma chave criada ainda. Clique em <strong>Gerar chave API</strong> para começar.
             </div>
           ) : (
             <div className="overflow-hidden rounded-lg border border-border bg-background/60">
@@ -604,18 +604,18 @@ export default function RevendedorApi() {
 
   useEffect(() => { load(); }, [user]);
 
-  const handleNew = () => { setNewLabel(""); setNewWebhook(""); setCreatedKey(null); setNewOpen(true); };
+  const handleNew = () => { setNewLabel("API Licenças"); setNewWebhook(""); setCreatedKey(null); setNewOpen(true); };
 
   const create = async () => {
     if (!resellerId) return;
-    if (newLabel.trim().length < 2) return toast.error("Dê um nome para a chave");
+    const label = newLabel.trim() || "API Licenças";
     setCreating(true);
     try {
       const key = genKey();
       const hash = await sha256Hex(key);
       const { error } = await supabase.from("reseller_api_keys").insert({
         reseller_id: resellerId,
-        label: newLabel.trim(),
+        label,
         key_prefix: key.slice(0, 12),
         key_hash: hash,
         webhook_url: newWebhook.trim() || null,
@@ -689,7 +689,7 @@ export default function RevendedorApi() {
           {!createdKey ? (
             <>
               <DialogHeader>
-                <DialogTitle>Nova chave de API</DialogTitle>
+                <DialogTitle>Gerar chave de API</DialogTitle>
                 <DialogDescription>A chave só será exibida uma vez. Guarde com cuidado.</DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
@@ -706,7 +706,7 @@ export default function RevendedorApi() {
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setNewOpen(false)}>Cancelar</Button>
                 <Button onClick={create} disabled={creating} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar chave"}
+                  {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gerar chave API"}
                 </Button>
               </DialogFooter>
             </>
