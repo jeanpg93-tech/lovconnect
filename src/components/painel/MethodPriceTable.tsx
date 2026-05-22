@@ -43,6 +43,8 @@ export default function MethodPriceTable({ method }: { method: Method }) {
   const [tier, setTier] = useState<any>(null);
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Partial<Record<PackId, number>>>({});
+  const [costOverrides, setCostOverrides] = useState<Partial<Record<PackId, number>>>({});
+  const [allTiers, setAllTiers] = useState<Array<{ id: string; name: string; slug: string; is_hidden: boolean; min_spent_cents: number }>>([]);
   const [editing, setEditing] = useState<PackId | null>(null);
   const [draft, setDraft] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -57,7 +59,7 @@ export default function MethodPriceTable({ method }: { method: Method }) {
         .eq("user_id", user.id)
         .maybeSingle();
       setResellerId(r?.id ?? null);
-      const [{ data: setting }, { data: tierData }, ovRes] = await Promise.all([
+      const [{ data: setting }, { data: tierData }, ovRes, ovCostRes, tiersAllRes] = await Promise.all([
         supabase.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
         r ? supabase.rpc("get_reseller_tier", { _reseller_id: r.id }) : Promise.resolve({ data: null }),
         r
@@ -67,6 +69,18 @@ export default function MethodPriceTable({ method }: { method: Method }) {
               .eq("reseller_id", r.id)
               .eq("method", method)
           : Promise.resolve({ data: [] } as any),
+        r
+          ? supabase
+              .from("reseller_license_cost_overrides")
+              .select("pack_id, price_cents, is_active")
+              .eq("reseller_id", r.id)
+              .eq("is_active", true)
+          : Promise.resolve({ data: [] } as any),
+        supabase
+          .from("reseller_tiers")
+          .select("id,name,slug,is_hidden,min_spent_cents,sort_order")
+          .eq("is_active", true)
+          .order("sort_order"),
       ]);
       const value = (setting?.value ?? { flow: {}, lovax: {} }) as PriceMap;
       setPrices({ flow: value.flow ?? {}, lovax: value.lovax ?? {} });
@@ -78,6 +92,13 @@ export default function MethodPriceTable({ method }: { method: Method }) {
         ovMap[row.pack_id as PackId] = row.price_cents / 100;
       });
       setOverrides(ovMap);
+      const costRows = ((ovCostRes as any)?.data ?? []) as { pack_id: string; price_cents: number }[];
+      const costMap: Partial<Record<PackId, number>> = {};
+      costRows.forEach((row) => {
+        costMap[row.pack_id as PackId] = row.price_cents / 100;
+      });
+      setCostOverrides(costMap);
+      setAllTiers((tiersAllRes.data ?? []) as any[]);
       setLoading(false);
     })();
   }, [user, method]);
