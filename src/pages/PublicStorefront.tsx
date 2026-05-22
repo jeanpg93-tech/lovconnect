@@ -194,9 +194,10 @@ export default function PublicStorefront() {
 
   const [order, setOrder] = useState<{
     id: string; short_code?: string | null; qr_code_base64: string; copy_paste: string; amount_cents: number;
-    product_type?: string | null; credit_amount?: number | null;
+    product_type?: string | null; credit_amount?: number | null; expires_at?: string | null;
   } | null>(null);
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [cancelling, setCancelling] = useState(false);
   const [licenseKey, setLicenseKey] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
