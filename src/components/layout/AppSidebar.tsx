@@ -177,6 +177,7 @@ export function AppSidebar() {
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [lovaxUsage, setLovaxUsage] = useState<{ used: number; limit: number } | null>(null);
   const [lovaxLoading, setLovaxLoading] = useState(false);
+  const [activeMethod, setActiveMethod] = useState<"flow" | "lovax">("flow");
   const [gatewayBalance, setGatewayBalance] = useState<string | null>(null);
   const [gatewayLoading, setGatewayLoading] = useState(false);
   const [creditsBalance, setCreditsBalance] = useState<number | null>(null);
