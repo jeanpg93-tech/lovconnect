@@ -651,7 +651,7 @@ export default function GerentePartners() {
                         <div className="grid gap-2 p-3 sm:p-4 sm:grid-cols-2 lg:grid-cols-3">
                           {LICENSE_PACKS.map((pack) => {
                             const cents = licDraft[pack.id] ?? 0;
-                            const reais = cents > 0 ? (cents / 100).toFixed(2) : "";
+                            const reais = licText[pack.id] ?? centsToText(cents);
                             const src = licSource[pack.id] ?? "none";
                             const dirty = (licDraft[pack.id] ?? 0) !== (licEffective[pack.id] ?? 0);
                             const dotColor =
@@ -691,15 +691,19 @@ export default function GerentePartners() {
                                       R$
                                     </span>
                                     <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
+                                      type="text"
+                                      inputMode="decimal"
                                       placeholder="—"
                                       value={reais}
                                       onChange={(e) => {
                                         const v = e.target.value;
-                                        const c = v === "" ? 0 : Math.max(0, Math.round(parseFloat(v) * 100));
+                                        setLicText((prev) => ({ ...prev, [pack.id]: v }));
+                                        const c = textToCents(v);
                                         setLicDraft((prev) => ({ ...prev, [pack.id]: c }));
+                                      }}
+                                      onBlur={(e) => {
+                                        const c = textToCents(e.target.value);
+                                        setLicText((prev) => ({ ...prev, [pack.id]: centsToText(c) }));
                                       }}
                                       className={`h-9 pl-7 text-right font-mono text-xs tabular-nums transition-all ${
                                         dirty
@@ -763,7 +767,7 @@ export default function GerentePartners() {
                         <div className="grid gap-2 p-3 sm:p-4 sm:grid-cols-2 lg:grid-cols-3">
                           {creditPackages.map((pkg) => {
                             const cents = creditDraft[pkg.credits_amount] ?? 0;
-                            const reais = cents > 0 ? (cents / 100).toFixed(2) : "";
+                            const reais = creditText[pkg.credits_amount] ?? centsToText(cents);
                             const src = creditSource[pkg.credits_amount] ?? "none";
                             const dirty = (creditDraft[pkg.credits_amount] ?? 0) !== (creditEffective[pkg.credits_amount] ?? 0);
                             const dotColor =
@@ -804,15 +808,19 @@ export default function GerentePartners() {
                                       R$
                                     </span>
                                     <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
+                                      type="text"
+                                      inputMode="decimal"
                                       placeholder="—"
                                       value={reais}
                                       onChange={(e) => {
                                         const v = e.target.value;
-                                        const c = v === "" ? 0 : Math.max(0, Math.round(parseFloat(v) * 100));
+                                        setCreditText((prev) => ({ ...prev, [pkg.credits_amount]: v }));
+                                        const c = textToCents(v);
                                         setCreditDraft((prev) => ({ ...prev, [pkg.credits_amount]: c }));
+                                      }}
+                                      onBlur={(e) => {
+                                        const c = textToCents(e.target.value);
+                                        setCreditText((prev) => ({ ...prev, [pkg.credits_amount]: centsToText(c) }));
                                       }}
                                       className={`h-9 pl-7 text-right font-mono text-xs tabular-nums transition-all ${
                                         dirty
