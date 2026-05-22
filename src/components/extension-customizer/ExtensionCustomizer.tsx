@@ -221,6 +221,18 @@ export function ExtensionCustomizer({ scope, resellerId }: Props) {
 
   async function handleUpload(field: keyof ExtCustomization, file: File) {
     try {
+      // Garante que o registro existe antes de enviar arquivos —
+      // a política de storage exige que o customization_id na pasta
+      // pertença ao revendedor autenticado.
+      let currentRecordId = recordId;
+      if (!currentRecordId) {
+        await handleSave();
+        currentRecordId = recordId;
+        if (!currentRecordId) {
+          toast.error("Salve a personalização antes de enviar imagens.");
+          return;
+        }
+      }
       const ext = file.name.split(".").pop() || "png";
       const brandSlug = data.brand_name?.replace(/[^a-z0-9]+/gi, "").toLowerCase() || "extensao";
       
@@ -231,7 +243,7 @@ export function ExtensionCustomizer({ scope, resellerId }: Props) {
         fileName = `${brandSlug}-logo512-${Date.now()}`;
       }
 
-      const path = `${scope}/${recordId ?? "new"}/${fileName}.${ext}`;
+      const path = `${scope}/${currentRecordId}/${fileName}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("extension-customizations")
         .upload(path, file, { upsert: true });
