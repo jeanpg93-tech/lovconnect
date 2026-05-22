@@ -382,7 +382,11 @@ Deno.serve(async (req) => {
             ?? (tiersAll ?? []).find((t: any) => (t.name || "").toLowerCase().includes("ouro"));
           let brl = Number(valores?.[method]?.[storeOrder.license_type]?.[tier.id] ?? 0);
           if (brl <= 0) brl = Number(valores?.[otherMethod]?.[storeOrder.license_type]?.[tier.id] ?? 0);
-          if (brl <= 0 && tier.is_hidden && ouro?.id) {
+          const isPartnerLike =
+            tier?.is_hidden ||
+            String(tier?.slug || "").toLowerCase() === "partner" ||
+            String(tier?.name || "").toLowerCase().includes("partner");
+          if (brl <= 0 && isPartnerLike && ouro?.id) {
             brl = Number(valores?.[method]?.[storeOrder.license_type]?.[ouro.id] ?? 0);
             if (brl <= 0) brl = Number(valores?.[otherMethod]?.[storeOrder.license_type]?.[ouro.id] ?? 0);
           }
