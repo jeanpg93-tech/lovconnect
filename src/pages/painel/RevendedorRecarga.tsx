@@ -251,6 +251,7 @@ export default function RevendedorRecargas() {
   const [storefrontCredits, setStorefrontCredits] = useState<StorefrontCreditRow[]>([]);
   const [cpOriginFilter, setCpOriginFilter] = useState<"all" | "manual" | "loja">("all");
   const [cancellingStorefrontId, setCancellingStorefrontId] = useState<string | null>(null);
+  const [cancellingCreditPurchaseId, setCancellingCreditPurchaseId] = useState<string | null>(null);
 
   const loadCreditPurchaseRefunds = async (rid: string) => {
     const { data } = await supabase
@@ -297,6 +298,26 @@ export default function RevendedorRecargas() {
       toast.error(e?.message ?? "Falha ao cancelar venda");
     } finally {
       setCancellingStorefrontId(null);
+    }
+  };
+  const cancelCreditPurchase = async (purchaseId: string) => {
+    if (!confirm(`Cancelar esta compra de créditos? Só é possível antes do pagamento PIX.`)) return;
+    setCancellingCreditPurchaseId(purchaseId);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-credit-purchase", {
+        body: { purchase_id: purchaseId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Compra cancelada");
+      if (resellerId) {
+        loadRecentCreditPurchases(resellerId);
+        if (allCreditPurchases) loadAllCreditPurchases();
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao cancelar compra");
+    } finally {
+      setCancellingCreditPurchaseId(null);
     }
   };
   const loadAllCreditPurchases = async () => {
@@ -1667,6 +1688,7 @@ export default function RevendedorRecargas() {
                           </Badge>
                         );
                         const isLojaPending = !isManual && o!.status === "pending" && !o!.paid_at;
+                        const isManualPending = isManual && ["aguardando", "pending", "processando"].includes(String(c!.status));
                         return (
                           <div
                             key={item.key}
@@ -1769,6 +1791,21 @@ export default function RevendedorRecargas() {
                                 onClick={() => cancelStorefrontOrder(rowId, o!.short_code)}
                               >
                                 {cancellingStorefrontId === rowId ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <><X className="h-3 w-3 mr-1" /> Cancelar</>
+                                )}
+                              </Button>
+                            )}
+                            {isManualPending && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2 text-[10px] font-bold border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
+                                disabled={cancellingCreditPurchaseId === rowId}
+                                onClick={() => cancelCreditPurchase(rowId)}
+                              >
+                                {cancellingCreditPurchaseId === rowId ? (
                                   <Loader2 className="h-3 w-3 animate-spin" />
                                 ) : (
                                   <><X className="h-3 w-3 mr-1" /> Cancelar</>
