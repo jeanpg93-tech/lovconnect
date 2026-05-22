@@ -103,6 +103,8 @@ export default function RevendedorPedidos() {
   const [licValores, setLicValores] = useState<Record<string, Record<string, Record<string, number>>>>({});
   // override de venda do revendedor: method|pack_id -> cents
   const [resellerSalePrices, setResellerSalePrices] = useState<Record<string, number>>({});
+  // override de CUSTO individual definido pelo gerente: method|pack_id -> cents
+  const [resellerCostOverrides, setResellerCostOverrides] = useState<Record<string, number>>({});
   const [availableMethods, setAvailableMethods] = useState<MethodId[]>([]);
   const [selectedMethod, setSelectedMethod] = useState<MethodId>("flow");
   // Método habilitado pelo gerente (compartilhado via app_settings).
@@ -138,7 +140,7 @@ export default function RevendedorPedidos() {
     const sinceToday = todayStart.toISOString();
     const [
       { data: pl }, { data: cs }, { data: os }, { data: t }, { data: tiers }, { data: ts }, { count: testCount },
-      { data: licSetting }, { data: salePrices }, { data: deliverySetting },
+      { data: licSetting }, { data: salePrices }, { data: deliverySetting }, { data: costOverrides },
     ] = await Promise.all([
       supabase.from("pricing_plans").select("license_type,label,price_cents,cost_cents,min_price_cents,is_active").eq("is_active", true),
       supabase.from("profiles").select("id,email,display_name").eq("reseller_id", r.id),
@@ -153,6 +155,8 @@ export default function RevendedorPedidos() {
       supabase.from("reseller_license_prices").select("method,pack_id,price_cents").eq("reseller_id", r.id),
       // Método de entrega habilitado pelo gerente
       supabase.from("app_settings").select("value").eq("key", "licencas.delivery.method").maybeSingle(),
+      // Override de custo individual (Partners/cliente-específico) definido pelo gerente
+      supabase.from("reseller_license_cost_overrides").select("method,pack_id,price_cents,is_active").eq("reseller_id", r.id).eq("is_active", true),
     ]);
     const sorted = ((pl ?? []) as Plan[])
       .filter(p => ORDER.includes(p.license_type))
@@ -186,6 +190,18 @@ export default function RevendedorPedidos() {
     });
     setResellerSalePrices(saleMap);
 
+    const costMap: Record<string, number> = {};
+    (costOverrides ?? []).forEach((row: any) => {
+      // override pode ser global (sem method) — aplica em ambos
+      if (row.method) {
+        costMap[`${row.method}|${row.pack_id}`] = row.price_cents;
+      } else {
+        costMap[`flow|${row.pack_id}`] = row.price_cents;
+        costMap[`lovax|${row.pack_id}`] = row.price_cents;
+      }
+    });
+    setResellerCostOverrides(costMap);
+
     setLoading(false);
   };
 
@@ -201,11 +217,35 @@ export default function RevendedorPedidos() {
   // 2) preço por revendedor (custom) → aplica desconto, respeita piso
   // 3) plano global → aplica desconto, respeita piso
   // Retorna { price, base, source }
-  // Custo (preço do gerente) para um pacote do método, no nível atual — em cents
+  // Custo (preço do gerente) para um pacote do método, no nível atual — em cents.
+  // Cascata (espelha edge functions e MethodPriceTable):
+  //  1) override individual em reseller_license_cost_overrides
+  //  2) licencas.valores[method][pack][tier.id]
+  //  3) licencas.valores[otherMethod][pack][tier.id]  (custos espelhados)
+  //  4) se tier for Partner/oculto: licencas.valores[method|otherMethod][pack][ouro.id]
   const getCostCents = (method: MethodId, pack: PackId): number => {
     if (!tier?.id) return 0;
-    const brl = Number(licValores?.[method]?.[pack]?.[tier.id] ?? 0);
-    return Math.round(brl * 100);
+    const ov = resellerCostOverrides[`${method}|${pack}`];
+    if (ov && ov > 0) return ov;
+    const otherMethod: MethodId = method === "flow" ? "lovax" : "flow";
+    const mine = Number(licValores?.[method]?.[pack]?.[tier.id] ?? 0);
+    if (mine > 0) return Math.round(mine * 100);
+    const mineOther = Number(licValores?.[otherMethod]?.[pack]?.[tier.id] ?? 0);
+    if (mineOther > 0) return Math.round(mineOther * 100);
+    const tierName = String((tier as any)?.name ?? "").toLowerCase();
+    const isPartnerLike = tierName.includes("partner");
+    if (isPartnerLike) {
+      const ouro =
+        allTiers.find((tt) => (tt.name || "").toLowerCase() === "ouro") ??
+        allTiers.find((tt) => (tt.name || "").toLowerCase().includes("ouro"));
+      if (ouro?.id) {
+        const o1 = Number(licValores?.[method]?.[pack]?.[ouro.id] ?? 0);
+        if (o1 > 0) return Math.round(o1 * 100);
+        const o2 = Number(licValores?.[otherMethod]?.[pack]?.[ouro.id] ?? 0);
+        if (o2 > 0) return Math.round(o2 * 100);
+      }
+    }
+    return 0;
   };
   // Preço de venda definido pelo revendedor (override) — em cents
   const getSaleCents = (method: MethodId, pack: PackId): number | null => {
