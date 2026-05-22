@@ -10,7 +10,7 @@ import {
   Loader2, ShoppingCart, KeyRound, Copy, ChevronDown, FlaskConical, 
   RefreshCcw, Ban, Trash2, MoreVertical, Sparkles, Crown, Package,
   BookOpen, Zap, Globe, Terminal, FileDown, Puzzle, ShieldCheck,
-  ArrowRight, Wallet, Search, Store, X
+  ArrowRight, Wallet, Search, Store, X, UserPlus
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -1317,43 +1317,57 @@ export default function RevendedorPedidos() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>
-                WhatsApp do cliente {isTest ? <span className="text-muted-foreground text-[10px] uppercase">opcional</span> : <span className="text-destructive">*</span>}
-              </Label>
-              <Input
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                placeholder="Ex: 11 91234-5678"
-                inputMode="tel"
-                required={!isTest}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                {isTest
-                  ? "Se informado, enviamos a chave por WhatsApp. Pode deixar em branco."
-                  : "Apenas números (DDD + número). Cada WhatsApp é vinculado a um único contato."}
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <Label>
-                Nome exibido na licença <span className="text-destructive">*</span>
-                {lookingUp && <span className="ml-2 text-[10px] text-muted-foreground">verificando…</span>}
-              </Label>
-              <Input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Ex: Cliente João"
-                required
-                disabled={!!matchedCustomer}
-              />
+            <div className="rounded-xl border border-border bg-card/40 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <UserPlus className="h-3.5 w-3.5 text-primary" />
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Dados do cliente{" "}
+                  {isTest && (
+                    <span className="text-[10px] normal-case tracking-normal text-muted-foreground/80">(opcional)</span>
+                  )}
+                </Label>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="licDisplayName" className="text-[11px] text-muted-foreground">
+                    Nome do cliente {!isTest && <span className="text-destructive">*</span>}
+                    {lookingUp && <span className="ml-2 text-[10px] text-muted-foreground">verificando…</span>}
+                  </Label>
+                  <Input
+                    id="licDisplayName"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Ex.: Cliente João"
+                    required={!isTest}
+                    disabled={!!matchedCustomer}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="licWhatsapp" className="text-[11px] text-muted-foreground">
+                    WhatsApp do cliente {!isTest && <span className="text-destructive">*</span>}
+                  </Label>
+                  <Input
+                    id="licWhatsapp"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    placeholder="Ex.: 11912345678"
+                    inputMode="tel"
+                    required={!isTest}
+                  />
+                </div>
+              </div>
               {matchedCustomer ? (
                 <p className="text-[11px] text-emerald-500">
                   Contato já cadastrado — usando o nome <span className="font-semibold">{matchedCustomer.display_name}</span>.
                 </p>
+              ) : whatsapp && onlyDigits(whatsapp).length >= 10 ? (
+                <p className="text-[11px] text-muted-foreground">Novo contato — será salvo automaticamente.</p>
               ) : (
-                whatsapp && onlyDigits(whatsapp).length >= 10 && (
-                  <p className="text-[11px] text-muted-foreground">Novo contato — será salvo automaticamente.</p>
-                )
+                <p className="text-[11px] text-muted-foreground">
+                  {isTest
+                    ? "Se informado, enviamos a chave por WhatsApp. Aparece no seu histórico."
+                    : "Aparece no seu histórico e no painel do gerente para facilitar a localização do pedido."}
+                </p>
               )}
             </div>
           </div>
