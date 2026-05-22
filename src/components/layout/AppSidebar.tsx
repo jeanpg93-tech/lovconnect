@@ -622,14 +622,20 @@ export function AppSidebar() {
           <div className="flex flex-col items-center gap-2 pt-3">
             <NavLink
               to="/painel/gerente/api-provedor"
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-blue-500/30 bg-blue-500/10 text-blue-500"
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-md border bg-blue-500/10 text-blue-500",
+                activeMethod === "flow" ? "border-blue-500 ring-1 ring-blue-500/50" : "border-blue-500/30"
+              )}
               title={providerUsage ? `MétodoFlow — Licenças usadas: ${providerUsage.used}/${providerUsage.limit || "∞"}` : "MétodoFlow"}
             >
               <Zap className="h-4 w-4" />
             </NavLink>
             <NavLink
               to="/painel/gerente/todas-licencas?tab=api"
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-violet-500/30 bg-violet-500/10 text-violet-500"
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-md border bg-violet-500/10 text-violet-500",
+                activeMethod === "lovax" ? "border-violet-500 ring-1 ring-violet-500/50" : "border-violet-500/30"
+              )}
               title={lovaxUsage ? `MétodoLovax — Licenças usadas: ${lovaxUsage.used}/${lovaxUsage.limit || "∞"}` : "MétodoLovax"}
             >
               <Sparkles className="h-4 w-4" />
