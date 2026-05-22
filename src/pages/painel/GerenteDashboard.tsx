@@ -819,10 +819,15 @@ export default function GerenteDashboard() {
                           const isIn = !isRefund && m.amount_cents >= 0;
                           const kindLabel = kindLabels[m.kind] ?? m.kind;
                           const desc = m.description ?? "";
-                          const isStoreSale = m.kind === "order_debit" && /venda\s*loja/i.test(desc);
-                          const isApiOrder = m.kind === "order_debit" && !isStoreSale;
-                          const isCreditPurchase = m.kind === "credit_purchase";
-                          const isLicensePurchase = m.kind === "license_purchase";
+                           const isStoreSale = m.kind === "order_debit" && /venda\s*loja/i.test(desc);
+                           const isApiOrder = m.kind === "order_debit" && !isStoreSale;
+                           // Detecta venda de créditos pelo detalhe ("Recarga • N créditos")
+                           // pois a mesma kind 'license_purchase' é usada para licença e para recarga manual.
+                           const isRechargeDetail = /recarga|cr[ée]dito/i.test(String(m.detail ?? "")) || /recarga|cr[ée]dito/i.test(desc);
+                           // A mesma kind ('license_purchase' ou 'order_debit') é usada para licença e para venda de créditos.
+                           // Usa o detalhe (que vem do enrichCredits/enrichOrders) para identificar quando é recarga de créditos.
+                           const isCreditPurchase = m.kind === "credit_purchase" || ((m.kind === "license_purchase" || m.kind === "order_debit") && isRechargeDetail);
+                           const isLicensePurchase = m.kind === "license_purchase" && !isRechargeDetail;
                           const isManualCredit = m.kind === "manual_credit";
                           const isRecharge = m.kind === "recharge";
                           const isSaleLike = isStoreSale || isCreditPurchase || isApiOrder || isLicensePurchase;
