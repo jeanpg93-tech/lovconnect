@@ -608,13 +608,24 @@ export default function GerentePartners() {
 
                     {/* Card: matriz de preços */}
                     <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
-                      <div className="px-4 sm:px-5 py-3 border-b border-border flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setLicOpen((v) => !v)}
+                        className="w-full px-4 sm:px-5 py-3 border-b border-border flex items-center gap-3 hover:bg-muted/30 transition-colors"
+                        aria-expanded={licOpen}
+                      >
                         <div className="h-6 w-1 bg-primary rounded-full" />
                         <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
                           <Tag className="h-4 w-4 text-primary" /> Custo de licenças (PromptFlow / LovaX)
                         </h3>
-                      </div>
-                      {loadingPrices ? (
+                        <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px] tabular-nums">
+                          {LICENSE_PACKS.length}
+                        </Badge>
+                        <ChevronDown
+                          className={`ml-auto h-4 w-4 text-muted-foreground transition-transform ${licOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {licOpen && (loadingPrices ? (
                         <div className="flex h-40 items-center justify-center">
                           <Loader2 className="h-5 w-5 animate-spin text-primary" />
                         </div>
@@ -700,18 +711,29 @@ export default function GerentePartners() {
                             );
                           })}
                         </div>
-                      )}
+                      ))}
                     </div>
 
                     {/* Card: matriz de preços de recargas */}
                     <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
-                      <div className="px-4 sm:px-5 py-3 border-b border-border flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setCreditOpen((v) => !v)}
+                        className="w-full px-4 sm:px-5 py-3 border-b border-border flex items-center gap-3 hover:bg-muted/30 transition-colors"
+                        aria-expanded={creditOpen}
+                      >
                         <div className="h-6 w-1 bg-primary rounded-full" />
                         <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
                           <Coins className="h-4 w-4 text-primary" /> Custo de recargas
                         </h3>
-                      </div>
-                      {loadingPrices ? (
+                        <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px] tabular-nums">
+                          {creditPackages.length}
+                        </Badge>
+                        <ChevronDown
+                          className={`ml-auto h-4 w-4 text-muted-foreground transition-transform ${creditOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {creditOpen && (loadingPrices ? (
                         <div className="flex h-32 items-center justify-center">
                           <Loader2 className="h-5 w-5 animate-spin text-primary" />
                         </div>
@@ -802,7 +824,7 @@ export default function GerentePartners() {
                             );
                           })}
                         </div>
-                      )}
+                      ))}
                     </div>
 
                     <div className="rounded-2xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground flex items-start gap-2">
