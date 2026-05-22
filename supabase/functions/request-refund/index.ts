@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
       // kind === 'credit_purchase'
       const { data: c } = await admin
         .from('reseller_credit_purchases')
-        .select('id,reseller_id,price_cents,status')
+        .select('id,reseller_id,price_cents,status,provider_pedido_id')
         .eq('id', referenceId)
         .maybeSingle();
       if (!c || c.reseller_id !== resellerId) {
@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
         // Busca pelo provider_pedido_id quando existir; caso contrário, casa por nota.
         const orderQuery = admin
           .from('orders')
-          .select('id,status')
+          .select('id,status,notes')
           .eq('reseller_id', resellerId)
           .eq('product_type', 'credits')
           .in('status', ['completed', 'sucesso', 'success']);
