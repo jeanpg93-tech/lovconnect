@@ -38,6 +38,60 @@ async function triggerReleasePending(orderIds: string[]) {
   }
 }
 
+/**
+ * Cria o pedido de recargas no provedor externo (mesma API usada pelo painel manual),
+ * registra em reseller_credit_purchases e devolve o provider_pedido_id para o link do cliente.
+ */
+async function createProviderCreditOrder(admin: any, storeOrder: any, costCents: number) {
+  const { data: master } = await admin
+    .from("app_settings").select("value").eq("key", "lovable_credits_master").maybeSingle();
+  const apiKey = (master?.value?.api_key as string | undefined) ?? null;
+  if (!apiKey) {
+    return { ok: false as const, error: "Provedor de créditos não configurado" };
+  }
+
+  let providerData: any = null;
+  try {
+    const r = await fetch("https://lojinhalovable.com/api/v1/revenda/pedidos", {
+      method: "POST",
+      headers: { "X-API-Key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ creditos: storeOrder.credit_amount, tipo_entrega: "workspace_proprio" }),
+    });
+    const txt = await r.text();
+    try { providerData = JSON.parse(txt); } catch { providerData = { raw: txt }; }
+    if (!r.ok || providerData?.success === false) {
+      return { ok: false as const, error: providerData?.error ?? `Provedor retornou ${r.status}`, providerData };
+    }
+  } catch (e) {
+    return { ok: false as const, error: e instanceof Error ? e.message : "erro provedor de créditos" };
+  }
+
+  const payload = providerData?.data ?? providerData;
+  const providerPedidoId: string | null = payload?.pedidoId ?? payload?.id ?? null;
+  if (!providerPedidoId) {
+    return { ok: false as const, error: "Provedor não retornou pedidoId", providerData };
+  }
+
+  try {
+    await admin.from("reseller_credit_purchases").insert({
+      reseller_id: storeOrder.reseller_id,
+      credits: storeOrder.credit_amount,
+      price_cents: costCents,
+      cost_cents: costCents || null,
+      status: payload?.status ?? "processando",
+      tipo_entrega: "workspace_proprio",
+      provider_pedido_id: providerPedidoId,
+      provider_response: providerData,
+      customer_name: storeOrder.buyer_name ?? null,
+      customer_whatsapp: storeOrder.buyer_whatsapp ?? null,
+    });
+  } catch (e) {
+    console.warn("reseller_credit_purchases insert failed", e);
+  }
+
+  return { ok: true as const, providerPedidoId, providerData };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
