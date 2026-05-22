@@ -1,4 +1,4 @@
-import { Home, Wallet, KeyRound, Coins, ArrowRightLeft, Plus, History, LayoutDashboard, CreditCard, Menu, LogOut, Sparkles, Zap } from "lucide-react";
+import { Home, Wallet, KeyRound, Coins, ArrowRightLeft, Plus, History, LayoutDashboard, CreditCard, Menu, LogOut, Sparkles, Zap, Code2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,6 +21,7 @@ export function MobileNav() {
   const { user, signOut } = useAuth();
   const { setOpenMobile } = useSidebar();
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [resellerBalance, setResellerBalance] = useState<number | null>(null);
   const [userName, setUserName] = useState<string>("");
@@ -99,6 +100,12 @@ export function MobileNav() {
       url: primaryRole === "gerente" ? "/painel/gerente/licencas" : "/painel/revendedor/licencas",
       active: pathname === (primaryRole === "gerente" ? "/painel/gerente/licencas" : "/painel/revendedor/licencas"),
     },
+    ...(primaryRole === "revendedor" ? [{
+      label: "APIs",
+      icon: Code2,
+      onClick: () => setIsApiModalOpen(true),
+      active: pathname === "/painel/revendedor/api" || pathname === "/painel/revendedor/api-recargas",
+    }] : []),
     {
       label: "Saldo",
       icon: Wallet,
