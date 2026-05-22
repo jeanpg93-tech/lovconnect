@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Calendar, Infinity as InfinityIcon, Crown, Save, Pencil, Check, X } from "lucide-react";
+import { Loader2, Calendar, Infinity as InfinityIcon, Crown, Save, Pencil, Check, X, AlertTriangle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { usePricingIssues, issueKey } from "@/hooks/usePricingIssues";
 
 type Method = "flow" | "lovax";
 type PackId = "1d" | "7d" | "30d" | "90d" | "365d" | "lifetime";
@@ -48,6 +49,7 @@ export default function MethodPriceTable({ method }: { method: Method }) {
   const [editing, setEditing] = useState<PackId | null>(null);
   const [draft, setDraft] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const { blocked, refresh: refreshIssues } = usePricingIssues();
 
   useEffect(() => {
     if (!user) return;
@@ -105,6 +107,23 @@ export default function MethodPriceTable({ method }: { method: Method }) {
 
   const saveOverride = async (pkgId: PackId, newValue: number | null) => {
     if (!resellerId) return;
+    // validações de proteção (não alteram preços existentes, só impedem novos salvamentos ruins)
+    if (newValue !== null && Number.isFinite(newValue) && newValue > 0) {
+      const base = computeBase(pkgId);
+      if (base <= 0) {
+        toast.warning("Custo deste produto ainda não foi definido pelo gerente. Aguarde a regularização antes de cadastrar o preço.");
+        return;
+      }
+      const cents = Math.round(newValue * 100);
+      if (cents < base) {
+        toast.error(`O valor R$ ${newValue.toFixed(2)} está abaixo do custo (R$ ${(base / 100).toFixed(2)}). Você teria prejuízo.`);
+        return;
+      }
+      if (cents === base) {
+        toast.warning("Esse preço é igual ao custo. Você não teria lucro. Aumente o valor para vender.");
+        return;
+      }
+    }
     setSaving(true);
     const next = { ...overrides };
     let error: any = null;
@@ -138,6 +157,7 @@ export default function MethodPriceTable({ method }: { method: Method }) {
     setOverrides(next);
     setEditing(null);
     toast.success("Preço atualizado");
+    refreshIssues();
   };
 
   if (loading) {
@@ -167,21 +187,21 @@ export default function MethodPriceTable({ method }: { method: Method }) {
     allTiers.find((t) => (t.name || "").toLowerCase().includes("ouro"));
   const computeBase = (id: PackId): number => {
     const ov = costOverrides[id];
-    if (ov && ov > 0) return ov;
+    if (ov && ov > 0) return ov * 100; // costOverrides já está em reais → cents
     const mine = Number(prices?.[method]?.[id]?.[tier?.id] ?? 0);
-    if (mine > 0) return mine;
+    if (mine > 0) return Math.round(mine * 100);
     const otherMethod: Method = method === "flow" ? "lovax" : "flow";
     const mineOther = Number(prices?.[otherMethod]?.[id]?.[tier?.id] ?? 0);
-    if (mineOther > 0) return mineOther;
+    if (mineOther > 0) return Math.round(mineOther * 100);
     const isPartnerLike =
       tier?.is_hidden ||
       (tier?.slug || "").toLowerCase() === "partner" ||
       (tier?.name || "").toLowerCase().includes("partner");
     if (isPartnerLike && ouroTier?.id) {
       const ouro = Number(prices?.[method]?.[id]?.[ouroTier.id] ?? 0);
-      if (ouro > 0) return ouro;
+      if (ouro > 0) return Math.round(ouro * 100);
       const ouroOther = Number(prices?.[otherMethod]?.[id]?.[ouroTier.id] ?? 0);
-      if (ouroOther > 0) return ouroOther;
+      if (ouroOther > 0) return Math.round(ouroOther * 100);
     }
     return 0;
   };
