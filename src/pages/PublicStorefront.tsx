@@ -674,8 +674,40 @@ export default function PublicStorefront() {
                 <div className="text-center text-sm text-destructive py-4">
                   O pagamento falhou ou foi cancelado. Tente novamente.
                 </div>
+              ) : orderStatus === "expirado" ? (
+                <div className="text-center space-y-3 py-4">
+                  <div className="mx-auto h-12 w-12 rounded-full bg-zinc-500/15 flex items-center justify-center">
+                    <QrCode className="h-6 w-6 text-zinc-500" />
+                  </div>
+                  <h2 className="text-lg font-semibold">PIX expirado</h2>
+                  <p className="text-sm text-muted-foreground">
+                    O prazo de pagamento acabou. Gere um novo pedido para tentar novamente.
+                  </p>
+                  <Button variant="outline" size="sm" onClick={reset}>Novo pedido</Button>
+                </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
+                  {order.expires_at && (() => {
+                    const ms = new Date(order.expires_at).getTime() - now;
+                    if (ms <= 0) return null;
+                    const totalSec = Math.floor(ms / 1000);
+                    const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
+                    const ss = String(totalSec % 60).padStart(2, "0");
+                    const warn = totalSec < 5 * 60;
+                    return (
+                      <div className={cn(
+                        "md:col-span-2 flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm",
+                        warn
+                          ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                          : "border-border bg-muted/40 text-muted-foreground"
+                      )}>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>
+                          Este PIX expira em <span className="font-mono font-semibold tabular-nums">{mm}:{ss}</span>
+                        </span>
+                      </div>
+                    );
+                  })()}
                   <div className="space-y-2 flex flex-col items-center">
                     <div className="flex items-center gap-2 text-sm font-semibold">
                       <QrCode className="h-4 w-4" /> Pague via PIX
