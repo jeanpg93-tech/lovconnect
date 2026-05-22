@@ -361,13 +361,33 @@ Deno.serve(async (req) => {
       const tier: any = Array.isArray(tierRow) ? tierRow[0] : tierRow;
 
       if (tier?.id && !storeOrder.extension_id) {
-        const { data: setting } = await admin
-          .from("app_settings")
-          .select("value")
-          .eq("key", "licencas.valores")
-          .maybeSingle();
-        const brl = Number(((setting?.value ?? {}) as Record<string, any>)?.[method]?.[storeOrder.license_type]?.[tier.id] ?? 0);
-        if (brl > 0) tier_price_override = Math.round(brl * 100);
+        // Cascata: override individual (Partner) -> licencas.valores[tier]
+        //          -> fallback Partner→Ouro -> método irmão (flow<->lovax custo igual)
+        const [{ data: rlcoRow }, { data: setting }, { data: tiersAll }] = await Promise.all([
+          admin.from("reseller_license_cost_overrides")
+            .select("price_cents,is_active")
+            .eq("reseller_id", storeOrder.reseller_id)
+            .eq("pack_id", storeOrder.license_type)
+            .eq("is_active", true)
+            .maybeSingle(),
+          admin.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
+          admin.from("reseller_tiers").select("id,slug,name,is_hidden").eq("is_active", true),
+        ]);
+        if (rlcoRow?.price_cents && rlcoRow.price_cents > 0) {
+          tier_price_override = Number(rlcoRow.price_cents);
+        } else {
+          const valores = (setting?.value ?? {}) as Record<string, any>;
+          const otherMethod = method === "flow" ? "lovax" : "flow";
+          const ouro = (tiersAll ?? []).find((t: any) => (t.slug || "").toLowerCase() === "ouro")
+            ?? (tiersAll ?? []).find((t: any) => (t.name || "").toLowerCase().includes("ouro"));
+          let brl = Number(valores?.[method]?.[storeOrder.license_type]?.[tier.id] ?? 0);
+          if (brl <= 0) brl = Number(valores?.[otherMethod]?.[storeOrder.license_type]?.[tier.id] ?? 0);
+          if (brl <= 0 && tier.is_hidden && ouro?.id) {
+            brl = Number(valores?.[method]?.[storeOrder.license_type]?.[ouro.id] ?? 0);
+            if (brl <= 0) brl = Number(valores?.[otherMethod]?.[storeOrder.license_type]?.[ouro.id] ?? 0);
+          }
+          if (brl > 0) tier_price_override = Math.round(brl * 100);
+        }
       }
 
       if (tier_price_override === 0 && tier?.id && storeOrder.extension_id) {
