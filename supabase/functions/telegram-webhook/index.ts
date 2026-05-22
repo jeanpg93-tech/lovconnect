@@ -35,6 +35,51 @@ function brl(cents: number) {
   return `R$ ${(cents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+const PROVIDER_BASE = 'https://lojinhalovable.com/api/v1/revenda'
+const MISTIC_BASE = 'https://api.misticpay.com/api'
+
+async function fetchProviderBalanceCents(client: any): Promise<number | null> {
+  try {
+    const { data: master } = await client
+      .from('app_settings').select('value').eq('key', 'lovable_credits_master').maybeSingle()
+    const apiKey: string | undefined = master?.value?.api_key
+    if (!apiKey) return null
+    const r = await fetch(`${PROVIDER_BASE}/saldo`, {
+      headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
+    })
+    if (!r.ok) return null
+    const d = await r.json()
+    const reais = d?.data?.saldoReais ?? d?.saldoReais
+    const cents = d?.data?.saldoCentavos ?? d?.saldoCentavos
+    if (cents != null) return Math.round(Number(cents))
+    if (reais != null) return Math.round(Number(reais) * 100)
+    return null
+  } catch { return null }
+}
+
+async function fetchGatewayBalanceCents(client: any): Promise<number | null> {
+  try {
+    const { data: keys } = await client
+      .from('app_settings').select('key, value')
+      .in('key', ['misticpay_client_id', 'misticpay_client_secret'])
+    const ci = keys?.find((k: any) => k.key === 'misticpay_client_id')?.value
+      ?? Deno.env.get('MISTICPAY_CLIENT_ID')
+    const cs = keys?.find((k: any) => k.key === 'misticpay_client_secret')?.value
+      ?? Deno.env.get('MISTICPAY_CLIENT_SECRET')
+    if (!ci || !cs) return null
+    for (const p of ['/users/balance', '/users/info']) {
+      const r = await fetch(`${MISTIC_BASE}${p}`, {
+        headers: { ci, cs, 'Content-Type': 'application/json' },
+      })
+      if (!r.ok) continue
+      const d = await r.json()
+      const bal = d?.data?.balance ?? d?.data?.availableBalance ?? d?.balance
+      if (bal != null) return Math.round(Number(bal) * 100)
+    }
+    return null
+  } catch { return null }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('ok')
 
@@ -99,17 +144,23 @@ Deno.serve(async (req) => {
   if (cmd === '/help' || cmd === '/start') {
     await tg('sendMessage', { chat_id: chatId, parse_mode: 'HTML', text:
       '<b>Comandos disponíveis:</b>\n' +
-      '/saldo — saldo total dos revendedores\n' +
+      '/saldo — saldos do Provedor e da Lojinha (Gateway)\n' +
       '/vendas — vendas pagas hoje\n' +
       '/recargas — recargas hoje\n' +
       '/pendentes — cadastros aguardando aprovação\n' +
       '/help — esta mensagem'
     })
   } else if (cmd === '/saldo') {
-    const { data } = await supabase.from('reseller_balances').select('balance_cents')
-    const total = (data ?? []).reduce((s, r: any) => s + (r.balance_cents || 0), 0)
+    const [prov, gw] = await Promise.all([
+      fetchProviderBalanceCents(supabase),
+      fetchGatewayBalanceCents(supabase),
+    ])
     await tg('sendMessage', { chat_id: chatId, parse_mode: 'HTML',
-      text: `💼 <b>Saldo total dos revendedores</b>\n${brl(total)}\n(${(data ?? []).length} revendedores)` })
+      text:
+        `💼 <b>Saldos do painel</b>\n\n` +
+        `🤖 Provedor: <b>${prov != null ? brl(prov) : 'indisponível'}</b>\n` +
+        `🏪 Lojinha (Gateway PIX): <b>${gw != null ? brl(gw) : 'indisponível'}</b>`
+    })
   } else if (cmd === '/vendas') {
     const { data } = await supabase.from('balance_transactions')
       .select('amount_cents').eq('kind', 'order_debit').gte('created_at', todayIso)
