@@ -190,10 +190,10 @@ function ApiKeyCard({
                 variant="outline"
                 onClick={() => setConfirmOpen(true)}
                 disabled={resetting}
-                className="h-7 px-2 text-xs"
+                className="h-8 w-full px-3 text-xs sm:h-7 sm:w-auto sm:px-2"
               >
                 {resetting ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}
-                Resetar chave
+                {keyRow ? "Resetar chave" : "Gerar chave"}
               </Button>
             </div>
           </div>
