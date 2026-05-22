@@ -1719,7 +1719,7 @@ export default function RevendedorRecargas() {
                                   </Badge>
                                 ) : null}
                               </div>
-                              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
                                 <span>Criada: {fmtDate(item.created_at)}</span>
                                 {isManual && c!.workspace_name ? (
                                   <>

@@ -846,7 +846,7 @@ export default function GerenteDashboard() {
                                    <Arrow className="h-4 w-4" strokeWidth={2.5} />
                                  </div>
                                  <div className="min-w-0 flex-1">
-                                    <div className="text-xs font-bold flex items-center gap-1.5 truncate">
+                                     <div className="text-xs font-bold flex flex-wrap items-center gap-1.5">
                                       {m.reseller_name}
                                       {isSaleLike ? (
                                         <>
@@ -874,8 +874,8 @@ export default function GerenteDashboard() {
                                    <div className="text-[9px] text-muted-foreground font-mono truncate">
                                      {m.detail ? m.detail : (desc || '—')}
                                    </div>
-                                   {(m.customer_name || m.customer_whatsapp) && (
-                                     <div className="flex items-center gap-2 text-[9px] pt-0.5">
+                                    {(m.customer_name || m.customer_whatsapp) && (
+                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] pt-0.5">
                                        {m.customer_name && (
                                          <span className="font-semibold text-foreground/80 truncate max-w-[160px]">👤 {m.customer_name}</span>
                                        )}
