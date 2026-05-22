@@ -855,7 +855,30 @@ export default function GerenteDashboard() {
                                         </span>
                                       )}
                                     </div>
-                                  <div className="text-[9px] text-muted-foreground font-mono truncate">{desc || '—'}</div>
+                                   <div className="text-[9px] text-muted-foreground font-mono truncate">
+                                     {m.detail ? m.detail : (desc || '—')}
+                                   </div>
+                                   {(m.customer_name || m.customer_whatsapp) && (
+                                     <div className="flex items-center gap-2 text-[9px] pt-0.5">
+                                       {m.customer_name && (
+                                         <span className="font-semibold text-foreground/80 truncate max-w-[160px]">👤 {m.customer_name}</span>
+                                       )}
+                                       {m.customer_whatsapp && (
+                                         <>
+                                           <span className="text-muted-foreground/60">·</span>
+                                           <a
+                                             href={`https://wa.me/${String(m.customer_whatsapp).replace(/\D+/g, "")}`}
+                                             target="_blank"
+                                             rel="noreferrer"
+                                             onClick={(e) => e.stopPropagation()}
+                                             className="font-mono text-emerald-600 hover:underline"
+                                           >
+                                             {m.customer_whatsapp}
+                                           </a>
+                                         </>
+                                       )}
+                                     </div>
+                                   )}
                                 </div>
                               </div>
                               <div className="text-right shrink-0 ml-2">
