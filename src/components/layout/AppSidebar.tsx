@@ -177,6 +177,7 @@ export function AppSidebar() {
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [lovaxUsage, setLovaxUsage] = useState<{ used: number; limit: number } | null>(null);
   const [lovaxLoading, setLovaxLoading] = useState(false);
+  const [activeMethod, setActiveMethod] = useState<"flow" | "lovax">("flow");
   const [gatewayBalance, setGatewayBalance] = useState<string | null>(null);
   const [gatewayLoading, setGatewayLoading] = useState(false);
   const [creditsBalance, setCreditsBalance] = useState<number | null>(null);
@@ -336,7 +337,32 @@ export function AppSidebar() {
       fetchCreditsBalance();
       fetchLovax();
     }, 60_000);
-    return () => { cancelled = true; clearInterval(id); };
+
+    // Método de entrega ativo (compartilhado via app_settings)
+    const fetchActiveMethod = async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "licencas.delivery.method")
+        .maybeSingle();
+      const v = (data?.value as any)?.method;
+      if (!cancelled && (v === "flow" || v === "lovax")) setActiveMethod(v);
+    };
+    fetchActiveMethod();
+    const ch = supabase
+      .channel("sidebar-active-method")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "app_settings", filter: "key=eq.licencas.delivery.method" },
+        fetchActiveMethod
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      supabase.removeChannel(ch);
+    };
   }, [primaryRole]);
 
   // Aplica scrollbars finos/vermelhos só no painel do admin (gerente)
@@ -467,14 +493,24 @@ export function AppSidebar() {
           <div className="space-y-2 px-2 pt-3">
             <NavLink
               to="/painel/gerente/api-provedor"
-              className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2.5 transition-all hover:border-blue-500/40 hover:shadow-sm"
+              className={cn(
+                "group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-card p-2.5 transition-all hover:shadow-sm",
+                activeMethod === "flow"
+                  ? "border-blue-500/60 ring-1 ring-blue-500/40 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]"
+                  : "border-border hover:border-blue-500/40"
+              )}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-500 transition-transform group-hover:scale-110">
                 <Zap className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
-                  MétodoFlow
+                <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
+                  <span>MétodoFlow</span>
+                  {activeMethod === "flow" && (
+                    <span className="rounded-full bg-blue-500/15 px-1.5 py-[1px] text-[8px] font-bold tracking-wider text-blue-500">
+                      ATIVO
+                    </span>
+                  )}
                 </div>
                 <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
                   {balanceLoading && providerUsage === null
@@ -489,14 +525,24 @@ export function AppSidebar() {
 
             <NavLink
               to="/painel/gerente/todas-licencas?tab=api"
-              className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2.5 transition-all hover:border-violet-500/40 hover:shadow-sm"
+              className={cn(
+                "group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-card p-2.5 transition-all hover:shadow-sm",
+                activeMethod === "lovax"
+                  ? "border-violet-500/60 ring-1 ring-violet-500/40"
+                  : "border-border hover:border-violet-500/40"
+              )}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-500 transition-transform group-hover:scale-110">
                 <Sparkles className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
-                  MétodoLovax
+                <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
+                  <span>MétodoLovax</span>
+                  {activeMethod === "lovax" && (
+                    <span className="rounded-full bg-violet-500/15 px-1.5 py-[1px] text-[8px] font-bold tracking-wider text-violet-500">
+                      ATIVO
+                    </span>
+                  )}
                 </div>
                 <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
                   {lovaxLoading && lovaxUsage === null
@@ -576,14 +622,20 @@ export function AppSidebar() {
           <div className="flex flex-col items-center gap-2 pt-3">
             <NavLink
               to="/painel/gerente/api-provedor"
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-blue-500/30 bg-blue-500/10 text-blue-500"
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-md border bg-blue-500/10 text-blue-500",
+                activeMethod === "flow" ? "border-blue-500 ring-1 ring-blue-500/50" : "border-blue-500/30"
+              )}
               title={providerUsage ? `MétodoFlow — Licenças usadas: ${providerUsage.used}/${providerUsage.limit || "∞"}` : "MétodoFlow"}
             >
               <Zap className="h-4 w-4" />
             </NavLink>
             <NavLink
               to="/painel/gerente/todas-licencas?tab=api"
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-violet-500/30 bg-violet-500/10 text-violet-500"
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-md border bg-violet-500/10 text-violet-500",
+                activeMethod === "lovax" ? "border-violet-500 ring-1 ring-violet-500/50" : "border-violet-500/30"
+              )}
               title={lovaxUsage ? `MétodoLovax — Licenças usadas: ${lovaxUsage.used}/${lovaxUsage.limit || "∞"}` : "MétodoLovax"}
             >
               <Sparkles className="h-4 w-4" />
