@@ -411,6 +411,7 @@ export default function RevendedorRecargas() {
       loadRechargeRefunds(r.id);
       loadRecentCreditPurchases(r.id);
       loadCreditPurchaseRefunds(r.id);
+      loadStorefrontCredits(r.id);
       // Em background: pergunta ao provider o status das compras "em aberto" e atualiza local.
       syncCreditPurchases(r.id);
 
