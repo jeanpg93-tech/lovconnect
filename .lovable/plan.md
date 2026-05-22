@@ -1,147 +1,55 @@
-## Objetivo
-Implementar um sistema único de **validação de precificação** (custo + venda) que protege revendedores e o sistema de:
-- Vender com **custo zero/indefinido** (erro de cadastro do gerente → revendedor perderia o lucro).
-- Vender com **venda zero** (revendedor não recebe nada).
-- Vender com **venda < custo** (prejuízo direto).
-- Vender com **venda = custo** (margem zero, sem lucro).
 
-Tudo é **bloqueio** nas vendas, com **aviso amarelo** quando não há prejuízo (custo zero / margem zero) e **aviso vermelho urgente piscando** quando há prejuízo (venda < custo) ou venda zero.
+## Bot do Telegram — notificações + comandos
 
-**Não altera nenhum preço já cadastrado.** Apenas adiciona camada de validação + UI de alerta.
+### 1. Banco de dados (1 migração)
 
----
+**Tabela `telegram_settings`** — singleton com config do gerente:
+- `chat_id` (bigint) — preenchido quando você pareia o bot
+- `pairing_code` (text) — código de 6 dígitos pra você enviar ao bot
+- Toggles: `notify_sales`, `notify_recharges`, `notify_signups`, `notify_refunds`, `notify_reseller_activity` (todos `true` por padrão)
 
-## Regras de validação (fonte única da verdade)
+**Tabela `telegram_outbox`** — fila de mensagens a enviar (id, text, created_at, sent_at, error). Garante que nada se perde se o Telegram falhar.
 
-Para cada produto (licença `flow/lovax × pack` e recarga de créditos `pack`):
+**Triggers que enfileiram mensagens automaticamente:**
+- `profiles` INSERT com `approval_status='pending'` → "🆕 Novo cadastro aguardando aprovação"
+- `balance_transactions` INSERT → roteia por `kind`:
+  - `deposit` → "💰 Recarga de saldo do revendedor X"
+  - `order_debit` → "🛒 Nova venda na loja do revendedor X"
+  - `refund` / `estorno` → "↩️ Reembolso processado"
+  - outros (manual_debit, manual_credit) → "⚙️ Movimentação do revendedor X"
 
-| Situação | Severidade | Vendas |
-|---|---|---|
-| `cost = 0` ou `null` (gerente não definiu) | **amarelo** | **bloqueia** |
-| `sale = 0` (revendedor não cadastrou) | **vermelho piscando** | **bloqueia** |
-| `sale < cost` (prejuízo) | **vermelho piscando** | **bloqueia** |
-| `sale = cost` (margem zero) | **amarelo** | **bloqueia** |
-| `sale > cost` | ok | libera |
+### 2. Edge functions (3 novas)
 
-Aplica-se a **todos os revendedores** (resolvido on-the-fly, não depende de dado novo).
+**`telegram-webhook`** (`verify_jwt = false`) — recebe mensagens do Telegram:
+- `/start <código>` — pareia seu chat_id com a conta de gerente
+- `/saldo` — saldo total dos revendedores e movimentações do dia
+- `/vendas` — vendas pagas hoje (qtd + total)
+- `/recargas` — recargas hoje
+- `/pendentes` — cadastros aguardando aprovação
+- `/help` — lista de comandos
+- Segurança: só responde ao `chat_id` pareado
 
----
+**`telegram-dispatch`** — processa o outbox, envia via gateway. Chamado por cron a cada 1min.
 
-## Backend — edge function única `pricing-issues`
+**`telegram-notify`** (helper interno) — pode ser chamada por outras edge functions pra avisos pontuais (erros críticos etc).
 
-Nova função `supabase/functions/pricing-issues/index.ts` (verify_jwt = false, valida JWT em código):
-- **GET / sem args** → retorna issues do revendedor logado.
-- **POST `{ reseller_id }`** (apenas gerente, via `has_role`) → permite consultar outro revendedor.
-- **POST `{ check: { kind: 'license'|'credits', method?, pack_id?, credits_amount?, sale_cents } }`** → valida 1 item específico (usado pelas páginas de preço antes de salvar).
+### 3. Cron job (pg_cron + pg_net)
+Roda `telegram-dispatch` a cada minuto pra esvaziar o outbox.
 
-Internamente, ela reproduz as cascatas que já existem:
-- **Custo de licença**: `reseller_license_cost_overrides` → `app_settings.licencas.valores[method][pack][tier]` → fallback Partner→Ouro → método irmão (igual a `MethodPriceTable.computeBase` e `place-method-license-order`).
-- **Venda de licença**: `reseller_license_prices` (por método/pack).
-- **Custo de crédito**: RPC `get_credit_pack_cost(reseller_id, plan_id)` (já existe).
-- **Venda de crédito**: `reseller_credit_prices`.
+### 4. UI — nova página `/painel/gerente/telegram`
+- Status do bot (pareado ✅ ou aguardando)
+- Botão "Gerar código de pareamento" + instruções (procurar o bot @SeuBot, mandar `/start CODIGO`)
+- Toggles pra ativar/desativar cada tipo de notificação
+- Link rápido pra abrir o chat com o bot
 
-Retorna:
-```json
-{
-  "has_blocking": true,
-  "has_critical": true,
-  "issues": [
-    { "kind":"license","method":"flow","pack_id":"7d","label":"Flow 7 dias",
-      "cost_cents":0,"sale_cents":1990,"severity":"warning","reason":"cost_missing" },
-    { "kind":"credits","credits_amount":500,"label":"500 créditos",
-      "cost_cents":2500,"sale_cents":2000,"severity":"critical","reason":"sale_below_cost" }
-  ]
-}
-```
+### Detalhes técnicos
+- Webhook do Telegram registrado via gateway depois do deploy
+- Secret derivado de `TELEGRAM_API_KEY` (não pede token bruto)
+- Outbox + dispatcher evita timeout: triggers do banco não bloqueiam esperando o Telegram responder
+- Comandos usam `service_role` na função pra ler agregados sem RLS
 
-Razões: `cost_missing`, `sale_missing`, `sale_below_cost`, `margin_zero`.
+### O que NÃO entra nesta versão
+- Notificações por revendedor (cada um com seu próprio chat) — você confirmou que só o gerente recebe
+- Inline keyboards / botões interativos — só comandos de texto por enquanto
 
----
-
-## Backend — bloqueio nas vendas (servidor é a fonte de verdade)
-
-Em cada função de venda, antes de criar o pedido, chamar um helper interno (mesma lógica do `pricing-issues`, módulo compartilhado por cópia já que functions não compartilham imports) e abortar com `{ error: "pricing_blocked", reason, severity }` se houver problema **naquele item específico**:
-
-1. `storefront-create-order` — loja pública (licença + créditos).
-2. `place-method-license-order` — venda manual de licença pelo revendedor.
-3. `reseller-recharge-api` (criação de pedido manual de recarga) e `reseller-credits-api` — venda manual / API de créditos.
-4. `reseller-api` — API pública do revendedor (licenças).
-
-Mensagens claras: `"Venda bloqueada: custo do produto não foi definido pelo gerente"` / `"... preço de venda abaixo do custo"` etc.
-
----
-
-## Bloqueio no cadastro de preço (revendedor)
-
-Em `MethodPriceTable.tsx` (licenças) e `RevendedorCreditos.tsx` (créditos), no `onSave`:
-- Se `base (custo) = 0` → bloqueia salvar com toast amarelo: *"O custo desse produto ainda não foi definido. Aguarde o gerente regularizar antes de cadastrar o preço."*
-- Se `valor < base` → bloqueia com toast vermelho: *"O valor que você está tentando cadastrar (R$ X) é abaixo do custo (R$ Y). Você teria prejuízo."*
-- Se `valor = base` → bloqueia com toast amarelo: *"Esse preço é igual ao custo. Você não teria lucro. Aumente o valor para vender."*
-
-Nada disso altera preços existentes, só impede novos salvamentos ruins.
-
----
-
-## Frontend — hook + alertas visuais
-
-**Novo hook `src/hooks/usePricingIssues.ts`**
-- Chama `pricing-issues` na montagem + a cada 60s.
-- Retorna `{ issues, hasBlocking, hasCritical, loading, refresh }`.
-- Usado por: Dashboard, página de Preços, página da Loja.
-
-**Componente `src/components/painel/PricingIssuesBanner.tsx`**
-- Vermelho piscando (animação `animate-pulse` em token semântico) quando `hasCritical`.
-- Amarelo estático quando só warnings.
-- Lista compacta dos itens problemáticos + botão **"Corrigir agora"** → `/painel/revendedor/precos?tab=...`.
-- Aparece em:
-  - `RevendedorDashboard` (topo).
-  - `RevendedorPrecos` (acima das abas, e linha vermelha/amarela no item específico nas tabelas).
-  - `RevendedorMinhaLoja` (avisando que produtos X estão ocultos da loja).
-
-**Marcação nas tabelas de preço**
-- `MethodPriceTable` e `RevendedorCreditos`: cada linha problemática ganha borda lateral (vermelha ou amarela), ícone de alerta e tooltip com a razão.
-- Botões "Cadastrar preço" / "Editar" continuam funcionando, mas o save bloqueia conforme regras acima.
-
-**Loja pública (`PublicStorefront`)**
-- Itens bloqueados (cost_missing / sale_below_cost / sale_missing / margin_zero) **não aparecem** para o cliente final.
-- Filtragem feita já consumindo `pricing-issues` (ou inline no backend que serve o catálogo).
-
----
-
-## Não-objetivos
-- **Não** alterar preços já cadastrados, custos, ou rodar migrations de dados.
-- **Não** mexer em RLS, tiers, ou cascatas existentes.
-- **Não** mudar o fluxo de PIX/webhook/entrega.
-
----
-
-## Detalhes técnicos resumidos
-
-```text
-pricing-issues (edge fn)
- ├── auth: JWT em código → resolve reseller_id (ou aceita gerente passando outro)
- ├── carrega: tier, licencas.valores, reseller_license_prices,
- │            reseller_license_cost_overrides, reseller_credit_prices,
- │            credit_pricing_plans + get_credit_pack_cost por pack
- ├── computa cost/sale por item (mesma cascata do MethodPriceTable)
- └── classifica → issues[]
-
-usePricingIssues  →  PricingIssuesBanner + linhas marcadas
-storefront-create-order / place-method-license-order /
-reseller-recharge-api / reseller-credits-api / reseller-api
-  → revalida o item específico antes de criar pedido
-```
-
-Arquivos novos:
-- `supabase/functions/pricing-issues/index.ts`
-- `src/hooks/usePricingIssues.ts`
-- `src/components/painel/PricingIssuesBanner.tsx`
-
-Arquivos editados (sem mudar lógica de preço, só validação/UI):
-- `src/components/painel/MethodPriceTable.tsx` (bloqueio no save + marca linha)
-- `src/pages/painel/RevendedorCreditos.tsx` (bloqueio no save + marca linha)
-- `src/pages/painel/RevendedorDashboard.tsx` (banner)
-- `src/pages/painel/RevendedorPrecos.tsx` (banner)
-- `src/pages/painel/RevendedorMinhaLoja.tsx` (banner + aviso de produto oculto)
-- `src/pages/PublicStorefront.tsx` (filtra itens bloqueados)
-- 5 edge functions de venda (chamada ao validador antes de criar pedido)
+Confirma que tá ok que eu implemento?
