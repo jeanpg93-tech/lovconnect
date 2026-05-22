@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { usePricingIssues, issueKey } from "@/hooks/usePricingIssues";
+import { AlertTriangle, AlertCircle } from "lucide-react";
 
 type Plan = { id: string; label: string; credits_amount: number; is_active: boolean };
 type Override = {
@@ -49,6 +51,7 @@ export default function RevendedorCreditos() {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Record<number, { enabled: boolean; price: string }>>({});
   const [saving, setSaving] = useState(false);
+  const { blocked, refresh: refreshIssues } = usePricingIssues();
 
   const load = async () => {
     if (!user) return;
@@ -114,6 +117,29 @@ export default function RevendedorCreditos() {
 
   const save = async () => {
     if (!resellerId) return;
+    // Validar todos os preços ativados antes de salvar qualquer coisa
+    for (const p of plans) {
+      const d = draft[p.credits_amount];
+      if (!d?.enabled) continue;
+      const cents = Math.round(parseFloat((d.price ?? "").replace(",", ".")) * 100);
+      if (!Number.isFinite(cents) || cents <= 0) {
+        toast.error(`Pacote ${p.label}: informe um preço de venda válido.`);
+        return;
+      }
+      const cost = costs[p.credits_amount] ?? 0;
+      if (cost <= 0) {
+        toast.warning(`Pacote ${p.label}: o custo ainda não foi definido pelo gerente. Aguarde a regularização antes de cadastrar o preço.`);
+        return;
+      }
+      if (cents < cost) {
+        toast.error(`Pacote ${p.label}: preço (${formatBRL(cents)}) abaixo do custo (${formatBRL(cost)}). Você teria prejuízo.`);
+        return;
+      }
+      if (cents === cost) {
+        toast.warning(`Pacote ${p.label}: preço igual ao custo (${formatBRL(cost)}). Você não teria lucro. Aumente o valor.`);
+        return;
+      }
+    }
     setSaving(true);
     try {
       const upserts: { id?: string; credits_amount: number; price_cents: number }[] = [];
@@ -163,6 +189,7 @@ export default function RevendedorCreditos() {
       toast.success("Pacotes de recargas salvos");
       closeDialog();
       load();
+      refreshIssues();
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao salvar");
     } finally {
