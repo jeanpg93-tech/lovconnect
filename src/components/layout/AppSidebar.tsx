@@ -107,8 +107,12 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Licenças", url: "/painel/revendedor/licencas", icon: Puzzle },
       { title: "Minha Loja", url: "/painel/revendedor/loja", icon: Store, badge: "store-status" },
       { title: "Precificação", url: "/painel/revendedor/precos", icon: Tag },
-      { title: "Resetar chave", url: "/painel/revendedor/resetar-chave", icon: RotateCcw },
       { title: "Baixar Extensão", url: "/painel/revendedor/baixar-extensao", icon: Package },
+    ]},
+    { label: "Configurar", items: [
+      { title: "API Licenças", url: "/painel/revendedor/api", icon: KeyRound },
+      { title: "API Recargas", url: "/painel/revendedor/api-recargas", icon: Coins },
+      { title: "Resetar chave", url: "/painel/revendedor/resetar-chave", icon: RotateCcw },
     ]},
   ],
   cliente: [
@@ -134,8 +138,6 @@ const dangerItemsByRole: Partial<Record<AppRole, { title: string; url: string; i
   ],
   revendedor: [
     ACCOUNT_ITEM,
-    { title: "API Licenças", url: "/painel/revendedor/api", icon: KeyRound },
-    { title: "API Recargas", url: "/painel/revendedor/api-recargas", icon: Coins },
     { title: "MisticPay (PIX)", url: "/painel/revendedor/integracoes/misticpay", icon: CreditCard },
   ],
   cliente: [
