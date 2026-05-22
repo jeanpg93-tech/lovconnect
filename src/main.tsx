@@ -47,8 +47,8 @@ window.addEventListener("unhandledrejection", (event) => {
 // Apply persisted theme before render to avoid flash
 try {
   const saved = localStorage.getItem("lov-theme");
-  const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
-  const isDark = saved ? saved === "dark" : prefersDark;
+  // Dark é o tema principal — só usa light se o usuário tiver escolhido explicitamente.
+  const isDark = saved ? saved === "dark" : true;
   document.documentElement.classList.toggle("dark", isDark);
 } catch {}
 
