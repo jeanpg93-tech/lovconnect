@@ -138,8 +138,8 @@ export default function RevendedorMinhaLoja() {
     price_cents: number | null;
     cost_cents: number | null;
     product_type: string | null;
-    product_label: string | null;
-    credits: number | null;
+    license_type: string | null;
+    credit_amount: number | null;
     paid_at: string | null;
     created_at: string;
     buyer_name: string | null;
