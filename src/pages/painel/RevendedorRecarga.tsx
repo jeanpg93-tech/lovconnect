@@ -1627,11 +1627,19 @@ export default function RevendedorRecargas() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os status</SelectItem>
-                      <SelectItem value="aguardando">Aguardando</SelectItem>
-                      <SelectItem value="processando">Processando</SelectItem>
-                      <SelectItem value="sucesso">Entregue</SelectItem>
-                      <SelectItem value="cancelado">Cancelado</SelectItem>
-                      <SelectItem value="falha">Falhou</SelectItem>
+                      <SelectItem value="pending">Pendente/Aguardando</SelectItem>
+                      <SelectItem value="delivered">Entregue</SelectItem>
+                      <SelectItem value="failed">Cancelado/Falhou</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={cpOriginFilter} onValueChange={(v) => setCpOriginFilter(v as any)}>
+                    <SelectTrigger className="h-9 w-[160px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tudo</SelectItem>
+                      <SelectItem value="manual">Manual (painel)</SelectItem>
+                      <SelectItem value="loja">Loja</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1643,39 +1651,66 @@ export default function RevendedorRecargas() {
                     </div>
                   ) : (
                     <div className="divide-y divide-border">
-                      {filtered.map((c) => {
-                        const trackId = c.provider_pedido_id ?? c.id;
+                      {filtered.map((item) => {
+                        const isManual = item.origin === "manual";
+                        const c = item.manual;
+                        const o = item.loja;
+                        const trackId = isManual ? (c!.provider_pedido_id ?? c!.id) : (o!.short_code ?? o!.id);
+                        const rowId = isManual ? c!.id : o!.id;
+                        const originBadge = isManual ? (
+                          <Badge variant="outline" className="text-[9px] font-bold uppercase border-blue-500/30 bg-blue-500/10 text-blue-500">
+                            Manual
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] font-bold uppercase border-violet-500/30 bg-violet-500/10 text-violet-500">
+                            <Store className="h-2.5 w-2.5 mr-1" /> Loja
+                          </Badge>
+                        );
+                        const isLojaPending = !isManual && o!.status === "pending" && !o!.paid_at;
                         return (
                           <div
-                            key={c.id}
+                            key={item.key}
                             className="flex flex-wrap items-center gap-3 px-3 py-3 sm:px-4 text-xs hover:bg-background/40 transition-colors"
                           >
                             <div className="flex-1 min-w-[200px] space-y-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-display text-base font-black text-foreground">
-                                  {c.credits} créditos
+                                  {item.credits} créditos
                                 </span>
                                 <Badge
                                   variant="outline"
                                   className="text-[9px] font-bold uppercase border-white/10 bg-white/5 text-muted-foreground"
                                 >
-                                  {formatBRL(c.price_cents)}
+                                  {formatBRL(item.price_cents)}
                                 </Badge>
-                                {c.tipo_entrega ? (
+                                {originBadge}
+                                {isManual && c!.tipo_entrega ? (
                                   <Badge
                                     variant="outline"
                                     className="text-[9px] font-bold uppercase border-white/10 bg-white/5 text-muted-foreground"
                                   >
-                                    {c.tipo_entrega}
+                                    {c!.tipo_entrega}
                                   </Badge>
                                 ) : null}
                               </div>
                               <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                <span>Criada: {fmtDate(c.created_at)}</span>
-                                {c.workspace_name ? (
+                                <span>Criada: {fmtDate(item.created_at)}</span>
+                                {isManual && c!.workspace_name ? (
                                   <>
                                     <span>·</span>
-                                    <span>WS: {c.workspace_name}</span>
+                                    <span>WS: {c!.workspace_name}</span>
+                                  </>
+                                ) : null}
+                                {!isManual && o!.buyer_name ? (
+                                  <>
+                                    <span>·</span>
+                                    <span>👤 {o!.buyer_name}</span>
+                                  </>
+                                ) : null}
+                                {!isManual && o!.buyer_whatsapp ? (
+                                  <>
+                                    <span>·</span>
+                                    <span className="font-mono text-emerald-500">{o!.buyer_whatsapp}</span>
                                   </>
                                 ) : null}
                               </div>
@@ -1701,15 +1736,15 @@ export default function RevendedorRecargas() {
                                   <Copy className="h-3 w-3" />
                                 </button>
                               </div>
-                              {c.error_message ? (
-                                <p className="text-[10px] text-rose-500 truncate max-w-[400px]" title={c.error_message}>
-                                  {c.error_message}
+                              {item.error_message ? (
+                                <p className="text-[10px] text-rose-500 truncate max-w-[400px]" title={item.error_message}>
+                                  {item.error_message}
                                 </p>
                               ) : null}
                             </div>
-                            <div className="shrink-0">{renderStatus(c.status)}</div>
-                            {isRefundable(c.status) && (
-                              refundedCreditPurchaseIds.has(c.id) ? (
+                            <div className="shrink-0">{renderStatus(item.status)}</div>
+                            {isManual && isRefundable(item.status) && (
+                              refundedCreditPurchaseIds.has(rowId) ? (
                                 <Badge variant="outline" className="text-[10px] font-bold uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
                                   Reembolsado
                                 </Badge>
@@ -1718,12 +1753,27 @@ export default function RevendedorRecargas() {
                                   size="sm"
                                   variant="outline"
                                   className="h-7 px-2 text-[10px] font-bold border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
-                                  disabled={refundingCreditPurchaseId === c.id}
-                                  onClick={() => requestCreditPurchaseRefund({ id: c.id, price_cents: c.price_cents })}
+                                  disabled={refundingCreditPurchaseId === rowId}
+                                  onClick={() => requestCreditPurchaseRefund({ id: rowId, price_cents: item.price_cents })}
                                 >
-                                  {refundingCreditPurchaseId === c.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reembolso"}
+                                  {refundingCreditPurchaseId === rowId ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reembolso"}
                                 </Button>
                               )
+                            )}
+                            {isLojaPending && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2 text-[10px] font-bold border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
+                                disabled={cancellingStorefrontId === rowId}
+                                onClick={() => cancelStorefrontOrder(rowId, o!.short_code)}
+                              >
+                                {cancellingStorefrontId === rowId ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <><X className="h-3 w-3 mr-1" /> Cancelar</>
+                                )}
+                              </Button>
                             )}
                           </div>
                         );
