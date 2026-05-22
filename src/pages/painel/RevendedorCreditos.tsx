@@ -300,14 +300,26 @@ export default function RevendedorCreditos() {
               const meta = PLAN_META[p.credits_amount] ?? { tag: "", tip: "", tone: "text-muted-foreground" };
               const suggested = costCents > 0 ? formatBRL(costCents * 2) : "—";
               const inactive = !override;
+              const blockInfo = blocked[issueKey.credits(p.credits_amount)];
               return (
                 <div
                   key={p.id}
                   className={cn(
-                    "grid grid-cols-1 gap-3 px-4 py-3.5 transition-colors hover:bg-card/70 md:grid-cols-12 md:items-center",
+                    "relative grid grid-cols-1 gap-3 px-4 py-3.5 transition-colors hover:bg-card/70 md:grid-cols-12 md:items-center",
                     inactive && "opacity-70",
+                    blockInfo?.severity === "critical" && "bg-destructive/5 border-l-4 border-l-destructive",
+                    blockInfo?.severity === "warning" && "bg-amber-500/5 border-l-4 border-l-amber-500",
                   )}
                 >
+                  {blockInfo && (
+                    <div className="absolute right-2 top-2">
+                      {blockInfo.severity === "critical" ? (
+                        <AlertCircle className="h-4 w-4 text-destructive animate-pulse" />
+                      ) : (
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      )}
+                    </div>
+                  )}
                   <div className="md:col-span-3">
                     <div className="flex items-center gap-2.5">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-background/50">
