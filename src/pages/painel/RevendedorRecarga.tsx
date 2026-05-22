@@ -672,13 +672,13 @@ export default function RevendedorRecargas() {
                     {chunks.map((chunk, ci) => (
                       <CarouselItem key={ci} className="pl-0 basis-full">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 px-1">
-                          {chunk.map((plan) => {
-                     const costPrice = resellerPrices[plan.credits_amount] ?? (costs[plan.credits_amount] ?? plan.price_cents);
-                     const salePrice = costPrice ? costPrice * 2 : 0;
-                     const perCredit = costPrice ? costPrice / plan.credits_amount : 0;
-                     const isPopular = plan.credits_amount === 100;
-                     const margin = salePrice && costPrice ? salePrice - costPrice : 0;
-                     const marginPct = salePrice && costPrice ? ((salePrice - costPrice) / costPrice) * 100 : 0;
+                           {chunk.map((plan) => {
+                      const costPrice = costs[plan.credits_amount] ?? plan.price_cents;
+                      const salePrice = resellerPrices[plan.credits_amount] ?? (costPrice ? costPrice * 2 : 0);
+                      const perCredit = costPrice ? costPrice / plan.credits_amount : 0;
+                      const isPopular = plan.credits_amount === 100;
+                      const margin = salePrice && costPrice ? salePrice - costPrice : 0;
+                      const marginPct = salePrice && costPrice ? ((salePrice - costPrice) / costPrice) * 100 : 0;
 
                     // Tier label based on credit amount
                     const tierLabel =
@@ -1620,7 +1620,7 @@ export default function RevendedorRecargas() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         plan={modalPlan}
-        costPrice={modalPlan ? (resellerPrices[modalPlan.credits_amount] ?? costs[modalPlan.credits_amount] ?? modalPlan.price_cents) : 0}
+        costPrice={modalPlan ? (costs[modalPlan.credits_amount] ?? modalPlan.price_cents) : 0}
         balance={balance}
         onSuccess={refreshBalance}
         mode={activeMode}
