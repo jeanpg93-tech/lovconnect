@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Calendar, Infinity as InfinityIcon, Crown, Save, Pencil, Check, X } from "lucide-react";
+import { Loader2, Calendar, Infinity as InfinityIcon, Crown, Save, Pencil, Check, X, AlertTriangle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { usePricingIssues, issueKey } from "@/hooks/usePricingIssues";
 
 type Method = "flow" | "lovax";
 type PackId = "1d" | "7d" | "30d" | "90d" | "365d" | "lifetime";
@@ -48,6 +49,7 @@ export default function MethodPriceTable({ method }: { method: Method }) {
   const [editing, setEditing] = useState<PackId | null>(null);
   const [draft, setDraft] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const { blocked, refresh: refreshIssues } = usePricingIssues();
 
   useEffect(() => {
     if (!user) return;
@@ -105,6 +107,22 @@ export default function MethodPriceTable({ method }: { method: Method }) {
 
   const saveOverride = async (pkgId: PackId, newValue: number | null) => {
     if (!resellerId) return;
+    // validações de proteção (não alteram preços existentes, só impedem novos salvamentos ruins)
+    if (newValue !== null && Number.isFinite(newValue) && newValue > 0) {
+      const baseReais = computeBase(pkgId); // em reais
+      if (baseReais <= 0) {
+        toast.warning("Custo deste produto ainda não foi definido pelo gerente. Aguarde a regularização antes de cadastrar o preço.");
+        return;
+      }
+      if (newValue < baseReais) {
+        toast.error(`O valor R$ ${newValue.toFixed(2)} está abaixo do custo (R$ ${baseReais.toFixed(2)}). Você teria prejuízo.`);
+        return;
+      }
+      if (newValue === baseReais) {
+        toast.warning("Esse preço é igual ao custo. Você não teria lucro. Aumente o valor para vender.");
+        return;
+      }
+    }
     setSaving(true);
     const next = { ...overrides };
     let error: any = null;
@@ -138,6 +156,7 @@ export default function MethodPriceTable({ method }: { method: Method }) {
     setOverrides(next);
     setEditing(null);
     toast.success("Preço atualizado");
+    refreshIssues();
   };
 
   if (loading) {
@@ -213,14 +232,27 @@ export default function MethodPriceTable({ method }: { method: Method }) {
             const empty = !base;
             const myPrice = overrides[pkg.id];
             const isEditing = editing === pkg.id;
+            const blockInfo = blocked[issueKey.license(method, pkg.id)];
             return (
               <div
                 key={pkg.id}
                 className={cn(
-                  "grid grid-cols-1 gap-3 px-4 py-3.5 transition-colors hover:bg-card/70 md:grid-cols-12 md:items-center",
+                  "relative grid grid-cols-1 gap-3 px-4 py-3.5 transition-colors hover:bg-card/70 md:grid-cols-12 md:items-center",
                   empty && "opacity-70",
+                  blockInfo?.severity === "critical" && "bg-destructive/5 border-l-4 border-l-destructive",
+                  blockInfo?.severity === "warning" && "bg-amber-500/5 border-l-4 border-l-amber-500",
                 )}
+                title={blockInfo ? `Vendas bloqueadas: ${blockInfo.reason}` : undefined}
               >
+                {blockInfo && (
+                  <div className="absolute right-2 top-2 md:right-3">
+                    {blockInfo.severity === "critical" ? (
+                      <AlertCircle className="h-4 w-4 text-destructive animate-pulse" />
+                    ) : (
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    )}
+                  </div>
+                )}
                 <div className="md:col-span-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background/60 text-primary">

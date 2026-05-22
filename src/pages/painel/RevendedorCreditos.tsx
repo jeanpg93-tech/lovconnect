@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { usePricingIssues, issueKey } from "@/hooks/usePricingIssues";
+import { AlertTriangle, AlertCircle } from "lucide-react";
 
 type Plan = { id: string; label: string; credits_amount: number; is_active: boolean };
 type Override = {
@@ -49,6 +51,7 @@ export default function RevendedorCreditos() {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Record<number, { enabled: boolean; price: string }>>({});
   const [saving, setSaving] = useState(false);
+  const { blocked, refresh: refreshIssues } = usePricingIssues();
 
   const load = async () => {
     if (!user) return;
@@ -114,6 +117,29 @@ export default function RevendedorCreditos() {
 
   const save = async () => {
     if (!resellerId) return;
+    // Validar todos os preços ativados antes de salvar qualquer coisa
+    for (const p of plans) {
+      const d = draft[p.credits_amount];
+      if (!d?.enabled) continue;
+      const cents = Math.round(parseFloat((d.price ?? "").replace(",", ".")) * 100);
+      if (!Number.isFinite(cents) || cents <= 0) {
+        toast.error(`Pacote ${p.label}: informe um preço de venda válido.`);
+        return;
+      }
+      const cost = costs[p.credits_amount] ?? 0;
+      if (cost <= 0) {
+        toast.warning(`Pacote ${p.label}: o custo ainda não foi definido pelo gerente. Aguarde a regularização antes de cadastrar o preço.`);
+        return;
+      }
+      if (cents < cost) {
+        toast.error(`Pacote ${p.label}: preço (${formatBRL(cents)}) abaixo do custo (${formatBRL(cost)}). Você teria prejuízo.`);
+        return;
+      }
+      if (cents === cost) {
+        toast.warning(`Pacote ${p.label}: preço igual ao custo (${formatBRL(cost)}). Você não teria lucro. Aumente o valor.`);
+        return;
+      }
+    }
     setSaving(true);
     try {
       const upserts: { id?: string; credits_amount: number; price_cents: number }[] = [];
@@ -163,6 +189,7 @@ export default function RevendedorCreditos() {
       toast.success("Pacotes de recargas salvos");
       closeDialog();
       load();
+      refreshIssues();
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao salvar");
     } finally {
@@ -273,14 +300,26 @@ export default function RevendedorCreditos() {
               const meta = PLAN_META[p.credits_amount] ?? { tag: "", tip: "", tone: "text-muted-foreground" };
               const suggested = costCents > 0 ? formatBRL(costCents * 2) : "—";
               const inactive = !override;
+              const blockInfo = blocked[issueKey.credits(p.credits_amount)];
               return (
                 <div
                   key={p.id}
                   className={cn(
-                    "grid grid-cols-1 gap-3 px-4 py-3.5 transition-colors hover:bg-card/70 md:grid-cols-12 md:items-center",
+                    "relative grid grid-cols-1 gap-3 px-4 py-3.5 transition-colors hover:bg-card/70 md:grid-cols-12 md:items-center",
                     inactive && "opacity-70",
+                    blockInfo?.severity === "critical" && "bg-destructive/5 border-l-4 border-l-destructive",
+                    blockInfo?.severity === "warning" && "bg-amber-500/5 border-l-4 border-l-amber-500",
                   )}
                 >
+                  {blockInfo && (
+                    <div className="absolute right-2 top-2">
+                      {blockInfo.severity === "critical" ? (
+                        <AlertCircle className="h-4 w-4 text-destructive animate-pulse" />
+                      ) : (
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      )}
+                    </div>
+                  )}
                   <div className="md:col-span-3">
                     <div className="flex items-center gap-2.5">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-background/50">
