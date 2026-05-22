@@ -234,7 +234,9 @@ export default function RevendedorDashboard() {
       const recharges = (rechargesRes.data ?? []) || [];
 
       const combinedActivities: ActivityItem[] = [
-        ...ords.map((o: any) => ({
+        ...ords
+          .filter((o: any) => !/credit|recarga/i.test(o.license_type ?? ""))
+          .map((o: any) => ({
           id: o.id,
           type: "sale" as const,
           title: describeLicense(o.license_type),
