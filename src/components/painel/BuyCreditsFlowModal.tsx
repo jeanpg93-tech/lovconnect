@@ -111,6 +111,8 @@ export function BuyCreditsFlowModal({
   const [savingMeta, setSavingMeta] = useState(false);
   const [policyOpen, setPolicyOpen] = useState(false);
   const [confirmWorkspaceOpen, setConfirmWorkspaceOpen] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerWhatsapp, setCustomerWhatsapp] = useState("");
 
   const MANUAL_BOT_EMAIL = "recarga@lovconnect.store";
 
@@ -125,6 +127,8 @@ export function BuyCreditsFlowModal({
     setManualSubStep("invite");
     setWorkspaceName("");
     setSavingMeta(false);
+    setCustomerName("");
+    setCustomerWhatsapp("");
   };
 
   const handleClose = (o: boolean) => {
@@ -177,7 +181,13 @@ export function BuyCreditsFlowModal({
     try {
       const r = await call("reseller_create_order", {
         method: "POST",
-        body: { creditos: plan.credits_amount, tipo_entrega: deliveryType, mode },
+        body: {
+          creditos: plan.credits_amount,
+          tipo_entrega: deliveryType,
+          mode,
+          customer_name: customerName.trim() || undefined,
+          customer_whatsapp: customerWhatsapp.replace(/\D+/g, "") || undefined,
+        },
       });
       const d = r?.data ?? r;
       const pedidoId: string | undefined = d?.providerPedidoId ?? d?.pedidoId ?? d?.id;
