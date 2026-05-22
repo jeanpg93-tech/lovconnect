@@ -408,54 +408,41 @@ export default function GerentePartners() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Card: seleção de nível parceiro */}
-          <div className="rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="h-8 w-1 bg-primary rounded-full" />
-              <div>
-                <h3 className="font-display text-lg font-bold tracking-tight flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" /> Nível parceiro
-                </h3>
-                <p className="text-[11px] text-muted-foreground">Selecione o nível oculto para gerenciar seus parceiros.</p>
+          {/* Header compacto: nível Partner + contagem */}
+          {selectedTier && (
+            <div className="rounded-3xl border border-border bg-card p-4 sm:p-5 shadow-sm flex flex-wrap items-center gap-3">
+              <div
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl shrink-0"
+                style={{ background: `${selectedTier.color}22`, color: selectedTier.color }}
+              >
+                <Sparkles className="h-4 w-4" />
               </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex-1 min-w-[240px] max-w-md">
-                <Select value={selectedTierId} onValueChange={setSelectedTierId}>
-                  <SelectTrigger className="h-11 bg-card border-border">
-                    <SelectValue placeholder="Selecione um nível" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {partnerTiers.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        <span className="inline-flex items-center gap-2">
-                          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: t.color }} />
-                          {t.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {selectedTier && (
-                <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2">
+              <div className="leading-tight">
+                <div className="text-sm font-bold flex items-center gap-2">
+                  Nível
                   <span
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg"
-                    style={{ background: `${selectedTier.color}22`, color: selectedTier.color }}
+                    className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                    style={{ background: `${selectedTier.color}1f`, color: selectedTier.color }}
                   >
-                    <Users className="h-3.5 w-3.5" />
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: selectedTier.color }} />
+                    {selectedTier.name}
                   </span>
-                  <div className="leading-tight">
-                    <div className="text-sm font-bold tabular-nums">{partnersOfTier.length}</div>
-                    <div className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">
-                      parceiro{partnersOfTier.length === 1 ? "" : "s"}
-                    </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Defina custos individuais para cada parceiro deste nível.
+                </p>
+              </div>
+              <div className="ml-auto inline-flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2">
+                <Users className="h-3.5 w-3.5 text-primary" />
+                <div className="leading-tight">
+                  <div className="text-sm font-bold tabular-nums">{partnersOfTier.length}</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">
+                    parceiro{partnersOfTier.length === 1 ? "" : "s"}
                   </div>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
           {selectedTier && (
             <div className="space-y-6">
