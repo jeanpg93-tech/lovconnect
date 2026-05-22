@@ -956,15 +956,47 @@ export default function RevendedorPedidos() {
 
       {/* Minhas Licenças — gerencie todas as chaves geradas */}
       {(() => {
-        const list = allOrders ?? orders;
-        const filtered = list.filter((o) => {
-          if (licStatusFilter !== "all" && o.status !== licStatusFilter) return false;
+        type UnifiedItem =
+          | { key: string; origin: "manual"; created_at: string; manual: Order }
+          | { key: string; origin: "loja"; created_at: string; loja: StorefrontLicRow };
+        const manualSrc = allOrders ?? orders;
+        const items: UnifiedItem[] = [
+          ...manualSrc.map<UnifiedItem>((o) => ({
+            key: `m:${o.id}`, origin: "manual", created_at: o.created_at, manual: o,
+          })),
+          ...storefrontLicenses.map<UnifiedItem>((o) => ({
+            key: `l:${o.id}`, origin: "loja", created_at: o.created_at, loja: o,
+          })),
+        ].sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+        // normaliza status para o filtro (loja usa pending/paid/delivered/failed/cancelado)
+        const normStatus = (it: UnifiedItem): string => {
+          if (it.origin === "manual") return it.manual.status;
+          const s = it.loja.status;
+          if (s === "delivered" || s === "paid") return "completed";
+          if (s === "pending" || s === "awaiting_balance" || s === "processing") return "pending";
+          if (s === "cancelado" || s === "cancelled" || s === "canceled") return "failed";
+          return s;
+        };
+
+        const filtered = items.filter((it) => {
+          if (licOriginFilter !== "all" && it.origin !== licOriginFilter) return false;
+          if (licStatusFilter !== "all" && normStatus(it) !== licStatusFilter) return false;
           if (licSearch.trim()) {
             const q = licSearch.trim().toLowerCase();
-            return (o.license_key ?? "").toLowerCase().includes(q) ||
-              (o.license_type ?? "").toLowerCase().includes(q) ||
-              (o.customer?.display_name ?? "").toLowerCase().includes(q) ||
-              (o.customer?.whatsapp ?? "").toLowerCase().includes(q);
+            if (it.origin === "manual") {
+              const o = it.manual;
+              return (o.license_key ?? "").toLowerCase().includes(q) ||
+                (o.license_type ?? "").toLowerCase().includes(q) ||
+                (o.customer?.display_name ?? "").toLowerCase().includes(q) ||
+                (o.customer?.whatsapp ?? "").toLowerCase().includes(q);
+            }
+            const l = it.loja;
+            return (l.license_key ?? "").toLowerCase().includes(q) ||
+              (l.license_type ?? "").toLowerCase().includes(q) ||
+              (l.buyer_name ?? "").toLowerCase().includes(q) ||
+              (l.buyer_whatsapp ?? "").toLowerCase().includes(q) ||
+              (l.short_code ?? "").toLowerCase().includes(q);
           }
           return true;
         });
@@ -1026,6 +1058,14 @@ export default function RevendedorPedidos() {
                   <SelectItem value="deleted">Excluídas</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={licOriginFilter} onValueChange={(v) => setLicOriginFilter(v as any)}>
+                <SelectTrigger className="h-9 w-[160px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tudo</SelectItem>
+                  <SelectItem value="manual">Manual (painel)</SelectItem>
+                  <SelectItem value="loja">Loja</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="relative rounded-xl border border-border overflow-hidden">
@@ -1035,100 +1075,175 @@ export default function RevendedorPedidos() {
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {filtered.map((o) => (
-                    <div key={o.id} className="flex flex-wrap items-center gap-3 px-3 py-3 sm:px-4 text-xs hover:bg-background/40 transition-colors">
-                      <div className="flex-1 min-w-[200px] space-y-1">
-                        <div className="flex items-center gap-2">
-                          <code className="font-mono text-[11px] font-bold text-foreground truncate max-w-[260px]">
-                            {o.license_key ?? "—"}
-                          </code>
-                          {o.license_key && (
-                            <button
-                              type="button"
-                              onClick={() => { navigator.clipboard?.writeText(o.license_key!); toast.success("Chave copiada"); }}
-                              className="p-1 rounded hover:bg-white/5 text-muted-foreground hover:text-primary transition"
-                              title="Copiar chave"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </button>
-                          )}
-                          {o.is_test && (
-                            <Badge variant="outline" className="text-[9px] font-bold uppercase border-amber-500/30 bg-amber-500/10 text-amber-500">Teste</Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                          <span className="font-semibold">{FALLBACK_LABEL[o.license_type] ?? o.license_type}</span>
-                          <span>·</span>
-                          <span>{fmtDate(o.created_at)}</span>
-                        </div>
-                        {(o.customer?.display_name || o.customer?.whatsapp) && (
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] pt-0.5">
-                            {o.customer?.display_name && (
-                              <span className="font-semibold text-foreground/90">
-                                👤 {o.customer.display_name}
-                              </span>
+                  {filtered.map((it) => {
+                    const isManual = it.origin === "manual";
+                    const o = isManual ? it.manual : null;
+                    const l = !isManual ? it.loja : null;
+                    const licenseKey = isManual ? o!.license_key : l!.license_key;
+                    const licenseType = isManual ? o!.license_type : l!.license_type;
+                    const status = isManual ? o!.status : l!.status;
+                    const isLojaPending = !isManual && (l!.status === "pending" || l!.status === "awaiting_balance") && !l!.paid_at;
+                    const originBadge = isManual ? (
+                      <Badge variant="outline" className="text-[9px] font-bold uppercase border-blue-500/30 bg-blue-500/10 text-blue-500">
+                        Manual
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[9px] font-bold uppercase border-violet-500/30 bg-violet-500/10 text-violet-500">
+                        <Store className="h-2.5 w-2.5 mr-1" /> Loja
+                      </Badge>
+                    );
+                    const lojaStatusBadge = (s: string) => {
+                      const map: Record<string, { label: string; cls: string }> = {
+                        pending: { label: "Aguardando PIX", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+                        awaiting_balance: { label: "Aguardando saldo", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+                        paid: { label: "Pago", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
+                        delivered: { label: "Entregue", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
+                        failed: { label: "Falhou", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
+                        cancelado: { label: "Cancelado", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
+                      };
+                      const v = map[s] ?? { label: s, cls: "bg-muted text-muted-foreground" };
+                      return <Badge variant="outline" className={cn("text-[10px] font-bold uppercase", v.cls)}>{v.label}</Badge>;
+                    };
+                    return (
+                      <div key={it.key} className="flex flex-wrap items-center gap-3 px-3 py-3 sm:px-4 text-xs hover:bg-background/40 transition-colors">
+                        <div className="flex-1 min-w-[200px] space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {originBadge}
+                            <code className="font-mono text-[11px] font-bold text-foreground truncate max-w-[240px]">
+                              {licenseKey ?? "—"}
+                            </code>
+                            {licenseKey && (
+                              <button
+                                type="button"
+                                onClick={() => { navigator.clipboard?.writeText(licenseKey!); toast.success("Chave copiada"); }}
+                                className="p-1 rounded hover:bg-white/5 text-muted-foreground hover:text-primary transition"
+                                title="Copiar chave"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </button>
                             )}
-                            {o.customer?.whatsapp && (
-                              <>
-                                <span className="text-muted-foreground/60">·</span>
-                                <a
-                                  href={`https://wa.me/${o.customer.whatsapp.replace(/\D+/g, "")}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="font-mono text-emerald-500 hover:underline"
-                                  title="Abrir no WhatsApp"
-                                >
-                                  {fmtWa(o.customer.whatsapp)}
-                                </a>
-                              </>
+                            {isManual && o!.is_test && (
+                              <Badge variant="outline" className="text-[9px] font-bold uppercase border-amber-500/30 bg-amber-500/10 text-amber-500">Teste</Badge>
+                            )}
+                            {!isManual && l!.short_code && (
+                              <span className="font-mono text-[10px] text-muted-foreground">#{l!.short_code}</span>
                             )}
                           </div>
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <span className="font-semibold">{FALLBACK_LABEL[licenseType] ?? licenseType}</span>
+                            <span>·</span>
+                            <span>{fmtDate(it.created_at)}</span>
+                          </div>
+                          {isManual && (o!.customer?.display_name || o!.customer?.whatsapp) && (
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] pt-0.5">
+                              {o!.customer?.display_name && (
+                                <span className="font-semibold text-foreground/90">👤 {o!.customer.display_name}</span>
+                              )}
+                              {o!.customer?.whatsapp && (
+                                <>
+                                  <span className="text-muted-foreground/60">·</span>
+                                  <a
+                                    href={`https://wa.me/${o!.customer.whatsapp.replace(/\D+/g, "")}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="font-mono text-emerald-500 hover:underline"
+                                    title="Abrir no WhatsApp"
+                                  >
+                                    {fmtWa(o!.customer.whatsapp)}
+                                  </a>
+                                </>
+                              )}
+                            </div>
+                          )}
+                          {!isManual && (l!.buyer_name || l!.buyer_whatsapp) && (
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] pt-0.5">
+                              {l!.buyer_name && (
+                                <span className="font-semibold text-foreground/90">👤 {l!.buyer_name}</span>
+                              )}
+                              {l!.buyer_whatsapp && (
+                                <>
+                                  <span className="text-muted-foreground/60">·</span>
+                                  <a
+                                    href={`https://wa.me/${l!.buyer_whatsapp.replace(/\D+/g, "")}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="font-mono text-emerald-500 hover:underline"
+                                    title="Abrir no WhatsApp"
+                                  >
+                                    {fmtWa(l!.buyer_whatsapp)}
+                                  </a>
+                                </>
+                              )}
+                            </div>
+                          )}
+                          {!isManual && l!.error_message && (
+                            <p className="text-[10px] text-rose-500 truncate max-w-[400px]" title={l!.error_message}>
+                              {l!.error_message}
+                            </p>
+                          )}
+                        </div>
+                        <div className="shrink-0">{isManual ? statusBadge(status) : lojaStatusBadge(status)}</div>
+                        {isManual && !o!.is_test && (o!.status === "failed" || o!.status === "revoked") && (
+                          refundedOrderIds.has(o!.id) ? (
+                            <Badge variant="outline" className="text-[10px] font-bold uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+                              Reembolsado
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-[10px] font-bold border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                              disabled={refundingId === o!.id}
+                              onClick={() => requestRefund(o!)}
+                            >
+                              {refundingId === o!.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reembolso"}
+                            </Button>
+                          )
                         )}
-                      </div>
-                      <div className="shrink-0">{statusBadge(o.status)}</div>
-                      {!o.is_test && (o.status === "failed" || o.status === "revoked") && (
-                        refundedOrderIds.has(o.id) ? (
-                          <Badge variant="outline" className="text-[10px] font-bold uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
-                            Reembolsado
-                          </Badge>
-                        ) : (
+                        {isLojaPending && (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 px-2 text-[10px] font-bold border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
-                            disabled={refundingId === o.id}
-                            onClick={() => requestRefund(o)}
+                            className="h-7 px-2 text-[10px] font-bold border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
+                            disabled={cancellingStorefrontId === l!.id}
+                            onClick={() => cancelStorefrontOrder(l!.id, l!.short_code)}
                           >
-                            {refundingId === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reembolso"}
+                            {cancellingStorefrontId === l!.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <><X className="h-3 w-3 mr-1" /> Cancelar</>
+                            )}
                           </Button>
-                        )
-                      )}
-                      <div className="shrink-0">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={!o.license_key || actionLoading?.startsWith(o.id)}>
-                              {actionLoading?.startsWith(o.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MoreVertical className="h-3.5 w-3.5" />}
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem onClick={() => runLicenseAction(o, "reset-hwid", "Resetar HWID desta licença?")}>
-                              <RefreshCcw className="h-3.5 w-3.5 mr-2" /> Resetar HWID
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => runLicenseAction(o, "revoke-license", "Revogar esta licença? O cliente perderá o acesso.")}>
-                              <Ban className="h-3.5 w-3.5 mr-2" /> Revogar
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => runLicenseAction(o, "delete-license", "Excluir esta licença? Esta ação é irreversível.")}
-                            >
-                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        )}
+                        {isManual && (
+                          <div className="shrink-0">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={!o!.license_key || actionLoading?.startsWith(o!.id)}>
+                                  {actionLoading?.startsWith(o!.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MoreVertical className="h-3.5 w-3.5" />}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem onClick={() => runLicenseAction(o!, "reset-hwid", "Resetar HWID desta licença?")}>
+                                  <RefreshCcw className="h-3.5 w-3.5 mr-2" /> Resetar HWID
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => runLicenseAction(o!, "revoke-license", "Revogar esta licença? O cliente perderá o acesso.")}>
+                                  <Ban className="h-3.5 w-3.5 mr-2" /> Revogar
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => runLicenseAction(o!, "delete-license", "Excluir esta licença? Esta ação é irreversível.")}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
