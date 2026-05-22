@@ -135,6 +135,7 @@ export default function RevendedorPedidos() {
     if (!r) { setLoading(false); return; }
     setResellerId(r.id);
     loadRefunds(r.id);
+    loadStorefrontLicenses(r.id);
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const sinceToday = todayStart.toISOString();
