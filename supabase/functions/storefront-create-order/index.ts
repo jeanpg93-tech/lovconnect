@@ -228,6 +228,8 @@ Deno.serve(async (req) => {
     }
 
     // create order row
+    // PIX da MisticPay expira em ~30 min — guardamos a data limite para a rotina de expiração marcar como 'expirado'.
+    const expiresAtIso = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     const { data: order, error: oerr } = await admin
       .from("storefront_orders")
       .insert({
@@ -241,6 +243,7 @@ Deno.serve(async (req) => {
         credit_amount,
         provider: "misticpay",
         status: "pending",
+        expires_at: expiresAtIso,
       })
       .select()
       .single();

@@ -1117,6 +1117,7 @@ export default function RevendedorPedidos() {
                         delivered: { label: "Entregue", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
                         failed: { label: "Falhou", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
                         cancelado: { label: "Cancelado", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
+                        expirado: { label: "Expirado — não pago", cls: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30" },
                       };
                       const v = map[s] ?? { label: s, cls: "bg-muted text-muted-foreground" };
                       return <Badge variant="outline" className={cn("text-[10px] font-bold uppercase", v.cls)}>{v.label}</Badge>;
