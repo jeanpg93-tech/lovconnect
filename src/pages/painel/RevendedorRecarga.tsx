@@ -1727,6 +1727,26 @@ export default function RevendedorRecargas() {
                                     <span>WS: {c!.workspace_name}</span>
                                   </>
                                 ) : null}
+                                {isManual && c!.customer_name ? (
+                                  <>
+                                    <span>·</span>
+                                    <span>👤 {c!.customer_name}</span>
+                                  </>
+                                ) : null}
+                                {isManual && c!.customer_whatsapp ? (
+                                  <>
+                                    <span>·</span>
+                                    <a
+                                      href={`https://wa.me/${c!.customer_whatsapp.replace(/\D+/g, "")}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-mono text-emerald-500 hover:underline"
+                                      title="Abrir no WhatsApp"
+                                    >
+                                      {c!.customer_whatsapp}
+                                    </a>
+                                  </>
+                                ) : null}
                                 {!isManual && o!.buyer_name ? (
                                   <>
                                     <span>·</span>
