@@ -507,6 +507,46 @@ export function BuyCreditsFlowModal({
                 </div>
               </div>
 
+              {/* Customer info (optional) — helps reseller and manager locate the buyer */}
+              <div className="rounded-xl border border-border bg-card/40 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="h-3.5 w-3.5 text-primary" />
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Dados do cliente <span className="text-[10px] normal-case tracking-normal text-muted-foreground/80">(opcional)</span>
+                  </Label>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="rechargeCustomerName" className="text-[11px] text-muted-foreground">
+                      Nome do cliente
+                    </Label>
+                    <Input
+                      id="rechargeCustomerName"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Ex.: Cliente João"
+                      maxLength={120}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="rechargeCustomerWa" className="text-[11px] text-muted-foreground">
+                      WhatsApp do cliente
+                    </Label>
+                    <Input
+                      id="rechargeCustomerWa"
+                      value={customerWhatsapp}
+                      onChange={(e) => setCustomerWhatsapp(e.target.value.replace(/[^\d]/g, ""))}
+                      placeholder="Ex.: 11912345678"
+                      inputMode="numeric"
+                      maxLength={15}
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Aparece no seu histórico e no painel do gerente para facilitar a localização do pedido.
+                </p>
+              </div>
+
               {/* Policy agreement */}
               <button
                 type="button"
