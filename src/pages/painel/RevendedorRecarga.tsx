@@ -220,6 +220,8 @@ export default function RevendedorRecargas() {
     status: string;
     tipo_entrega: string | null;
     workspace_name: string | null;
+    customer_name?: string | null;
+    customer_whatsapp?: string | null;
     provider_pedido_id: string | null;
     created_at: string;
     updated_at: string;
