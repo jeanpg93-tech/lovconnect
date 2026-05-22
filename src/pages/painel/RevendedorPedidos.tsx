@@ -1,5 +1,6 @@
 // v4.0.1 - Removendo referências LovMain Unlimited
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/painel/PageHeader";
@@ -900,8 +901,22 @@ export default function RevendedorPedidos() {
                     </div>
 
                     <p className="relative text-sm text-muted-foreground font-medium leading-relaxed">
-                      Gere, consulte e gerencie licenças das suas extensões via REST. Use o header <code className="font-mono text-primary">X-API-Key</code> em todas as requisições. Sua chave fica em "API de Chaves" no menu lateral.
+                      Gere, consulte e gerencie licenças das suas extensões via REST. Use o header <code className="font-mono text-primary">X-API-Key</code> em todas as requisições.
                     </p>
+
+                    <div className="relative rounded-2xl border border-primary/30 bg-primary/10 p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-foreground">Chave API de Licenças</p>
+                          <p className="mt-1 text-xs text-muted-foreground">Clique abaixo para criar ou resetar sua chave agora.</p>
+                        </div>
+                        <Button asChild className="h-11 rounded-xl bg-primary px-5 text-xs font-bold text-primary-foreground hover:bg-primary/90">
+                          <Link to="/painel/revendedor/api">
+                            <KeyRound className="mr-2 h-4 w-4" /> Gerar chave API
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
 
                     <div className="relative space-y-3">
                       <div className="flex items-center gap-2">
