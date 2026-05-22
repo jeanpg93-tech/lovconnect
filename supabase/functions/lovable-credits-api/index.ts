@@ -241,6 +241,12 @@ Deno.serve(async (req) => {
         const creditos = parseInt(body?.creditos ?? "0", 10);
         const tipoEntrega = (body?.tipo_entrega ?? "workspace_proprio").toString();
         const orderMode = (body?.mode ?? "automatico").toString() === "manual" ? "manual" : "automatico";
+        const customerName = typeof body?.customer_name === "string"
+          ? body.customer_name.trim().slice(0, 120)
+          : "";
+        const customerWhatsapp = typeof body?.customer_whatsapp === "string"
+          ? body.customer_whatsapp.replace(/\D+/g, "").slice(0, 15)
+          : "";
 
         if (!creditos || creditos <= 0) {
           return new Response(JSON.stringify({ error: "Campo 'creditos' obrigatório" }), {
@@ -359,6 +365,8 @@ Deno.serve(async (req) => {
             provider_pedido_id: localPedidoId,
             provider_response: { manual: true, ...manualPayload },
             cost_cents: costCents,
+            customer_name: customerName || null,
+            customer_whatsapp: customerWhatsapp || null,
           });
           await adminClient.from("orders").insert({
             reseller_id: resellerId,
@@ -368,7 +376,7 @@ Deno.serve(async (req) => {
             price_cents: costCents,
             status: "pending",
             provider_response: manualPayload,
-            notes: `Créditos: ${creditos}. Entrega: ${tipoEntrega}. Modo: manual. ID Local: ${localPedidoId}`,
+            notes: `Créditos: ${creditos}. Entrega: ${tipoEntrega}. Modo: manual. ID Local: ${localPedidoId}${customerName ? `. Cliente: ${customerName}` : ""}${customerWhatsapp ? ` (${customerWhatsapp})` : ""}`,
           });
           return new Response(JSON.stringify({ success: true, data: { ...manualPayload, providerPedidoId: localPedidoId } }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -409,6 +417,8 @@ Deno.serve(async (req) => {
           provider_pedido_id: providerPedidoId,
           provider_response: providerData,
           cost_cents: providerPayload?.precoCentavos ?? providerPayload?.valorCentavos ?? null,
+          customer_name: customerName || null,
+          customer_whatsapp: customerWhatsapp || null,
         });
         await adminClient.from("orders").insert({
           reseller_id: resellerId,
@@ -418,7 +428,7 @@ Deno.serve(async (req) => {
           price_cents: costCents,
           status: "completed",
           provider_response: providerPayload,
-          notes: `Créditos: ${creditos}. Entrega: ${tipoEntrega}. ID Provedor: ${providerPedidoId}`,
+          notes: `Créditos: ${creditos}. Entrega: ${tipoEntrega}. ID Provedor: ${providerPedidoId}${customerName ? `. Cliente: ${customerName}` : ""}${customerWhatsapp ? ` (${customerWhatsapp})` : ""}`,
         });
 
         return new Response(JSON.stringify({ success: true, data: { ...providerPayload, providerPedidoId, precoCentavos: costCents, creditos } }), {
