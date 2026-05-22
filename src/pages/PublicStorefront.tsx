@@ -199,6 +199,7 @@ export default function PublicStorefront() {
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [licenseKey, setLicenseKey] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [securityNoticeOpen, setSecurityConfirmOpen] = useState(false);
@@ -302,6 +303,7 @@ export default function PublicStorefront() {
         if (data?.order) {
           setOrderStatus(data.order.status);
           if (data.order.license_key) setLicenseKey(data.order.license_key);
+          if (data.order.invite_link) setInviteLink(data.order.invite_link);
           if (["completed", "failed", "refunded", "cancelado"].includes(data.order.status)) {
             if (pollRef.current) window.clearInterval(pollRef.current);
           }
@@ -603,11 +605,37 @@ export default function PublicStorefront() {
                   </h2>
                   <p className="text-sm text-muted-foreground">
                     {order.product_type === "credits"
-                      ? `${order.credit_amount ?? ""} recargas foram registrados para processamento.`
+                      ? `${order.credit_amount ?? ""} recargas foram registradas. Acesse o link abaixo para acompanhar a entrega.`
                       : order.amount_cents > 0
                       ? "Sua chave foi gerada e enviada no seu WhatsApp."
                       : "Copie sua chave abaixo. Ela tem validade de 30 minutos."}
                   </p>
+                  {order.product_type === "credits" && inviteLink && (
+                    <div className="space-y-2">
+                      <a
+                        href={inviteLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white shadow"
+                        style={{ backgroundColor: color }}
+                      >
+                        Acessar minhas recargas
+                      </a>
+                      <div className="flex items-center justify-center gap-2">
+                        <code className="rounded bg-muted px-2 py-1 text-xs break-all">{window.location.origin + inviteLink}</code>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(window.location.origin + inviteLink);
+                            toast.success("Link copiado");
+                          }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   {licenseKey && (
                     <>
                       <div className="rounded-md bg-muted p-3 font-mono text-sm break-all">{licenseKey}</div>
@@ -1314,6 +1342,17 @@ export default function PublicStorefront() {
                                     {new Date(checkedOrder.paid_at).toLocaleString("pt-BR")}
                                   </span>
                                 </div>
+                              )}
+                              {checkedOrder.status === "completed" && checkedOrder.invite_link && (
+                                <a
+                                  href={checkedOrder.invite_link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-bold text-white"
+                                  style={{ backgroundColor: color }}
+                                >
+                                  Acessar minhas recargas
+                                </a>
                               )}
                             </div>
                           )}

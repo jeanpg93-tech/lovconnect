@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     );
 
     const cols =
-      "id,short_code,status,license_key,price_cents,license_type,product_type,credit_amount,buyer_name,paid_at,error_message";
+      "id,short_code,status,license_key,price_cents,license_type,product_type,credit_amount,buyer_name,paid_at,error_message,invite_link";
 
     let order: any = null;
 

@@ -38,6 +38,60 @@ async function triggerReleasePending(orderIds: string[]) {
   }
 }
 
+/**
+ * Cria o pedido de recargas no provedor externo (mesma API usada pelo painel manual),
+ * registra em reseller_credit_purchases e devolve o provider_pedido_id para o link do cliente.
+ */
+async function createProviderCreditOrder(admin: any, storeOrder: any, costCents: number) {
+  const { data: master } = await admin
+    .from("app_settings").select("value").eq("key", "lovable_credits_master").maybeSingle();
+  const apiKey = (master?.value?.api_key as string | undefined) ?? null;
+  if (!apiKey) {
+    return { ok: false as const, error: "Provedor de créditos não configurado" };
+  }
+
+  let providerData: any = null;
+  try {
+    const r = await fetch("https://lojinhalovable.com/api/v1/revenda/pedidos", {
+      method: "POST",
+      headers: { "X-API-Key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ creditos: storeOrder.credit_amount, tipo_entrega: "workspace_proprio" }),
+    });
+    const txt = await r.text();
+    try { providerData = JSON.parse(txt); } catch { providerData = { raw: txt }; }
+    if (!r.ok || providerData?.success === false) {
+      return { ok: false as const, error: providerData?.error ?? `Provedor retornou ${r.status}`, providerData };
+    }
+  } catch (e) {
+    return { ok: false as const, error: e instanceof Error ? e.message : "erro provedor de créditos" };
+  }
+
+  const payload = providerData?.data ?? providerData;
+  const providerPedidoId: string | null = payload?.pedidoId ?? payload?.id ?? null;
+  if (!providerPedidoId) {
+    return { ok: false as const, error: "Provedor não retornou pedidoId", providerData };
+  }
+
+  try {
+    await admin.from("reseller_credit_purchases").insert({
+      reseller_id: storeOrder.reseller_id,
+      credits: storeOrder.credit_amount,
+      price_cents: costCents,
+      cost_cents: costCents || null,
+      status: payload?.status ?? "processando",
+      tipo_entrega: "workspace_proprio",
+      provider_pedido_id: providerPedidoId,
+      provider_response: providerData,
+      customer_name: storeOrder.buyer_name ?? null,
+      customer_whatsapp: storeOrder.buyer_whatsapp ?? null,
+    });
+  } catch (e) {
+    console.warn("reseller_credit_purchases insert failed", e);
+  }
+
+  return { ok: true as const, providerPedidoId, providerData };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -294,9 +348,33 @@ Deno.serve(async (req) => {
         });
       }
 
+      // === Cria o pedido no provedor de créditos para gerar o link do cliente ===
+      const prov = await createProviderCreditOrder(admin, storeOrder, credits_cost);
+      if (!prov.ok) {
+        // Refund e marca como falha — buyer pagou mas não conseguimos entregar
+        if (credits_cost > 0) {
+          await admin.rpc("credit_reseller_balance", {
+            _reseller_id: storeOrder.reseller_id,
+            _amount_cents: credits_cost,
+            _kind: "order_refund",
+            _description: `Estorno (falha provedor créditos): ${storeOrder.id}`,
+            _reference_id: storeOrder.id,
+          });
+        }
+        await admin.from("storefront_orders").update({
+          status: "failed",
+          cost_cents: credits_cost,
+          error_message: prov.error,
+          raw_response: (prov as any).providerData ?? payload,
+        }).eq("id", storeOrder.id);
+        return json({ ok: false, kind: "storefront_credits_provider_failed", error: prov.error }, 502);
+      }
+
+      const inviteLink = `/recargas/${prov.providerPedidoId}`;
       await admin.from("storefront_orders").update({
         status: "completed",
         cost_cents: credits_cost,
+        invite_link: inviteLink,
       }).eq("id", storeOrder.id);
 
       try {
@@ -312,13 +390,13 @@ Deno.serve(async (req) => {
           status: "completed",
           is_test: false,
           provider_response: payload,
-          notes: `Venda da Loja • ${storeOrder.buyer_name} • ${storeOrder.credit_amount ?? 0} créditos • Recebido R$ ${(Number(storeOrder.price_cents) / 100).toFixed(2)}`,
+          notes: `Venda da Loja • ${storeOrder.buyer_name} • ${storeOrder.credit_amount ?? 0} créditos • Recebido R$ ${(Number(storeOrder.price_cents) / 100).toFixed(2)} • Provedor: ${prov.providerPedidoId}`,
         });
       } catch (e) {
         console.warn("orders insert (storefront credits) failed", e);
       }
 
-      return json({ ok: true, kind: "storefront_credits" });
+      return json({ ok: true, kind: "storefront_credits", invite_link: inviteLink });
     }
 
     // Mark paid then provision
