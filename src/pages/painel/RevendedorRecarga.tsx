@@ -1688,6 +1688,7 @@ export default function RevendedorRecargas() {
                           </Badge>
                         );
                         const isLojaPending = !isManual && o!.status === "pending" && !o!.paid_at;
+                        const isManualPending = isManual && ["aguardando", "pending", "processando"].includes(String(c!.status));
                         return (
                           <div
                             key={item.key}
@@ -1790,6 +1791,21 @@ export default function RevendedorRecargas() {
                                 onClick={() => cancelStorefrontOrder(rowId, o!.short_code)}
                               >
                                 {cancellingStorefrontId === rowId ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <><X className="h-3 w-3 mr-1" /> Cancelar</>
+                                )}
+                              </Button>
+                            )}
+                            {isManualPending && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2 text-[10px] font-bold border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
+                                disabled={cancellingCreditPurchaseId === rowId}
+                                onClick={() => cancelCreditPurchase(rowId)}
+                              >
+                                {cancellingCreditPurchaseId === rowId ? (
                                   <Loader2 className="h-3 w-3 animate-spin" />
                                 ) : (
                                   <><X className="h-3 w-3 mr-1" /> Cancelar</>
