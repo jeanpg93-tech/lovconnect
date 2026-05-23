@@ -1,68 +1,79 @@
-## Integração WhatsApp via Evolution API
+# Painel Financeiro Completo — `/painel/gerente/financeiro`
 
-Boa notícia: **70% da infraestrutura já existe no banco**. A tabela `reseller_integrations` já tem todos os campos (`evolution_enabled`, `evolution_instance`, `evolution_message_template`, `evolution_confirmation_template`, `connection_status`, `profile_name/number/picture_url`, `messages_sent_count`). Falta UI, edge functions de conexão e ganchos nas vendas.
+Vou transformar o painel atual (que só lista transações do MisticPay) em um painel financeiro completo com **receita, custos, lucro, margem, gráficos e lançamentos manuais**.
 
-### Arquitetura
+## 1. Origens dos dados (o que já existe)
 
-- **Servidor Evolution único** (usa os secrets `EVOLUTION_BASE_URL` e `EVOLUTION_API_KEY` já configurados)
-- **Cada revendedor = 1 instância** dentro do servidor (nome gerado automaticamente: `rev_{reseller_id_curto}`)
-- **Disparo automático em todas as vendas concluídas** (incluindo teste/trial)
-- **Templates padrão do sistema + edição livre por revendedor**
+| Conceito | Fonte | Campo |
+|---|---|---|
+| **Receita (entrada)** | `recharge_intents` `status='paid'` | `amount_cents` |
+| **Custo recargas (saída)** | `reseller_credit_purchases` | `cost_cents` |
+| **Custo vendas loja** | `storefront_orders` (product_type='credits' e status pago/entregue) | `cost_cents` |
+| **Taxa gateway MisticPay** | Calculado | R$ 0,50 × nº de recargas pagas |
+| **Licenças** | Ignorado por enquanto (custo zero) | — |
 
-### O que vou criar
+Os dois `cost_cents` já são salvos historicamente na venda → não preciso recalcular, é confiável.
 
-**1. Migration** — adicionar templates padrão por tipo de venda em `app_settings`:
-- `evolution_template_license` (licença normal/teste)
-- `evolution_template_recharge` (recarga Lovable)
-- `evolution_template_storefront` (venda da loja pública)
+## 2. Lançamentos manuais (novo)
 
-**2. Edge functions novas**
-- `evolution-connect` — cria/conecta instância do revendedor e retorna QR code base64
-- `evolution-status` — polling do estado da conexão; ao detectar `open`, salva `profile_name/number/picture_url` e `last_connected_at`
-- `evolution-disconnect` — logout + opcionalmente deletar instância
-- `evolution-send-test` — envia mensagem de teste pro próprio número
-- `evolution-send-sale` — função interna chamada pelas outras edge functions ao concluir venda (renderiza template, dispara mensagem, incrementa contador)
+Você quer poder lançar **vendas por fora** e **gastos avulsos** (software, taxas, atualizações, etc). Vou criar duas tabelas:
 
-**3. Hooks nas vendas existentes** — chamar `evolution-send-sale` em:
-- `place-reseller-order` (licença manual / teste)
-- `storefront-create-order` + `misticpay-webhook` (venda pública paga)
-- Fluxo de créditos Lovable (quando entregue)
+- `manual_financial_entries` — uma única tabela com tipo `revenue` ou `expense`, descrição, valor, categoria opcional, data do lançamento e quem lançou.
 
-**4. UI nova: `RevendedorIntegracaoWhatsApp.tsx`**
-- Card de status: foto/nome/número do WhatsApp conectado, contador de mensagens enviadas
-- Botão **Conectar** → modal com QR code (auto-refresh, polling de status)
-- Botão **Desconectar**
-- Toggle **"Enviar mensagem automática nas vendas"** (`evolution_enabled`)
-- 3 textareas editáveis com variáveis: `{nome}`, `{chave}`, `{tipo}`, `{link}`, `{valor}` + botão "Restaurar padrão"
-- Campo de teste: WhatsApp de destino + botão "Enviar teste"
+Só gerentes podem ver/criar/editar/excluir (RLS via `has_role gerente`).
 
-**5. Rota + sidebar**
-- Rota `/painel/integracao-whatsapp`
-- Item no menu lateral do revendedor (próximo ao "Integração MisticPay")
+## 3. UI do novo painel
 
-### Variáveis dos templates
+Mantém o filtro de período (Tudo / Hoje / 7 dias / Mês) e organiza em **abas**:
 
-| Variável | Significado |
-|---|---|
-| `{nome}` | Nome do comprador |
-| `{chave}` | Chave da licença (vendas de licença) |
-| `{tipo}` | Tipo da licença (PRO 7d, Vitalícia, etc.) |
-| `{link}` | Link de entrega (recarga Lovable) |
-| `{valor}` | Valor pago formatado |
-| `{loja}` | Nome da loja do revendedor |
+### Aba "Visão Geral" (padrão)
+- **6 cards no topo:**
+  - 💰 Receita Total (recargas + manuais) — verde
+  - 💸 Custo Total (créditos vendidos + gateway + manuais) — vermelho
+  - 📈 Lucro Líquido (Receita − Custo) — destaque
+  - 📊 Margem % (Lucro / Receita)
+  - 🧾 Qtde. Recargas
+  - 🛒 Qtde. Vendas
+- **Gráfico de linha** (Recharts): Receita vs Custo vs Lucro ao longo do tempo (diário/semanal/mensal conforme período).
+- **Breakdown** em barras: Custo dividido em `Créditos vendidos`, `Taxa gateway`, `Gastos manuais`.
+- **Top 5 revendedores** por lucro gerado (tabela compacta).
 
-### Endpoints Evolution usados
+### Aba "Transações"
+- A listagem MisticPay atual, intacta (não mexo).
 
-- `POST /instance/create` — criar instância
-- `GET /instance/connect/{instance}` — obter QR code
-- `GET /instance/connectionState/{instance}` — status
-- `GET /instance/fetchInstances` — buscar perfil
-- `POST /instance/logout/{instance}` — desconectar
-- `POST /message/sendText/{instance}` — enviar mensagem
+### Aba "Lançamentos Manuais"
+- Lista todos os lançamentos manuais (receitas + despesas) com filtro por tipo.
+- Botão **"+ Novo lançamento"** abre modal com: tipo (Receita/Despesa), descrição, valor, categoria (texto livre), data.
+- Cada linha tem editar/excluir.
 
-### Detalhes técnicos
+## 4. Detalhes técnicos
 
-- QR code expira ~40s → frontend faz polling a cada 3s no `evolution-status` e, se ainda `connecting`, recarrega o QR via `evolution-connect`
-- Mensagens usam markdown leve do WhatsApp (`*negrito*`)
-- Envio é **fire-and-forget**: falha no WhatsApp não bloqueia a venda — apenas loga erro
-- WhatsApp do comprador já é coletado em todos os fluxos de venda existentes (`reseller_customers.whatsapp`, `storefront_orders.buyer_whatsapp`, etc.)
+- **Nenhuma alteração** em valores, custos, pacotes ou licenças (conforme você pediu).
+- Nova tabela `manual_financial_entries` com migration + RLS.
+- Reaproveita o `recharges` query que já existe em `GerenteFinanceiroGeral.tsx`.
+- Adiciona query agregada de `storefront_orders` e `reseller_credit_purchases` (somando `cost_cents`).
+- Componente de gráfico usando `recharts` (já no projeto via shadcn `Chart`).
+- Modal com `Dialog` + `react-hook-form` + `zod` (padrão do projeto).
+
+## 5. Estrutura de arquivos
+
+```text
+src/pages/painel/GerenteFinanceiroGeral.tsx  (refatorado em abas)
+src/components/painel/financeiro/
+  ├─ FinanceiroVisaoGeral.tsx          (cards + gráficos)
+  ├─ FinanceiroTransacoes.tsx          (lista MisticPay atual)
+  ├─ FinanceiroLancamentosManuais.tsx  (CRUD)
+  └─ ManualEntryDialog.tsx             (modal criar/editar)
+src/hooks/useFinancialOverview.ts      (busca + agrega receita/custo)
+src/hooks/useManualEntries.ts          (CRUD manuais)
+```
+
+## 6. Confirmação antes de implementar
+
+Posso prosseguir? Vou:
+1. Criar a migration da tabela `manual_financial_entries`.
+2. Refatorar a página em abas mantendo o que já existe na aba "Transações".
+3. Adicionar Visão Geral com cards, gráfico e top revendedores.
+4. Adicionar CRUD de lançamentos manuais.
+
+Sem tocar em preços, pacotes, licenças ou qualquer outra parte do sistema.
