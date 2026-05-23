@@ -782,34 +782,43 @@ export type Database = {
         Row: {
           amount_cents: number
           category: string | null
+          cost_cents: number
           created_at: string
           created_by: string | null
           description: string
           entry_date: string
           entry_type: string
           id: string
+          reference_kind: string | null
+          reference_meta: Json | null
           updated_at: string
         }
         Insert: {
           amount_cents: number
           category?: string | null
+          cost_cents?: number
           created_at?: string
           created_by?: string | null
           description: string
           entry_date?: string
           entry_type: string
           id?: string
+          reference_kind?: string | null
+          reference_meta?: Json | null
           updated_at?: string
         }
         Update: {
           amount_cents?: number
           category?: string | null
+          cost_cents?: number
           created_at?: string
           created_by?: string | null
           description?: string
           entry_date?: string
           entry_type?: string
           id?: string
+          reference_kind?: string | null
+          reference_meta?: Json | null
           updated_at?: string
         }
         Relationships: []
