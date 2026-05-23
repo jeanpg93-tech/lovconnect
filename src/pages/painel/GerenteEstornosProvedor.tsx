@@ -374,6 +374,11 @@ function PurchaseCard({
         <div className="flex items-center gap-2">
           <StatusChip state={providerState} label="Provedor" />
           <StatusChip state={resellerState === "ok" ? "ok" : "pending"} label="Revendedor" />
+          {providerState !== "ok" && !isManual && (
+            <Badge className="bg-orange-500/15 text-orange-600 border border-orange-500/30 text-[11px]">
+              Aberto: {fmtBRL(p.price_cents)}
+            </Badge>
+          )}
           <Button size="sm" variant="ghost" className="h-8 px-2" onClick={onToggle}>
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
