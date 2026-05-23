@@ -141,7 +141,7 @@ const dangerItemsByRole: Partial<Record<AppRole, { title: string; url: string; i
   revendedor: [
     ACCOUNT_ITEM,
     { title: "MisticPay (PIX)", url: "/painel/revendedor/integracoes/misticpay", icon: CreditCard },
-    { title: "MisticPay API", url: "/painel/revendedor/integracoes/whatsapp", icon: MessageSquare },
+    { title: "WhatsApp API", url: "/painel/revendedor/integracoes/whatsapp", icon: MessageSquare },
   ],
   cliente: [
     ACCOUNT_ITEM,
