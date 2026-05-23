@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
     // Load purchase
     const { data: purchase, error: perr } = await admin
       .from("reseller_credit_purchases")
-      .select("id, status, reseller_id")
+      .select("id, status, reseller_id, provider_pedido_id")
       .eq("id", purchaseId)
       .maybeSingle();
     if (perr) return json({ error: perr.message }, 500);
@@ -114,6 +114,58 @@ Deno.serve(async (req) => {
         { error: "cannot_cancel", reason: "Compra só pode ser cancelada antes do pagamento" },
         409,
       );
+    }
+
+    // Segurança: confirmar com o provedor que ele também ainda está "aguardando".
+    // Se o provedor já progrediu (recarregando/sucesso), NUNCA marcar cancelado —
+    // o pagamento entrou e o pedido está/foi entregue.
+    if (purchase.provider_pedido_id) {
+      try {
+        const { data: master } = await admin
+          .from("app_settings").select("value")
+          .eq("key", "lovable_credits_master").maybeSingle();
+        const apiKey = (master as any)?.value?.api_key;
+        if (apiKey) {
+          const r = await fetch(`${PROVIDER_BASE}/pedidos/${purchase.provider_pedido_id}`, {
+            headers: { "X-API-Key": apiKey },
+          });
+          const j = await r.json().catch(() => null);
+          const pd = j?.data ?? j;
+          const pStatus = String(pd?.status ?? "").toLowerCase().trim();
+          const stillPending = ["aguardando", "pending", "pendente"].includes(pStatus) && pd?.cancelar !== true;
+          const alreadyDone = ["sucesso", "entregue", "concluido", "completed", "success"].includes(pStatus);
+          const inProgress = ["recarregando", "configurando", "entregando", "processando", "aguardando_avaliacao"].includes(pStatus);
+
+          if (alreadyDone || inProgress) {
+            // Sincroniza o status local para refletir realidade do provedor
+            await admin.from("reseller_credit_purchases").update({
+              status: alreadyDone ? "sucesso" : pStatus,
+              error_message: null,
+              updated_at: new Date().toISOString(),
+            }).eq("id", purchaseId);
+            return json({
+              error: "cannot_cancel",
+              reason: alreadyDone
+                ? "O provedor já entregou este pedido — não é possível cancelar."
+                : "O provedor já está processando este pedido — não é possível cancelar.",
+              provider_status: pStatus,
+            }, 409);
+          }
+          if (!stillPending) {
+            return json({
+              error: "cannot_cancel",
+              reason: `Status do provedor (${pStatus || "desconhecido"}) não permite cancelar.`,
+              provider_status: pStatus,
+            }, 409);
+          }
+        }
+      } catch (_e) {
+        // Se a checagem falhar, por segurança recusamos
+        return json({
+          error: "cannot_cancel",
+          reason: "Não foi possível verificar o status no provedor. Tente novamente.",
+        }, 503);
+      }
     }
 
     const { error: updErr } = await admin
