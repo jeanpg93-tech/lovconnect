@@ -20,11 +20,11 @@ function json(b: unknown, status = 200) {
   });
 }
 
-async function evo(path: string, init: RequestInit = {}) {
+async function evo(path: string, init: RequestInit = {}, apiKey = EVO_KEY) {
   const r = await fetch(`${EVO_BASE}${path}`, {
     ...init,
     headers: {
-      apikey: EVO_KEY,
+      apikey: apiKey,
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
     },
@@ -37,6 +37,43 @@ async function evo(path: string, init: RequestInit = {}) {
 
 function instanceNameFor(resellerId: string) {
   return `rev_${resellerId.replace(/-/g, "").slice(0, 12)}`;
+}
+
+async function instanceTokenFor(resellerId: string) {
+  const hash = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`lovconnect:evolution-go:${resellerId}`),
+  );
+  const chars = Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 32)
+    .split("");
+  chars[12] = "4";
+  chars[16] = ((parseInt(chars[16], 16) & 0x3) | 0x8).toString(16);
+  const hex = chars.join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+function extractQr(data: any) {
+  return data?.data?.Qrcode ??
+    data?.data?.QRCode ??
+    data?.data?.qrcode ??
+    data?.data?.qrCode ??
+    data?.qrcode?.base64 ??
+    data?.base64 ??
+    data?.qr ??
+    data?.qrcode ??
+    data?.qrCode ??
+    null;
+}
+
+function extractPairingCode(data: any) {
+  return data?.data?.Code ?? data?.data?.code ?? data?.pairingCode ?? data?.code ?? null;
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function onlyDigits(s: string) {
@@ -71,6 +108,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body.action ?? "");
     const instance = instanceNameFor(reseller.id);
+    const instanceToken = await instanceTokenFor(reseller.id);
 
     // garante row da integração
     await svc.from("reseller_integrations").upsert(
@@ -84,9 +122,7 @@ Deno.serve(async (req) => {
         method: "POST",
         body: JSON.stringify({
           name: instance,
-          instanceName: instance,
-          integration: "WHATSAPP-BAILEYS",
-          qrcode: true,
+          token: instanceToken,
         }),
       });
       // se 403/409 = já existe, segue
@@ -95,27 +131,41 @@ Deno.serve(async (req) => {
         console.warn("evo create returned", created.status, created.data);
       }
 
-      // Solicita QR (Evolution v2: GET /instance/connect/{name})
-      const conn = await evo(`/instance/connect/${encodeURIComponent(instance)}`, { method: "GET" });
-      const qr =
-        conn.data?.qrcode?.base64 ??
-        conn.data?.base64 ??
-        conn.data?.qr ??
-        conn.data?.qrcode ??
-        null;
-      const pairingCode = conn.data?.pairingCode ?? conn.data?.code ?? null;
+      // Evolution GO: conecta por POST /instance/connect e lê o QR em GET /instance/qr usando o token da instância.
+      const conn = await evo("/instance/connect", {
+        method: "POST",
+        body: JSON.stringify({
+          immediate: true,
+          subscribe: ["QRCODE", "CONNECTION"],
+        }),
+      }, instanceToken);
+      if (!conn.ok) console.warn("evo connect returned", conn.status, conn.data);
+
+      let qrResp = await evo("/instance/qr", { method: "GET" }, instanceToken);
+      if (!extractQr(qrResp.data)) {
+        await delay(800);
+        qrResp = await evo("/instance/qr", { method: "GET" }, instanceToken);
+      }
+      const qr = extractQr(qrResp.data);
+      const pairingCode = extractPairingCode(qrResp.data) ?? extractPairingCode(conn.data);
 
       await svc.from("reseller_integrations").update({
         evolution_instance: instance,
         connection_status: "connecting",
       }).eq("reseller_id", reseller.id);
 
-      return json({ ok: true, instance, qr, pairingCode, raw: conn.data });
+      if (!qr && !pairingCode) {
+        console.warn("evo qr missing", { connectStatus: conn.status, connect: conn.data, qrStatus: qrResp.status, qr: qrResp.data });
+      }
+
+      return json({ ok: true, instance, qr, pairingCode, raw: qrResp.data });
     }
 
     if (action === "status") {
-      const st = await evo(`/instance/connectionState/${encodeURIComponent(instance)}`, { method: "GET" });
+      const st = await evo("/instance/status", { method: "GET" }, instanceToken);
       const state: string =
+        st.data?.data?.Connected === true || st.data?.data?.LoggedIn === true ? "open" :
+        st.data?.data?.Connected === false ? "close" :
         st.data?.instance?.state ??
         st.data?.state ??
         "unknown";
@@ -147,7 +197,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "disconnect") {
-      const r = await evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" });
+      const r = await evo("/instance/logout", { method: "DELETE" }, instanceToken);
       await svc.from("reseller_integrations").update({
         connection_status: "disconnected",
         profile_name: null,
@@ -161,10 +211,10 @@ Deno.serve(async (req) => {
       const number = onlyDigits(String(body.number ?? ""));
       const text = String(body.text ?? "✅ Teste de integração WhatsApp via Evolution API");
       if (number.length < 10) return json({ error: "WhatsApp inválido" }, 400);
-      const r = await evo(`/message/sendText/${encodeURIComponent(instance)}`, {
+      const r = await evo("/message/sendText", {
         method: "POST",
         body: JSON.stringify({ number, text }),
-      });
+      }, instanceToken);
       if (!r.ok) return json({ ok: false, error: "Falha ao enviar", details: r.data }, 502);
       await svc.rpc("increment_evolution_messages_sent", { _reseller_id: reseller.id });
       return json({ ok: true, raw: r.data });
