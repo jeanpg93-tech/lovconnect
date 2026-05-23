@@ -94,7 +94,7 @@ export function useFinancialOverview(range: DateRange) {
     // Lançamentos manuais
     let mQ = supabase
       .from("manual_financial_entries")
-      .select("entry_type, amount_cents, entry_date");
+      .select("entry_type, amount_cents, cost_cents, entry_date");
     if (startIso) mQ = mQ.gte("entry_date", startIso);
     const { data: manuals } = await mQ;
     const manualArr = manuals || [];
@@ -104,9 +104,13 @@ export function useFinancialOverview(range: DateRange) {
     const manualExpenseCents = manualArr
       .filter((m: any) => m.entry_type === "expense")
       .reduce((s, m: any) => s + Number(m.amount_cents || 0), 0);
+    // Custo embutido nas receitas manuais (ex: venda de pacote de créditos por fora)
+    const manualRevenueCostCents = manualArr
+      .filter((m: any) => m.entry_type === "revenue")
+      .reduce((s, m: any) => s + Number(m.cost_cents || 0), 0);
 
     const revenueCents = rechargesRevenueCents + manualRevenueCents;
-    const costCents = costCreditsCents + gatewayFeeCents + manualExpenseCents;
+    const costCents = costCreditsCents + gatewayFeeCents + manualExpenseCents + manualRevenueCostCents;
     const profitCents = revenueCents - costCents;
     const marginPct = revenueCents > 0 ? (profitCents / revenueCents) * 100 : 0;
 
@@ -132,8 +136,12 @@ export function useFinancialOverview(range: DateRange) {
     manualArr.forEach((m: any) => {
       const k = key(m.entry_date);
       bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
-      if (m.entry_type === "revenue") bucket[k].revenue += Number(m.amount_cents || 0);
-      else bucket[k].cost += Number(m.amount_cents || 0);
+      if (m.entry_type === "revenue") {
+        bucket[k].revenue += Number(m.amount_cents || 0);
+        bucket[k].cost += Number(m.cost_cents || 0);
+      } else {
+        bucket[k].cost += Number(m.amount_cents || 0);
+      }
     });
     const series = Object.entries(bucket)
       .filter(([k]) => k !== "—")
