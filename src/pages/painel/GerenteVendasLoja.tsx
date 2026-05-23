@@ -34,6 +34,7 @@ const statusMap: Record<string, { label: string; color: string; icon: any }> = {
   completed: { label: "Concluída", color: "bg-emerald-500/15 text-emerald-400", icon: CheckCircle2 },
   paid:      { label: "Pago",      color: "bg-sky-500/15 text-sky-400",         icon: CheckCircle2 },
   pending:   { label: "Pendente",  color: "bg-amber-500/15 text-amber-400",     icon: Clock },
+  awaiting_balance: { label: "Aguardando saldo", color: "bg-amber-500/15 text-amber-500", icon: Clock },
   failed:    { label: "Falha",     color: "bg-destructive/15 text-destructive", icon: XCircle },
 };
 
@@ -184,7 +185,7 @@ export default function GerenteVendasLoja() {
 
       {/* Status filter */}
       <div className="flex flex-wrap items-center gap-2">
-        {["all", "pending", "paid", "completed", "failed"].map((s) => (
+        {["all", "pending", "awaiting_balance", "paid", "completed", "failed"].map((s) => (
           <Button
             key={s}
             variant={statusF === s ? "default" : "outline"}
