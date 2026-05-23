@@ -118,10 +118,12 @@ export default function GerenteEstornosProvedor() {
       });
       if (error || (data as any)?.error) {
         toast.error((data as any)?.error ?? error?.message ?? "Falha");
+        setExpanded(purchaseId);
       } else if ((data as any)?.ok) {
         toast.success("Estorno solicitado no provedor com sucesso");
       } else {
-        toast.warning("Provedor recusou o estorno — veja detalhes");
+        toast.warning("Provedor recusou o estorno — abrindo detalhes abaixo");
+        setExpanded(purchaseId);
       }
       await load();
     } catch (e: any) {
@@ -162,15 +164,22 @@ export default function GerenteEstornosProvedor() {
   const counts = useMemo(() => {
     let total = rows.length;
     let pend = 0, ok = 0, fail = 0;
+    let openCents = 0;
     rows.forEach((r) => {
       const resp = r.provider_response ?? {};
       const hasReq = !!resp.provider_refund_requested_at;
       const isOk = !!resp.provider_refund_ok;
+      const isManual = String(r.status ?? "").startsWith("manual_") || !r.provider_pedido_id;
       if (!hasReq) pend++;
       else if (isOk) ok++;
       else fail++;
+      // "Aberto no provedor" = pedidos cancelados/falha com provedor que ainda
+      // não retornaram OK no estorno (não solicitados ou que falharam).
+      if (!isManual && !(hasReq && isOk)) {
+        openCents += Number(r.price_cents || 0);
+      }
     });
-    return { total, pend, ok, fail };
+    return { total, pend, ok, fail, openCents };
   }, [rows]);
 
   if (loading) {
@@ -184,8 +193,15 @@ export default function GerenteEstornosProvedor() {
   return (
     <div className="space-y-4">
       {/* Header / KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <Kpi label="Pedidos cancelados/falha" value={counts.total} cls="bg-zinc-500/10 text-zinc-600 border-zinc-500/30" />
+        <Kpi
+          label="Aberto p/ estornar (provedor)"
+          value={fmtBRL(counts.openCents)}
+          cls="bg-orange-500/10 text-orange-600 border-orange-500/30"
+          icon={<AlertTriangle className="h-3.5 w-3.5" />}
+          onClick={() => setFilter("pendente_provedor")}
+        />
         <Kpi
           label="Sem estorno no provedor"
           value={counts.pend}
@@ -266,7 +282,7 @@ export default function GerenteEstornosProvedor() {
 
 function Kpi({
   label, value, cls, icon, onClick,
-}: { label: string; value: number; cls: string; icon?: React.ReactNode; onClick?: () => void }) {
+}: { label: string; value: number | string; cls: string; icon?: React.ReactNode; onClick?: () => void }) {
   return (
     <button
       onClick={onClick}
