@@ -18,6 +18,7 @@ import RefundSaleDialog, { type RefundSaleData } from "@/components/painel/Refun
 
 type Usage = {
   id: string;
+  local_purchase_id?: string | null;
   license_type: string;
   license_key: string;
   status: string;
@@ -164,7 +165,7 @@ export default function GerenteAcompanharRecargas() {
       if (ids.length > 0) {
         const { data: purchases } = await supabase
           .from("reseller_credit_purchases")
-          .select("provider_pedido_id, reseller_id, price_cents, status, resellers:reseller_id(display_name, user_id)")
+          .select("id, provider_pedido_id, reseller_id, price_cents, status, resellers:reseller_id(display_name, user_id)")
           .in("provider_pedido_id", ids);
         const userIds = Array.from(new Set((purchases ?? []).map((p: any) => p.resellers?.user_id).filter(Boolean)));
         let emailMap = new Map<string, string>();
@@ -173,13 +174,14 @@ export default function GerenteAcompanharRecargas() {
           emailMap = new Map((profs ?? []).map((p: any) => [p.id, p.email]));
         }
         const respMap = new Map<string, { nome: string | null; email: string | null }>();
-        const priceMap = new Map<string, { price_cents: number | null; refunded: boolean }>();
+        const priceMap = new Map<string, { local_purchase_id: string | null; price_cents: number | null; refunded: boolean }>();
         for (const p of (purchases ?? []) as any[]) {
           respMap.set(p.provider_pedido_id, {
             nome: p.resellers?.display_name ?? null,
             email: p.resellers?.user_id ? (emailMap.get(p.resellers.user_id) ?? null) : null,
           });
           priceMap.set(p.provider_pedido_id, {
+            local_purchase_id: p.id ?? null,
             price_cents: p.price_cents ?? null,
             refunded: p.status === "estornado",
           });
@@ -216,7 +218,7 @@ export default function GerenteAcompanharRecargas() {
               email: prof?.email ?? null,
             });
             if (!priceMap.has(po.pedido_id)) {
-              priceMap.set(po.pedido_id, { price_cents: po.preco_cents ?? null, refunded: false });
+              priceMap.set(po.pedido_id, { local_purchase_id: null, price_cents: po.preco_cents ?? null, refunded: false });
             }
           }
         }
@@ -228,6 +230,7 @@ export default function GerenteAcompanharRecargas() {
           }
           const pr = priceMap.get(o.id);
           if (pr) {
+            o.local_purchase_id = pr.local_purchase_id;
             o.price_cents = pr.price_cents;
             o.refunded = pr.refunded;
           }
@@ -387,10 +390,24 @@ export default function GerenteAcompanharRecargas() {
     return usageInRange.filter((u) => {
       const matchStatus = statusFilter === "all" ? true : u.status.toLowerCase() === statusFilter;
       const q = search.trim().toLowerCase();
-      const matchQ = !q || u.id.toLowerCase().includes(q) || u.license_type.toLowerCase().includes(q) || u.license_key.toLowerCase().includes(q) || (u.responsavel_nome ?? "").toLowerCase().includes(q) || (u.responsavel_email ?? "").toLowerCase().includes(q);
+      const matchQ = !q || u.id.toLowerCase().includes(q) || (u.local_purchase_id ?? "").toLowerCase().includes(q) || u.license_type.toLowerCase().includes(q) || u.license_key.toLowerCase().includes(q) || (u.responsavel_nome ?? "").toLowerCase().includes(q) || (u.responsavel_email ?? "").toLowerCase().includes(q);
       return matchStatus && matchQ;
     });
   }, [usageInRange, search, statusFilter]);
+
+  const filteredManualOrders = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return manualInRange;
+    return manualInRange.filter((m) => (
+      m.id.toLowerCase().includes(q) ||
+      (m.provider_pedido_id ?? "").toLowerCase().includes(q) ||
+      (m.workspace_name ?? "").toLowerCase().includes(q) ||
+      (m.customer_name ?? "").toLowerCase().includes(q) ||
+      (m.customer_whatsapp ?? "").toLowerCase().includes(q) ||
+      (m.responsavel_nome ?? "").toLowerCase().includes(q) ||
+      (m.responsavel_email ?? "").toLowerCase().includes(q)
+    ));
+  }, [manualInRange, search]);
 
   const STATUS_STYLES: Record<string, string> = {
     aguardando: "bg-amber-500/15 text-amber-500 border-amber-500/40",
@@ -591,12 +608,17 @@ export default function GerenteAcompanharRecargas() {
                               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
                                 <Coins className="h-3.5 w-3.5" />
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <code className="font-mono text-[11px] font-semibold">{u.id ? u.id.slice(0, 8) : "—"}</code>
                                 {u.id && (
                                   <button onClick={() => copy(u.id)} className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" title="Copiar ID">
                                     <Copy className="h-3 w-3" />
                                   </button>
+                                )}
+                                {u.local_purchase_id && (
+                                  <div className="mt-0.5 max-w-[160px] truncate font-mono text-[10px] text-muted-foreground" title={`ID local: ${u.local_purchase_id}`}>
+                                    Local: {u.local_purchase_id.slice(0, 8)}…
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -683,13 +705,20 @@ export default function GerenteAcompanharRecargas() {
       )}
 
       {orderTab === "manual" && (
-        <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
-          {manualInRange.length === 0 ? (
+        <>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por ID, workspace, cliente..." className="pl-9 h-9 text-sm" />
+          </div>
+        </div>
+        <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
+          {filteredManualOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
                 <Hand className="h-6 w-6 text-primary/70" />
               </div>
-              <p className="mt-3 text-sm font-medium">{manualOrders.length === 0 ? "Nenhum pedido manual registrado ainda." : "Nenhum pedido manual no período."}</p>
+              <p className="mt-3 text-sm font-medium">{manualOrders.length === 0 ? "Nenhum pedido manual registrado ainda." : search.trim() ? "Nenhum pedido manual com essa busca." : "Nenhum pedido manual no período."}</p>
               <p className="mt-1 text-xs text-muted-foreground">Pedidos feitos no modo manual aparecerão aqui para entrega pela equipe.</p>
             </div>
           ) : (
@@ -707,7 +736,7 @@ export default function GerenteAcompanharRecargas() {
                   </tr>
                 </thead>
                 <tbody>
-                  {manualInRange.map((m) => {
+                  {filteredManualOrders.map((m) => {
                     const s = (m.status || "").toLowerCase();
                     const STATUS_MAP: Record<string, { label: string; cls: string; Icon: any }> = {
                       manual_pendente: { label: "Pendente", cls: "bg-amber-500/15 text-amber-500 border-amber-500/40", Icon: Clock },
@@ -952,6 +981,7 @@ export default function GerenteAcompanharRecargas() {
             </div>
           )}
         </div>
+        </>
       )}
 
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
