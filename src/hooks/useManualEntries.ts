@@ -6,6 +6,9 @@ export type ManualEntry = {
   entry_type: "revenue" | "expense";
   description: string;
   amount_cents: number;
+  cost_cents: number;
+  reference_kind: string | null;
+  reference_meta: any | null;
   category: string | null;
   entry_date: string;
   created_at: string;
@@ -16,6 +19,9 @@ export type ManualEntryInput = {
   entry_type: "revenue" | "expense";
   description: string;
   amount_cents: number;
+  cost_cents?: number;
+  reference_kind?: string | null;
+  reference_meta?: any | null;
   category?: string | null;
   entry_date: string;
 };
