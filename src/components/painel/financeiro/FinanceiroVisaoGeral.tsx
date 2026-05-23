@@ -24,6 +24,19 @@ import {
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const brlSigned = (cents: number, sign: "+" | "-" | "auto" = "auto") => {
+  const abs = Math.abs(cents);
+  const formatted = (abs / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  if (sign === "+") return `+ ${formatted}`;
+  if (sign === "-") return `− ${formatted}`;
+  if (cents < 0) return `− ${formatted}`;
+  return `+ ${formatted}`;
+};
+
+const COLOR_REVENUE = "#10b981"; // emerald
+const COLOR_COST = "#ef4444"; // red
+const COLOR_PROFIT = "#0ea5e9"; // sky-500
+
 export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
   const { data, loading } = useFinancialOverview(range);
 
@@ -41,39 +54,42 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
           label="Receita Total"
-          value={brl(data.revenueCents)}
+          value={brlSigned(data.revenueCents, "+")}
           icon={TrendingUp}
           hint={`Recargas + manuais`}
-          className="p-4"
+          accent="emerald"
+          className="p-4 ring-1 ring-emerald-500/20"
         />
         <StatCard
           label="Custo Total"
-          value={brl(data.costCents)}
+          value={brlSigned(data.costCents, "-")}
           icon={TrendingDown}
           hint={`Créditos + taxas + gastos`}
-          className="p-4"
+          accent="destructive"
+          className="p-4 ring-1 ring-red-500/20"
         />
         <StatCard
           label="Lucro Líquido"
-          value={brl(data.profitCents)}
+          value={brlSigned(data.profitCents, data.profitCents >= 0 ? "+" : "-")}
           icon={Wallet}
-          hint={data.profitCents >= 0 ? "Saldo positivo" : "Saldo negativo"}
-          className={`p-4 ${
-            data.profitCents >= 0 ? "ring-1 ring-emerald-500/30" : "ring-1 ring-red-500/30"
-          }`}
+          hint={`Margem ${data.marginPct.toFixed(1)}%`}
+          accent="sky"
+          className="p-4 ring-1 ring-sky-500/30"
         />
         <StatCard
           label="Margem"
           value={`${data.marginPct.toFixed(1)}%`}
           icon={Percent}
           hint="Lucro / Receita"
-          className="p-4"
+          accent="sky"
+          className="p-4 ring-1 ring-sky-500/20"
         />
         <StatCard
           label="Recargas"
           value={data.rechargesCount}
           icon={Receipt}
           hint="Depósitos pagos"
+          accent="violet"
           className="p-4"
         />
         <StatCard
@@ -81,6 +97,7 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
           value={data.salesCount}
           icon={ShoppingCart}
           hint="Créditos vendidos"
+          accent="amber"
           className="p-4"
         />
       </div>
@@ -90,7 +107,8 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
         <DonutCard
           title="Composição do Custo"
           total={data.costCents}
-          accent="hsl(0 84% 60%)"
+          accent={COLOR_COST}
+          asNegative
           items={[
             { label: "Créditos vendidos", hint: "custo do provedor", value: data.costCreditsCents, color: "#3b82f6" },
             { label: "Taxa gateway", hint: "R$ 0,50 / recarga", value: data.gatewayFeeCents, color: "#f59e0b" },
@@ -100,9 +118,9 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
         <DonutCard
           title="Composição da Receita"
           total={data.revenueCents}
-          accent="hsl(142 71% 45%)"
+          accent={COLOR_REVENUE}
           items={[
-            { label: "Recargas pagas", hint: "revendedores", value: data.rechargesRevenueCents, color: "#10b981" },
+            { label: "Recargas pagas", hint: "revendedores", value: data.rechargesRevenueCents, color: COLOR_REVENUE },
             { label: "Receitas manuais", hint: "lançamentos", value: data.manualRevenueCents, color: "#8b5cf6" },
           ]}
         />
@@ -111,11 +129,16 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
       {/* Chart */}
       <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-display text-base font-bold">Evolução Financeira</h3>
+          <div>
+            <h3 className="font-display text-base font-bold">Evolução Financeira</h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Margem do período: <span className="font-mono font-bold text-sky-500">{data.marginPct.toFixed(1)}%</span>
+            </p>
+          </div>
           <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider">
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" />Receita</span>
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500" />Custo</span>
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" />Lucro</span>
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-sky-500" />Lucro</span>
           </div>
         </div>
         {data.series.length === 0 ? (
@@ -126,16 +149,16 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
               <AreaChart data={data.series} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.45} />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                    <stop offset="0%" stopColor={COLOR_REVENUE} stopOpacity={0.45} />
+                    <stop offset="100%" stopColor={COLOR_REVENUE} stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gradCost" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+                    <stop offset="0%" stopColor={COLOR_COST} stopOpacity={0.4} />
+                    <stop offset="100%" stopColor={COLOR_COST} stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gradProfit" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    <stop offset="0%" stopColor={COLOR_PROFIT} stopOpacity={0.5} />
+                    <stop offset="100%" stopColor={COLOR_PROFIT} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
@@ -145,9 +168,9 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
                   contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 12 }}
                   formatter={(v: any) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 />
-                <Area type="monotone" dataKey="revenue" name="Receita" stroke="#10b981" strokeWidth={2} fill="url(#gradRevenue)" />
-                <Area type="monotone" dataKey="cost" name="Custo" stroke="#ef4444" strokeWidth={2} fill="url(#gradCost)" />
-                <Area type="monotone" dataKey="profit" name="Lucro" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#gradProfit)" />
+                <Area type="monotone" dataKey="revenue" name="Receita" stroke={COLOR_REVENUE} strokeWidth={2} fill="url(#gradRevenue)" />
+                <Area type="monotone" dataKey="cost" name="Custo" stroke={COLOR_COST} strokeWidth={2} fill="url(#gradCost)" />
+                <Area type="monotone" dataKey="profit" name="Lucro" stroke={COLOR_PROFIT} strokeWidth={2.5} fill="url(#gradProfit)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -188,9 +211,9 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
                     <tr key={r.reseller_id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
                       <td className="py-2.5 px-2 font-semibold truncate max-w-[200px]">{r.display_name}</td>
                       <td className="py-2.5 px-2 text-right font-mono tabular-nums text-muted-foreground">{r.sales_count}</td>
-                      <td className="py-2.5 px-2 text-right font-mono tabular-nums text-emerald-500">{brl(r.revenue_cents)}</td>
-                      <td className="py-2.5 px-2 text-right font-mono tabular-nums text-red-500">{brl(r.cost_cents)}</td>
-                      <td className={`py-2.5 px-2 text-right font-mono font-black tabular-nums ${r.profit_cents >= 0 ? "text-emerald-500" : "text-red-500"}`}>{brl(r.profit_cents)}</td>
+                      <td className="py-2.5 px-2 text-right font-mono tabular-nums text-emerald-500">{brlSigned(r.revenue_cents, "+")}</td>
+                      <td className="py-2.5 px-2 text-right font-mono tabular-nums text-red-500">{brlSigned(r.cost_cents, "-")}</td>
+                      <td className={`py-2.5 px-2 text-right font-mono font-black tabular-nums ${r.profit_cents >= 0 ? "text-sky-500" : "text-red-500"}`}>{brlSigned(r.profit_cents, r.profit_cents >= 0 ? "+" : "-")}</td>
                       <td className="py-2.5 px-2 text-right font-mono tabular-nums text-muted-foreground">{margin.toFixed(1)}%</td>
                     </tr>
                   );
@@ -209,11 +232,13 @@ function DonutCard({
   total,
   items,
   accent,
+  asNegative,
 }: {
   title: string;
   total: number;
   accent: string;
   items: Array<{ label: string; hint?: string; value: number; color: string }>;
+  asNegative?: boolean;
 }) {
   const size = 140;
   const stroke = 18;
@@ -253,7 +278,7 @@ function DonutCard({
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Total</span>
             <span className="font-mono font-black text-base tabular-nums" style={{ color: accent }}>
-              {brl(total)}
+              {asNegative ? brlSigned(total, "-") : brlSigned(total, "+")}
             </span>
           </div>
         </div>
@@ -263,7 +288,9 @@ function DonutCard({
               <div className="flex items-center gap-2 text-xs">
                 <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ background: s.color }} />
                 <span className="flex-1 font-semibold truncate">{s.label}</span>
-                <span className="font-mono font-black tabular-nums">{brl(s.value)}</span>
+                <span className="font-mono font-black tabular-nums" style={{ color: s.color }}>
+                  {asNegative ? brlSigned(s.value, "-") : brlSigned(s.value, "+")}
+                </span>
               </div>
               <div className="flex items-center gap-2 pl-4">
                 <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
