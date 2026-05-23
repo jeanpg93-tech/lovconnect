@@ -48,6 +48,7 @@ const RevendedorPedidos = lazy(() => import("@/pages/painel/RevendedorPedidos"))
 const RevendedorAdicionarSaldo = lazy(() => import("@/pages/painel/RevendedorAdicionarSaldo"));
 const RevendedorCarteira = lazy(() => import("@/pages/painel/RevendedorCarteira"));
 const RevendedorIntegracaoMisticPay = lazy(() => import("@/pages/painel/RevendedorIntegracaoMisticPay"));
+const RevendedorIntegracaoWhatsApp = lazy(() => import("@/pages/painel/RevendedorIntegracaoWhatsApp"));
 const RevendedorMinhaLoja = lazy(() => import("@/pages/painel/RevendedorMinhaLoja"));
 const RevendedorIndicacoes = lazy(() => import("@/pages/painel/RevendedorIndicacoes"));
 const RevendedorApi = lazy(() => import("@/pages/painel/RevendedorApi"));
@@ -124,6 +125,7 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/revendedor/adicionar-saldo", match: exact("/painel/revendedor/adicionar-saldo"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorAdicionarSaldo /></RoleRoute> },
   { key: "/painel/revendedor/carteira", match: exact("/painel/revendedor/carteira"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorCarteira /></RoleRoute> },
   { key: "/painel/revendedor/integracoes/misticpay", match: exact("/painel/revendedor/integracoes/misticpay"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorIntegracaoMisticPay /></RoleRoute> },
+  { key: "/painel/revendedor/integracoes/whatsapp", match: exact("/painel/revendedor/integracoes/whatsapp"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorIntegracaoWhatsApp /></RoleRoute> },
   { key: "/painel/revendedor/loja", match: exact("/painel/revendedor/loja"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorMinhaLoja /></RoleRoute> },
   { key: "/painel/revendedor/indicacoes", match: exact("/painel/revendedor/indicacoes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorIndicacoes /></RoleRoute> },
   { key: "/painel/revendedor/api", match: exact("/painel/revendedor/api"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorApi /></RoleRoute> },
