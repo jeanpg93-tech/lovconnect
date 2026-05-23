@@ -280,6 +280,23 @@ Deno.serve(async (req) => {
         console.error("persist provider_credit_order failed", e);
       }
 
+      // Também registra em reseller_credit_purchases para aparecer nas telas
+      // de acompanhamento/estornos do gerente e revendedor.
+      try {
+        await admin.from("reseller_credit_purchases").insert({
+          reseller_id: resellerId,
+          api_key_id: keyRow?.id ?? null,
+          credits: creditos,
+          price_cents: precoCents,
+          status: d.status ?? "aguardando",
+          tipo_entrega: "workspace_proprio",
+          provider_pedido_id: pedidoId,
+          provider_response: d,
+        });
+      } catch (e) {
+        console.error("persist reseller_credit_purchase failed", e);
+      }
+
       // Devolve saldo atualizado da plataforma
       const { data: bal } = await admin
         .from("reseller_balances")
