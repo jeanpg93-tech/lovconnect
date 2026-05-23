@@ -115,7 +115,7 @@ export default function RevendedorIntegracaoMisticPay() {
               <CreditCard className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="font-display text-base font-semibold">MisticPay (PIX)</h3>
+              <h3 className="font-display text-base font-semibold">MisticPay API</h3>
               <p className="text-xs text-muted-foreground">Receba recargas direto na sua conta.</p>
             </div>
           </div>
