@@ -1,5 +1,4 @@
 import { useFinancialOverview, type DateRange } from "@/hooks/useFinancialOverview";
-import { StatCard } from "@/components/painel/PageHeader";
 import {
   Wallet,
   TrendingUp,
@@ -18,8 +17,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  Legend,
 } from "recharts";
+import { cn } from "@/lib/utils";
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -51,77 +50,73 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
   return (
     <div className="space-y-6">
       {/* Top KPIs */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
+        <KpiCard
           label="Receita Total"
           value={brlSigned(data.revenueCents, "+")}
           icon={TrendingUp}
-          hint={`Recargas + manuais`}
-          accent="emerald"
-          className="p-4 ring-1 ring-emerald-500/20"
+          hint="Recargas + manuais"
+          color="emerald"
         />
-        <StatCard
+        <KpiCard
           label="Custo Total"
           value={brlSigned(data.costCents, "-")}
           icon={TrendingDown}
-          hint={`Créditos + taxas + gastos`}
-          accent="destructive"
-          className="p-4 ring-1 ring-red-500/20"
+          hint="Créditos + taxas + gastos"
+          color="red"
         />
-        <StatCard
+        <KpiCard
           label="Lucro Líquido"
           value={brlSigned(data.profitCents, data.profitCents >= 0 ? "+" : "-")}
           icon={Wallet}
           hint={`Margem ${data.marginPct.toFixed(1)}%`}
-          accent="sky"
-          className="p-4 ring-1 ring-sky-500/30"
+          color="sky"
         />
-        <StatCard
+        <KpiCard
           label="Margem"
           value={`${data.marginPct.toFixed(1)}%`}
           icon={Percent}
           hint="Lucro / Receita"
-          accent="sky"
-          className="p-4 ring-1 ring-sky-500/20"
+          color="sky"
         />
-        <StatCard
+        <KpiCard
           label="Recargas"
-          value={data.rechargesCount}
+          value={String(data.rechargesCount)}
           icon={Receipt}
           hint="Depósitos pagos"
-          accent="violet"
-          className="p-4"
+          color="violet"
         />
-        <StatCard
+        <KpiCard
           label="Vendas"
-          value={data.salesCount}
+          value={String(data.salesCount)}
           icon={ShoppingCart}
           hint="Créditos vendidos"
-          accent="amber"
-          className="p-4"
+          color="amber"
         />
       </div>
 
       {/* Breakdown */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <DonutCard
+        <CompositionCard
           title="Composição do Custo"
+          icon={TrendingDown}
           total={data.costCents}
           accent={COLOR_COST}
           asNegative
           items={[
             { label: "Créditos vendidos", hint: "custo do provedor", value: data.costCreditsCents, color: "#3b82f6" },
             { label: "Taxa gateway", hint: "R$ 0,50 / recarga", value: data.gatewayFeeCents, color: "#f59e0b" },
-            { label: "Gastos manuais", hint: "lançamentos", value: data.manualExpenseCents, color: "#ef4444" },
+            { label: "Gastos manuais", hint: "lançamentos manuais", value: data.manualExpenseCents, color: "#f97316" },
           ]}
         />
-        <DonutCard
+        <CompositionCard
           title="Composição da Receita"
+          icon={TrendingUp}
           total={data.revenueCents}
           accent={COLOR_REVENUE}
           items={[
             { label: "Recargas pagas", hint: "revendedores", value: data.rechargesRevenueCents, color: COLOR_REVENUE },
-            { label: "Receitas manuais", hint: "lançamentos", value: data.manualRevenueCents, color: "#8b5cf6" },
+            { label: "Receitas manuais", hint: "lançamentos manuais", value: data.manualRevenueCents, color: "#8b5cf6" },
           ]}
         />
       </div>
@@ -165,8 +160,7 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
                 <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `R$${v.toFixed(0)}`} />
                 <Tooltip
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 12 }}
-                  formatter={(v: any) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  content={<ChartTooltip />}
                 />
                 <Area type="monotone" dataKey="revenue" name="Receita" stroke={COLOR_REVENUE} strokeWidth={2} fill="url(#gradRevenue)" />
                 <Area type="monotone" dataKey="cost" name="Custo" stroke={COLOR_COST} strokeWidth={2} fill="url(#gradCost)" />
