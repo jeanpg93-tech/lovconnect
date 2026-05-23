@@ -377,7 +377,14 @@ function PurchaseCard({
       <div className="p-4 flex flex-wrap items-center gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-muted-foreground">#{p.id.slice(0, 8)}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); copy(p.id); }}
+              title="Copiar ID completo para pesquisar na aba Acompanhar"
+              className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground hover:text-foreground rounded px-1.5 py-0.5 border border-dashed border-border hover:border-primary/50 transition"
+            >
+              #{p.id.slice(0, 8)}
+              <Copy className="h-3 w-3" />
+            </button>
             <Badge variant="outline" className="text-[10px] uppercase">
               {p.status}
             </Badge>
@@ -389,6 +396,31 @@ function PurchaseCard({
             <span className="font-medium">{p.credits} créditos</span>
             <span className="text-muted-foreground"> · {fmtBRL(p.price_cents)}</span>
             <span className="text-muted-foreground"> · {fmtDate(p.created_at)}</span>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-mono">
+              Pesquisar na aba Acompanhar:
+            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); copy(p.id); }}
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-background/60 px-2 py-1 font-mono text-[11px] hover:border-primary/50 hover:text-foreground transition"
+              title="Copiar ID local"
+            >
+              <span className="text-muted-foreground">ID:</span>
+              <span className="truncate max-w-[180px]">{p.id}</span>
+              <Copy className="h-3 w-3" />
+            </button>
+            {p.provider_pedido_id && (
+              <button
+                onClick={(e) => { e.stopPropagation(); copy(p.provider_pedido_id!); }}
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-background/60 px-2 py-1 font-mono text-[11px] hover:border-primary/50 hover:text-foreground transition"
+                title="Copiar ID do provedor"
+              >
+                <span className="text-muted-foreground">Provedor:</span>
+                <span className="truncate max-w-[180px]">{p.provider_pedido_id}</span>
+                <Copy className="h-3 w-3" />
+              </button>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
