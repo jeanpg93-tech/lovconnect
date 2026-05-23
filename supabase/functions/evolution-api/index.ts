@@ -108,6 +108,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body.action ?? "");
     const instance = instanceNameFor(reseller.id);
+    const instanceToken = await instanceTokenFor(reseller.id);
 
     // garante row da integração
     await svc.from("reseller_integrations").upsert(
@@ -121,9 +122,7 @@ Deno.serve(async (req) => {
         method: "POST",
         body: JSON.stringify({
           name: instance,
-          instanceName: instance,
-          integration: "WHATSAPP-BAILEYS",
-          qrcode: true,
+          token: instanceToken,
         }),
       });
       // se 403/409 = já existe, segue
@@ -132,22 +131,34 @@ Deno.serve(async (req) => {
         console.warn("evo create returned", created.status, created.data);
       }
 
-      // Solicita QR (Evolution v2: GET /instance/connect/{name})
-      const conn = await evo(`/instance/connect/${encodeURIComponent(instance)}`, { method: "GET" });
-      const qr =
-        conn.data?.qrcode?.base64 ??
-        conn.data?.base64 ??
-        conn.data?.qr ??
-        conn.data?.qrcode ??
-        null;
-      const pairingCode = conn.data?.pairingCode ?? conn.data?.code ?? null;
+      // Evolution GO: conecta por POST /instance/connect e lê o QR em GET /instance/qr usando o token da instância.
+      const conn = await evo("/instance/connect", {
+        method: "POST",
+        body: JSON.stringify({
+          immediate: true,
+          subscribe: ["QRCODE", "CONNECTION"],
+        }),
+      }, instanceToken);
+      if (!conn.ok) console.warn("evo connect returned", conn.status, conn.data);
+
+      let qrResp = await evo("/instance/qr", { method: "GET" }, instanceToken);
+      if (!extractQr(qrResp.data)) {
+        await delay(800);
+        qrResp = await evo("/instance/qr", { method: "GET" }, instanceToken);
+      }
+      const qr = extractQr(qrResp.data);
+      const pairingCode = extractPairingCode(qrResp.data) ?? extractPairingCode(conn.data);
 
       await svc.from("reseller_integrations").update({
         evolution_instance: instance,
         connection_status: "connecting",
       }).eq("reseller_id", reseller.id);
 
-      return json({ ok: true, instance, qr, pairingCode, raw: conn.data });
+      if (!qr && !pairingCode) {
+        console.warn("evo qr missing", { connectStatus: conn.status, connect: conn.data, qrStatus: qrResp.status, qr: qrResp.data });
+      }
+
+      return json({ ok: true, instance, qr, pairingCode, raw: qrResp.data });
     }
 
     if (action === "status") {
