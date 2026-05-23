@@ -93,10 +93,17 @@ export default function GerenteEstornosProvedor() {
       return;
     }
     const list = (data ?? []) as any as Purchase[];
-    setRows(list);
+    // Esconde compras que a auditoria identificou como NÃO realmente canceladas
+    // no provedor (o reembolso já foi pago e ficou registrado para histórico,
+    // mas não devem mais aparecer na lista de estornos).
+    const visible = list.filter((r) => {
+      const resp = (r.provider_response ?? {}) as any;
+      return resp?.audit_mismatch !== true;
+    });
+    setRows(visible);
 
     // Carrega refunds para esses ids
-    const ids = list.map((r) => r.id);
+    const ids = visible.map((r) => r.id);
     if (ids.length > 0) {
       const { data: refs } = await supabase
         .from("refund_requests")
