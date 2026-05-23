@@ -201,7 +201,7 @@ export default function RevendedorIntegracaoWhatsApp() {
   return (
     <div className="space-y-6 pb-24">
       <PageHeader
-        title="WhatsApp (Evolution)"
+        title="MisticPay API"
         description="Conecte seu WhatsApp pessoal e envie mensagens automáticas aos compradores em cada venda."
       />
 
