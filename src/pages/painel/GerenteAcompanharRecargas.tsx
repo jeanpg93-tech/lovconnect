@@ -608,12 +608,17 @@ export default function GerenteAcompanharRecargas() {
                               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
                                 <Coins className="h-3.5 w-3.5" />
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <code className="font-mono text-[11px] font-semibold">{u.id ? u.id.slice(0, 8) : "—"}</code>
                                 {u.id && (
                                   <button onClick={() => copy(u.id)} className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" title="Copiar ID">
                                     <Copy className="h-3 w-3" />
                                   </button>
+                                )}
+                                {u.local_purchase_id && (
+                                  <div className="mt-0.5 max-w-[160px] truncate font-mono text-[10px] text-muted-foreground" title={`ID local: ${u.local_purchase_id}`}>
+                                    Local: {u.local_purchase_id.slice(0, 8)}…
+                                  </div>
                                 )}
                               </div>
                             </div>
