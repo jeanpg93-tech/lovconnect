@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
   Loader2, RefreshCw, CheckCircle2, XCircle, Clock, Search,
-  ArrowRight, Undo2, AlertTriangle, ChevronDown, ChevronUp, Copy,
+  ArrowRight, Undo2, AlertTriangle, ChevronDown, ChevronUp, Copy, CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,7 @@ export default function GerenteEstornosProvedor() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [retrying, setRetrying] = useState<string | null>(null);
+  const [markingManual, setMarkingManual] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "pendente_provedor" | "ok_provedor" | "falhou_provedor">("all");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -150,6 +151,30 @@ export default function GerenteEstornosProvedor() {
       toast.error(e?.message ?? "Erro");
     } finally {
       setRetrying(null);
+    }
+  };
+
+  const markManual = async (purchaseId: string) => {
+    const notes = window.prompt(
+      "Confirme que você JÁ solicitou o reembolso manualmente no painel do provedor.\n\n(Opcional) Adicione uma observação:",
+      "",
+    );
+    if (notes === null) return; // cancelado
+    setMarkingManual(purchaseId);
+    try {
+      const { data, error } = await supabase.functions.invoke("mark-provider-refund-manual", {
+        body: { purchase_id: purchaseId, notes },
+      });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.error ?? error?.message ?? "Falha");
+      } else {
+        toast.success("Marcado como reembolsado manualmente no provedor");
+      }
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    } finally {
+      setMarkingManual(null);
     }
   };
 
@@ -290,6 +315,8 @@ export default function GerenteEstornosProvedor() {
               expanded={expanded === p.id}
               onToggle={() => setExpanded(expanded === p.id ? null : p.id)}
               onRetry={(force) => retry(p.id, force)}
+              onMarkManual={() => markManual(p.id)}
+              markingManual={markingManual === p.id}
               retrying={retrying === p.id}
               copy={copy}
             />
