@@ -199,6 +199,10 @@ Deno.serve(async (req) => {
           if (!uErr) {
             updated++;
             results.push({ id: p.id, status: mapped.status, changed: true });
+            // Se virou cancelado, dispara estorno automático no provedor (não bloqueia)
+            if (mapped.status === 'cancelado') {
+              await requestProviderRefund(admin, apiKey, p.id, String(providerId));
+            }
             continue;
           }
         }
