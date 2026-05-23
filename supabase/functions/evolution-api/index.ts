@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "disconnect") {
-      const r = await evo("/instance/logout", { method: "POST" }, instanceToken);
+      const r = await evo("/instance/logout", { method: "DELETE" }, instanceToken);
       await svc.from("reseller_integrations").update({
         connection_status: "disconnected",
         profile_name: null,
