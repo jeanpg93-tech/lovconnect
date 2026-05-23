@@ -36,6 +36,52 @@ async function getMasterKey(admin: ReturnType<typeof createClient>) {
   return (data?.value?.api_key as string | undefined) ?? null;
 }
 
+// Solicita estorno no provedor (fire-and-forget). Marca em provider_response para dedupe.
+async function requestProviderRefund(
+  admin: ReturnType<typeof createClient>,
+  apiKey: string,
+  purchaseId: string,
+  providerId: string,
+) {
+  try {
+    const { data: p } = await admin
+      .from('reseller_credit_purchases')
+      .select('provider_response')
+      .eq('id', purchaseId)
+      .maybeSingle();
+    const prev = ((p as any)?.provider_response ?? {}) as any;
+    if (prev?.provider_refund_requested_at) return;
+
+    let ok = false, statusCode = 0, body: any = null, errMsg: string | null = null;
+    try {
+      const r = await fetch(`${EXTERNAL_API_BASE}/pedidos/${providerId}/reembolso`, {
+        method: 'POST',
+        headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
+      });
+      statusCode = r.status;
+      const text = await r.text();
+      try { body = JSON.parse(text); } catch { body = { raw: text }; }
+      ok = r.ok && body?.success !== false;
+    } catch (e: any) {
+      errMsg = e?.message ?? 'fetch_failed';
+    }
+
+    await admin.from('reseller_credit_purchases').update({
+      provider_response: {
+        ...prev,
+        provider_refund_requested_at: new Date().toISOString(),
+        provider_refund_ok: ok,
+        provider_refund_status_code: statusCode,
+        provider_refund_response: body,
+        provider_refund_error: errMsg,
+      },
+      updated_at: new Date().toISOString(),
+    }).eq('id', purchaseId);
+  } catch (_e) {
+    // silencioso
+  }
+}
+
 function mapProviderToLocal(providerData: any): { status: string | null; errorMessage: string | null } {
   if (!providerData) return { status: null, errorMessage: null };
   const raw = String(providerData.status ?? '').toLowerCase().trim();
