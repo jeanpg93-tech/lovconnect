@@ -1,5 +1,4 @@
 import { useFinancialOverview, type DateRange } from "@/hooks/useFinancialOverview";
-import { StatCard } from "@/components/painel/PageHeader";
 import {
   Wallet,
   TrendingUp,
@@ -18,8 +17,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  Legend,
 } from "recharts";
+import { cn } from "@/lib/utils";
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -51,77 +50,73 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
   return (
     <div className="space-y-6">
       {/* Top KPIs */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
+        <KpiCard
           label="Receita Total"
           value={brlSigned(data.revenueCents, "+")}
           icon={TrendingUp}
-          hint={`Recargas + manuais`}
-          accent="emerald"
-          className="p-4 ring-1 ring-emerald-500/20"
+          hint="Recargas + manuais"
+          color="emerald"
         />
-        <StatCard
+        <KpiCard
           label="Custo Total"
           value={brlSigned(data.costCents, "-")}
           icon={TrendingDown}
-          hint={`Créditos + taxas + gastos`}
-          accent="destructive"
-          className="p-4 ring-1 ring-red-500/20"
+          hint="Créditos + taxas + gastos"
+          color="red"
         />
-        <StatCard
+        <KpiCard
           label="Lucro Líquido"
           value={brlSigned(data.profitCents, data.profitCents >= 0 ? "+" : "-")}
           icon={Wallet}
           hint={`Margem ${data.marginPct.toFixed(1)}%`}
-          accent="sky"
-          className="p-4 ring-1 ring-sky-500/30"
+          color="sky"
         />
-        <StatCard
+        <KpiCard
           label="Margem"
           value={`${data.marginPct.toFixed(1)}%`}
           icon={Percent}
           hint="Lucro / Receita"
-          accent="sky"
-          className="p-4 ring-1 ring-sky-500/20"
+          color="sky"
         />
-        <StatCard
+        <KpiCard
           label="Recargas"
-          value={data.rechargesCount}
+          value={String(data.rechargesCount)}
           icon={Receipt}
           hint="Depósitos pagos"
-          accent="violet"
-          className="p-4"
+          color="violet"
         />
-        <StatCard
+        <KpiCard
           label="Vendas"
-          value={data.salesCount}
+          value={String(data.salesCount)}
           icon={ShoppingCart}
           hint="Créditos vendidos"
-          accent="amber"
-          className="p-4"
+          color="amber"
         />
       </div>
 
       {/* Breakdown */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <DonutCard
+        <CompositionCard
           title="Composição do Custo"
+          icon={TrendingDown}
           total={data.costCents}
           accent={COLOR_COST}
           asNegative
           items={[
             { label: "Créditos vendidos", hint: "custo do provedor", value: data.costCreditsCents, color: "#3b82f6" },
             { label: "Taxa gateway", hint: "R$ 0,50 / recarga", value: data.gatewayFeeCents, color: "#f59e0b" },
-            { label: "Gastos manuais", hint: "lançamentos", value: data.manualExpenseCents, color: "#ef4444" },
+            { label: "Gastos manuais", hint: "lançamentos manuais", value: data.manualExpenseCents, color: "#f97316" },
           ]}
         />
-        <DonutCard
+        <CompositionCard
           title="Composição da Receita"
+          icon={TrendingUp}
           total={data.revenueCents}
           accent={COLOR_REVENUE}
           items={[
             { label: "Recargas pagas", hint: "revendedores", value: data.rechargesRevenueCents, color: COLOR_REVENUE },
-            { label: "Receitas manuais", hint: "lançamentos", value: data.manualRevenueCents, color: "#8b5cf6" },
+            { label: "Receitas manuais", hint: "lançamentos manuais", value: data.manualRevenueCents, color: "#8b5cf6" },
           ]}
         />
       </div>
@@ -165,8 +160,7 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
                 <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `R$${v.toFixed(0)}`} />
                 <Tooltip
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 12 }}
-                  formatter={(v: any) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  content={<ChartTooltip />}
                 />
                 <Area type="monotone" dataKey="revenue" name="Receita" stroke={COLOR_REVENUE} strokeWidth={2} fill="url(#gradRevenue)" />
                 <Area type="monotone" dataKey="cost" name="Custo" stroke={COLOR_COST} strokeWidth={2} fill="url(#gradCost)" />
@@ -301,6 +295,149 @@ function DonutCard({
               {s.hint && <p className="text-[10px] text-muted-foreground pl-4">{s.hint}</p>}
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const colorMap = {
+  emerald: { text: "text-emerald-500", ring: "ring-emerald-500/25", glow: "from-emerald-500/15", bg: "bg-emerald-500/10" },
+  red: { text: "text-red-500", ring: "ring-red-500/25", glow: "from-red-500/15", bg: "bg-red-500/10" },
+  sky: { text: "text-sky-500", ring: "ring-sky-500/30", glow: "from-sky-500/15", bg: "bg-sky-500/10" },
+  violet: { text: "text-violet-500", ring: "ring-violet-500/20", glow: "from-violet-500/10", bg: "bg-violet-500/10" },
+  amber: { text: "text-amber-500", ring: "ring-amber-500/20", glow: "from-amber-500/10", bg: "bg-amber-500/10" },
+} as const;
+
+function KpiCard({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  color,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  icon: any;
+  color: keyof typeof colorMap;
+}) {
+  const c = colorMap[color];
+  return (
+    <div className={cn("group relative overflow-hidden rounded-2xl border border-border bg-card/50 p-3.5 ring-1 transition-all hover:bg-card/70", c.ring)}>
+      <div className={cn("absolute inset-0 bg-gradient-to-br to-transparent opacity-60 pointer-events-none", c.glow)} />
+      <div className="relative flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+        <Icon className={cn("h-3.5 w-3.5", c.text)} />
+        <span className="line-clamp-1">{label}</span>
+      </div>
+      <div className={cn("relative mt-2 font-display font-black tabular-nums leading-none text-[clamp(1.1rem,2.2vw,1.6rem)] whitespace-nowrap", c.text)}>
+        {value}
+      </div>
+      {hint && (
+        <p className="relative mt-1.5 text-[10px] text-muted-foreground leading-tight line-clamp-1">{hint}</p>
+      )}
+    </div>
+  );
+}
+
+function CompositionCard({
+  title,
+  icon: Icon,
+  total,
+  accent,
+  asNegative,
+  items,
+}: {
+  title: string;
+  icon: any;
+  total: number;
+  accent: string;
+  asNegative?: boolean;
+  items: Array<{ label: string; hint?: string; value: number; color: string }>;
+}) {
+  const sorted = [...items].sort((a, b) => b.value - a.value);
+  const totalAbs = sorted.reduce((s, i) => s + i.value, 0) || 1;
+  return (
+    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+      <div className="flex items-start justify-between mb-4 gap-3">
+        <div className="flex items-center gap-2">
+          <div className="rounded-lg p-1.5" style={{ background: `${accent}1a` }}>
+            <Icon className="h-4 w-4" style={{ color: accent }} />
+          </div>
+          <h3 className="font-display text-base font-bold">{title}</h3>
+        </div>
+        <div className="text-right">
+          <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Total</div>
+          <div className="font-mono font-black text-lg tabular-nums leading-none mt-0.5" style={{ color: accent }}>
+            {asNegative ? brlSigned(total, "-") : brlSigned(total, "+")}
+          </div>
+        </div>
+      </div>
+
+      {/* Stacked horizontal bar */}
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted mb-4">
+        {total > 0 && sorted.map((it, i) => {
+          const pct = (it.value / totalAbs) * 100;
+          if (pct <= 0) return null;
+          return <div key={i} style={{ width: `${pct}%`, background: it.color }} className="h-full first:rounded-l-full last:rounded-r-full" />;
+        })}
+      </div>
+
+      {/* Items */}
+      <div className="space-y-2.5">
+        {sorted.map((it, i) => {
+          const pct = total > 0 ? (it.value / totalAbs) * 100 : 0;
+          return (
+            <div key={i} className="flex items-center gap-3 rounded-xl bg-muted/30 px-3 py-2">
+              <span className="h-7 w-1.5 rounded-full shrink-0" style={{ background: it.color }} />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-bold truncate">{it.label}</div>
+                {it.hint && <div className="text-[10px] text-muted-foreground truncate">{it.hint}</div>}
+              </div>
+              <div className="text-right shrink-0">
+                <div className="font-mono font-black text-sm tabular-nums whitespace-nowrap" style={{ color: it.color }}>
+                  {asNegative ? brlSigned(it.value, "-") : brlSigned(it.value, "+")}
+                </div>
+                <div className="text-[10px] font-mono text-muted-foreground">{pct.toFixed(1)}%</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const get = (k: string) => Number(payload.find((p: any) => p.dataKey === k)?.value ?? 0);
+  const revenue = get("revenue");
+  const cost = get("cost");
+  const profit = get("profit");
+  const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+  const fmt = (n: number, sign: "+" | "-" | "auto" = "auto") => {
+    const abs = Math.abs(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    if (sign === "+") return `+ ${abs}`;
+    if (sign === "-") return `− ${abs}`;
+    return n < 0 ? `− ${abs}` : `+ ${abs}`;
+  };
+  return (
+    <div className="rounded-xl border border-border bg-card/95 backdrop-blur-sm px-3 py-2.5 shadow-xl text-xs">
+      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">{label}</div>
+      <div className="space-y-1 font-mono tabular-nums">
+        <div className="flex justify-between gap-6">
+          <span className="text-emerald-500 font-semibold">Receita</span>
+          <span className="text-emerald-500 font-black">{fmt(revenue, "+")}</span>
+        </div>
+        <div className="flex justify-between gap-6">
+          <span className="text-red-500 font-semibold">Custo</span>
+          <span className="text-red-500 font-black">{fmt(cost, "-")}</span>
+        </div>
+        <div className="flex justify-between gap-6 border-t border-border/60 pt-1 mt-1">
+          <span className="text-sky-500 font-semibold">Lucro</span>
+          <span className={cn("font-black", profit >= 0 ? "text-sky-500" : "text-red-500")}>
+            {fmt(profit, profit >= 0 ? "+" : "-")} <span className="text-muted-foreground font-normal">({margin.toFixed(1)}%)</span>
+          </span>
         </div>
       </div>
     </div>
