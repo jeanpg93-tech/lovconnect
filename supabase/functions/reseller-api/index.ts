@@ -51,6 +51,32 @@ function json(d: unknown, status = 200) {
   });
 }
 
+async function getDeliveryGuard(svc: any) {
+  const { data } = await svc
+    .from("app_settings")
+    .select("key,value")
+    .in("key", ["licencas.delivery.method", "licencas.delivery.maintenance"]);
+  const methodValue = data?.find((r: any) => r.key === "licencas.delivery.method")?.value;
+  const maintenanceValue = data?.find((r: any) => r.key === "licencas.delivery.maintenance")?.value;
+  const activeMethod = methodValue?.method === "lovax" ? "lovax" : "flow";
+  const maintenance = maintenanceValue?.enabled === true;
+  return { activeMethod, maintenance };
+}
+
+function assertDeliveryAllowed(requested: string, guard: { activeMethod: string; maintenance: boolean }) {
+  if (guard.maintenance) {
+    return { error: "Entrega de licenças em manutenção. Nenhuma chave pode ser gerada agora.", code: "delivery_maintenance", status: 503 };
+  }
+  if (requested !== guard.activeMethod) {
+    return {
+      error: `Método desativado. Apenas ${guard.activeMethod === "flow" ? "MétodoFlow" : "MétodoLovax"} pode gerar licenças agora.`,
+      code: "method_disabled",
+      status: 403,
+    };
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
