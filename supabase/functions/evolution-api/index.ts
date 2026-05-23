@@ -20,11 +20,11 @@ function json(b: unknown, status = 200) {
   });
 }
 
-async function evo(path: string, init: RequestInit = {}) {
+async function evo(path: string, init: RequestInit = {}, apiKey = EVO_KEY) {
   const r = await fetch(`${EVO_BASE}${path}`, {
     ...init,
     headers: {
-      apikey: EVO_KEY,
+      apikey: apiKey,
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
     },
@@ -37,6 +37,43 @@ async function evo(path: string, init: RequestInit = {}) {
 
 function instanceNameFor(resellerId: string) {
   return `rev_${resellerId.replace(/-/g, "").slice(0, 12)}`;
+}
+
+async function instanceTokenFor(resellerId: string) {
+  const hash = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`lovconnect:evolution-go:${resellerId}`),
+  );
+  const chars = Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 32)
+    .split("");
+  chars[12] = "4";
+  chars[16] = ((parseInt(chars[16], 16) & 0x3) | 0x8).toString(16);
+  const hex = chars.join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+function extractQr(data: any) {
+  return data?.data?.Qrcode ??
+    data?.data?.QRCode ??
+    data?.data?.qrcode ??
+    data?.data?.qrCode ??
+    data?.qrcode?.base64 ??
+    data?.base64 ??
+    data?.qr ??
+    data?.qrcode ??
+    data?.qrCode ??
+    null;
+}
+
+function extractPairingCode(data: any) {
+  return data?.data?.Code ?? data?.data?.code ?? data?.pairingCode ?? data?.code ?? null;
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function onlyDigits(s: string) {
