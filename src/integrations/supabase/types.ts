@@ -778,6 +778,42 @@ export type Database = {
           },
         ]
       }
+      manual_financial_entries: {
+        Row: {
+          amount_cents: number
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          entry_date: string
+          entry_type: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          entry_date?: string
+          entry_type: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          entry_date?: string
+          entry_type?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       manual_recharge_metadata: {
         Row: {
           created_at: string
