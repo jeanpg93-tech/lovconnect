@@ -740,6 +740,25 @@ Deno.serve(async (req) => {
       console.warn("orders insert (storefront) failed", e);
     }
 
+    // Disparo WhatsApp (fire-and-forget)
+    if (license_key && storeOrder.buyer_whatsapp) {
+      fetch(`${SUPABASE_URL}/functions/v1/evolution-send-sale`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reseller_id: storeOrder.reseller_id,
+          kind: "storefront",
+          to: storeOrder.buyer_whatsapp,
+          vars: {
+            nome: storeOrder.buyer_name,
+            chave: license_key,
+            tipo: storeOrder.license_type,
+            valor_cents: String(storeOrder.price_cents),
+          },
+        }),
+      }).catch((e) => console.warn("evolution-send-sale (storefront) failed", e));
+    }
+
     return json({ ok: true, kind: "storefront_order" });
   } catch (e) {
     console.error("webhook error", e);
