@@ -132,20 +132,27 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+    // Gerentes podem sincronizar qualquer compra
+    const { data: roleRow } = await admin
+      .from('user_roles').select('role').eq('user_id', userId).eq('role', 'gerente').maybeSingle();
+    const isGerente = !!roleRow;
+
     const { data: reseller } = await admin
       .from('resellers').select('id').eq('user_id', userId).maybeSingle();
-    if (!reseller) {
+    if (!reseller && !isGerente) {
       return new Response(JSON.stringify({ error: 'Revendedor não encontrado' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const resellerId = reseller.id;
+    const resellerId = reseller?.id ?? null;
 
     // Busca as compras a sincronizar (dono = reseller atual, status em aberto)
     let q = admin
       .from('reseller_credit_purchases')
-      .select('id, provider_pedido_id, status, tipo_entrega')
-      .eq('reseller_id', resellerId);
+      .select('id, provider_pedido_id, status, tipo_entrega');
+    if (!isGerente && resellerId) {
+      q = q.eq('reseller_id', resellerId);
+    }
     if (ids && ids.length > 0) {
       q = q.in('id', ids);
     } else {
