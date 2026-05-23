@@ -700,13 +700,20 @@ export default function GerenteAcompanharRecargas() {
       )}
 
       {orderTab === "manual" && (
-        <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
-          {manualInRange.length === 0 ? (
+        <>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por ID, workspace, cliente..." className="pl-9 h-9 text-sm" />
+          </div>
+        </div>
+        <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
+          {filteredManualOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
                 <Hand className="h-6 w-6 text-primary/70" />
               </div>
-              <p className="mt-3 text-sm font-medium">{manualOrders.length === 0 ? "Nenhum pedido manual registrado ainda." : "Nenhum pedido manual no período."}</p>
+              <p className="mt-3 text-sm font-medium">{manualOrders.length === 0 ? "Nenhum pedido manual registrado ainda." : search.trim() ? "Nenhum pedido manual com essa busca." : "Nenhum pedido manual no período."}</p>
               <p className="mt-1 text-xs text-muted-foreground">Pedidos feitos no modo manual aparecerão aqui para entrega pela equipe.</p>
             </div>
           ) : (
@@ -724,7 +731,7 @@ export default function GerenteAcompanharRecargas() {
                   </tr>
                 </thead>
                 <tbody>
-                  {manualInRange.map((m) => {
+                  {filteredManualOrders.map((m) => {
                     const s = (m.status || "").toLowerCase();
                     const STATUS_MAP: Record<string, { label: string; cls: string; Icon: any }> = {
                       manual_pendente: { label: "Pendente", cls: "bg-amber-500/15 text-amber-500 border-amber-500/40", Icon: Clock },
@@ -969,6 +976,7 @@ export default function GerenteAcompanharRecargas() {
             </div>
           )}
         </div>
+        </>
       )}
 
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
