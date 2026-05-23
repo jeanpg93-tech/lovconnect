@@ -11,6 +11,9 @@ const OPEN_LOCAL_STATUSES = new Set([
   'aguardando',
   'processando',
   'pendente',
+  'configurando',
+  'recarregando',
+  'entregando',
   'manual_pendente',
   'manual_iniciado',
   'manual_aceito',
@@ -88,6 +91,10 @@ function mapProviderToLocal(providerData: any): { status: string | null; errorMe
   // Sinais explícitos de cancelamento
   if (providerData.cancelar === true) {
     return { status: 'cancelado', errorMessage: providerData.errorMessage ?? providerData.error ?? null };
+  }
+  // Convite inválido (codigoConviteStatus === 2) também é tratado como cancelado
+  if (Number(providerData.codigoConviteStatus) === 2) {
+    return { status: 'cancelado', errorMessage: providerData.errorMessage ?? providerData.error ?? 'Convite inválido' };
   }
   if (CANCEL_PROVIDER.has(raw)) {
     return { status: 'cancelado', errorMessage: providerData.errorMessage ?? providerData.error ?? null };
