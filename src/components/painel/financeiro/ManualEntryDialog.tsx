@@ -4,8 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { ManualEntry, ManualEntryInput } from "@/hooks/useManualEntries";
+import { useSalesCatalog } from "@/hooks/useSalesCatalog";
+import { TrendingUp, TrendingDown, Package, KeyRound } from "lucide-react";
+
+type Mode = "revenue" | "expense" | "credit_sale" | "license_sale";
+
+const brl = (cents: number) =>
+  (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const toCents = (s: string): number => {
+  if (!s) return 0;
+  const cleaned = s.replace(/\./g, "").replace(",", ".");
+  return Math.round(parseFloat(cleaned) * 100) || 0;
+};
+const fromCents = (c: number) => (c / 100).toFixed(2).replace(".", ",");
 
 type Props = {
   open: boolean;
@@ -16,9 +31,13 @@ type Props = {
 
 export default function ManualEntryDialog({ open, onOpenChange, initial, onSubmit }: Props) {
   const { toast } = useToast();
-  const [entryType, setEntryType] = useState<"revenue" | "expense">("revenue");
+  const { creditPacks, licenses } = useSalesCatalog();
+  const [mode, setMode] = useState<Mode>("revenue");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [cost, setCost] = useState("");
+  const [selectedPackId, setSelectedPackId] = useState<string>("");
+  const [selectedLicense, setSelectedLicense] = useState<string>("");
   const [category, setCategory] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
@@ -26,35 +45,87 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, onSubmi
   useEffect(() => {
     if (open) {
       if (initial) {
-        setEntryType(initial.entry_type);
+        // Modo a partir do reference_kind
+        if (initial.reference_kind === "credit_pack") setMode("credit_sale");
+        else if (initial.reference_kind === "license") setMode("license_sale");
+        else setMode(initial.entry_type);
         setDescription(initial.description);
-        setAmount((initial.amount_cents / 100).toFixed(2).replace(".", ","));
+        setAmount(fromCents(initial.amount_cents));
+        setCost(initial.cost_cents ? fromCents(initial.cost_cents) : "");
+        setSelectedPackId(initial.reference_meta?.plan_id || "");
+        setSelectedLicense(initial.reference_meta?.license_type || "");
         setCategory(initial.category || "");
         setDate(initial.entry_date.slice(0, 10));
       } else {
-        setEntryType("revenue");
+        setMode("revenue");
         setDescription("");
         setAmount("");
+        setCost("");
+        setSelectedPackId("");
+        setSelectedLicense("");
         setCategory("");
         setDate(new Date().toISOString().slice(0, 10));
       }
     }
   }, [open, initial]);
 
+  // Auto-preenche quando muda o pacote/licença
+  const handlePackSelect = (planId: string) => {
+    setSelectedPackId(planId);
+    const pack = creditPacks.find((p) => p.plan_id === planId);
+    if (pack) {
+      setAmount(fromCents(pack.suggested_price_cents));
+      setCost(fromCents(pack.suggested_cost_cents));
+      setDescription(`Venda manual de ${pack.label}`);
+      setCategory("Venda externa - Créditos");
+    }
+  };
+  const handleLicenseSelect = (lic: string) => {
+    setSelectedLicense(lic);
+    const l = licenses.find((x) => x.license_type === lic);
+    if (l) {
+      setAmount(fromCents(l.suggested_price_cents));
+      setCost("0,00");
+      setDescription(`Venda manual de ${l.label}`);
+      setCategory("Venda externa - Licença");
+    }
+  };
+
+  const isSale = mode === "credit_sale" || mode === "license_sale";
+  const entryType: "revenue" | "expense" = mode === "expense" ? "expense" : "revenue";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleaned = amount.replace(/\./g, "").replace(",", ".");
-    const cents = Math.round(parseFloat(cleaned) * 100);
-    if (!description.trim() || !cents || isNaN(cents) || cents <= 0) {
+    const cents = toCents(amount);
+    const costCents = isSale ? toCents(cost) : 0;
+    if (!description.trim() || !cents || cents <= 0) {
       toast({ title: "Preencha todos os campos", variant: "destructive" });
+      return;
+    }
+    if (mode === "credit_sale" && !selectedPackId) {
+      toast({ title: "Selecione um pacote de créditos", variant: "destructive" });
+      return;
+    }
+    if (mode === "license_sale" && !selectedLicense) {
+      toast({ title: "Selecione uma licença", variant: "destructive" });
       return;
     }
     setSaving(true);
     try {
+      const reference_kind = mode === "credit_sale" ? "credit_pack" : mode === "license_sale" ? "license" : null;
+      const reference_meta =
+        mode === "credit_sale"
+          ? { plan_id: selectedPackId, ...creditPacks.find((p) => p.plan_id === selectedPackId) }
+          : mode === "license_sale"
+          ? { license_type: selectedLicense, ...licenses.find((l) => l.license_type === selectedLicense) }
+          : null;
       await onSubmit({
         entry_type: entryType,
         description: description.trim(),
         amount_cents: cents,
+        cost_cents: costCents,
+        reference_kind,
+        reference_meta,
         category: category.trim() || null,
         entry_date: new Date(date).toISOString(),
       });
@@ -67,49 +138,108 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, onSubmi
     }
   };
 
+  const profit = toCents(amount) - (isSale ? toCents(cost) : 0);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{initial ? "Editar lançamento" : "Novo lançamento manual"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              variant={entryType === "revenue" ? "default" : "outline"}
-              onClick={() => setEntryType("revenue")}
-              className={entryType === "revenue" ? "bg-emerald-600 hover:bg-emerald-700" : ""}
-            >
-              + Receita
-            </Button>
-            <Button
-              type="button"
-              variant={entryType === "expense" ? "default" : "outline"}
-              onClick={() => setEntryType("expense")}
-              className={entryType === "expense" ? "bg-red-600 hover:bg-red-700" : ""}
-            >
-              − Despesa
-            </Button>
+          {/* Modos */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <ModeButton active={mode === "credit_sale"} onClick={() => setMode("credit_sale")} icon={Package} label="Venda Crédito" activeClass="bg-blue-600 hover:bg-blue-700 text-white" />
+            <ModeButton active={mode === "license_sale"} onClick={() => setMode("license_sale")} icon={KeyRound} label="Venda Licença" activeClass="bg-violet-600 hover:bg-violet-700 text-white" />
+            <ModeButton active={mode === "revenue"} onClick={() => setMode("revenue")} icon={TrendingUp} label="Receita Avulsa" activeClass="bg-emerald-600 hover:bg-emerald-700 text-white" />
+            <ModeButton active={mode === "expense"} onClick={() => setMode("expense")} icon={TrendingDown} label="Despesa" activeClass="bg-red-600 hover:bg-red-700 text-white" />
           </div>
+
+          {/* Seletor de pacote/licença */}
+          {mode === "credit_sale" && (
+            <div className="space-y-1.5">
+              <Label>Pacote de Créditos</Label>
+              <Select value={selectedPackId} onValueChange={handlePackSelect}>
+                <SelectTrigger><SelectValue placeholder="Selecione um pacote..." /></SelectTrigger>
+                <SelectContent>
+                  {creditPacks.map((p) => (
+                    <SelectItem key={p.plan_id} value={p.plan_id}>
+                      {p.label} — sugerido {brl(p.suggested_price_cents)} • custo {brl(p.suggested_cost_cents)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                Preço sugerido = tabela Partner (Ouro). Custo = o que você paga ao provedor. Ambos podem ser editados.
+              </p>
+            </div>
+          )}
+
+          {mode === "license_sale" && (
+            <div className="space-y-1.5">
+              <Label>Tipo de Licença</Label>
+              <Select value={selectedLicense} onValueChange={handleLicenseSelect}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma licença..." /></SelectTrigger>
+                <SelectContent>
+                  {licenses.map((l) => (
+                    <SelectItem key={l.license_type} value={l.license_type}>
+                      {l.label}{l.suggested_price_cents > 0 ? ` — sugerido ${brl(l.suggested_price_cents)}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                Licenças não têm custo de provedor (custo = R$ 0,00). Preço de venda é editável.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <Label>Descrição</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Venda manual de 100 créditos para João" rows={2} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+
+          {/* Valores */}
+          <div className={`grid gap-3 ${isSale ? "grid-cols-2" : "grid-cols-2"}`}>
             <div className="space-y-1.5">
-              <Label>Valor (R$)</Label>
+              <Label>{isSale ? "Preço de venda (R$)" : mode === "expense" ? "Valor da despesa (R$)" : "Valor da receita (R$)"}</Label>
               <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" inputMode="decimal" />
             </div>
+            {isSale && (
+              <div className="space-y-1.5">
+                <Label>Custo (R$)</Label>
+                <Input
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value)}
+                  placeholder="0,00"
+                  inputMode="decimal"
+                  disabled={mode === "license_sale"}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Resumo lucro */}
+          {isSale && toCents(amount) > 0 && (
+            <div className="rounded-xl border border-border bg-muted/30 p-3 flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Lucro estimado desta venda</span>
+              <span className={`font-mono font-black tabular-nums ${profit >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                {brl(profit)}
+              </span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Data</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
+            <div className="space-y-1.5">
+              <Label>Categoria (opcional)</Label>
+              <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: Software, Taxa" />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Categoria (opcional)</Label>
-            <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: Software, Taxa, Venda externa" />
-          </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
@@ -117,5 +247,27 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, onSubmi
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ModeButton({
+  active, onClick, icon: Icon, label, activeClass,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: any;
+  label: string;
+  activeClass: string;
+}) {
+  return (
+    <Button
+      type="button"
+      variant={active ? "default" : "outline"}
+      onClick={onClick}
+      className={`flex flex-col h-auto py-2.5 gap-1 text-[11px] font-bold ${active ? activeClass : ""}`}
+    >
+      <Icon className="h-4 w-4" />
+      <span>{label}</span>
+    </Button>
   );
 }
