@@ -197,10 +197,12 @@ export default function GerenteLicencasAcompanhar() {
         supabase.from("reseller_api_keys").select("id, label, reseller_id"),
         supabase.from("orders")
           .select("id, license_key, reseller_id, api_key_id, price_cents, license_type, status, created_at, is_test")
-          .not("license_key", "is", null),
+          .not("license_key", "is", null)
+          .order("created_at", { ascending: false }),
         supabase.from("storefront_orders")
           .select("id, license_key, reseller_id, price_cents, license_type, status, created_at, buyer_name")
-          .not("license_key", "is", null),
+          .not("license_key", "is", null)
+          .order("created_at", { ascending: false }),
       ]);
 
       const providerData = resProvider?.data;
@@ -395,7 +397,7 @@ export default function GerenteLicencasAcompanhar() {
           price_cents: o.price_cents ?? null,
           creator_email: email,
           source: o.api_key_id ? "api" : "manual",
-          method: "flow",
+          method: String(o.license_type ?? "").startsWith("lovax_") ? "lovax" : "flow",
           full_data: o,
         });
         seenKeys.add(o.license_key);
@@ -423,13 +425,13 @@ export default function GerenteLicencasAcompanhar() {
           price_cents: o.price_cents ?? null,
           creator_email: email,
           source: "storefront",
-          method: "flow",
+          method: String(o.license_type ?? "").startsWith("lovax_") ? "lovax" : "flow",
           full_data: o,
         });
         seenKeys.add(o.license_key);
       });
 
-      setOrders([...list, ...lovaxList, ...localOnly]);
+      setOrders([...list, ...lovaxList, ...localOnly].sort((a, b) => b.created_at.localeCompare(a.created_at)));
     } catch (e: any) {
       toast.error(e.message || "Erro de conexão");
     } finally {

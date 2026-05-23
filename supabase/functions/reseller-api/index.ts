@@ -51,6 +51,32 @@ function json(d: unknown, status = 200) {
   });
 }
 
+async function getDeliveryGuard(svc: any) {
+  const { data } = await svc
+    .from("app_settings")
+    .select("key,value")
+    .in("key", ["licencas.delivery.method", "licencas.delivery.maintenance"]);
+  const methodValue = data?.find((r: any) => r.key === "licencas.delivery.method")?.value;
+  const maintenanceValue = data?.find((r: any) => r.key === "licencas.delivery.maintenance")?.value;
+  const activeMethod = methodValue?.method === "lovax" ? "lovax" : "flow";
+  const maintenance = maintenanceValue?.enabled === true;
+  return { activeMethod, maintenance };
+}
+
+function assertDeliveryAllowed(requested: string, guard: { activeMethod: string; maintenance: boolean }) {
+  if (guard.maintenance) {
+    return { error: "Entrega de licenças em manutenção. Nenhuma chave pode ser gerada agora.", code: "delivery_maintenance", status: 503 };
+  }
+  if (requested !== guard.activeMethod) {
+    return {
+      error: `Método desativado. Apenas ${guard.activeMethod === "flow" ? "MétodoFlow" : "MétodoLovax"} pode gerar licenças agora.`,
+      code: "method_disabled",
+      status: 403,
+    };
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -499,6 +525,7 @@ Deno.serve(async (req) => {
   // Lista os métodos (flow/lovax) com pacotes, preço de custo (nível do revendedor)
   // e preço de venda configurado (override em reseller_license_prices).
   if (req.method === "GET" && (action === "metodos" || action === "methods")) {
+    const guard = await getDeliveryGuard(svc);
     const [{ data: setting }, { data: tierData }, { data: sales }, { data: ovs }, { data: tiersAll }] = await Promise.all([
       svc.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
       svc.rpc("get_reseller_tier", { _reseller_id: reseller.id }),
@@ -534,7 +561,7 @@ Deno.serve(async (req) => {
       return Math.round(brl * 100);
     };
 
-    const result = UNIFIED_METHODS.map((m) => ({
+    const result = UNIFIED_METHODS.filter((m) => m === guard.activeMethod && !guard.maintenance).map((m) => ({
       metodo: m,
       pacotes: UNIFIED_PACKS.map((p) => {
         const cost_cents = costFor(m, p);
@@ -550,7 +577,7 @@ Deno.serve(async (req) => {
     })).filter((x) => x.pacotes.length > 0);
 
     await logUsage(200);
-    return json({ ok: true, metodos: result, tier: tier ? { id: tier.id, name: tier.name } : null });
+    return json({ ok: true, active_method: guard.activeMethod, maintenance: guard.maintenance, metodos: result, tier: tier ? { id: tier.id, name: tier.name } : null });
   }
 
   // ---------- POST /licencas ----------
@@ -570,6 +597,12 @@ Deno.serve(async (req) => {
     if (!UNIFIED_PACKS.includes(pacote)) {
       await logUsage(400, { error_message: "pacote inválido" });
       return json({ error: "pacote inválido", permitidos: UNIFIED_PACKS }, 400);
+    }
+    const guard = await getDeliveryGuard(svc);
+    const denied = assertDeliveryAllowed(metodo, guard);
+    if (denied) {
+      await logUsage(denied.status, { error_message: denied.error });
+      return json({ error: denied.error, code: denied.code, active_method: guard.activeMethod }, denied.status);
     }
     if (display_name.length < 2) {
       await logUsage(400, { error_message: "display_name obrigatório" });
@@ -696,6 +729,12 @@ Deno.serve(async (req) => {
     if (!UNIFIED_METHODS.includes(metodo)) {
       await logUsage(400, { error_message: "metodo inválido" });
       return json({ error: "metodo inválido", permitidos: UNIFIED_METHODS }, 400);
+    }
+    const guard = await getDeliveryGuard(svc);
+    const denied = assertDeliveryAllowed(metodo, guard);
+    if (denied) {
+      await logUsage(denied.status, { error_message: denied.error });
+      return json({ error: denied.error, code: denied.code, active_method: guard.activeMethod }, denied.status);
     }
 
     // Limite diário de trial (override do revendedor > tier)
