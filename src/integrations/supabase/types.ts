@@ -1801,6 +1801,8 @@ export type Database = {
           evolution_enabled: boolean
           evolution_instance: string | null
           evolution_message_template: string
+          evolution_template_recharge: string | null
+          evolution_template_storefront: string | null
           instance_name: string | null
           last_connected_at: string | null
           lovable_credits_api_key: string | null
@@ -1824,6 +1826,8 @@ export type Database = {
           evolution_enabled?: boolean
           evolution_instance?: string | null
           evolution_message_template?: string
+          evolution_template_recharge?: string | null
+          evolution_template_storefront?: string | null
           instance_name?: string | null
           last_connected_at?: string | null
           lovable_credits_api_key?: string | null
@@ -1847,6 +1851,8 @@ export type Database = {
           evolution_enabled?: boolean
           evolution_instance?: string | null
           evolution_message_template?: string
+          evolution_template_recharge?: string | null
+          evolution_template_storefront?: string | null
           instance_name?: string | null
           last_connected_at?: string | null
           lovable_credits_api_key?: string | null

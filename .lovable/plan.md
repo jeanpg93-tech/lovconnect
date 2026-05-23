@@ -1,55 +1,68 @@
+## Integração WhatsApp via Evolution API
 
-## Bot do Telegram — notificações + comandos
+Boa notícia: **70% da infraestrutura já existe no banco**. A tabela `reseller_integrations` já tem todos os campos (`evolution_enabled`, `evolution_instance`, `evolution_message_template`, `evolution_confirmation_template`, `connection_status`, `profile_name/number/picture_url`, `messages_sent_count`). Falta UI, edge functions de conexão e ganchos nas vendas.
 
-### 1. Banco de dados (1 migração)
+### Arquitetura
 
-**Tabela `telegram_settings`** — singleton com config do gerente:
-- `chat_id` (bigint) — preenchido quando você pareia o bot
-- `pairing_code` (text) — código de 6 dígitos pra você enviar ao bot
-- Toggles: `notify_sales`, `notify_recharges`, `notify_signups`, `notify_refunds`, `notify_reseller_activity` (todos `true` por padrão)
+- **Servidor Evolution único** (usa os secrets `EVOLUTION_BASE_URL` e `EVOLUTION_API_KEY` já configurados)
+- **Cada revendedor = 1 instância** dentro do servidor (nome gerado automaticamente: `rev_{reseller_id_curto}`)
+- **Disparo automático em todas as vendas concluídas** (incluindo teste/trial)
+- **Templates padrão do sistema + edição livre por revendedor**
 
-**Tabela `telegram_outbox`** — fila de mensagens a enviar (id, text, created_at, sent_at, error). Garante que nada se perde se o Telegram falhar.
+### O que vou criar
 
-**Triggers que enfileiram mensagens automaticamente:**
-- `profiles` INSERT com `approval_status='pending'` → "🆕 Novo cadastro aguardando aprovação"
-- `balance_transactions` INSERT → roteia por `kind`:
-  - `deposit` → "💰 Recarga de saldo do revendedor X"
-  - `order_debit` → "🛒 Nova venda na loja do revendedor X"
-  - `refund` / `estorno` → "↩️ Reembolso processado"
-  - outros (manual_debit, manual_credit) → "⚙️ Movimentação do revendedor X"
+**1. Migration** — adicionar templates padrão por tipo de venda em `app_settings`:
+- `evolution_template_license` (licença normal/teste)
+- `evolution_template_recharge` (recarga Lovable)
+- `evolution_template_storefront` (venda da loja pública)
 
-### 2. Edge functions (3 novas)
+**2. Edge functions novas**
+- `evolution-connect` — cria/conecta instância do revendedor e retorna QR code base64
+- `evolution-status` — polling do estado da conexão; ao detectar `open`, salva `profile_name/number/picture_url` e `last_connected_at`
+- `evolution-disconnect` — logout + opcionalmente deletar instância
+- `evolution-send-test` — envia mensagem de teste pro próprio número
+- `evolution-send-sale` — função interna chamada pelas outras edge functions ao concluir venda (renderiza template, dispara mensagem, incrementa contador)
 
-**`telegram-webhook`** (`verify_jwt = false`) — recebe mensagens do Telegram:
-- `/start <código>` — pareia seu chat_id com a conta de gerente
-- `/saldo` — saldo total dos revendedores e movimentações do dia
-- `/vendas` — vendas pagas hoje (qtd + total)
-- `/recargas` — recargas hoje
-- `/pendentes` — cadastros aguardando aprovação
-- `/help` — lista de comandos
-- Segurança: só responde ao `chat_id` pareado
+**3. Hooks nas vendas existentes** — chamar `evolution-send-sale` em:
+- `place-reseller-order` (licença manual / teste)
+- `storefront-create-order` + `misticpay-webhook` (venda pública paga)
+- Fluxo de créditos Lovable (quando entregue)
 
-**`telegram-dispatch`** — processa o outbox, envia via gateway. Chamado por cron a cada 1min.
+**4. UI nova: `RevendedorIntegracaoWhatsApp.tsx`**
+- Card de status: foto/nome/número do WhatsApp conectado, contador de mensagens enviadas
+- Botão **Conectar** → modal com QR code (auto-refresh, polling de status)
+- Botão **Desconectar**
+- Toggle **"Enviar mensagem automática nas vendas"** (`evolution_enabled`)
+- 3 textareas editáveis com variáveis: `{nome}`, `{chave}`, `{tipo}`, `{link}`, `{valor}` + botão "Restaurar padrão"
+- Campo de teste: WhatsApp de destino + botão "Enviar teste"
 
-**`telegram-notify`** (helper interno) — pode ser chamada por outras edge functions pra avisos pontuais (erros críticos etc).
+**5. Rota + sidebar**
+- Rota `/painel/integracao-whatsapp`
+- Item no menu lateral do revendedor (próximo ao "Integração MisticPay")
 
-### 3. Cron job (pg_cron + pg_net)
-Roda `telegram-dispatch` a cada minuto pra esvaziar o outbox.
+### Variáveis dos templates
 
-### 4. UI — nova página `/painel/gerente/telegram`
-- Status do bot (pareado ✅ ou aguardando)
-- Botão "Gerar código de pareamento" + instruções (procurar o bot @SeuBot, mandar `/start CODIGO`)
-- Toggles pra ativar/desativar cada tipo de notificação
-- Link rápido pra abrir o chat com o bot
+| Variável | Significado |
+|---|---|
+| `{nome}` | Nome do comprador |
+| `{chave}` | Chave da licença (vendas de licença) |
+| `{tipo}` | Tipo da licença (PRO 7d, Vitalícia, etc.) |
+| `{link}` | Link de entrega (recarga Lovable) |
+| `{valor}` | Valor pago formatado |
+| `{loja}` | Nome da loja do revendedor |
+
+### Endpoints Evolution usados
+
+- `POST /instance/create` — criar instância
+- `GET /instance/connect/{instance}` — obter QR code
+- `GET /instance/connectionState/{instance}` — status
+- `GET /instance/fetchInstances` — buscar perfil
+- `POST /instance/logout/{instance}` — desconectar
+- `POST /message/sendText/{instance}` — enviar mensagem
 
 ### Detalhes técnicos
-- Webhook do Telegram registrado via gateway depois do deploy
-- Secret derivado de `TELEGRAM_API_KEY` (não pede token bruto)
-- Outbox + dispatcher evita timeout: triggers do banco não bloqueiam esperando o Telegram responder
-- Comandos usam `service_role` na função pra ler agregados sem RLS
 
-### O que NÃO entra nesta versão
-- Notificações por revendedor (cada um com seu próprio chat) — você confirmou que só o gerente recebe
-- Inline keyboards / botões interativos — só comandos de texto por enquanto
-
-Confirma que tá ok que eu implemento?
+- QR code expira ~40s → frontend faz polling a cada 3s no `evolution-status` e, se ainda `connecting`, recarrega o QR via `evolution-connect`
+- Mensagens usam markdown leve do WhatsApp (`*negrito*`)
+- Envio é **fire-and-forget**: falha no WhatsApp não bloqueia a venda — apenas loga erro
+- WhatsApp do comprador já é coletado em todos os fluxos de venda existentes (`reseller_customers.whatsapp`, `storefront_orders.buyer_whatsapp`, etc.)
