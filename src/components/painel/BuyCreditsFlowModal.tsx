@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { usePendingStorefrontCharges } from "@/hooks/usePendingStorefrontCharges";
+import { Link } from "react-router-dom";
 import {
   Loader2,
   Terminal,
@@ -100,6 +102,7 @@ export function BuyCreditsFlowModal({
   const [step, setStep] = useState<Step>("review");
   const [deliveryType, setDeliveryType] = useState("workspace_proprio");
   const [submitting, setSubmitting] = useState(false);
+  const { hasPending: pendingBalance, count: pendingCount } = usePendingStorefrontCharges();
   const [refreshing, setRefreshing] = useState(false);
   const [lastOrder, setLastOrder] = useState<CreatedOrder | null>(null);
   const [showError, setShowError] = useState(false);
@@ -595,13 +598,16 @@ export function BuyCreditsFlowModal({
                 </Button>
                 <Button
                   onClick={handleCreateOrder}
-                  disabled={!agreed || balance < costPrice || submitting}
+                  disabled={!agreed || balance < costPrice || submitting || pendingBalance}
                   className="min-w-[180px]"
+                  title={pendingBalance ? "Regularize seu saldo antes de continuar" : undefined}
                 >
                   {submitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...
                     </>
+                  ) : pendingBalance ? (
+                    <>Regularize saldo</>
                   ) : (
                     <>
                       Pagar e confirmar <ArrowRight className="h-4 w-4 ml-2" />
@@ -609,6 +615,21 @@ export function BuyCreditsFlowModal({
                   )}
                 </Button>
               </DialogFooter>
+              {pendingBalance && (
+                <div className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                  <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                    {pendingCount} venda{pendingCount > 1 ? "s" : ""} da loja aguardando saldo.
+                  </span>
+                  <Link
+                    to="/painel/revendedor/adicionar-saldo"
+                    onClick={() => handleClose(false)}
+                    className="ml-auto inline-flex items-center gap-1 rounded-md bg-amber-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-amber-600"
+                  >
+                    Adicionar saldo <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              )}
             </div>
           )}
 

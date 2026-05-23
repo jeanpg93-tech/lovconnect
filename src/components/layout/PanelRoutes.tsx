@@ -118,6 +118,7 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/revendedor/recargas", match: exact("/painel/revendedor/recargas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorRecarga /></RoleRoute> },
   { key: "/painel/revendedor/clientes", match: exact("/painel/revendedor/clientes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorClientes /></RoleRoute> },
   { key: "/painel/revendedor/licencas", match: exact("/painel/revendedor/licencas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPedidos /></RoleRoute> },
+  { key: "/painel/revendedor/pedidos", match: exact("/painel/revendedor/pedidos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPedidos /></RoleRoute> },
   { key: "/painel/revendedor/extensoes", match: exact("/painel/revendedor/extensoes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorExtensoes /></RoleRoute> },
   { key: "/painel/revendedor/precos", match: exact("/painel/revendedor/precos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPrecos /></RoleRoute> },
   { key: "/painel/revendedor/creditos", match: exact("/painel/revendedor/creditos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorCreditos /></RoleRoute> },
@@ -176,10 +177,6 @@ export function PanelRoutes() {
   const integrationRedirect = pathname === "/painel/revendedor/integracoes" || pathname === "/painel/revendedor/integracoes/";
   if (integrationRedirect) {
     return <Navigate to="/painel/revendedor/integracoes/misticpay" replace />;
-  }
-
-  if (pathname === "/painel/revendedor/pedidos" || pathname === "/painel/revendedor/pedidos/") {
-    return <Navigate to="/painel/revendedor/licencas" replace />;
   }
 
   const matched = ROUTES.find((r) => r.match(pathname));
