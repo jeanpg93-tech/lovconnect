@@ -105,8 +105,8 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
           asNegative
           items={[
             { label: "Créditos vendidos", hint: "custo do provedor", value: data.costCreditsCents, color: "#3b82f6" },
-            { label: "Taxa gateway", hint: "R$ 0,50 / recarga", value: data.gatewayFeeCents, color: "#f59e0b" },
-            { label: "Gastos manuais", hint: "lançamentos manuais", value: data.manualExpenseCents, color: "#f97316" },
+            { label: "Taxa gateway", hint: "R$ 0,50 / recarga", value: data.gatewayFeeCents, color: "#eab308" },
+            { label: "Gastos manuais", hint: "lançamentos manuais", value: data.manualExpenseCents, color: "#ec4899" },
           ]}
         />
         <CompositionCard
