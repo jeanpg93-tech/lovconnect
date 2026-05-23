@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
   Loader2, RefreshCw, CheckCircle2, XCircle, Clock, Search,
-  ArrowRight, Undo2, AlertTriangle, ChevronDown, ChevronUp, Copy,
+  ArrowRight, Undo2, AlertTriangle, ChevronDown, ChevronUp, Copy, CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,7 @@ export default function GerenteEstornosProvedor() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [retrying, setRetrying] = useState<string | null>(null);
+  const [markingManual, setMarkingManual] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "pendente_provedor" | "ok_provedor" | "falhou_provedor">("all");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -150,6 +151,30 @@ export default function GerenteEstornosProvedor() {
       toast.error(e?.message ?? "Erro");
     } finally {
       setRetrying(null);
+    }
+  };
+
+  const markManual = async (purchaseId: string) => {
+    const notes = window.prompt(
+      "Confirme que você JÁ solicitou o reembolso manualmente no painel do provedor.\n\n(Opcional) Adicione uma observação:",
+      "",
+    );
+    if (notes === null) return; // cancelado
+    setMarkingManual(purchaseId);
+    try {
+      const { data, error } = await supabase.functions.invoke("mark-provider-refund-manual", {
+        body: { purchase_id: purchaseId, notes },
+      });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.error ?? error?.message ?? "Falha");
+      } else {
+        toast.success("Marcado como reembolsado manualmente no provedor");
+      }
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    } finally {
+      setMarkingManual(null);
     }
   };
 
@@ -290,6 +315,8 @@ export default function GerenteEstornosProvedor() {
               expanded={expanded === p.id}
               onToggle={() => setExpanded(expanded === p.id ? null : p.id)}
               onRetry={(force) => retry(p.id, force)}
+              onMarkManual={() => markManual(p.id)}
+              markingManual={markingManual === p.id}
               retrying={retrying === p.id}
               copy={copy}
             />
@@ -344,13 +371,15 @@ function StepRow({
 }
 
 function PurchaseCard({
-  p, refund, expanded, onToggle, onRetry, retrying, copy,
+  p, refund, expanded, onToggle, onRetry, onMarkManual, markingManual, retrying, copy,
 }: {
   p: Purchase;
   refund: RefundReq | null;
   expanded: boolean;
   onToggle: () => void;
   onRetry: (force: boolean) => void;
+  onMarkManual: () => void;
+  markingManual: boolean;
   retrying: boolean;
   copy: (s: string) => void;
 }) {
@@ -363,6 +392,7 @@ function PurchaseCard({
   const providerResp = resp.provider_refund_response;
   const attempts = Array.isArray(resp.provider_refund_attempts) ? resp.provider_refund_attempts : [];
   const isManual = String(p.status ?? "").startsWith("manual_") || !p.provider_pedido_id;
+  const manuallyMarked = !!resp.provider_refund_manual;
 
   let providerState: "ok" | "fail" | "pending" | "skip" = "pending";
   if (isManual) providerState = "skip";
@@ -512,12 +542,36 @@ function PurchaseCard({
                   {providerRequested ? "Tentar novamente no provedor" : "Solicitar estorno no provedor agora"}
                 </Button>
               )}
+              {!manuallyMarked && providerState !== "ok" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onMarkManual}
+                  disabled={markingManual}
+                  title="Use isto se você já solicitou o estorno direto no painel do provedor"
+                >
+                  {markingManual ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5 mr-1" />}
+                  Marcar como reembolsado manualmente no provedor
+                </Button>
+              )}
               {providerState === "ok" && (
                 <Button size="sm" variant="outline" onClick={() => onRetry(true)} disabled={retrying}>
                   {retrying ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
                   Forçar reenvio
                 </Button>
               )}
+            </div>
+          )}
+
+          {manuallyMarked && (
+            <div className="flex items-start gap-2 text-xs rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5 text-emerald-600">
+              <CheckCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <div>
+                Marcado manualmente como reembolsado no provedor em {fmtDate(resp.provider_refund_manual_at)}.
+                {resp.provider_refund_manual_notes && (
+                  <div className="mt-1 text-muted-foreground">Obs: {resp.provider_refund_manual_notes}</div>
+                )}
+              </div>
             </div>
           )}
 
