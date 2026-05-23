@@ -49,8 +49,8 @@ async function gatherPanelContext(supabase: any) {
   const vTotal = (vendas.data ?? []).reduce((s: number, r: any) => s + Math.abs(r.amount_cents || 0), 0)
   const rTotal = (recargas.data ?? []).reduce((s: number, r: any) => s + (r.amount_cents || 0), 0)
   return {
-    saldo_provedor: prov != null ? brl(prov) : 'indisponível',
-    saldo_lojinha_gateway: gw != null ? brl(gw) : 'indisponível',
+    saldo_lojinha: prov != null ? brl(prov) : 'indisponível',
+    saldo_misticpay: gw != null ? brl(gw) : 'indisponível',
     vendas_hoje_qtd: (vendas.data ?? []).length,
     vendas_hoje_total: brl(vTotal),
     recargas_hoje_qtd: (recargas.data ?? []).length,
@@ -68,6 +68,7 @@ async function askAI(userText: string, context: any): Promise<string> {
   const system = `Você é o assistente do gerente do painel LovConnect, conversando pelo Telegram.
 Seja amigável, direto e em português brasileiro. Use emojis com moderação.
 Responda baseado SOMENTE nos dados do painel abaixo. Se a pergunta pedir algo que não está nos dados, diga que não tem essa informação ainda e sugira um comando (/saldo, /vendas, /recargas, /pendentes).
+IMPORTANTE - nomenclatura correta: "saldo_lojinha" é o saldo da LOJINHA (provedor de créditos/licenças). "saldo_misticpay" é o saldo da MisticPay (gateway PIX). Nunca chame de "Provedor" ou "Gateway" — use sempre "Lojinha" e "MisticPay".
 Mantenha respostas curtas (até 6 linhas) e formate com HTML simples do Telegram (<b>, <i>) quando útil — nunca markdown.
 
 DADOS ATUAIS DO PAINEL:
@@ -203,7 +204,7 @@ Deno.serve(async (req) => {
   if (cmd === '/help' || cmd === '/start') {
     await tg('sendMessage', { chat_id: chatId, parse_mode: 'HTML', text:
       '<b>Comandos disponíveis:</b>\n' +
-      '/saldo — saldos do Provedor e da Lojinha (Gateway)\n' +
+      '/saldo — saldos da Lojinha e da MisticPay\n' +
       '/vendas — vendas pagas hoje\n' +
       '/recargas — recargas hoje\n' +
       '/pendentes — cadastros aguardando aprovação\n' +
@@ -217,8 +218,8 @@ Deno.serve(async (req) => {
     await tg('sendMessage', { chat_id: chatId, parse_mode: 'HTML',
       text:
         `💼 <b>Saldos do painel</b>\n\n` +
-        `🤖 Provedor: <b>${prov != null ? brl(prov) : 'indisponível'}</b>\n` +
-        `🏪 Lojinha (Gateway PIX): <b>${gw != null ? brl(gw) : 'indisponível'}</b>`
+        `🏪 Lojinha: <b>${prov != null ? brl(prov) : 'indisponível'}</b>\n` +
+        `💳 MisticPay (Gateway PIX): <b>${gw != null ? brl(gw) : 'indisponível'}</b>`
     })
   } else if (cmd === '/vendas') {
     const { data } = await supabase.from('balance_transactions')
