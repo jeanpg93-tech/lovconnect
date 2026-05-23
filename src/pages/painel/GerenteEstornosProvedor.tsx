@@ -51,6 +51,26 @@ export default function GerenteEstornosProvedor() {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = async () => {
+    // Antes de carregar, pede ao backend que sincronize todos pedidos em aberto
+    // (pega pedidos que ficaram travados como "configurando/aguardando" mas já
+    // foram cancelados/invalidados no provedor, para aparecerem aqui).
+    try {
+      const { data: openRows } = await supabase
+        .from("reseller_credit_purchases")
+        .select("id")
+        .in("status", [
+          "aguardando", "processando", "pendente",
+          "configurando", "recarregando", "entregando",
+        ])
+        .limit(50);
+      const ids = (openRows ?? []).map((r: any) => r.id);
+      if (ids.length > 0) {
+        await supabase.functions.invoke("sync-credit-purchase-status", {
+          body: { purchase_ids: ids },
+        });
+      }
+    } catch { /* silencioso */ }
+
     const { data, error } = await supabase
       .from("reseller_credit_purchases")
       .select(

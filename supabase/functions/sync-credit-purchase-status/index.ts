@@ -11,6 +11,9 @@ const OPEN_LOCAL_STATUSES = new Set([
   'aguardando',
   'processando',
   'pendente',
+  'configurando',
+  'recarregando',
+  'entregando',
   'manual_pendente',
   'manual_iniciado',
   'manual_aceito',
@@ -89,6 +92,10 @@ function mapProviderToLocal(providerData: any): { status: string | null; errorMe
   if (providerData.cancelar === true) {
     return { status: 'cancelado', errorMessage: providerData.errorMessage ?? providerData.error ?? null };
   }
+  // Convite inválido (codigoConviteStatus === 2) também é tratado como cancelado
+  if (Number(providerData.codigoConviteStatus) === 2) {
+    return { status: 'cancelado', errorMessage: providerData.errorMessage ?? providerData.error ?? 'Convite inválido' };
+  }
   if (CANCEL_PROVIDER.has(raw)) {
     return { status: 'cancelado', errorMessage: providerData.errorMessage ?? providerData.error ?? null };
   }
@@ -125,20 +132,27 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+    // Gerentes podem sincronizar qualquer compra
+    const { data: roleRow } = await admin
+      .from('user_roles').select('role').eq('user_id', userId).eq('role', 'gerente').maybeSingle();
+    const isGerente = !!roleRow;
+
     const { data: reseller } = await admin
       .from('resellers').select('id').eq('user_id', userId).maybeSingle();
-    if (!reseller) {
+    if (!reseller && !isGerente) {
       return new Response(JSON.stringify({ error: 'Revendedor não encontrado' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const resellerId = reseller.id;
+    const resellerId = reseller?.id ?? null;
 
     // Busca as compras a sincronizar (dono = reseller atual, status em aberto)
     let q = admin
       .from('reseller_credit_purchases')
-      .select('id, provider_pedido_id, status, tipo_entrega')
-      .eq('reseller_id', resellerId);
+      .select('id, provider_pedido_id, status, tipo_entrega');
+    if (!isGerente && resellerId) {
+      q = q.eq('reseller_id', resellerId);
+    }
     if (ids && ids.length > 0) {
       q = q.in('id', ids);
     } else {
