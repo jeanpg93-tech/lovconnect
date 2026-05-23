@@ -1618,7 +1618,7 @@ export default function RevendedorRecargas() {
                         Histórico
                       </span>
                       <h3 className="font-display text-2xl font-bold tracking-tight">
-                        Minhas compras de créditos
+                        Minhas vendas de créditos
                       </h3>
                       <p className="text-sm text-muted-foreground mt-1">
                         Compras pagas com saldo. Se cancelado, solicite o estorno aqui.
