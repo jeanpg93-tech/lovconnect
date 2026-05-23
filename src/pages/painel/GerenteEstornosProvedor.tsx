@@ -371,13 +371,15 @@ function StepRow({
 }
 
 function PurchaseCard({
-  p, refund, expanded, onToggle, onRetry, retrying, copy,
+  p, refund, expanded, onToggle, onRetry, onMarkManual, markingManual, retrying, copy,
 }: {
   p: Purchase;
   refund: RefundReq | null;
   expanded: boolean;
   onToggle: () => void;
   onRetry: (force: boolean) => void;
+  onMarkManual: () => void;
+  markingManual: boolean;
   retrying: boolean;
   copy: (s: string) => void;
 }) {
@@ -390,6 +392,7 @@ function PurchaseCard({
   const providerResp = resp.provider_refund_response;
   const attempts = Array.isArray(resp.provider_refund_attempts) ? resp.provider_refund_attempts : [];
   const isManual = String(p.status ?? "").startsWith("manual_") || !p.provider_pedido_id;
+  const manuallyMarked = !!resp.provider_refund_manual;
 
   let providerState: "ok" | "fail" | "pending" | "skip" = "pending";
   if (isManual) providerState = "skip";
@@ -539,12 +542,36 @@ function PurchaseCard({
                   {providerRequested ? "Tentar novamente no provedor" : "Solicitar estorno no provedor agora"}
                 </Button>
               )}
+              {!manuallyMarked && providerState !== "ok" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onMarkManual}
+                  disabled={markingManual}
+                  title="Use isto se você já solicitou o estorno direto no painel do provedor"
+                >
+                  {markingManual ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5 mr-1" />}
+                  Marcar como reembolsado manualmente no provedor
+                </Button>
+              )}
               {providerState === "ok" && (
                 <Button size="sm" variant="outline" onClick={() => onRetry(true)} disabled={retrying}>
                   {retrying ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
                   Forçar reenvio
                 </Button>
               )}
+            </div>
+          )}
+
+          {manuallyMarked && (
+            <div className="flex items-start gap-2 text-xs rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5 text-emerald-600">
+              <CheckCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <div>
+                Marcado manualmente como reembolsado no provedor em {fmtDate(resp.provider_refund_manual_at)}.
+                {resp.provider_refund_manual_notes && (
+                  <div className="mt-1 text-muted-foreground">Obs: {resp.provider_refund_manual_notes}</div>
+                )}
+              </div>
             </div>
           )}
 
