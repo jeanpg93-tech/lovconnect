@@ -183,7 +183,7 @@ export default function GerenteAcompanharRecargas() {
           priceMap.set(p.provider_pedido_id, {
             local_purchase_id: p.id ?? null,
             price_cents: p.price_cents ?? null,
-            refunded: p.status === "estornado",
+            refunded: p.status === "estornado" || p.status === "reembolsado",
           });
         }
         // Fallback: pedidos criados pelo fluxo automático/storefront ficam em provider_credit_orders
