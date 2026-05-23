@@ -37,6 +37,14 @@ export type FinancialOverview = {
   salesCount: number;
   series: Array<{ date: string; revenue: number; cost: number; profit: number }>;
   topResellers: Array<{ reseller_id: string; display_name: string; profit_cents: number }>;
+  resellerSales: Array<{
+    reseller_id: string;
+    display_name: string;
+    revenue_cents: number;
+    cost_cents: number;
+    profit_cents: number;
+    sales_count: number;
+  }>;
 };
 
 export function useFinancialOverview(range: DateRange) {
@@ -138,40 +146,58 @@ export function useFinancialOverview(range: DateRange) {
       }));
 
     // Top revendedores por lucro
-    const perReseller: Record<string, { revenue: number; cost: number }> = {};
+    const perReseller: Record<string, { revenue: number; cost: number; sales: number }> = {};
     rechargesArr.forEach((r: any) => {
       const id = r.reseller_id;
-      perReseller[id] = perReseller[id] || { revenue: 0, cost: 0 };
+      perReseller[id] = perReseller[id] || { revenue: 0, cost: 0, sales: 0 };
       perReseller[id].revenue += Number(r.amount_cents || 0);
       perReseller[id].cost += GATEWAY_FEE_CENTS_PER_RECHARGE;
     });
     soArr.forEach((o: any) => {
       const id = o.reseller_id;
-      perReseller[id] = perReseller[id] || { revenue: 0, cost: 0 };
+      perReseller[id] = perReseller[id] || { revenue: 0, cost: 0, sales: 0 };
       perReseller[id].cost += Number(o.cost_cents || 0);
+      perReseller[id].sales += 1;
     });
     rcpArr.forEach((o: any) => {
       const id = o.reseller_id;
-      perReseller[id] = perReseller[id] || { revenue: 0, cost: 0 };
+      perReseller[id] = perReseller[id] || { revenue: 0, cost: 0, sales: 0 };
       perReseller[id].cost += Number(o.cost_cents || 0);
+      perReseller[id].sales += 1;
     });
-    const topIds = Object.entries(perReseller)
-      .map(([id, v]) => ({ id, profit: v.revenue - v.cost }))
-      .sort((a, b) => b.profit - a.profit)
-      .slice(0, 5);
+    const allEntries = Object.entries(perReseller).map(([id, v]) => ({
+      id,
+      revenue: v.revenue,
+      cost: v.cost,
+      profit: v.revenue - v.cost,
+      sales: v.sales,
+    }));
+    const topIds = [...allEntries].sort((a, b) => b.profit - a.profit).slice(0, 5);
 
     let topResellers: FinancialOverview["topResellers"] = [];
-    if (topIds.length) {
+    let resellerSales: FinancialOverview["resellerSales"] = [];
+    if (allEntries.length) {
       const { data: names } = await supabase
         .from("resellers")
         .select("id, display_name")
-        .in("id", topIds.map((t) => t.id));
+        .in("id", allEntries.map((t) => t.id));
       const nameMap = new Map((names || []).map((n: any) => [n.id, n.display_name]));
       topResellers = topIds.map((t) => ({
         reseller_id: t.id,
         display_name: nameMap.get(t.id) || "—",
         profit_cents: t.profit,
       }));
+      resellerSales = allEntries
+        .filter((t) => t.sales > 0 || t.cost > 0)
+        .map((t) => ({
+          reseller_id: t.id,
+          display_name: nameMap.get(t.id) || "—",
+          revenue_cents: t.revenue,
+          cost_cents: t.cost,
+          profit_cents: t.profit,
+          sales_count: t.sales,
+        }))
+        .sort((a, b) => b.cost_cents - a.cost_cents);
     }
 
     setData({
@@ -188,6 +214,7 @@ export function useFinancialOverview(range: DateRange) {
       salesCount,
       series,
       topResellers,
+      resellerSales,
     });
     setLoading(false);
   }, [range]);
