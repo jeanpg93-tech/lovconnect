@@ -631,7 +631,7 @@ export default function GerenteLicencasAcompanhar() {
 
       <div className="flex flex-col gap-4">
         <div className="relative group">
-          <div className="absolute inset-0 bg-primary/5 blur-xl rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity" />
+          <div className="pointer-events-none absolute inset-0 bg-primary/5 blur-xl rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity" />
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
           <Input
             placeholder="Buscar por chave, revendedor, cliente ou whatsapp…"
