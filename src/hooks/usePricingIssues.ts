@@ -49,6 +49,11 @@ export function usePricingIssues(opts: { pollMs?: number; resellerId?: string | 
       return;
     }
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        setLoading(false);
+        return;
+      }
       const { data: res, error } = await supabase.functions.invoke<PricingIssuesResponse>(
         "pricing-issues",
         opts.resellerId

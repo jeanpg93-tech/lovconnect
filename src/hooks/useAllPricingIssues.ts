@@ -32,6 +32,11 @@ export function useAllPricingIssues(opts: { pollMs?: number; enabled?: boolean }
       return;
     }
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        setLoading(false);
+        return;
+      }
       const { data: res, error } = await supabase.functions.invoke<AllPricingIssuesResponse>(
         "pricing-issues",
         { method: "POST", body: { scan: "all" } },
