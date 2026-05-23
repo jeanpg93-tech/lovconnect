@@ -179,10 +179,6 @@ export function PanelRoutes() {
     return <Navigate to="/painel/revendedor/integracoes/misticpay" replace />;
   }
 
-  if (pathname === "/painel/revendedor/pedidos" || pathname === "/painel/revendedor/pedidos/") {
-    return <Navigate to="/painel/revendedor/licencas" replace />;
-  }
-
   const matched = ROUTES.find((r) => r.match(pathname));
 
   if (loading && !hasData) {
