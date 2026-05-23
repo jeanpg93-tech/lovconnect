@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
       const number = onlyDigits(String(body.number ?? ""));
       const text = String(body.text ?? "✅ Teste de integração WhatsApp via Evolution API");
       if (number.length < 10) return json({ error: "WhatsApp inválido" }, 400);
-      const r = await evo("/message/sendText", {
+      const r = await evo("/send/text", {
         method: "POST",
         body: JSON.stringify({ number, text }),
       }, instanceToken);
