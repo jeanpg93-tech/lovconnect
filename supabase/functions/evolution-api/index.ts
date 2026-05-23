@@ -162,8 +162,10 @@ Deno.serve(async (req) => {
     }
 
     if (action === "status") {
-      const st = await evo(`/instance/connectionState/${encodeURIComponent(instance)}`, { method: "GET" });
+      const st = await evo("/instance/status", { method: "GET" }, instanceToken);
       const state: string =
+        st.data?.data?.Connected === true || st.data?.data?.LoggedIn === true ? "open" :
+        st.data?.data?.Connected === false ? "close" :
         st.data?.instance?.state ??
         st.data?.state ??
         "unknown";
@@ -195,7 +197,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "disconnect") {
-      const r = await evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" });
+      const r = await evo("/instance/logout", { method: "POST" }, instanceToken);
       await svc.from("reseller_integrations").update({
         connection_status: "disconnected",
         profile_name: null,
@@ -209,10 +211,10 @@ Deno.serve(async (req) => {
       const number = onlyDigits(String(body.number ?? ""));
       const text = String(body.text ?? "✅ Teste de integração WhatsApp via Evolution API");
       if (number.length < 10) return json({ error: "WhatsApp inválido" }, 400);
-      const r = await evo(`/message/sendText/${encodeURIComponent(instance)}`, {
+      const r = await evo("/message/sendText", {
         method: "POST",
         body: JSON.stringify({ number, text }),
-      });
+      }, instanceToken);
       if (!r.ok) return json({ ok: false, error: "Falha ao enviar", details: r.data }, 502);
       await svc.rpc("increment_evolution_messages_sent", { _reseller_id: reseller.id });
       return json({ ok: true, raw: r.data });
