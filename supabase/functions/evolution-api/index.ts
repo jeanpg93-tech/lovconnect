@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
       const created = await evo("/instance/create", {
         method: "POST",
         body: JSON.stringify({
+          name: instance,
           instanceName: instance,
           integration: "WHATSAPP-BAILEYS",
           qrcode: true,
