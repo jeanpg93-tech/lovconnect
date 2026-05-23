@@ -18,6 +18,7 @@ import RefundSaleDialog, { type RefundSaleData } from "@/components/painel/Refun
 
 type Usage = {
   id: string;
+  local_purchase_id?: string | null;
   license_type: string;
   license_key: string;
   status: string;
@@ -164,7 +165,7 @@ export default function GerenteAcompanharRecargas() {
       if (ids.length > 0) {
         const { data: purchases } = await supabase
           .from("reseller_credit_purchases")
-          .select("provider_pedido_id, reseller_id, price_cents, status, resellers:reseller_id(display_name, user_id)")
+          .select("id, provider_pedido_id, reseller_id, price_cents, status, resellers:reseller_id(display_name, user_id)")
           .in("provider_pedido_id", ids);
         const userIds = Array.from(new Set((purchases ?? []).map((p: any) => p.resellers?.user_id).filter(Boolean)));
         let emailMap = new Map<string, string>();
@@ -173,13 +174,14 @@ export default function GerenteAcompanharRecargas() {
           emailMap = new Map((profs ?? []).map((p: any) => [p.id, p.email]));
         }
         const respMap = new Map<string, { nome: string | null; email: string | null }>();
-        const priceMap = new Map<string, { price_cents: number | null; refunded: boolean }>();
+        const priceMap = new Map<string, { local_purchase_id: string | null; price_cents: number | null; refunded: boolean }>();
         for (const p of (purchases ?? []) as any[]) {
           respMap.set(p.provider_pedido_id, {
             nome: p.resellers?.display_name ?? null,
             email: p.resellers?.user_id ? (emailMap.get(p.resellers.user_id) ?? null) : null,
           });
           priceMap.set(p.provider_pedido_id, {
+            local_purchase_id: p.id ?? null,
             price_cents: p.price_cents ?? null,
             refunded: p.status === "estornado",
           });
@@ -216,7 +218,7 @@ export default function GerenteAcompanharRecargas() {
               email: prof?.email ?? null,
             });
             if (!priceMap.has(po.pedido_id)) {
-              priceMap.set(po.pedido_id, { price_cents: po.preco_cents ?? null, refunded: false });
+              priceMap.set(po.pedido_id, { local_purchase_id: null, price_cents: po.preco_cents ?? null, refunded: false });
             }
           }
         }
@@ -228,6 +230,7 @@ export default function GerenteAcompanharRecargas() {
           }
           const pr = priceMap.get(o.id);
           if (pr) {
+            o.local_purchase_id = pr.local_purchase_id;
             o.price_cents = pr.price_cents;
             o.refunded = pr.refunded;
           }
