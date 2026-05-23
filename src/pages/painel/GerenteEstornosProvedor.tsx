@@ -47,6 +47,7 @@ export default function GerenteEstornosProvedor() {
   const [refreshing, setRefreshing] = useState(false);
   const [retrying, setRetrying] = useState<string | null>(null);
   const [markingManual, setMarkingManual] = useState<string | null>(null);
+  const [auditing, setAuditing] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "pendente_provedor" | "ok_provedor" | "falhou_provedor">("all");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -70,6 +71,13 @@ export default function GerenteEstornosProvedor() {
           body: { purchase_ids: ids },
         });
       }
+    } catch { /* silencioso */ }
+
+    // Auditoria: revalida com o provedor todos os pedidos que estão localmente
+    // marcados como cancelado/falha/reembolsado. Se o provedor disser que estão
+    // sucesso ou ainda em andamento, corrige (ou sinaliza se já houve reembolso).
+    try {
+      await supabase.functions.invoke("audit-cancelled-purchases", { body: {} });
     } catch { /* silencioso */ }
 
     const { data, error } = await supabase
@@ -175,6 +183,26 @@ export default function GerenteEstornosProvedor() {
       toast.error(e?.message ?? "Erro");
     } finally {
       setMarkingManual(null);
+    }
+  };
+
+  const runAudit = async () => {
+    setAuditing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("audit-cancelled-purchases", { body: {} });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.error ?? error?.message ?? "Falha na auditoria");
+      } else {
+        const d = data as any;
+        toast.success(
+          `Auditoria: ${d.checked} verificadas · ${d.fixed} corrigidas · ${d.flagged} sinalizadas (já reembolsadas) · ${d.ok_match} confirmadas`,
+        );
+      }
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    } finally {
+      setAuditing(false);
     }
   };
 
@@ -297,6 +325,10 @@ export default function GerenteEstornosProvedor() {
         <Button size="sm" variant="outline" onClick={refresh} disabled={refreshing} className="h-9">
           <RefreshCw className={cn("h-3.5 w-3.5 mr-1", refreshing && "animate-spin")} />
           Atualizar
+        </Button>
+        <Button size="sm" variant="outline" onClick={runAudit} disabled={auditing} className="h-9">
+          {auditing ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5 mr-1" />}
+          Auditar com provedor
         </Button>
       </div>
 
