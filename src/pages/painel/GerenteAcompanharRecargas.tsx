@@ -390,10 +390,24 @@ export default function GerenteAcompanharRecargas() {
     return usageInRange.filter((u) => {
       const matchStatus = statusFilter === "all" ? true : u.status.toLowerCase() === statusFilter;
       const q = search.trim().toLowerCase();
-      const matchQ = !q || u.id.toLowerCase().includes(q) || u.license_type.toLowerCase().includes(q) || u.license_key.toLowerCase().includes(q) || (u.responsavel_nome ?? "").toLowerCase().includes(q) || (u.responsavel_email ?? "").toLowerCase().includes(q);
+      const matchQ = !q || u.id.toLowerCase().includes(q) || (u.local_purchase_id ?? "").toLowerCase().includes(q) || u.license_type.toLowerCase().includes(q) || u.license_key.toLowerCase().includes(q) || (u.responsavel_nome ?? "").toLowerCase().includes(q) || (u.responsavel_email ?? "").toLowerCase().includes(q);
       return matchStatus && matchQ;
     });
   }, [usageInRange, search, statusFilter]);
+
+  const filteredManualOrders = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return manualInRange;
+    return manualInRange.filter((m) => (
+      m.id.toLowerCase().includes(q) ||
+      (m.provider_pedido_id ?? "").toLowerCase().includes(q) ||
+      (m.workspace_name ?? "").toLowerCase().includes(q) ||
+      (m.customer_name ?? "").toLowerCase().includes(q) ||
+      (m.customer_whatsapp ?? "").toLowerCase().includes(q) ||
+      (m.responsavel_nome ?? "").toLowerCase().includes(q) ||
+      (m.responsavel_email ?? "").toLowerCase().includes(q)
+    ));
+  }, [manualInRange, search]);
 
   const STATUS_STYLES: Record<string, string> = {
     aguardando: "bg-amber-500/15 text-amber-500 border-amber-500/40",
