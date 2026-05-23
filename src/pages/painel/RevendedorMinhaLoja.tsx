@@ -13,7 +13,7 @@ import {
   Chrome, KeyRound, LifeBuoy, MessageCircle, Settings, Palette,
   ShoppingBag, HelpCircle, Zap, Eye, Globe, MessageSquare, Star, Trash2, Plus,
   TrendingUp, Users, DollarSign, Calendar, Package, Coins,
-  Dot, Waves, Sparkles, Sun, Hexagon, Triangle
+  Dot, Waves, Sparkles, Sun, Hexagon, Triangle, RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -993,6 +993,16 @@ export default function RevendedorMinhaLoja() {
                       <div className="text-xs text-muted-foreground">Exibe o botão para solicitação de teste gratuito.</div>
                     </div>
                     <Switch checked={showFreeTrial} onCheckedChange={setShowFreeTrial} />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-dashed">
+                    <div className="space-y-0.5">
+                      <div className="text-sm font-bold flex items-center gap-2">
+                        <RefreshCw className="h-3.5 w-3.5 text-purple-500" /> Liberar Dispositivo
+                      </div>
+                      <div className="text-xs text-muted-foreground">Permite que o cliente resete a chave da licença para usar em outro PC.</div>
+                    </div>
+                    <Switch checked={resetDeviceEnabled} onCheckedChange={setResetDeviceEnabled} />
                   </div>
                 </div>
 
