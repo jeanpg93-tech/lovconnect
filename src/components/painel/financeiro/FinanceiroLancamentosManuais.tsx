@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useManualEntries, type ManualEntry } from "@/hooks/useManualEntries";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2, Package, KeyRound } from "lucide-react";
 import ManualEntryDialog from "./ManualEntryDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -70,19 +70,43 @@ export default function FinanceiroLancamentosManuais() {
         <div className="space-y-2">
           {filtered.map((e) => {
             const isRev = e.entry_type === "revenue";
+            const isCreditSale = e.reference_kind === "credit_pack";
+            const isLicenseSale = e.reference_kind === "license";
+            const isSale = isCreditSale || isLicenseSale;
+            const profit = isSale ? e.amount_cents - (e.cost_cents || 0) : 0;
+            const Icon = isCreditSale ? Package : isLicenseSale ? KeyRound : isRev ? TrendingUp : TrendingDown;
+            const iconColor = isCreditSale
+              ? "bg-blue-500/15 text-blue-500"
+              : isLicenseSale
+              ? "bg-violet-500/15 text-violet-500"
+              : isRev
+              ? "bg-emerald-500/15 text-emerald-500"
+              : "bg-red-500/15 text-red-500";
             return (
               <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card/50 hover:border-primary/30 transition-colors">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg shrink-0 ${isRev ? "bg-emerald-500/15 text-emerald-500" : "bg-red-500/15 text-red-500"}`}>
-                  {isRev ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg shrink-0 ${iconColor}`}>
+                  <Icon className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-sm truncate">{e.description}</p>
                     {e.category && <Badge variant="outline" className="text-[9px]">{e.category}</Badge>}
                   </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    {format(new Date(e.entry_date), "dd 'de' MMM yyyy", { locale: ptBR })}
-                  </p>
+                  <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                    <p className="text-[10px] text-muted-foreground">
+                      {format(new Date(e.entry_date), "dd 'de' MMM yyyy", { locale: ptBR })}
+                    </p>
+                    {isSale && (e.cost_cents || 0) > 0 && (
+                      <p className="text-[10px] text-muted-foreground">
+                        · custo <span className="font-mono text-red-400">{brl(e.cost_cents)}</span>
+                      </p>
+                    )}
+                    {isSale && (
+                      <p className="text-[10px]">
+                        · lucro <span className={`font-mono font-bold ${profit >= 0 ? "text-emerald-500" : "text-red-500"}`}>{brl(profit)}</span>
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className={`font-mono font-black text-sm tabular-nums shrink-0 ${isRev ? "text-emerald-500" : "text-red-500"}`}>
                   {isRev ? "+" : "−"} {brl(e.amount_cents)}
