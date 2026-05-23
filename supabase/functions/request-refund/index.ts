@@ -8,6 +8,60 @@ const REFUNDABLE_RECHARGE_STATUS = new Set(['failed', 'expired', 'canceled', 'ca
 const REFUNDABLE_ORDER_STATUS = new Set(['failed', 'revoked']);
 const REFUNDABLE_CREDIT_PURCHASE_STATUS = new Set(['cancelado', 'cancelled', 'canceled', 'falha', 'failed']);
 
+const PROVIDER_BASE = 'https://lojinhalovable.com/api/v1/revenda';
+
+// Rede de segurança: se o pedido cancelado ainda não disparou estorno no provedor,
+// dispara agora. NUNCA bloqueia o reembolso do revendedor — só registra.
+async function ensureProviderRefund(admin: any, purchaseId: string) {
+  try {
+    const { data: p } = await admin
+      .from('reseller_credit_purchases')
+      .select('provider_pedido_id, status, provider_response')
+      .eq('id', purchaseId)
+      .maybeSingle();
+    if (!p) return;
+    const providerId = p.provider_pedido_id;
+    if (!providerId) return;
+    if (String(p.status ?? '').startsWith('manual_')) return;
+    const prev = (p.provider_response ?? {}) as any;
+    if (prev?.provider_refund_requested_at) return;
+
+    const { data: master } = await admin
+      .from('app_settings').select('value')
+      .eq('key', 'lovable_credits_master').maybeSingle();
+    const apiKey = (master as any)?.value?.api_key;
+    if (!apiKey) return;
+
+    let ok = false, statusCode = 0, body: any = null, errMsg: string | null = null;
+    try {
+      const r = await fetch(`${PROVIDER_BASE}/pedidos/${providerId}/reembolso`, {
+        method: 'POST',
+        headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
+      });
+      statusCode = r.status;
+      const text = await r.text();
+      try { body = JSON.parse(text); } catch { body = { raw: text }; }
+      ok = r.ok && body?.success !== false;
+    } catch (e: any) {
+      errMsg = e?.message ?? 'fetch_failed';
+    }
+
+    await admin.from('reseller_credit_purchases').update({
+      provider_response: {
+        ...prev,
+        provider_refund_requested_at: new Date().toISOString(),
+        provider_refund_ok: ok,
+        provider_refund_status_code: statusCode,
+        provider_refund_response: body,
+        provider_refund_error: errMsg,
+      },
+      updated_at: new Date().toISOString(),
+    }).eq('id', purchaseId);
+  } catch (_e) {
+    // silencioso
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -132,6 +186,10 @@ Deno.serve(async (req) => {
       }
       amountCents = Number(c.price_cents) || 0;
       description = `Estorno compra de créditos ${String(c.id).slice(0, 8)}`;
+
+      // Rede de segurança: garante que o provedor foi notificado para estornar nosso saldo lá.
+      // Não bloqueia o estorno para o revendedor se falhar.
+      await ensureProviderRefund(admin, referenceId);
 
       // Marca o pedido (orders) vinculado a esta compra de créditos como reembolsado,
       // para que o dashboard pare de contabilizá-lo como venda/receita.
