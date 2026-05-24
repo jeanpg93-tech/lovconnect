@@ -29,10 +29,7 @@ const Index = () => {
       <header className="relative z-20">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-mystic text-primary-foreground shadow-mystic-sm">
-              <Sparkles className="h-4 w-4" strokeWidth={2.5} />
-            </div>
-            <span className="font-display text-lg font-bold tracking-tight">Revendovable</span>
+            <LovMainLogo size="h-8" />
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
