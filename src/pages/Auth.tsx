@@ -341,6 +341,16 @@ const Auth = () => {
                       {errors.displayName && <p className="text-[10px] text-destructive uppercase tracking-widest">{errors.displayName}</p>}
                     </div>
                     <div className="space-y-1.5">
+                      <Label htmlFor="signup-whatsapp" className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">WhatsApp</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+                        <Input id="signup-whatsapp" type="tel" inputMode="tel" autoComplete="tel" value={whatsapp}
+                          onChange={(e) => setWhatsapp(e.target.value)}
+                          className="rounded-none border-border/50 bg-background/40 pl-9 text-xs placeholder:text-muted-foreground/30 focus-visible:ring-primary/30" placeholder="(11) 98888-7777" />
+                      </div>
+                      {errors.whatsapp && <p className="text-[10px] text-destructive uppercase tracking-widest">{errors.whatsapp}</p>}
+                    </div>
+                    <div className="space-y-1.5">
                       <Label htmlFor="signup-email" className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Email</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
