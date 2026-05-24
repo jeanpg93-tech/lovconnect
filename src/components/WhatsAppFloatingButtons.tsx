@@ -6,9 +6,11 @@ const GROUP_URL = "https://chat.whatsapp.com/HMaprTx4J4FAOWku1QxsNE";
 type Props = {
   /** Distância extra do rodapé (px). Útil pra fugir da MobileNav no painel. */
   bottomOffset?: number;
+  /** Mostrar botão do grupo (apenas revendedores pagantes). */
+  showGroup?: boolean;
 };
 
-export const WhatsAppFloatingButtons = ({ bottomOffset = 16 }: Props) => {
+export const WhatsAppFloatingButtons = ({ bottomOffset = 16, showGroup = false }: Props) => {
   return (
     <div
       className="fixed right-4 z-40 flex flex-col gap-2"
@@ -24,6 +26,7 @@ export const WhatsAppFloatingButtons = ({ bottomOffset = 16 }: Props) => {
       >
         <MessageCircle className="h-5 w-5" />
       </a>
+      {showGroup && (
       <a
         href={GROUP_URL}
         target="_blank"
@@ -34,6 +37,7 @@ export const WhatsAppFloatingButtons = ({ bottomOffset = 16 }: Props) => {
       >
         <Users className="h-5 w-5" />
       </a>
+      )}
     </div>
   );
 };
