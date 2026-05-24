@@ -240,7 +240,17 @@ export default function GerenteRevendedores() {
       return tiers.find((t) => t.id === st.forced_tier_id) ?? null;
     }
     const eligible = tiers.filter((t) => t.is_active && !t.is_hidden && t.min_spent_cents <= spent);
-    return eligible.sort((a, b) => b.min_spent_cents - a.min_spent_cents)[0] ?? null;
+    const calculated = eligible.sort((a, b) => b.min_spent_cents - a.min_spent_cents)[0] ?? null;
+    // Aplica bonus_min_tier_id como piso mínimo
+    const reseller = resellers.find((r) => r.id === resellerId);
+    const bonusId = (reseller as any)?.bonus_min_tier_id;
+    if (bonusId) {
+      const bonus = tiers.find((t) => t.id === bonusId && t.is_active) ?? null;
+      if (bonus && (!calculated || (bonus.sort_order ?? 0) > (calculated.sort_order ?? -1))) {
+        return bonus;
+      }
+    }
+    return calculated;
   };
 
   const tierProgressFor = (resellerId: string) => {
