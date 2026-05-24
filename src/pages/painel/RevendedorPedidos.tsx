@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { usePendingStorefrontCharges } from "@/hooks/usePendingStorefrontCharges";
+import { CancelSaleDialog, type CancelSaleTarget } from "@/components/painel/CancelSaleDialog";
 
 type Plan = { license_type: string; label: string; price_cents: number; cost_cents: number; min_price_cents?: number; is_active: boolean };
 type MethodId = "flow" | "lovax";
@@ -64,6 +65,11 @@ type Order = {
   id: string; license_type: string; price_cents: number; status: string;
   license_key: string | null; created_at: string; is_test: boolean;
   customer?: { display_name: string | null; whatsapp: string | null } | null;
+  cancellation_status?: string | null;
+  key_revoked_at?: string | null;
+  client_refunded_at?: string | null;
+  client_refund_method?: string | null;
+  balance_refunded_at?: string | null;
 };
 
 const FALLBACK_LABEL: Record<string, string> = {
@@ -146,7 +152,7 @@ export default function RevendedorPedidos() {
     ] = await Promise.all([
       supabase.from("pricing_plans").select("license_type,label,price_cents,cost_cents,min_price_cents,is_active").eq("is_active", true),
       supabase.from("profiles").select("id,email,display_name").eq("reseller_id", r.id),
-      supabase.from("orders").select("id,license_type,price_cents,status,license_key,created_at,is_test, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("orders").select("id,license_type,price_cents,status,license_key,created_at,is_test,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(20),
       supabase.rpc("get_reseller_tier", { _reseller_id: r.id }),
       supabase.from("reseller_tiers").select("id,name,color,min_spent_cents,discount_percent,sort_order,is_active").eq("is_active", true).order("min_spent_cents", { ascending: true }),
       supabase.from("reseller_tier_state").select("total_spent_cents").eq("reseller_id", r.id).maybeSingle(),
@@ -284,10 +290,17 @@ export default function RevendedorPedidos() {
     buyer_name: string | null;
     buyer_whatsapp: string | null;
     error_message: string | null;
+    cancellation_status?: string | null;
+    key_revoked_at?: string | null;
+    client_refunded_at?: string | null;
+    client_refund_method?: string | null;
+    balance_refunded_at?: string | null;
   };
   const [storefrontLicenses, setStorefrontLicenses] = useState<StorefrontLicRow[]>([]);
   const [licOriginFilter, setLicOriginFilter] = useState<"all" | "manual" | "loja">("all");
   const [cancellingStorefrontId, setCancellingStorefrontId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<CancelSaleTarget | null>(null);
+  const [refundingBalanceId, setRefundingBalanceId] = useState<string | null>(null);
 
   const loadRefunds = async (rid: string) => {
     const { data } = await supabase
@@ -301,7 +314,7 @@ export default function RevendedorPedidos() {
   const loadStorefrontLicenses = async (rid: string) => {
     const { data } = await supabase
       .from("storefront_orders")
-      .select("id,short_code,status,license_key,license_type,price_cents,cost_cents,paid_at,created_at,buyer_name,buyer_whatsapp,error_message,product_type")
+      .select("id,short_code,status,license_key,license_type,price_cents,cost_cents,paid_at,created_at,buyer_name,buyer_whatsapp,error_message,product_type,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at")
       .eq("reseller_id", rid)
       .neq("product_type", "credits")
       .order("created_at", { ascending: false })
@@ -327,6 +340,52 @@ export default function RevendedorPedidos() {
     }
   };
 
+  const openCancelForStorefront = (l: StorefrontLicRow) => {
+    setCancelTarget({
+      sale_id: l.id,
+      sale_type: "storefront",
+      label: `#${l.short_code ?? l.id.slice(0, 8)}`,
+      price_cents: Number(l.price_cents ?? 0),
+      cost_cents: Number(l.cost_cents ?? 0),
+      license_key: l.license_key,
+    });
+  };
+
+  const openCancelForManual = (o: Order) => {
+    setCancelTarget({
+      sale_id: o.id,
+      sale_type: "manual",
+      label: o.license_key ? o.license_key.slice(0, 12) + "…" : `#${o.id.slice(0, 8)}`,
+      price_cents: Number(o.price_cents ?? 0),
+      cost_cents: Number(o.price_cents ?? 0),
+      license_key: o.license_key,
+    });
+  };
+
+  const refundSaleBalance = async (
+    saleId: string,
+    saleType: "storefront" | "manual",
+  ) => {
+    if (!confirm("Devolver o valor desta venda para o seu saldo do painel?")) return;
+    setRefundingBalanceId(saleId);
+    try {
+      const { data, error } = await supabase.functions.invoke("refund-sale-balance", {
+        body: { sale_type: saleType, sale_id: saleId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).message ?? (data as any).error);
+      toast.success("Saldo devolvido ao painel.");
+      if (resellerId) {
+        loadStorefrontLicenses(resellerId);
+        if (allOrders) loadAllOrders(); else load();
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao devolver saldo.");
+    } finally {
+      setRefundingBalanceId(null);
+    }
+  };
+
   const requestRefund = async (o: Order) => {
     if (!confirm(`Solicitar reembolso de ${(o.price_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} para o seu saldo?`)) return;
     setRefundingId(o.id);
@@ -346,7 +405,7 @@ export default function RevendedorPedidos() {
     setLoadingAll(true);
     const { data } = await supabase
       .from("orders")
-      .select("id,license_type,price_cents,status,license_key,created_at,is_test, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
+      .select("id,license_type,price_cents,status,license_key,created_at,is_test,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
       .eq("reseller_id", resellerId)
       .order("created_at", { ascending: false })
       .limit(1000);
@@ -1233,6 +1292,84 @@ export default function RevendedorPedidos() {
                             )}
                           </Button>
                         )}
+                        {/* Cancelamento pós-pagamento (Loja) */}
+                        {!isManual && (l!.status === "paid" || l!.status === "delivered") &&
+                          (!l!.cancellation_status || l!.cancellation_status === "none") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-[10px] font-bold border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
+                            onClick={() => openCancelForStorefront(l!)}
+                          >
+                            <Ban className="h-3 w-3 mr-1" /> Cancelar venda
+                          </Button>
+                        )}
+                        {/* Cancelamento pós-entrega (Manual/API) */}
+                        {isManual && o!.status === "completed" && !o!.is_test &&
+                          (!o!.cancellation_status || o!.cancellation_status === "none") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-[10px] font-bold border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
+                            onClick={() => openCancelForManual(o!)}
+                          >
+                            <Ban className="h-3 w-3 mr-1" /> Cancelar venda
+                          </Button>
+                        )}
+                        {/* Tags do fluxo de cancelamento */}
+                        {(() => {
+                          const cs = (isManual ? o!.cancellation_status : l!.cancellation_status) ?? "none";
+                          if (cs === "none") return null;
+                          const tags: { label: string; cls: string }[] = [];
+                          if (cs === "failed") {
+                            tags.push({ label: "Falha no cancelamento", cls: "border-rose-500/30 bg-rose-500/10 text-rose-500" });
+                          }
+                          if (cs === "pending") {
+                            tags.push({ label: "Cancelando…", cls: "border-amber-500/30 bg-amber-500/10 text-amber-500" });
+                          }
+                          if (["key_revoked", "client_refunded", "balance_refunded"].includes(cs)) {
+                            tags.push({ label: "Chave revogada", cls: "border-zinc-500/30 bg-zinc-500/10 text-zinc-400" });
+                          }
+                          if (["client_refunded", "balance_refunded"].includes(cs)) {
+                            const m = isManual ? o!.client_refund_method : l!.client_refund_method;
+                            tags.push({
+                              label: m === "auto" ? "Cliente reembolsado (PIX)" : "Cliente reembolsado",
+                              cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
+                            });
+                          }
+                          if (cs === "balance_refunded") {
+                            tags.push({ label: "Saldo estornado", cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500" });
+                          }
+                          return (
+                            <>
+                              {tags.map((t) => (
+                                <Badge key={t.label} variant="outline" className={cn("text-[9px] font-bold uppercase", t.cls)}>
+                                  {t.label}
+                                </Badge>
+                              ))}
+                            </>
+                          );
+                        })()}
+                        {/* Botão devolver saldo */}
+                        {(() => {
+                          const cs = (isManual ? o!.cancellation_status : l!.cancellation_status) ?? "none";
+                          if (cs !== "client_refunded") return null;
+                          const sid = isManual ? o!.id : l!.id;
+                          return (
+                            <Button
+                              size="sm"
+                              className="h-7 px-2 text-[10px] font-bold bg-emerald-500 text-white hover:bg-emerald-600"
+                              disabled={refundingBalanceId === sid}
+                              onClick={() => refundSaleBalance(sid, isManual ? "manual" : "storefront")}
+                            >
+                              {refundingBalanceId === sid ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <><Wallet className="h-3 w-3 mr-1" /> Devolver ao saldo</>
+                              )}
+                            </Button>
+                          );
+                        })()}
                         {isManual && (
                           <div className="shrink-0">
                             <DropdownMenu>
@@ -1395,6 +1532,18 @@ export default function RevendedorPedidos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CancelSaleDialog
+        target={cancelTarget}
+        open={!!cancelTarget}
+        onOpenChange={(v) => { if (!v) setCancelTarget(null); }}
+        onDone={() => {
+          if (resellerId) {
+            loadStorefrontLicenses(resellerId);
+            if (allOrders) loadAllOrders(); else load();
+          }
+        }}
+      />
     </div>
     </div>
   );

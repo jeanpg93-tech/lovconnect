@@ -1,79 +1,88 @@
-# Painel Financeiro Completo — `/painel/gerente/financeiro`
+# Cancelamento de venda pelo revendedor (pós-pagamento)
 
-Vou transformar o painel atual (que só lista transações do MisticPay) em um painel financeiro completo com **receita, custos, lucro, margem, gráficos e lançamentos manuais**.
+Recapitulando sua lógica, passada a limpo, com os pontos que eu validei no código atual e os detalhes operacionais que precisam ficar combinados.
 
-## 1. Origens dos dados (o que já existe)
-
-| Conceito | Fonte | Campo |
-|---|---|---|
-| **Receita (entrada)** | `recharge_intents` `status='paid'` | `amount_cents` |
-| **Custo recargas (saída)** | `reseller_credit_purchases` | `cost_cents` |
-| **Custo vendas loja** | `storefront_orders` (product_type='credits' e status pago/entregue) | `cost_cents` |
-| **Taxa gateway MisticPay** | Calculado | R$ 0,50 × nº de recargas pagas |
-| **Licenças** | Ignorado por enquanto (custo zero) | — |
-
-Os dois `cost_cents` já são salvos historicamente na venda → não preciso recalcular, é confiável.
-
-## 2. Lançamentos manuais (novo)
-
-Você quer poder lançar **vendas por fora** e **gastos avulsos** (software, taxas, atualizações, etc). Vou criar duas tabelas:
-
-- `manual_financial_entries` — uma única tabela com tipo `revenue` ou `expense`, descrição, valor, categoria opcional, data do lançamento e quem lançou.
-
-Só gerentes podem ver/criar/editar/excluir (RLS via `has_role gerente`).
-
-## 3. UI do novo painel
-
-Mantém o filtro de período (Tudo / Hoje / 7 dias / Mês) e organiza em **abas**:
-
-### Aba "Visão Geral" (padrão)
-- **6 cards no topo:**
-  - 💰 Receita Total (recargas + manuais) — verde
-  - 💸 Custo Total (créditos vendidos + gateway + manuais) — vermelho
-  - 📈 Lucro Líquido (Receita − Custo) — destaque
-  - 📊 Margem % (Lucro / Receita)
-  - 🧾 Qtde. Recargas
-  - 🛒 Qtde. Vendas
-- **Gráfico de linha** (Recharts): Receita vs Custo vs Lucro ao longo do tempo (diário/semanal/mensal conforme período).
-- **Breakdown** em barras: Custo dividido em `Créditos vendidos`, `Taxa gateway`, `Gastos manuais`.
-- **Top 5 revendedores** por lucro gerado (tabela compacta).
-
-### Aba "Transações"
-- A listagem MisticPay atual, intacta (não mexo).
-
-### Aba "Lançamentos Manuais"
-- Lista todos os lançamentos manuais (receitas + despesas) com filtro por tipo.
-- Botão **"+ Novo lançamento"** abre modal com: tipo (Receita/Despesa), descrição, valor, categoria (texto livre), data.
-- Cada linha tem editar/excluir.
-
-## 4. Detalhes técnicos
-
-- **Nenhuma alteração** em valores, custos, pacotes ou licenças (conforme você pediu).
-- Nova tabela `manual_financial_entries` com migration + RLS.
-- Reaproveita o `recharges` query que já existe em `GerenteFinanceiroGeral.tsx`.
-- Adiciona query agregada de `storefront_orders` e `reseller_credit_purchases` (somando `cost_cents`).
-- Componente de gráfico usando `recharts` (já no projeto via shadcn `Chart`).
-- Modal com `Dialog` + `react-hook-form` + `zod` (padrão do projeto).
-
-## 5. Estrutura de arquivos
+## Visão geral do fluxo
 
 ```text
-src/pages/painel/GerenteFinanceiroGeral.tsx  (refatorado em abas)
-src/components/painel/financeiro/
-  ├─ FinanceiroVisaoGeral.tsx          (cards + gráficos)
-  ├─ FinanceiroTransacoes.tsx          (lista MisticPay atual)
-  ├─ FinanceiroLancamentosManuais.tsx  (CRUD)
-  └─ ManualEntryDialog.tsx             (modal criar/editar)
-src/hooks/useFinancialOverview.ts      (busca + agrega receita/custo)
-src/hooks/useManualEntries.ts          (CRUD manuais)
+Revendedor clica "Cancelar venda"
+        │
+        ▼
+1) REVOGAR CHAVE  ───── falhou? ──► para tudo, alerta gerente, nada de estorno
+        │ ok
+        ▼
+2) ESTORNO AO CLIENTE  (modal com 2 caminhos)
+   ├─ Automático via MisticPay (se saque habilitado)
+   │     cliente informa chave PIX → cash-out → desconta da MisticPay do revendedor
+   └─ Manual (saque não habilitado OU revendedor escolheu)
+         revendedor combina por fora e marca "cliente reembolsado"
+        │
+        ▼
+3) Botão "Reembolsar meu saldo" fica habilitado
+        │
+        ▼
+4) Saldo do painel volta pro revendedor (crédito do que foi debitado na venda)
 ```
 
-## 6. Confirmação antes de implementar
+Regra de ouro: **etapa 2 e 4 só rodam se a etapa 1 deu certo.** Se a revogação falhar, a venda fica travada em "cancelamento pendente" e cai pro gerente resolver — nada de devolver saldo enquanto a chave ainda estiver ativa, senão o revendedor pode resetar e revender.
 
-Posso prosseguir? Vou:
-1. Criar a migration da tabela `manual_financial_entries`.
-2. Refatorar a página em abas mantendo o que já existe na aba "Transações".
-3. Adicionar Visão Geral com cards, gráfico e top revendedores.
-4. Adicionar CRUD de lançamentos manuais.
+## Etapas detalhadas
 
-Sem tocar em preços, pacotes, licenças ou qualquer outra parte do sistema.
+### 1. Revogação da chave (sempre primeiro)
+- Chama o provedor da extensão e revoga a chave.
+- Marca a venda como `cancellation_pending` + `key_revoked_at`.
+- Se falhar: status vira `cancellation_failed`, dispara notificação pro gerente (Telegram + tela de Estornos), e bloqueia os botões de estorno/refund de saldo até alguém resolver manualmente.
+
+### 2. Estorno ao cliente — modal com checagem da MisticPay
+Ao clicar em "Cancelar venda", o sistema consulta a MisticPay do revendedor (`/api/users/info` com as credenciais dele) e decide o que mostrar no modal:
+
+**Caso A — Saque habilitado na MisticPay do revendedor**
+- Modal explica: "Você pode reembolsar o cliente automaticamente. O valor sai direto da sua conta MisticPay."
+- Pede a **chave PIX do cliente** (CPF / e-mail / telefone / aleatória) + confirmação.
+- Dispara cash-out via MisticPay → marca venda como `refunded_auto` com o `endToEndId` retornado.
+- Se o cash-out falhar (saldo MisticPay insuficiente, chave inválida, etc.), mostra o erro e oferece cair pro fluxo manual.
+
+**Caso B — Saque NÃO habilitado**
+- Modal explica o que falta na MisticPay e como habilitar (verificação de conta + liberar saque), com link/ instruções.
+- Oferece o botão "Já reembolsei o cliente por fora" → marca venda como `refunded_manual` + timestamp + (opcional) campo de observação/comprovante.
+- Tag "Cliente reembolsado" aparece no card da venda.
+
+### 3. Botão "Reembolsar meu saldo"
+- Só aparece quando: `key_revoked_at IS NOT NULL` **E** (`refunded_auto` OU `refunded_manual`).
+- Texto: "Devolver para o meu saldo do painel o valor desta venda".
+- Mostra quanto vai voltar (o custo que foi debitado na venda original).
+
+### 4. Crédito do saldo do painel
+- Ao confirmar, credita o `cost_cents` original de volta em `reseller_balances` via `credit_reseller_balance(..., 'order_refund', ...)`.
+- Status final da venda: `cancelled_refunded`.
+- Aparece no extrato do revendedor como "Estorno de venda #XXXXX".
+- Dispara notificação Telegram (já existe trigger pra `order_refund`).
+
+## O que muda no banco
+
+- `storefront_orders`: novas colunas
+  - `cancellation_status` (`none | pending | key_revoked | client_refunded | balance_refunded | failed`)
+  - `key_revoked_at`, `client_refund_method` (`auto | manual`), `client_refunded_at`
+  - `client_refund_pix_key`, `client_refund_endtoend_id` (quando automático)
+  - `balance_refunded_at`
+- `orders` (vendas de licença feitas pelo painel/API): mesmas colunas equivalentes.
+
+## O que muda no código
+
+- **Edge function nova `cancel-order`**: orquestra revogar chave → (opcional) cash-out MisticPay → atualizar status. Não credita saldo.
+- **Edge function nova `refund-order-balance`**: valida pré-condições e credita o saldo.
+- **Edge function nova `check-misticpay-withdraw`**: consulta se o saque do revendedor está liberado (usada pelo modal).
+- **UI no painel do revendedor** (lista de vendas / detalhe da venda):
+  - Botão "Cancelar venda" nas vendas `paid`/`delivered`.
+  - Modal com os dois caminhos (auto / manual) baseado na checagem.
+  - Botão "Reembolsar meu saldo" condicionado às etapas anteriores.
+  - Tags visuais: "Chave revogada", "Cliente reembolsado", "Saldo estornado".
+
+## Pontos que dependem de decisão sua
+
+1. **Janela de tempo**: cancelar para sempre, ou limitar (ex: 7/30 dias após pagamento)?
+2. **Vendas pela API do revendedor (não-storefront)**: aplicar o mesmo fluxo? (recomendo sim, com webhook `order.refunded` que já existe.)
+3. **Comprovante no manual**: exigir upload de print/comprovante PIX, ou só checkbox de confirmação?
+4. **Se cash-out automático falhar no meio**: cair automaticamente pro manual ou só mostrar erro e deixar o revendedor decidir?
+
+Se você confirmar (ou ajustar) esses 4 pontos, eu já mando a migration + as edge functions + a UI.
