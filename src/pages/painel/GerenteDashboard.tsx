@@ -401,6 +401,7 @@ export default function GerenteDashboard() {
       customer_whatsapp?: string | null;
       detail?: string | null;
       ref_short?: string | null;
+      ref_full?: string | null;
       ref_created_at?: string | null;
       ref_kind?: 'license' | 'credit' | null;
       license_type?: string | null;
@@ -429,6 +430,7 @@ export default function GerenteDashboard() {
         customer_whatsapp: o.customer?.whatsapp ?? null,
         detail: describeLic(o.license_type) + (o.is_test ? " (teste)" : ""),
         ref_short: o.id ? String(o.id).slice(0, 8).toUpperCase() : null,
+        ref_full: o.id ?? null,
         ref_created_at: o.created_at ?? null,
         ref_kind: 'license',
         license_type: o.license_type ?? null,
@@ -443,6 +445,7 @@ export default function GerenteDashboard() {
         customer_whatsapp: c.customer_whatsapp ?? null,
         detail: `Recarga • ${c.credits} crédito${c.credits === 1 ? "" : "s"}`,
         ref_short: c.id ? String(c.id).slice(0, 8).toUpperCase() : null,
+        ref_full: c.id ?? null,
         ref_created_at: c.created_at ?? null,
         ref_kind: 'credit',
         credits: c.credits ?? null,
@@ -483,6 +486,7 @@ export default function GerenteDashboard() {
           customer_whatsapp: enrich?.customer_whatsapp ?? null,
           detail,
           ref_short: enrich?.ref_short ?? (m.reference_id ? String(m.reference_id).slice(0, 8).toUpperCase() : null),
+          ref_full: enrich?.ref_full ?? m.reference_id ?? null,
           ref_created_at: enrich?.ref_created_at ?? null,
           ref_kind: enrich?.ref_kind ?? null,
           license_type: enrich?.license_type ?? null,
