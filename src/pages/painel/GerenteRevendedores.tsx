@@ -19,7 +19,7 @@ type Reseller = {
   id: string; user_id: string; display_name: string; slug: string; is_active: boolean; test_keys_used_today: number; test_keys_per_day_override: number | null;
 };
 type Profile = { id: string; email: string; display_name: string | null; phone: string | null; is_banned: boolean | null };
-type Tier = { id: string; name: string; color: string; min_spent_cents: number; is_active: boolean; is_hidden: boolean; test_keys_per_day: number };
+type Tier = { id: string; name: string; color: string; min_spent_cents: number; is_active: boolean; is_hidden: boolean; test_keys_per_day: number; sort_order: number };
 type State = { reseller_id: string; total_spent_cents: number; forced_tier_id: string | null };
 
 const slugify = (s: string) =>
@@ -240,7 +240,17 @@ export default function GerenteRevendedores() {
       return tiers.find((t) => t.id === st.forced_tier_id) ?? null;
     }
     const eligible = tiers.filter((t) => t.is_active && !t.is_hidden && t.min_spent_cents <= spent);
-    return eligible.sort((a, b) => b.min_spent_cents - a.min_spent_cents)[0] ?? null;
+    const calculated = eligible.sort((a, b) => b.min_spent_cents - a.min_spent_cents)[0] ?? null;
+    // Aplica bonus_min_tier_id como piso mínimo
+    const reseller = resellers.find((r) => r.id === resellerId);
+    const bonusId = (reseller as any)?.bonus_min_tier_id;
+    if (bonusId) {
+      const bonus = tiers.find((t) => t.id === bonusId && t.is_active) ?? null;
+      if (bonus && (!calculated || (bonus.sort_order ?? 0) > (calculated.sort_order ?? -1))) {
+        return bonus;
+      }
+    }
+    return calculated;
   };
 
   const tierProgressFor = (resellerId: string) => {
