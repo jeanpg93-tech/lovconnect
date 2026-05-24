@@ -382,6 +382,28 @@ const Auth = () => {
                       >
                         ::obter convite
                       </button>
+                      {codeLookup.status === "checking" && (
+                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          verificando código...
+                        </div>
+                      )}
+                      {codeLookup.status === "ok" && (
+                        <div className="flex items-center gap-2 border border-primary/30 bg-primary/5 px-3 py-2 text-[10px] uppercase tracking-[0.15em] text-primary">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />
+                          {codeLookup.type === "reseller" ? (
+                            <span>indicado por :: <span className="font-bold text-foreground">{codeLookup.label}</span></span>
+                          ) : (
+                            <span>campanha :: <span className="font-bold text-foreground">{codeLookup.label}</span></span>
+                          )}
+                        </div>
+                      )}
+                      {codeLookup.status === "invalid" && (
+                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] text-destructive">
+                          <AlertTriangle className="h-3 w-3" />
+                          código inválido ou expirado
+                        </div>
+                      )}
                     </div>
                     <Button type="submit" disabled={loading} className="w-full rounded-none border border-primary/60 bg-transparent h-12 text-[11px] font-bold uppercase tracking-[0.3em] text-foreground hover:bg-primary/10 hover:shadow-[0_0_20px_hsl(var(--primary)/0.3)]">
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Solicitar Registro"}
