@@ -14,6 +14,115 @@ export type Database = {
   }
   public: {
     Tables: {
+      activation_logs: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event: string
+          id: string
+          metadata: Json | null
+          reseller_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event: string
+          id?: string
+          metadata?: Json | null
+          reseller_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event?: string
+          id?: string
+          metadata?: Json | null
+          reseller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activation_logs_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activation_payments: {
+        Row: {
+          activated_at: string | null
+          amount_cents: number
+          copy_paste: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          paid_at: string | null
+          proof_note: string | null
+          proof_url: string | null
+          provider: string
+          provider_transaction_id: string | null
+          qr_code_base64: string | null
+          raw_response: Json | null
+          reseller_id: string
+          reviewed_at: string | null
+          reviewer_id: string | null
+          reviewer_note: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          amount_cents?: number
+          copy_paste?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          paid_at?: string | null
+          proof_note?: string | null
+          proof_url?: string | null
+          provider?: string
+          provider_transaction_id?: string | null
+          qr_code_base64?: string | null
+          raw_response?: Json | null
+          reseller_id: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          amount_cents?: number
+          copy_paste?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          paid_at?: string | null
+          proof_note?: string | null
+          proof_url?: string | null
+          provider?: string
+          provider_transaction_id?: string | null
+          qr_code_base64?: string | null
+          raw_response?: Json | null
+          reseller_id?: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activation_payments_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_audit_logs: {
         Row: {
           action: string
@@ -2347,6 +2456,7 @@ export type Database = {
       }
       resellers: {
         Row: {
+          activation_status: string
           bonus_min_tier_id: string | null
           created_at: string
           display_name: string
@@ -2360,6 +2470,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          activation_status?: string
           bonus_min_tier_id?: string | null
           created_at?: string
           display_name: string
@@ -2373,6 +2484,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          activation_status?: string
           bonus_min_tier_id?: string | null
           created_at?: string
           display_name?: string
@@ -2829,6 +2941,10 @@ export type Database = {
     }
     Functions: {
       _slugify_simple: { Args: { _s: string }; Returns: string }
+      activate_reseller: {
+        Args: { _actor_id?: string; _payment_id?: string; _reseller_id: string }
+        Returns: undefined
+      }
       add_referral_commission: {
         Args: { _amount_cents: number; _referral_id: string }
         Returns: undefined
@@ -2937,6 +3053,7 @@ export type Database = {
         Args: { _reseller_id: string }
         Returns: undefined
       }
+      is_reseller_active: { Args: { _user_id: string }; Returns: boolean }
       lookup_affiliate_code: { Args: { _code: string }; Returns: Json }
       mark_all_notifications_read: { Args: never; Returns: undefined }
       reject_user: { Args: { _user_id: string }; Returns: undefined }
