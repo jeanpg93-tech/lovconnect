@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
     // Busca as compras a sincronizar (dono = reseller atual, status em aberto)
     let q = admin
       .from('reseller_credit_purchases')
-      .select('id, provider_pedido_id, status, tipo_entrega');
+      .select('id, provider_pedido_id, status, tipo_entrega, cancellation_status');
     if (!isGerente && resellerId) {
       q = q.eq('reseller_id', resellerId);
     }
@@ -158,6 +158,8 @@ Deno.serve(async (req) => {
     } else {
       q = q.in('status', Array.from(OPEN_LOCAL_STATUSES)).limit(50);
     }
+    // Nunca sincronizar compras já em fluxo de cancelamento — evita sobrescrever status após cancel-credit-recharge.
+    q = q.eq('cancellation_status', 'none');
     const { data: purchases, error: pErr } = await q;
     if (pErr) {
       return new Response(JSON.stringify({ error: pErr.message }), {
@@ -209,7 +211,8 @@ Deno.serve(async (req) => {
               error_message: mapped.errorMessage,
               updated_at: new Date().toISOString(),
             })
-            .eq('id', p.id);
+            .eq('id', p.id)
+            .eq('cancellation_status', 'none');
           if (!uErr) {
             updated++;
             results.push({ id: p.id, status: mapped.status, changed: true });

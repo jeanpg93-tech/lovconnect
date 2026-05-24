@@ -171,12 +171,18 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Marca início do cancelamento
-  await svc.from(table).update({
+  // Marca início do cancelamento (guarda contra race: só se ainda 'none')
+  const { data: lockRow, error: lockErr } = await svc.from(table).update({
     cancellation_status: "pending",
     cancelled_at: new Date().toISOString(),
     cancelled_by: userId,
-  }).eq("id", sale.id);
+  }).eq("id", sale.id).eq("cancellation_status", "none").select("id").maybeSingle();
+  if (lockErr || !lockRow) {
+    return json({
+      error: "race_condition",
+      message: "Esta recarga já entrou em outro fluxo de cancelamento — recarregue a página.",
+    }, 409);
+  }
 
   // ============= REEMBOLSO AO CLIENTE =============
   if (refund_method === "manual") {
