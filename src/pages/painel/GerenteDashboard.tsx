@@ -827,11 +827,12 @@ export default function GerenteDashboard() {
                       else groups.push({ label: lbl, items: [m] });
                     });
                     const kindLabels: Record<string, string> = {
-                      deposit: "Depósito", recharge: "Recargas", bonus: "Bônus", refund: "Estorno",
-                      adjustment: "Ajuste", license_purchase: "Compra licença", credit_purchase: "Compra recargas",
-                      order: "Pedido", debit: "Débito", order_debit: "Pedido",
-                      manual_credit: "Recarga manual", credit_purchase_refund: "Estorno compra",
-                      credit_recharge_api: "Recargas API",
+                      deposit: "Depósito de Saldo", recharge: "Depósito PIX", bonus: "Bônus", refund: "Estorno",
+                      adjustment: "Ajuste Manual", license_purchase: "Venda de Licença", credit_purchase: "Venda de Recargas",
+                      order: "Pedido", debit: "Débito", order_debit: "Venda",
+                      manual_credit: "Depósito Manual", credit_purchase_refund: "Estorno de Recargas",
+                      license_purchase_refund: "Estorno de Licença",
+                      credit_recharge_api: "Recargas via API",
                     };
                     return groups.map((g) => (
                       <div key={g.label} className="space-y-2">
