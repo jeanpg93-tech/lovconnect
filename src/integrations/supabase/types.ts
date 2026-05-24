@@ -992,6 +992,48 @@ export type Database = {
           },
         ]
       }
+      partner_price_history: {
+        Row: {
+          action: string
+          changed_by: string | null
+          changed_by_name: string | null
+          created_at: string
+          id: string
+          kind: string
+          new_price_cents: number | null
+          note: string | null
+          old_price_cents: number | null
+          pack_key: string
+          reseller_id: string
+        }
+        Insert: {
+          action: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          new_price_cents?: number | null
+          note?: string | null
+          old_price_cents?: number | null
+          pack_key: string
+          reseller_id: string
+        }
+        Update: {
+          action?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          new_price_cents?: number | null
+          note?: string | null
+          old_price_cents?: number | null
+          pack_key?: string
+          reseller_id?: string
+        }
+        Relationships: []
+      }
       pending_storefront_charges: {
         Row: {
           attempted_at: string | null
