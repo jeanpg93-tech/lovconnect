@@ -22,6 +22,8 @@ type Affiliate = {
   is_active: boolean;
   expires_at: string | null;
   created_at: string;
+  owner_reseller_id: string | null;
+  owner_name?: string | null;
 };
 
 type ReferralRow = {
@@ -55,6 +57,8 @@ export default function GerenteAffiliados() {
   const [refs, setRefs] = useState<ReferralRow[]>([]);
   const [refsLoading, setRefsLoading] = useState(true);
   const [refSearch, setRefSearch] = useState("");
+  const [codeFilter, setCodeFilter] = useState<"all" | "reseller" | "campaign">("all");
+  const [codeSearch, setCodeSearch] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -63,7 +67,17 @@ export default function GerenteAffiliados() {
       .select("*")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
-    setList((data ?? []) as Affiliate[]);
+    const rows = (data ?? []) as Affiliate[];
+    const ownerIds = Array.from(new Set(rows.map((r) => r.owner_reseller_id).filter(Boolean))) as string[];
+    if (ownerIds.length > 0) {
+      const { data: owners } = await supabase
+        .from("resellers")
+        .select("id, display_name")
+        .in("id", ownerIds);
+      const byId = new Map((owners ?? []).map((o: any) => [o.id, o.display_name]));
+      rows.forEach((r) => { r.owner_name = r.owner_reseller_id ? (byId.get(r.owner_reseller_id) ?? null) : null; });
+    }
+    setList(rows);
     setLoading(false);
   };
 
@@ -174,6 +188,20 @@ export default function GerenteAffiliados() {
     totalUses: list.reduce((s, l) => s + (l.uses ?? 0), 0),
   };
 
+  const filteredCodes = list.filter((a) => {
+    if (codeFilter === "reseller" && !a.owner_reseller_id) return false;
+    if (codeFilter === "campaign" && a.owner_reseller_id) return false;
+    if (codeSearch.trim()) {
+      const q = codeSearch.toLowerCase();
+      if (
+        !a.code.toLowerCase().includes(q) &&
+        !(a.label ?? "").toLowerCase().includes(q) &&
+        !(a.owner_name ?? "").toLowerCase().includes(q)
+      ) return false;
+    }
+    return true;
+  });
+
   const fmtBRL = (cents: number) =>
     (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const fmtDate = (iso: string) =>
@@ -225,15 +253,46 @@ export default function GerenteAffiliados() {
         <StatCard label="Conversões" value={stats.totalUses} icon={Users} hint="Cadastros gerados" />
           </div>
 
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="inline-flex rounded-xl border border-border bg-card p-1">
+              {[
+                { v: "all" as const, label: "Todos", count: list.length },
+                { v: "reseller" as const, label: "Revendedor", count: list.filter((l) => l.owner_reseller_id).length },
+                { v: "campaign" as const, label: "Campanha", count: list.filter((l) => !l.owner_reseller_id).length },
+              ].map((opt) => (
+                <button
+                  key={opt.v}
+                  onClick={() => setCodeFilter(opt.v)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    codeFilter === opt.v
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {opt.label} <span className="opacity-60">({opt.count})</span>
+                </button>
+              ))}
+            </div>
+            <div className="relative sm:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={codeSearch}
+                onChange={(e) => setCodeSearch(e.target.value)}
+                placeholder="Buscar código, descrição, dono…"
+                className="pl-9 h-10 rounded-xl bg-card"
+              />
+            </div>
+          </div>
+
       <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex h-32 items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
           </div>
-        ) : list.length === 0 ? (
+        ) : filteredCodes.length === 0 ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
             <Tag className="mx-auto mb-2 h-8 w-8 opacity-40" />
-            Nenhum código de afiliado criado ainda.
+            {list.length === 0 ? "Nenhum código de afiliado criado ainda." : "Nenhum código encontrado com esses filtros."}
           </div>
         ) : (
           <>
@@ -242,6 +301,7 @@ export default function GerenteAffiliados() {
                 <thead className="border-b border-white/5 text-[10px] uppercase tracking-widest text-muted-foreground/80">
                   <tr>
                     <th className="px-4 py-3 text-left font-bold">Código</th>
+                    <th className="px-4 py-3 text-left font-bold">Tipo / Dono</th>
                     <th className="px-4 py-3 text-left font-bold">Descrição</th>
                     <th className="px-4 py-3 text-center font-bold">Usos</th>
                     <th className="px-4 py-3 text-center font-bold">Ativo</th>
@@ -249,7 +309,7 @@ export default function GerenteAffiliados() {
                   </tr>
                 </thead>
                 <tbody>
-                  {list.map((a) => {
+                  {filteredCodes.map((a) => {
                     const exhausted = a.max_uses != null && a.uses >= a.max_uses;
                     return (
                       <tr key={a.id} className="border-b border-white/5 last:border-0 hover:bg-white/5">
@@ -262,6 +322,16 @@ export default function GerenteAffiliados() {
                             {exhausted && <Badge variant="destructive" className="text-[10px]">esgotado</Badge>}
                           </div>
                         </td>
+                        <td className="px-4 py-3">
+                          {a.owner_reseller_id ? (
+                            <div className="flex flex-col gap-0.5">
+                              <Badge variant="secondary" className="w-fit text-[10px] gap-1"><Users className="h-2.5 w-2.5" /> Revendedor</Badge>
+                              <span className="text-xs text-muted-foreground">{a.owner_name ?? "—"}</span>
+                            </div>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] gap-1 border-primary/40 text-primary"><Sparkles className="h-2.5 w-2.5" /> Campanha</Badge>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-muted-foreground">{a.label ?? "—"}</td>
                         <td className="px-4 py-3 text-center font-mono text-xs">
                           {a.uses}{a.max_uses != null ? ` / ${a.max_uses}` : ""}
@@ -271,7 +341,7 @@ export default function GerenteAffiliados() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end">
-                            <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(a)}>
+                            <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(a)} disabled={!!a.owner_reseller_id} title={a.owner_reseller_id ? "Códigos automáticos de revendedor não podem ser removidos" : undefined}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
@@ -284,7 +354,7 @@ export default function GerenteAffiliados() {
             </div>
 
             <div className="md:hidden divide-y divide-white/5">
-              {list.map((a) => {
+              {filteredCodes.map((a) => {
                 const exhausted = a.max_uses != null && a.uses >= a.max_uses;
                 return (
                   <div key={a.id} className="p-4 space-y-3">
@@ -296,6 +366,14 @@ export default function GerenteAffiliados() {
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
+                        {a.owner_reseller_id ? (
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="text-[10px] gap-1"><Users className="h-2.5 w-2.5" /> Revendedor</Badge>
+                            <span className="text-[11px] text-muted-foreground truncate">{a.owner_name ?? "—"}</span>
+                          </div>
+                        ) : (
+                          <Badge variant="outline" className="w-fit text-[10px] gap-1 border-primary/40 text-primary"><Sparkles className="h-2.5 w-2.5" /> Campanha</Badge>
+                        )}
                         {a.label && <p className="text-xs text-muted-foreground">{a.label}</p>}
                       </div>
                       <Switch checked={a.is_active} onCheckedChange={() => toggleActive(a)} />
@@ -306,7 +384,7 @@ export default function GerenteAffiliados() {
                       </span>
                       <div className="flex items-center gap-2">
                         {exhausted && <Badge variant="destructive" className="text-[10px]">esgotado</Badge>}
-                        <Button size="sm" variant="ghost" className="text-destructive h-7 px-2" onClick={() => remove(a)}>
+                        <Button size="sm" variant="ghost" className="text-destructive h-7 px-2" onClick={() => remove(a)} disabled={!!a.owner_reseller_id}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
