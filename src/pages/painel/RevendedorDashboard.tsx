@@ -7,6 +7,7 @@ import { PageHeader, StatCard } from "@/components/painel/PageHeader";
 import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
 import { usePricingIssues } from "@/hooks/usePricingIssues";
 import { Button } from "@/components/ui/button";
+import { WhatsAppFloatingButtons } from "@/components/WhatsAppFloatingButtons";
 import {
   Users,
   Package,
@@ -779,6 +780,7 @@ export default function RevendedorDashboard() {
       </section>
 
     </div>
+    
   );
 }
 
