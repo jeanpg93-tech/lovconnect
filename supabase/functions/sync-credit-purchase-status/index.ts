@@ -211,7 +211,8 @@ Deno.serve(async (req) => {
               error_message: mapped.errorMessage,
               updated_at: new Date().toISOString(),
             })
-            .eq('id', p.id);
+            .eq('id', p.id)
+            .eq('cancellation_status', 'none');
           if (!uErr) {
             updated++;
             results.push({ id: p.id, status: mapped.status, changed: true });
