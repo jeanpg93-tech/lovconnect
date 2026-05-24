@@ -1408,6 +1408,18 @@ export default function RevendedorPedidos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CancelSaleDialog
+        target={cancelTarget}
+        open={!!cancelTarget}
+        onOpenChange={(v) => { if (!v) setCancelTarget(null); }}
+        onDone={() => {
+          if (resellerId) {
+            loadStorefrontLicenses(resellerId);
+            if (allOrders) loadAllOrders(); else load();
+          }
+        }}
+      />
     </div>
     </div>
   );
