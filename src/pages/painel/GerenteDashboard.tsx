@@ -915,9 +915,25 @@ export default function GerenteDashboard() {
                                    {(m.ref_short || m.ref_created_at) && (
                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] pt-0.5 font-mono">
                                        {m.ref_short && (
-                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground/70 border border-border">
+                                         <button
+                                           type="button"
+                                           onClick={(e) => {
+                                             e.preventDefault();
+                                             e.stopPropagation();
+                                             const full = String(m.kind === 'license_purchase_refund' || m.kind === 'credit_purchase_refund' || /refund|estorno/i.test(String(m.kind))
+                                               ? '' : '') + (m.ref_short ?? '');
+                                             // Copia o ID completo quando disponível via reference
+                                             const toCopy = (m as any).ref_full || m.ref_short || '';
+                                             navigator.clipboard?.writeText(toCopy).then(
+                                               () => toast({ title: "ID copiado", description: toCopy }),
+                                               () => toast({ title: "Falha ao copiar", variant: "destructive" as any })
+                                             );
+                                           }}
+                                           title="Clique para copiar o ID completo"
+                                           className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground/70 border border-border hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                                         >
                                            {isRefund ? 'venda' : 'id'} #{m.ref_short}
-                                         </span>
+                                         </button>
                                        )}
                                        {isRefund && m.ref_created_at && (
                                          <span className="text-muted-foreground/70">
