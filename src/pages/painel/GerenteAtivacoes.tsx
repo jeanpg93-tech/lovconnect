@@ -71,7 +71,7 @@ export default function GerenteAtivacoes() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Ativações de Painel" subtitle="Aprove ou recuse pagamentos enviados por revendedores." />
+      <PageHeader title="Ativações de Painel" description="Aprove ou recuse pagamentos enviados por revendedores." />
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{rows.length} registro(s)</span>
         <Button size="sm" variant="outline" onClick={load}><RefreshCcw className="mr-1.5 h-3.5 w-3.5" /> atualizar</Button>
