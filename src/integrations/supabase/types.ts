@@ -867,7 +867,16 @@ export type Database = {
       orders: {
         Row: {
           api_key_id: string | null
+          balance_refunded_at: string | null
+          cancellation_status: string
+          cancelled_at: string | null
+          cancelled_by: string | null
           client_id: string | null
+          client_refund_endtoend_id: string | null
+          client_refund_error: string | null
+          client_refund_method: string | null
+          client_refund_pix_key: string | null
+          client_refunded_at: string | null
           created_at: string
           credit_amount: number | null
           customer_id: string | null
@@ -876,6 +885,8 @@ export type Database = {
           id: string
           is_legacy: boolean
           is_test: boolean
+          key_revoke_error: string | null
+          key_revoked_at: string | null
           license_key: string | null
           license_type: string
           notes: string | null
@@ -888,7 +899,16 @@ export type Database = {
         }
         Insert: {
           api_key_id?: string | null
+          balance_refunded_at?: string | null
+          cancellation_status?: string
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_id?: string | null
+          client_refund_endtoend_id?: string | null
+          client_refund_error?: string | null
+          client_refund_method?: string | null
+          client_refund_pix_key?: string | null
+          client_refunded_at?: string | null
           created_at?: string
           credit_amount?: number | null
           customer_id?: string | null
@@ -897,6 +917,8 @@ export type Database = {
           id?: string
           is_legacy?: boolean
           is_test?: boolean
+          key_revoke_error?: string | null
+          key_revoked_at?: string | null
           license_key?: string | null
           license_type: string
           notes?: string | null
@@ -909,7 +931,16 @@ export type Database = {
         }
         Update: {
           api_key_id?: string | null
+          balance_refunded_at?: string | null
+          cancellation_status?: string
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_id?: string | null
+          client_refund_endtoend_id?: string | null
+          client_refund_error?: string | null
+          client_refund_method?: string | null
+          client_refund_pix_key?: string | null
+          client_refunded_at?: string | null
           created_at?: string
           credit_amount?: number | null
           customer_id?: string | null
@@ -918,6 +949,8 @@ export type Database = {
           id?: string
           is_legacy?: boolean
           is_test?: boolean
+          key_revoke_error?: string | null
+          key_revoked_at?: string | null
           license_key?: string | null
           license_type?: string
           notes?: string | null
@@ -2245,8 +2278,17 @@ export type Database = {
       }
       storefront_orders: {
         Row: {
+          balance_refunded_at: string | null
           buyer_name: string
           buyer_whatsapp: string
+          cancellation_status: string
+          cancelled_at: string | null
+          cancelled_by: string | null
+          client_refund_endtoend_id: string | null
+          client_refund_error: string | null
+          client_refund_method: string | null
+          client_refund_pix_key: string | null
+          client_refunded_at: string | null
           copy_paste: string | null
           cost_cents: number | null
           created_at: string
@@ -2258,6 +2300,8 @@ export type Database = {
           id: string
           invite_link: string | null
           is_legacy: boolean
+          key_revoke_error: string | null
+          key_revoked_at: string | null
           license_key: string | null
           license_type: string
           paid_at: string | null
@@ -2273,8 +2317,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          balance_refunded_at?: string | null
           buyer_name: string
           buyer_whatsapp: string
+          cancellation_status?: string
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_refund_endtoend_id?: string | null
+          client_refund_error?: string | null
+          client_refund_method?: string | null
+          client_refund_pix_key?: string | null
+          client_refunded_at?: string | null
           copy_paste?: string | null
           cost_cents?: number | null
           created_at?: string
@@ -2286,6 +2339,8 @@ export type Database = {
           id?: string
           invite_link?: string | null
           is_legacy?: boolean
+          key_revoke_error?: string | null
+          key_revoked_at?: string | null
           license_key?: string | null
           license_type: string
           paid_at?: string | null
@@ -2301,8 +2356,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          balance_refunded_at?: string | null
           buyer_name?: string
           buyer_whatsapp?: string
+          cancellation_status?: string
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_refund_endtoend_id?: string | null
+          client_refund_error?: string | null
+          client_refund_method?: string | null
+          client_refund_pix_key?: string | null
+          client_refunded_at?: string | null
           copy_paste?: string | null
           cost_cents?: number | null
           created_at?: string
@@ -2314,6 +2378,8 @@ export type Database = {
           id?: string
           invite_link?: string | null
           is_legacy?: boolean
+          key_revoke_error?: string | null
+          key_revoked_at?: string | null
           license_key?: string | null
           license_type?: string
           paid_at?: string | null
