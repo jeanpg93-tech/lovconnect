@@ -1547,6 +1547,16 @@ export default function RevendedorRecargas() {
                         );
                         const isLojaPending = !isManual && o!.status === "pending" && !o!.paid_at;
                         const isManualPending = isManual && ["aguardando", "pending", "processando"].includes(String(c!.status));
+                        const cancStatus = String((isManual ? c!.cancellation_status : o!.cancellation_status) ?? "none");
+                        const rechargeKey = `${isManual ? "manual" : "storefront"}:${rowId}`;
+                        // Janela de cancelamento PÓS-pagamento (antes da entrega começar)
+                        const isPaidStorefrontCancellable =
+                          !isManual && o!.status === "paid" && cancStatus === "none";
+                        const isManualCancellable = isManualPending && cancStatus === "none";
+                        const canOpenCancelDialog = isPaidStorefrontCancellable || isManualCancellable;
+                        const isAwaitingBalanceRefund = cancStatus === "client_refunded";
+                        const balanceAlreadyRefunded = cancStatus === "balance_refunded";
+                        const cancellationInFlight = cancStatus === "pending";
                         return (
                           <div
                             key={item.key}
@@ -1675,20 +1685,55 @@ export default function RevendedorRecargas() {
                                 )}
                               </Button>
                             )}
-                            {isManualPending && (
+                            {canOpenCancelDialog && (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="h-7 px-2 text-[10px] font-bold border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
-                                disabled={cancellingCreditPurchaseId === rowId}
-                                onClick={() => cancelCreditPurchase(rowId)}
+                                onClick={() => {
+                                  setCancelRechargeTarget({
+                                    sale_id: rowId,
+                                    sale_type: isManual ? "manual" : "storefront",
+                                    label: isManual
+                                      ? `#${String(rowId).slice(0, 8)}`
+                                      : `#${o!.short_code ?? String(rowId).slice(0, 8)}`,
+                                    price_cents: item.price_cents,
+                                    cost_cents: isManual
+                                      ? item.price_cents
+                                      : Number(item.cost_cents ?? item.price_cents),
+                                    credits: item.credits,
+                                  });
+                                  setCancelRechargeOpen(true);
+                                }}
                               >
-                                {cancellingCreditPurchaseId === rowId ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <><X className="h-3 w-3 mr-1" /> Cancelar</>
-                                )}
+                                <Ban className="h-3 w-3 mr-1" /> Cancelar recarga
                               </Button>
+                            )}
+                            {cancellationInFlight && (
+                              <Badge variant="outline" className="text-[10px] font-bold uppercase border-amber-500/30 bg-amber-500/10 text-amber-500">
+                                Cancelando…
+                              </Badge>
+                            )}
+                            {isAwaitingBalanceRefund && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2 text-[10px] font-bold border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                                disabled={refundingBalanceRechargeKey === rechargeKey}
+                                onClick={() => refundCreditRechargeBalance({
+                                  sale_type: isManual ? "manual" : "storefront",
+                                  sale_id: rowId,
+                                })}
+                              >
+                                {refundingBalanceRechargeKey === rechargeKey
+                                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                                  : <>Devolver ao saldo</>}
+                              </Button>
+                            )}
+                            {balanceAlreadyRefunded && (
+                              <Badge variant="outline" className="text-[10px] font-bold uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+                                Saldo devolvido
+                              </Badge>
                             )}
                           </div>
                         );
