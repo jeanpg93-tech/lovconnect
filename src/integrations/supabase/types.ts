@@ -2266,6 +2266,7 @@ export type Database = {
       }
       resellers: {
         Row: {
+          bonus_min_tier_id: string | null
           created_at: string
           display_name: string
           id: string
@@ -2278,6 +2279,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bonus_min_tier_id?: string | null
           created_at?: string
           display_name: string
           id?: string
@@ -2290,6 +2292,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bonus_min_tier_id?: string | null
           created_at?: string
           display_name?: string
           id?: string
@@ -2301,7 +2304,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "resellers_bonus_min_tier_id_fkey"
+            columns: ["bonus_min_tier_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       storefront_orders: {
         Row: {
