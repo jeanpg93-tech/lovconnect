@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useActivation } from "@/hooks/useActivation";
 import { cn } from "@/lib/utils";
 import { PageHeader, StatCard } from "@/components/painel/PageHeader";
 import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
