@@ -9,7 +9,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Loader2, Copy, Trash2, Sparkles, Tag, CheckCircle2, Users, Pause } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Loader2, Copy, Trash2, Sparkles, Tag, CheckCircle2, Users, Pause, Share2, TrendingUp, DollarSign, Search } from "lucide-react";
 import { toast } from "sonner";
 
 type Affiliate = {
@@ -21,6 +22,17 @@ type Affiliate = {
   is_active: boolean;
   expires_at: string | null;
   created_at: string;
+};
+
+type ReferralRow = {
+  id: string;
+  affiliate_code: string;
+  total_commission_cents: number;
+  created_at: string;
+  referrer: { id: string; display_name: string; phone: string | null } | null;
+  referred: { id: string; display_name: string; phone: string | null; created_at: string } | null;
+  recharges_count: number;
+  recharges_total_cents: number;
 };
 
 const randomCode = () => {
@@ -40,6 +52,10 @@ export default function GerenteAffiliados() {
   const [maxUses, setMaxUses] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
+  const [refs, setRefs] = useState<ReferralRow[]>([]);
+  const [refsLoading, setRefsLoading] = useState(true);
+  const [refSearch, setRefSearch] = useState("");
+
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -52,6 +68,54 @@ export default function GerenteAffiliados() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const loadReferrals = async () => {
+    setRefsLoading(true);
+    const { data: rows, error } = await supabase
+      .from("reseller_referrals")
+      .select("id, affiliate_code, total_commission_cents, created_at, referrer_reseller_id, referred_reseller_id")
+      .order("created_at", { ascending: false });
+    if (error) { toast.error(error.message); setRefsLoading(false); return; }
+    const list = rows ?? [];
+    const resellerIds = Array.from(new Set(list.flatMap((r: any) => [r.referrer_reseller_id, r.referred_reseller_id])));
+    if (resellerIds.length === 0) { setRefs([]); setRefsLoading(false); return; }
+
+    const [{ data: resellers }, { data: recharges }] = await Promise.all([
+      supabase.from("resellers").select("id, user_id, display_name, created_at").in("id", resellerIds),
+      supabase.from("recharge_intents").select("reseller_id, amount_cents").eq("status", "paid").in("reseller_id", list.map((r: any) => r.referred_reseller_id)),
+    ]);
+    const userIds = (resellers ?? []).map((r: any) => r.user_id);
+    const { data: profiles } = await supabase.from("profiles").select("id, phone").in("id", userIds);
+    const phoneByUser = new Map((profiles ?? []).map((p: any) => [p.id, p.phone]));
+    const resellerById = new Map((resellers ?? []).map((r: any) => [r.id, r]));
+
+    const recAgg = new Map<string, { count: number; total: number }>();
+    (recharges ?? []).forEach((r: any) => {
+      const cur = recAgg.get(r.reseller_id) ?? { count: 0, total: 0 };
+      cur.count += 1; cur.total += Number(r.amount_cents ?? 0);
+      recAgg.set(r.reseller_id, cur);
+    });
+
+    const enriched: ReferralRow[] = list.map((r: any) => {
+      const rr = resellerById.get(r.referrer_reseller_id);
+      const rd = resellerById.get(r.referred_reseller_id);
+      const agg = recAgg.get(r.referred_reseller_id) ?? { count: 0, total: 0 };
+      return {
+        id: r.id,
+        affiliate_code: r.affiliate_code,
+        total_commission_cents: Number(r.total_commission_cents ?? 0),
+        created_at: r.created_at,
+        referrer: rr ? { id: rr.id, display_name: rr.display_name, phone: phoneByUser.get(rr.user_id) ?? null } : null,
+        referred: rd ? { id: rd.id, display_name: rd.display_name, phone: phoneByUser.get(rd.user_id) ?? null, created_at: rd.created_at } : null,
+        recharges_count: agg.count,
+        recharges_total_cents: agg.total,
+      };
+    });
+    setRefs(enriched);
+    setRefsLoading(false);
+  };
+
+  useEffect(() => { loadReferrals(); }, []);
 
   const openDialog = () => {
     setCode(randomCode());
@@ -110,6 +174,30 @@ export default function GerenteAffiliados() {
     totalUses: list.reduce((s, l) => s + (l.uses ?? 0), 0),
   };
 
+  const fmtBRL = (cents: number) =>
+    (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+  const refStats = {
+    total: refs.length,
+    commission: refs.reduce((s, r) => s + r.total_commission_cents, 0),
+    recharges: refs.reduce((s, r) => s + r.recharges_total_cents, 0),
+    activeIndicators: new Set(refs.filter((r) => r.referrer).map((r) => r.referrer!.id)).size,
+  };
+
+  const filteredRefs = refs.filter((r) => {
+    if (!refSearch.trim()) return true;
+    const q = refSearch.toLowerCase();
+    return (
+      r.referrer?.display_name.toLowerCase().includes(q) ||
+      r.referred?.display_name.toLowerCase().includes(q) ||
+      r.referrer?.phone?.toLowerCase().includes(q) ||
+      r.referred?.phone?.toLowerCase().includes(q) ||
+      r.affiliate_code.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <PageContainer>
       <PageHeader
@@ -123,12 +211,19 @@ export default function GerenteAffiliados() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <Tabs defaultValue="codigos" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:inline-flex">
+          <TabsTrigger value="codigos" className="gap-1.5"><Tag className="h-3.5 w-3.5" /> Códigos</TabsTrigger>
+          <TabsTrigger value="indicacoes" className="gap-1.5"><Share2 className="h-3.5 w-3.5" /> Indicações</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="codigos" className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard label="Códigos" value={stats.total} icon={Tag} hint="Total cadastrado" />
         <StatCard label="Ativos" value={stats.active} icon={CheckCircle2} hint="Aceitando novos cadastros" />
         <StatCard label="Inativos" value={stats.inactive} icon={Pause} hint="Pausados ou esgotados" />
         <StatCard label="Conversões" value={stats.totalUses} icon={Users} hint="Cadastros gerados" />
-      </div>
+          </div>
 
       <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
         {loading ? (
@@ -223,6 +318,115 @@ export default function GerenteAffiliados() {
           </>
         )}
       </div>
+        </TabsContent>
+
+        <TabsContent value="indicacoes" className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <StatCard label="Indicações" value={refStats.total} icon={Share2} hint="Vínculos ativos" />
+            <StatCard label="Indicadores" value={refStats.activeIndicators} icon={Users} hint="Revendedores que indicaram" />
+            <StatCard label="Recargas dos indicados" value={fmtBRL(refStats.recharges)} icon={TrendingUp} hint="Total recebido via PIX" />
+            <StatCard label="Comissões pagas" value={fmtBRL(refStats.commission)} icon={DollarSign} hint="Creditado aos indicadores" />
+          </div>
+
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={refSearch}
+              onChange={(e) => setRefSearch(e.target.value)}
+              placeholder="Buscar por nome, WhatsApp ou código…"
+              className="pl-9 h-10 rounded-xl bg-card"
+            />
+          </div>
+
+          <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
+            {refsLoading ? (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : filteredRefs.length === 0 ? (
+              <div className="p-10 text-center text-sm text-muted-foreground">
+                <Share2 className="mx-auto mb-2 h-8 w-8 opacity-40" />
+                {refs.length === 0 ? "Nenhuma indicação registrada ainda." : "Nenhum resultado para a busca."}
+              </div>
+            ) : (
+              <>
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-b border-white/5 text-[10px] uppercase tracking-widest text-muted-foreground/80">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-bold">Indicador</th>
+                        <th className="px-4 py-3 text-left font-bold">Indicado</th>
+                        <th className="px-4 py-3 text-left font-bold">Cadastro</th>
+                        <th className="px-4 py-3 text-right font-bold">Recargas</th>
+                        <th className="px-4 py-3 text-right font-bold">Comissão paga</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRefs.map((r) => (
+                        <tr key={r.id} className="border-b border-white/5 last:border-0 hover:bg-white/5">
+                          <td className="px-4 py-3">
+                            <div className="font-medium">{r.referrer?.display_name ?? "—"}</div>
+                            {r.referrer?.phone && <div className="text-[11px] text-muted-foreground font-mono">{r.referrer.phone}</div>}
+                            <code className="text-[10px] text-primary/80">{r.affiliate_code}</code>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="font-medium">{r.referred?.display_name ?? "—"}</div>
+                            {r.referred?.phone && <div className="text-[11px] text-muted-foreground font-mono">{r.referred.phone}</div>}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">
+                            {r.referred?.created_at ? fmtDate(r.referred.created_at) : "—"}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="font-mono text-sm">{fmtBRL(r.recharges_total_cents)}</div>
+                            <div className="text-[11px] text-muted-foreground">{r.recharges_count} recarga{r.recharges_count === 1 ? "" : "s"}</div>
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono text-sm text-emerald-500">
+                            {fmtBRL(r.total_commission_cents)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="md:hidden divide-y divide-white/5">
+                  {filteredRefs.map((r) => (
+                    <div key={r.id} className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-[10px] uppercase text-muted-foreground">Indicador</div>
+                          <div className="font-medium text-sm truncate">{r.referrer?.display_name ?? "—"}</div>
+                          {r.referrer?.phone && <div className="text-[11px] text-muted-foreground font-mono">{r.referrer.phone}</div>}
+                        </div>
+                        <code className="text-[10px] text-primary/80 shrink-0">{r.affiliate_code}</code>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">Indicado</div>
+                        <div className="font-medium text-sm truncate">{r.referred?.display_name ?? "—"}</div>
+                        {r.referred?.phone && <div className="text-[11px] text-muted-foreground font-mono">{r.referred.phone}</div>}
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          Cadastro: {r.referred?.created_at ? fmtDate(r.referred.created_at) : "—"}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                        <div>
+                          <div className="text-[10px] uppercase text-muted-foreground">Recargas</div>
+                          <div className="font-mono text-sm">{fmtBRL(r.recharges_total_cents)}</div>
+                          <div className="text-[10px] text-muted-foreground">{r.recharges_count}x</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[10px] uppercase text-muted-foreground">Comissão</div>
+                          <div className="font-mono text-sm text-emerald-500">{fmtBRL(r.total_commission_cents)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="bg-card border-border">
