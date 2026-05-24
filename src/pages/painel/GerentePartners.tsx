@@ -183,8 +183,9 @@ export default function GerentePartners() {
     setStates(stateMap);
 
     const firstPartner =
-      tierList.find((x) => x.is_active && (x.is_hidden || x.slug === "partner")) ||
-      tierList.find((x) => x.is_active && (x.name || "").toLowerCase().includes("partner"));
+      tierList.find((x) => x.is_active && x.slug === "partner") ||
+      tierList.find((x) => x.is_active && (x.name || "").toLowerCase().includes("partner")) ||
+      tierList.find((x) => x.is_active && x.is_hidden);
     if (firstPartner) setSelectedTierId((cur) => cur || firstPartner.id);
     setLoading(false);
   };
