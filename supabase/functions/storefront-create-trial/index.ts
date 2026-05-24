@@ -36,10 +36,13 @@ Deno.serve(async (req) => {
 
     const { data: reseller } = await svc
       .from("resellers")
-      .select("id, is_active, test_keys_per_day_override")
+      .select("id, is_active, test_keys_per_day_override, activation_status")
       .eq("slug", reseller_slug)
       .maybeSingle();
     if (!reseller || !reseller.is_active) return json({ error: "Loja indisponível" }, 404);
+    if (reseller.activation_status && reseller.activation_status !== "active") {
+      return json({ error: "Loja indisponível" }, 404);
+    }
 
     const { data: store } = await svc
       .from("reseller_storefronts")

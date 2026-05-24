@@ -79,11 +79,14 @@ Deno.serve(async (req) => {
 
   const { data: reseller } = await svc
     .from("resellers")
-    .select("id, is_active")
+    .select("id, is_active, activation_status")
     .eq("id", keyRow.reseller_id)
     .maybeSingle();
   if (!reseller || !reseller.is_active) {
     return json({ success: false, error: "Revendedor inativo" }, 403);
+  }
+  if (reseller.activation_status && reseller.activation_status !== "active") {
+    return json({ success: false, error: "activation_required", message: "Painel pendente de ativação (R$ 200)" }, 403);
   }
 
   // ---- Scope enforcement ----

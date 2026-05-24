@@ -110,7 +110,12 @@ Deno.serve(async (req) => {
 
     // Find reseller_id of this user (if any)
     const { data: reseller } = await supabase
-      .from("resellers").select("id").eq("user_id", user.id).maybeSingle();
+      .from("resellers").select("id, activation_status").eq("user_id", user.id).maybeSingle();
+    if (reseller && reseller.activation_status && reseller.activation_status !== "active") {
+      return new Response(JSON.stringify({ error: "activation_required", message: "Painel pendente de ativação (R$ 200)" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Pick customization: own > template
     let cust: Cust | null = null;

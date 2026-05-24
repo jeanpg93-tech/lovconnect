@@ -61,6 +61,29 @@ Deno.serve(async (req) => {
       metadata: { payment_id: payment!.id, proof_path: proofPath },
     });
 
+    // Notifica gerentes (in-app + telegram)
+    try {
+      const { data: prof } = await admin
+        .from("profiles").select("display_name, email").eq("id", userId).maybeSingle();
+      const who = prof?.display_name ?? prof?.email ?? "Revendedor";
+      const { data: managers } = await admin
+        .from("user_roles").select("user_id").eq("role", "gerente");
+      if (managers?.length) {
+        await admin.from("notifications").insert(
+          managers.map((m: { user_id: string }) => ({
+            user_id: m.user_id,
+            type: "activation_proof",
+            title: "Novo comprovante de ativação",
+            body: `${who} enviou um comprovante de pagamento R$ 200 para análise.`,
+            link: "/painel/gerente/ativacoes",
+          })),
+        );
+      }
+      await admin.from("telegram_outbox").insert({
+        text: `💰 <b>Novo comprovante de ativação</b>\n${who} enviou um comprovante para análise.\n${note ? `\n📝 ${note}\n` : ""}\nAbra: /painel/gerente/ativacoes`,
+      });
+    } catch (_) { /* não falha o fluxo principal */ }
+
     return json({ ok: true, payment_id: payment!.id });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "internal" }, 500);
