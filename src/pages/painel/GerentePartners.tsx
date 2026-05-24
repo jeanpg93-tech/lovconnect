@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
-  Loader2, Save, Crown, Users, Tag, Search, Sparkles, RotateCcw, CheckCircle2, Pencil, Coins, Calendar, ChevronDown,
+  Loader2, Save, Crown, Users, Tag, Search, Sparkles, RotateCcw, CheckCircle2, Pencil, Coins, Calendar, ChevronDown, History,
 } from "lucide-react";
 import { toast } from "sonner";
+import PartnerPriceHistoryDialog from "@/components/painel/PartnerPriceHistoryDialog";
 
 type Tier = {
   id: string;
@@ -70,6 +71,9 @@ export default function GerentePartners() {
   // Sessões minimizáveis
   const [licOpen, setLicOpen] = useState(true);
   const [creditOpen, setCreditOpen] = useState(true);
+
+  // Dialog de histórico
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Texto bruto dos inputs (para não perder estado intermediário ao digitar)
   const [licText, setLicText] = useState<Record<string, string>>({});
@@ -329,6 +333,12 @@ export default function GerentePartners() {
     if (!selectedResellerId) return;
     setSaving(true);
 
+    // Coleta usuário para log
+    const { data: u } = await supabase.auth.getUser();
+    const changerName =
+      (u.user?.user_metadata as any)?.display_name || u.user?.email || null;
+    const historyRows: any[] = [];
+
     // === LICENÇAS (overrides de custo) ===
     // Para cada pack: persistir (upsert) se tiver valor > 0 e (o usuário tocou OU diferente do herdado OU já era override).
     // Apagar (override -> herdado) se o valor for 0/vazio E já existia override.
@@ -346,8 +356,30 @@ export default function GerentePartners() {
           price_cents: Math.round(v),
           is_active: true,
         });
+        if (changed || !wasOverride) {
+          historyRows.push({
+            reseller_id: selectedResellerId,
+            kind: "license",
+            pack_key: pack.id,
+            old_price_cents: wasOverride ? Number(licEffective[pack.id] ?? 0) : null,
+            new_price_cents: Math.round(v),
+            action: "set",
+            changed_by: u.user?.id ?? null,
+            changed_by_name: changerName,
+          });
+        }
       } else if (v <= 0 && wasOverride) {
         licDeletes.push(pack.id);
+        historyRows.push({
+          reseller_id: selectedResellerId,
+          kind: "license",
+          pack_key: pack.id,
+          old_price_cents: Number(licEffective[pack.id] ?? 0),
+          new_price_cents: null,
+          action: "clear",
+          changed_by: u.user?.id ?? null,
+          changed_by_name: changerName,
+        });
       }
     }
     if (licDeletes.length) {
@@ -384,8 +416,30 @@ export default function GerentePartners() {
           price_cents: Math.round(v),
           is_active: true,
         });
+        if (changed || !wasOverride) {
+          historyRows.push({
+            reseller_id: selectedResellerId,
+            kind: "credit",
+            pack_key: String(pkg.credits_amount),
+            old_price_cents: wasOverride ? Number(creditEffective[pkg.credits_amount] ?? 0) : null,
+            new_price_cents: Math.round(v),
+            action: "set",
+            changed_by: u.user?.id ?? null,
+            changed_by_name: changerName,
+          });
+        }
       } else if (v <= 0 && wasOverride) {
         credDeletes.push(pkg.credits_amount);
+        historyRows.push({
+          reseller_id: selectedResellerId,
+          kind: "credit",
+          pack_key: String(pkg.credits_amount),
+          old_price_cents: Number(creditEffective[pkg.credits_amount] ?? 0),
+          new_price_cents: null,
+          action: "clear",
+          changed_by: u.user?.id ?? null,
+          changed_by_name: changerName,
+        });
       }
     }
     if (credDeletes.length) {
@@ -401,6 +455,10 @@ export default function GerentePartners() {
         .from("reseller_credit_cost_overrides")
         .upsert(credUpserts, { onConflict: "reseller_id,credits_amount" });
       if (error) { toast.error(error.message); setSaving(false); return; }
+    }
+
+    if (historyRows.length) {
+      await supabase.from("partner_price_history").insert(historyRows);
     }
 
     toast.success(`Custos salvos para ${selectedReseller?.display_name}`);
