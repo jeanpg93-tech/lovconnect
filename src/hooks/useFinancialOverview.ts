@@ -118,7 +118,7 @@ export function useFinancialOverview(range: DateRange) {
 
     const baseCostMap: Record<number, number> = {};
     if (creditAmounts.size > 0) {
-      // Fallback: snapshot do credit_pricing_plans
+      // 1) Fonte principal: Preço Base salvo em credit_pricing_plans (editável em /painel/gerente/recargas)
       const { data: plans } = await supabase
         .from("credit_pricing_plans")
         .select("credits_amount, price_cents")
@@ -126,9 +126,10 @@ export function useFinancialOverview(range: DateRange) {
       (plans || []).forEach((p: any) => {
         if (p.price_cents > 0) baseCostMap[Number(p.credits_amount)] = Number(p.price_cents);
       });
-      // Live quote (fonte oficial da página de Valores)
+      // 2) Fallback: cotação ao vivo do provedor, apenas para pacotes sem Preço Base salvo
+      const missing = Array.from(creditAmounts).filter((c) => !(baseCostMap[c] > 0));
       await Promise.all(
-        Array.from(creditAmounts).map(async (credits) => {
+        missing.map(async (credits) => {
           try {
             const { data, error } = await invokeAuthenticatedFunction(
               `lovable-credits-api?action=quote&credits=${credits}`,
