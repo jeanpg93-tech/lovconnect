@@ -168,34 +168,32 @@ Deno.serve(async (req) => {
       if (ov?.price_cents && ov.price_cents > 0) {
         cost_cents = Number(ov.price_cents);
       } else {
-        // 2. cascade: app_settings + tier + Partner→Ouro + método irmão
-        const [{ data: setting }, { data: tierData }, { data: tiersAll }] = await Promise.all([
+        // 2. cascade: app_settings + tier + método irmão
+        // IMPORTANTE: para Partner NÃO caímos no fallback do Ouro — Partner precisa
+        // ter override individual cadastrado (reseller_license_cost_overrides),
+        // senão a venda é bloqueada para evitar cobrar o preço errado.
+        const [{ data: setting }, { data: tierData }] = await Promise.all([
           admin.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
           admin.rpc("get_reseller_tier", { _reseller_id: reseller.id }),
-          admin.from("reseller_tiers").select("id,slug,name,is_hidden").eq("is_active", true),
         ]);
         const tier = Array.isArray(tierData) ? tierData[0] : tierData;
+        const isPartner =
+          !!tier &&
+          (tier.is_hidden ||
+            String(tier.slug || "").toLowerCase() === "partner" ||
+            String(tier.name || "").toLowerCase().includes("partner"));
+        if (isPartner) {
+          return json({
+            error: "Este produto está temporariamente indisponível. Revendedor Partner sem preço de custo individual cadastrado.",
+            reason: "partner_cost_missing",
+          }, 400);
+        }
         const valores = (setting?.value ?? {}) as any;
         const other = method === "flow" ? "lovax" : "flow";
         let brl = 0;
         if (tier?.id) {
           brl = Number(valores?.[method]?.[license_type]?.[tier.id] ?? 0);
           if (brl <= 0) brl = Number(valores?.[other]?.[license_type]?.[tier.id] ?? 0);
-          const isPartner =
-            tier.is_hidden ||
-            String(tier.slug || "").toLowerCase() === "partner" ||
-            String(tier.name || "").toLowerCase().includes("partner");
-          if (brl <= 0 && isPartner) {
-            const ouro = (tiersAll ?? []).find(
-              (t: any) =>
-                (t.slug || "").toLowerCase() === "ouro" ||
-                (t.name || "").toLowerCase().includes("ouro"),
-            );
-            if (ouro?.id) {
-              brl = Number(valores?.[method]?.[license_type]?.[ouro.id] ?? 0);
-              if (brl <= 0) brl = Number(valores?.[other]?.[license_type]?.[ouro.id] ?? 0);
-            }
-          }
         }
         cost_cents = Math.round(brl * 100);
       }
