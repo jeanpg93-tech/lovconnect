@@ -142,7 +142,13 @@ export default function AppLayout() {
               {needsActivation && <ActivationBanner status={activationStatus!} />}
               {primaryRole === "revendedor" && <PendingBalanceBanner />}
               <div className="relative">
-                <PanelRoutes />
+                <div
+                  className={needsActivation ? "pointer-events-none select-none" : undefined}
+                  aria-hidden={needsActivation || undefined}
+                  inert={needsActivation ? "" : undefined as any}
+                >
+                  <PanelRoutes />
+                </div>
                 {needsActivation && <ActivationLockOverlay status={activationStatus!} />}
               </div>
             </div>
