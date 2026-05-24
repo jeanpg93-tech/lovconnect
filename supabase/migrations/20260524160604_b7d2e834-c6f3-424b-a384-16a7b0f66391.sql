@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.is_reseller_active(UUID) FROM anon;
