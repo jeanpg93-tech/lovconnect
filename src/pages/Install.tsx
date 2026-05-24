@@ -55,8 +55,8 @@ export default function Install() {
     <div className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-xl space-y-6">
         <div className="text-center">
-          <img src="/icon-192.png" alt="App" className="mx-auto h-20 w-20 rounded-2xl shadow-lg" width={80} height={80} />
-          <h1 className="mt-4 font-display text-2xl font-bold">Instalar Revendovable</h1>
+          <img src="/favicon.png" alt="LovConnect" className="mx-auto h-20 w-20 rounded-2xl object-contain shadow-lg" width={80} height={80} />
+          <h1 className="mt-4 font-display text-2xl font-bold">Instalar LovConnect</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Tenha o app na tela inicial com notificações sonoras em tempo real.
           </p>

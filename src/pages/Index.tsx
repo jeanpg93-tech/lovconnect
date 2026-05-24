@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ArrowRight, Sparkles, Wallet, Store, KeyRound, ShieldCheck, Zap, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LovMainLogo } from "@/components/LovMainLogo";
 
 const Index = () => {
   const { user } = useAuth();
@@ -237,7 +238,7 @@ const Index = () => {
 
       <footer className="relative z-10 border-t border-border/60 py-8">
         <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-4 text-xs text-muted-foreground sm:flex-row">
-          <div>© {new Date().getFullYear()} Revendovable</div>
+          <div>© {new Date().getFullYear()} LovConnect</div>
           <div className="flex items-center gap-4">
             <span>Acesso restrito</span>
             <span>·</span>
