@@ -73,7 +73,7 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
           color="sky"
         />
         <KpiCard
-          label="Ativações"
+          label="Ativações Painel"
           value={brlSigned(data.activationRevenueCents, "+")}
           icon={Rocket}
           hint={`${data.activationsCount} painel(éis) vendido(s)`}
@@ -116,7 +116,7 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
           accent={COLOR_REVENUE}
           items={[
             { label: "Recargas pagas", hint: "revendedores", value: data.rechargesRevenueCents, color: COLOR_REVENUE },
-            { label: "Ativações de painel", hint: "novos revendedores", value: data.activationRevenueCents, color: "#d946ef" },
+            { label: "Ativações Painel", hint: "novos revendedores", value: data.activationRevenueCents, color: "#d946ef" },
             { label: "Receitas manuais", hint: "lançamentos manuais", value: data.manualRevenueCents, color: "#8b5cf6" },
           ]}
         />
