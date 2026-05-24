@@ -1292,6 +1292,84 @@ export default function RevendedorPedidos() {
                             )}
                           </Button>
                         )}
+                        {/* Cancelamento pós-pagamento (Loja) */}
+                        {!isManual && (l!.status === "paid" || l!.status === "delivered") &&
+                          (!l!.cancellation_status || l!.cancellation_status === "none") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-[10px] font-bold border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
+                            onClick={() => openCancelForStorefront(l!)}
+                          >
+                            <Ban className="h-3 w-3 mr-1" /> Cancelar venda
+                          </Button>
+                        )}
+                        {/* Cancelamento pós-entrega (Manual/API) */}
+                        {isManual && o!.status === "completed" && !o!.is_test &&
+                          (!o!.cancellation_status || o!.cancellation_status === "none") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-[10px] font-bold border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
+                            onClick={() => openCancelForManual(o!)}
+                          >
+                            <Ban className="h-3 w-3 mr-1" /> Cancelar venda
+                          </Button>
+                        )}
+                        {/* Tags do fluxo de cancelamento */}
+                        {(() => {
+                          const cs = (isManual ? o!.cancellation_status : l!.cancellation_status) ?? "none";
+                          if (cs === "none") return null;
+                          const tags: { label: string; cls: string }[] = [];
+                          if (cs === "failed") {
+                            tags.push({ label: "Falha no cancelamento", cls: "border-rose-500/30 bg-rose-500/10 text-rose-500" });
+                          }
+                          if (cs === "pending") {
+                            tags.push({ label: "Cancelando…", cls: "border-amber-500/30 bg-amber-500/10 text-amber-500" });
+                          }
+                          if (["key_revoked", "client_refunded", "balance_refunded"].includes(cs)) {
+                            tags.push({ label: "Chave revogada", cls: "border-zinc-500/30 bg-zinc-500/10 text-zinc-400" });
+                          }
+                          if (["client_refunded", "balance_refunded"].includes(cs)) {
+                            const m = isManual ? o!.client_refund_method : l!.client_refund_method;
+                            tags.push({
+                              label: m === "auto" ? "Cliente reembolsado (PIX)" : "Cliente reembolsado",
+                              cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
+                            });
+                          }
+                          if (cs === "balance_refunded") {
+                            tags.push({ label: "Saldo estornado", cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500" });
+                          }
+                          return (
+                            <>
+                              {tags.map((t) => (
+                                <Badge key={t.label} variant="outline" className={cn("text-[9px] font-bold uppercase", t.cls)}>
+                                  {t.label}
+                                </Badge>
+                              ))}
+                            </>
+                          );
+                        })()}
+                        {/* Botão devolver saldo */}
+                        {(() => {
+                          const cs = (isManual ? o!.cancellation_status : l!.cancellation_status) ?? "none";
+                          if (cs !== "client_refunded") return null;
+                          const sid = isManual ? o!.id : l!.id;
+                          return (
+                            <Button
+                              size="sm"
+                              className="h-7 px-2 text-[10px] font-bold bg-emerald-500 text-white hover:bg-emerald-600"
+                              disabled={refundingBalanceId === sid}
+                              onClick={() => refundSaleBalance(sid, isManual ? "manual" : "storefront")}
+                            >
+                              {refundingBalanceId === sid ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <><Wallet className="h-3 w-3 mr-1" /> Devolver ao saldo</>
+                              )}
+                            </Button>
+                          );
+                        })()}
                         {isManual && (
                           <div className="shrink-0">
                             <DropdownMenu>
