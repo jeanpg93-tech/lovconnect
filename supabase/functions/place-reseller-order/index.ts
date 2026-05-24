@@ -41,8 +41,11 @@ Deno.serve(async (req) => {
 
     // valida revendedor
     const { data: reseller } = await svc.from("resellers")
-      .select("id,is_active").eq("user_id", user.id).maybeSingle();
+      .select("id,is_active,activation_status").eq("user_id", user.id).maybeSingle();
     if (!reseller || !reseller.is_active) return json({ error: "Apenas revendedores ativos" }, 403);
+    if (reseller.activation_status && reseller.activation_status !== "active") {
+      return json({ error: "Painel não ativado. Conclua o pagamento de R$ 200 para liberar.", reason: "activation_required" }, 403);
+    }
 
     // Bloqueia geração quando houver vendas da loja aguardando saldo
     {
