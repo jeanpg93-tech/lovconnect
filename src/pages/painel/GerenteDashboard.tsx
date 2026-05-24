@@ -395,7 +395,16 @@ export default function GerenteDashboard() {
         .limit(300),
     ]);
 
-    type EnrichVal = { customer_name?: string | null; customer_whatsapp?: string | null; detail?: string | null };
+    type EnrichVal = {
+      customer_name?: string | null;
+      customer_whatsapp?: string | null;
+      detail?: string | null;
+      ref_short?: string | null;
+      ref_created_at?: string | null;
+      ref_kind?: 'license' | 'credit' | null;
+      license_type?: string | null;
+      credits?: number | null;
+    };
     const enrichMap = new Map<string, EnrichVal>();
     const enrichById = new Map<string, EnrichVal>();
     const bucket = (iso: string) => Math.floor(new Date(iso).getTime() / 60_000);
@@ -418,6 +427,10 @@ export default function GerenteDashboard() {
         customer_name: o.customer?.display_name ?? null,
         customer_whatsapp: o.customer?.whatsapp ?? null,
         detail: describeLic(o.license_type) + (o.is_test ? " (teste)" : ""),
+        ref_short: o.id ? String(o.id).slice(0, 8).toUpperCase() : null,
+        ref_created_at: o.created_at ?? null,
+        ref_kind: 'license',
+        license_type: o.license_type ?? null,
       };
       enrichMap.set(keyOf(o.reseller_id, o.price_cents, o.created_at), val);
       if (o.id) enrichById.set(o.id, val);
@@ -428,6 +441,10 @@ export default function GerenteDashboard() {
         customer_name: c.customer_name ?? null,
         customer_whatsapp: c.customer_whatsapp ?? null,
         detail: `Recarga • ${c.credits} crédito${c.credits === 1 ? "" : "s"}`,
+        ref_short: c.id ? String(c.id).slice(0, 8).toUpperCase() : null,
+        ref_created_at: c.created_at ?? null,
+        ref_kind: 'credit',
+        credits: c.credits ?? null,
       };
       enrichMap.set(keyOf(c.reseller_id, c.price_cents, c.created_at), val);
       if (c.id) enrichById.set(c.id, val);
