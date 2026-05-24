@@ -964,6 +964,12 @@ export default function GerenteLicencasAcompanhar() {
                           <span className="text-[9px] opacity-50 uppercase font-mono">Responsável</span>
                           <span className={cn("text-[10px] font-mono truncate", o.creator_email ? "text-foreground/80" : "text-muted-foreground italic")}>{o.creator_email || "—"}</span>
                         </div>
+                        <div className="flex flex-col gap-1 col-span-2">
+                          <span className="text-[9px] opacity-50 uppercase font-mono">Data da Geração</span>
+                          <span className="text-[10px] font-mono tabular-nums text-foreground/80">
+                            {formatDate(o.created_at)}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="flex items-center justify-between pt-2 gap-1 overflow-x-auto pb-1 scrollbar-none">
