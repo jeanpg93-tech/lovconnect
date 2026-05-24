@@ -1,12 +1,25 @@
-import { Zap } from "lucide-react";
+import logoHorizontal from "@/assets/lc-logo-horizontal.png";
+import logoIcon from "@/assets/lc-icon.png";
 
-export const LovMainLogo = ({ className = "" }: { className?: string }) => (
-  <div className={`flex items-center gap-2 ${className}`}>
-    <div className="relative flex h-8 w-8 items-center justify-center rounded-md bg-primary shadow-red-glow-sm">
-      <Zap className="h-4 w-4 fill-primary-foreground text-primary-foreground" strokeWidth={2.5} />
-    </div>
-    <span className="font-display text-lg font-bold tracking-tight">
-      Revendovable <span className="text-primary">Store</span>
-    </span>
-  </div>
-);
+type LovMainLogoProps = {
+  className?: string;
+  variant?: "horizontal" | "icon";
+  /** Tailwind height class for the rendered image (default h-9). */
+  size?: string;
+};
+
+export const LovMainLogo = ({
+  className = "",
+  variant = "horizontal",
+  size = "h-9",
+}: LovMainLogoProps) => {
+  const src = variant === "icon" ? logoIcon : logoHorizontal;
+  return (
+    <img
+      src={src}
+      alt="LovConnect"
+      className={`${size} w-auto select-none object-contain ${className}`}
+      draggable={false}
+    />
+  );
+};
