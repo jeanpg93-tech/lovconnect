@@ -1023,6 +1023,38 @@ export default function GerenteAcompanharRecargas() {
                     ) : "—";
                   })()}
                 </div>
+                {(() => {
+                  const d: any = detailsData;
+                  const cents = d.price_cents ?? null;
+                  const credits = d.credits ?? d.raw?.creditos ?? null;
+                  const nome = d.responsavel_nome ?? null;
+                  const email = d.responsavel_email ?? null;
+                  const refunded = !!d.refunded || d.status === "estornado" || d.status === "reembolsado";
+                  const brl = cents != null ? (cents/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}) : null;
+                  return (
+                    <>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Valor cobrado do revendedor</div>
+                        <div className="font-mono font-bold text-emerald-500">{brl ?? <span className="text-muted-foreground italic">—</span>}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Créditos</div>
+                        <div className="font-mono">{credits ?? "—"}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Revendedor</div>
+                        <div>{nome ?? <span className="text-muted-foreground italic">—</span>}</div>
+                        {email && <div className="text-[10px] text-muted-foreground">{email}</div>}
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Status do pagamento</div>
+                        <div className={cn("font-bold", refunded ? "text-sky-400" : "text-emerald-500")}>
+                          {refunded ? "Estornado ao revendedor" : "Cobrado (debitado do saldo)"}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               <div>
                 <div className="mb-1.5 flex items-center justify-between">

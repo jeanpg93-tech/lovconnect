@@ -875,6 +875,25 @@ export default function GerenteLicencasAcompanhar() {
                                     </div>
                                     <div className="flex flex-col"><span className="opacity-50 text-[10px]">Plano</span><span>{LABEL[o.license_type] || o.license_type}</span></div>
                                     <div className="flex flex-col"><span className="opacity-50 text-[10px]">Criada em</span><span>{formatDate(o.created_at)}</span></div>
+                                    {(() => {
+                                      const info = refundInfo[o.license_key];
+                                      const cents = info?.price_cents ?? o.price_cents ?? null;
+                                      if (cents == null) return (
+                                        <div className="flex flex-col"><span className="opacity-50 text-[10px]">Valor cobrado</span><span className="italic text-muted-foreground">Sem custo no painel</span></div>
+                                      );
+                                      const brl = (cents/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+                                      return (
+                                        <>
+                                          <div className="flex flex-col"><span className="opacity-50 text-[10px]">Valor cobrado do revendedor</span><span className="font-mono font-bold text-emerald-400">{brl}</span></div>
+                                          <div className="flex flex-col"><span className="opacity-50 text-[10px]">Origem da venda</span><span className="capitalize">{o.source === "storefront" ? "Loja pública" : o.source === "api" ? "API revendedor" : o.source === "manual" ? "Painel (manual)" : "Provedor"}</span></div>
+                                          <div className="flex flex-col"><span className="opacity-50 text-[10px]">Status pagamento</span>
+                                            <span className={cn("font-bold", info?.refunded ? "text-sky-400" : "text-emerald-400")}>
+                                              {info?.refunded ? "Estornado ao revendedor" : "Cobrado (debitado do saldo)"}
+                                            </span>
+                                          </div>
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                 </div>
                                 <div className="space-y-4">
@@ -1061,6 +1080,25 @@ export default function GerenteLicencasAcompanhar() {
                             </div>
                             <div className="flex justify-between"><span className="opacity-50">Plano</span><span>{LABEL[o.license_type] || o.license_type}</span></div>
                             <div className="flex justify-between"><span className="opacity-50">Criada em</span><span>{formatDate(o.created_at)}</span></div>
+                            {(() => {
+                              const info = refundInfo[o.license_key];
+                              const cents = info?.price_cents ?? o.price_cents ?? null;
+                              if (cents == null) return (
+                                <div className="flex justify-between"><span className="opacity-50">Valor cobrado</span><span className="italic text-muted-foreground">—</span></div>
+                              );
+                              const brl = (cents/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+                              return (
+                                <>
+                                  <div className="flex justify-between"><span className="opacity-50">Valor cobrado</span><span className="font-mono font-bold text-emerald-400">{brl}</span></div>
+                                  <div className="flex justify-between"><span className="opacity-50">Origem</span><span className="capitalize">{o.source === "storefront" ? "Loja pública" : o.source === "api" ? "API revendedor" : o.source === "manual" ? "Painel" : "Provedor"}</span></div>
+                                  <div className="flex justify-between"><span className="opacity-50">Status</span>
+                                    <span className={cn("font-bold", info?.refunded ? "text-sky-400" : "text-emerald-400")}>
+                                      {info?.refunded ? "Estornado" : "Cobrado"}
+                                    </span>
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </div>
                           <pre className="text-[8px] bg-black/60 p-3 rounded-xl border border-white/5 max-h-[100px] overflow-auto text-emerald-400 font-mono">
                             {JSON.stringify(o.full_data, null, 2)}
