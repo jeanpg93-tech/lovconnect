@@ -261,6 +261,40 @@ export default function RevendedorRecargas() {
   const [cpOriginFilter, setCpOriginFilter] = useState<"all" | "manual" | "loja">("all");
   const [cancellingStorefrontId, setCancellingStorefrontId] = useState<string | null>(null);
   const [cancellingCreditPurchaseId, setCancellingCreditPurchaseId] = useState<string | null>(null);
+  const [cancelRechargeTarget, setCancelRechargeTarget] = useState<CancelRechargeTarget | null>(null);
+  const [cancelRechargeOpen, setCancelRechargeOpen] = useState(false);
+  const [refundingBalanceRechargeKey, setRefundingBalanceRechargeKey] = useState<string | null>(null);
+
+  const refundCreditRechargeBalance = async (args: { sale_type: "storefront" | "manual"; sale_id: string }) => {
+    const key = `${args.sale_type}:${args.sale_id}`;
+    if (!confirm("Devolver o valor desta recarga ao seu saldo agora?")) return;
+    setRefundingBalanceRechargeKey(key);
+    try {
+      const { data, error } = await supabase.functions.invoke("refund-credit-recharge-balance", {
+        body: args,
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).message ?? (data as any).error);
+      toast.success("Saldo devolvido ao seu painel.");
+      if (resellerId) {
+        loadRecentCreditPurchases(resellerId);
+        loadStorefrontCredits(resellerId);
+        if (allCreditPurchases) loadAllCreditPurchases();
+      }
+      refreshBalance();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao devolver saldo.");
+    } finally {
+      setRefundingBalanceRechargeKey(null);
+    }
+  };
+
+  const refreshAfterRechargeCancel = () => {
+    if (!resellerId) return;
+    loadRecentCreditPurchases(resellerId);
+    loadStorefrontCredits(resellerId);
+    if (allCreditPurchases) loadAllCreditPurchases();
+  };
 
   const loadCreditPurchaseRefunds = async (rid: string) => {
     const { data } = await supabase
