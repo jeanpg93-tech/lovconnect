@@ -31,11 +31,23 @@ export const affiliateCodeSchema = z
   .min(4, { message: "Código de afiliado obrigatório" })
   .max(32, { message: "Código muito longo" });
 
+export const whatsappSchema = z
+  .string()
+  .trim()
+  .transform((v) => v.replace(/\D/g, ""))
+  .pipe(
+    z
+      .string()
+      .min(10, { message: "WhatsApp inválido (DDD + número)" })
+      .max(15, { message: "WhatsApp inválido" })
+  );
+
 export const signUpSchema = z.object({
   displayName: displayNameSchema,
   email: emailSchema,
   password: passwordSchema,
   affiliateCode: affiliateCodeSchema,
+  whatsapp: whatsappSchema,
 });
 
 export const forgotPasswordSchema = z.object({
