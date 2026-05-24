@@ -661,6 +661,17 @@ export default function GerentePartners() {
                             Reverter
                           </Button>
                           <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setHistoryOpen(true)}
+                            disabled={saving}
+                            className="h-9"
+                            title="Ver alterações anteriores e restaurar valores"
+                          >
+                            <History className="mr-1.5 h-3.5 w-3.5" />
+                            Histórico
+                          </Button>
+                          <Button
                             onClick={save}
                             disabled={saving || loadingPrices}
                             className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
