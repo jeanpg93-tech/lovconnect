@@ -67,7 +67,7 @@ export default function AppLayout() {
         <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
         <div className="relative z-10 w-full max-w-xl">
           <div className="mb-6 flex justify-center sm:mb-8">
-            <LovMainLogo size="h-16 sm:h-20" />
+            <LovMainLogo size="h-28 sm:h-36" />
           </div>
           <div className="rounded-2xl border border-border/60 bg-card/60 p-5 text-center shadow-2xl backdrop-blur-sm sm:p-10">
             <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-primary/10 shadow-red-glow-sm sm:h-14 sm:w-14">
