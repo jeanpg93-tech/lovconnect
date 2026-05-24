@@ -20,7 +20,7 @@ type Tier = {
   sort_order: number; is_active: boolean;
   is_hidden: boolean;
 };
-type Reseller = { id: string; display_name: string };
+type Reseller = { id: string; display_name: string; bonus_min_tier_id: string | null };
 type State = { reseller_id: string; total_spent_cents: number; forced_tier_id: string | null };
 type Extension = { id: string; name: string };
 type TierPriceRow = { id: string; tier_id: string; extension_id: string; license_type: string; price_cents: number; is_active: boolean };
@@ -61,7 +61,7 @@ export default function GerenteNiveis() {
     setLoading(true);
     const [{ data: t }, { data: r }, { data: s }, { data: ex }] = await Promise.all([
       supabase.from("reseller_tiers").select("*").order("sort_order"),
-      supabase.from("resellers").select("id,display_name").order("display_name"),
+      supabase.from("resellers").select("id,display_name,bonus_min_tier_id").order("display_name"),
       supabase.from("reseller_tier_state").select("*"),
       supabase.from("extensions").select("id,name").eq("is_active", true).order("name"),
     ]);
@@ -79,12 +79,24 @@ export default function GerenteNiveis() {
 
   const tierFor = (resellerId: string): Tier | null => {
     const st = states[resellerId];
-    if (!st) return tiers.find((t) => !t.is_hidden) ?? null;
-    if (st.forced_tier_id) {
+    // 1) forced_tier_id sempre tem prioridade máxima (ex.: Partner)
+    if (st?.forced_tier_id) {
       return tiers.find((t) => t.id === st.forced_tier_id) ?? null;
     }
-    const eligible = tiers.filter((t) => t.is_active && !t.is_hidden && t.min_spent_cents <= st.total_spent_cents);
-    return eligible.sort((a, b) => b.min_spent_cents - a.min_spent_cents)[0] ?? null;
+    // 2) tier calculado pelo gasto
+    const spent = st?.total_spent_cents ?? 0;
+    const eligible = tiers.filter((t) => t.is_active && !t.is_hidden && t.min_spent_cents <= spent);
+    const calculated = eligible.sort((a, b) => b.min_spent_cents - a.min_spent_cents)[0]
+      ?? tiers.find((t) => t.is_active && !t.is_hidden) ?? null;
+    // 3) aplica bonus_min_tier_id como piso (max entre calculado e bônus por sort_order)
+    const reseller = resellers.find((r) => r.id === resellerId);
+    if (reseller?.bonus_min_tier_id) {
+      const bonus = tiers.find((t) => t.id === reseller.bonus_min_tier_id && t.is_active);
+      if (bonus && (!calculated || bonus.sort_order > calculated.sort_order)) {
+        return bonus;
+      }
+    }
+    return calculated;
   };
 
   const saveTier = async () => {
