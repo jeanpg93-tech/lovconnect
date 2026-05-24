@@ -40,13 +40,14 @@ Deno.serve(async (req) => {
       if (claimsErr || !claimsData?.claims?.sub) return json({ error: "Unauthorized" }, 401);
       user = { id: claimsData.claims.sub, email: claimsData.claims.email };
 
-      const { data: roleRow } = await serviceClient
+      const { data: roleRows } = await serviceClient
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .in("role", ["gerente", "revendedor"])
-        .maybeSingle();
-      if (!roleRow) return json({ error: "Forbidden" }, 403);
+        .in("role", ["gerente", "revendedor"]);
+      const roles = (roleRows ?? []).map((r: any) => r.role);
+      if (roles.length === 0) return json({ error: "Forbidden" }, 403);
+      const roleRow = { role: roles.includes("gerente") ? "gerente" : "revendedor" };
 
       // Revendedores só podem chamar reset-hwid
       if (roleRow.role !== "gerente" && action !== "reset-hwid") {
