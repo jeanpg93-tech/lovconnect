@@ -1650,6 +1650,15 @@ export type Database = {
       reseller_credit_purchases: {
         Row: {
           api_key_id: string | null
+          balance_refunded_at: string | null
+          cancellation_status: string
+          cancelled_at: string | null
+          cancelled_by: string | null
+          client_refund_endtoend_id: string | null
+          client_refund_error: string | null
+          client_refund_method: string | null
+          client_refund_pix_key: string | null
+          client_refunded_at: string | null
           cost_cents: number | null
           created_at: string
           credits: number
@@ -1670,6 +1679,15 @@ export type Database = {
         }
         Insert: {
           api_key_id?: string | null
+          balance_refunded_at?: string | null
+          cancellation_status?: string
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_refund_endtoend_id?: string | null
+          client_refund_error?: string | null
+          client_refund_method?: string | null
+          client_refund_pix_key?: string | null
+          client_refunded_at?: string | null
           cost_cents?: number | null
           created_at?: string
           credits: number
@@ -1690,6 +1708,15 @@ export type Database = {
         }
         Update: {
           api_key_id?: string | null
+          balance_refunded_at?: string | null
+          cancellation_status?: string
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_refund_endtoend_id?: string | null
+          client_refund_error?: string | null
+          client_refund_method?: string | null
+          client_refund_pix_key?: string | null
+          client_refunded_at?: string | null
           cost_cents?: number | null
           created_at?: string
           credits?: number

@@ -55,6 +55,7 @@ import {
   ,RefreshCcw
   ,X
   ,Store
+  ,Ban
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +92,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { BuyCreditsFlowModal } from "@/components/painel/BuyCreditsFlowModal";
+import { CancelRechargeDialog, type CancelRechargeTarget } from "@/components/painel/CancelRechargeDialog";
 import { useRechargeSettings } from "@/hooks/useRechargeSettings";
 import {
   Carousel,
@@ -226,6 +228,9 @@ export default function RevendedorRecargas() {
     created_at: string;
     updated_at: string;
     error_message: string | null;
+    cancellation_status?: string | null;
+    client_refunded_at?: string | null;
+    balance_refunded_at?: string | null;
   };
   const [recentCreditPurchases, setRecentCreditPurchases] = useState<CreditPurchaseRow[]>([]);
   const [allCreditPurchases, setAllCreditPurchases] = useState<CreditPurchaseRow[] | null>(null);
@@ -249,11 +254,48 @@ export default function RevendedorRecargas() {
     buyer_name: string | null;
     buyer_whatsapp: string | null;
     error_message: string | null;
+    cancellation_status?: string | null;
+    client_refunded_at?: string | null;
+    balance_refunded_at?: string | null;
   };
   const [storefrontCredits, setStorefrontCredits] = useState<StorefrontCreditRow[]>([]);
   const [cpOriginFilter, setCpOriginFilter] = useState<"all" | "manual" | "loja">("all");
   const [cancellingStorefrontId, setCancellingStorefrontId] = useState<string | null>(null);
   const [cancellingCreditPurchaseId, setCancellingCreditPurchaseId] = useState<string | null>(null);
+  const [cancelRechargeTarget, setCancelRechargeTarget] = useState<CancelRechargeTarget | null>(null);
+  const [cancelRechargeOpen, setCancelRechargeOpen] = useState(false);
+  const [refundingBalanceRechargeKey, setRefundingBalanceRechargeKey] = useState<string | null>(null);
+
+  const refundCreditRechargeBalance = async (args: { sale_type: "storefront" | "manual"; sale_id: string }) => {
+    const key = `${args.sale_type}:${args.sale_id}`;
+    if (!confirm("Devolver o valor desta recarga ao seu saldo agora?")) return;
+    setRefundingBalanceRechargeKey(key);
+    try {
+      const { data, error } = await supabase.functions.invoke("refund-credit-recharge-balance", {
+        body: args,
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).message ?? (data as any).error);
+      toast.success("Saldo devolvido ao seu painel.");
+      if (resellerId) {
+        loadRecentCreditPurchases(resellerId);
+        loadStorefrontCredits(resellerId);
+        if (allCreditPurchases) loadAllCreditPurchases();
+      }
+      refreshBalance();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao devolver saldo.");
+    } finally {
+      setRefundingBalanceRechargeKey(null);
+    }
+  };
+
+  const refreshAfterRechargeCancel = () => {
+    if (!resellerId) return;
+    loadRecentCreditPurchases(resellerId);
+    loadStorefrontCredits(resellerId);
+    if (allCreditPurchases) loadAllCreditPurchases();
+  };
 
   const loadCreditPurchaseRefunds = async (rid: string) => {
     const { data } = await supabase
@@ -267,7 +309,7 @@ export default function RevendedorRecargas() {
   const loadRecentCreditPurchases = async (rid: string) => {
     const { data } = await supabase
       .from("reseller_credit_purchases")
-      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,customer_name,customer_whatsapp,provider_pedido_id,created_at,updated_at,error_message")
+      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,customer_name,customer_whatsapp,provider_pedido_id,created_at,updated_at,error_message,cancellation_status,client_refunded_at,balance_refunded_at")
       .eq("reseller_id", rid)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -277,7 +319,7 @@ export default function RevendedorRecargas() {
   const loadStorefrontCredits = async (rid: string) => {
     const { data } = await supabase
       .from("storefront_orders")
-      .select("id,short_code,status,price_cents,cost_cents,credit_amount,paid_at,created_at,buyer_name,buyer_whatsapp,error_message")
+      .select("id,short_code,status,price_cents,cost_cents,credit_amount,paid_at,created_at,buyer_name,buyer_whatsapp,error_message,cancellation_status,client_refunded_at,balance_refunded_at")
       .eq("reseller_id", rid)
       .eq("product_type", "credits")
       .order("created_at", { ascending: false })
@@ -327,7 +369,7 @@ export default function RevendedorRecargas() {
     setLoadingAllCreditPurchases(true);
     const { data } = await supabase
       .from("reseller_credit_purchases")
-      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,customer_name,customer_whatsapp,provider_pedido_id,created_at,updated_at,error_message")
+      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,customer_name,customer_whatsapp,provider_pedido_id,created_at,updated_at,error_message,cancellation_status,client_refunded_at,balance_refunded_at")
       .eq("reseller_id", resellerId)
       .order("created_at", { ascending: false })
       .limit(1000);
@@ -1506,6 +1548,16 @@ export default function RevendedorRecargas() {
                         );
                         const isLojaPending = !isManual && o!.status === "pending" && !o!.paid_at;
                         const isManualPending = isManual && ["aguardando", "pending", "processando"].includes(String(c!.status));
+                        const cancStatus = String((isManual ? c!.cancellation_status : o!.cancellation_status) ?? "none");
+                        const rechargeKey = `${isManual ? "manual" : "storefront"}:${rowId}`;
+                        // Janela de cancelamento PÓS-pagamento (antes da entrega começar)
+                        const isPaidStorefrontCancellable =
+                          !isManual && o!.status === "paid" && cancStatus === "none";
+                        const isManualCancellable = isManualPending && cancStatus === "none";
+                        const canOpenCancelDialog = isPaidStorefrontCancellable || isManualCancellable;
+                        const isAwaitingBalanceRefund = cancStatus === "client_refunded";
+                        const balanceAlreadyRefunded = cancStatus === "balance_refunded";
+                        const cancellationInFlight = cancStatus === "pending";
                         return (
                           <div
                             key={item.key}
@@ -1634,20 +1686,55 @@ export default function RevendedorRecargas() {
                                 )}
                               </Button>
                             )}
-                            {isManualPending && (
+                            {canOpenCancelDialog && (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="h-7 px-2 text-[10px] font-bold border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
-                                disabled={cancellingCreditPurchaseId === rowId}
-                                onClick={() => cancelCreditPurchase(rowId)}
+                                onClick={() => {
+                                  setCancelRechargeTarget({
+                                    sale_id: rowId,
+                                    sale_type: isManual ? "manual" : "storefront",
+                                    label: isManual
+                                      ? `#${String(rowId).slice(0, 8)}`
+                                      : `#${o!.short_code ?? String(rowId).slice(0, 8)}`,
+                                    price_cents: item.price_cents,
+                                    cost_cents: isManual
+                                      ? item.price_cents
+                                      : Number(item.cost_cents ?? item.price_cents),
+                                    credits: item.credits,
+                                  });
+                                  setCancelRechargeOpen(true);
+                                }}
                               >
-                                {cancellingCreditPurchaseId === rowId ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <><X className="h-3 w-3 mr-1" /> Cancelar</>
-                                )}
+                                <Ban className="h-3 w-3 mr-1" /> Cancelar recarga
                               </Button>
+                            )}
+                            {cancellationInFlight && (
+                              <Badge variant="outline" className="text-[10px] font-bold uppercase border-amber-500/30 bg-amber-500/10 text-amber-500">
+                                Cancelando…
+                              </Badge>
+                            )}
+                            {isAwaitingBalanceRefund && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2 text-[10px] font-bold border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                                disabled={refundingBalanceRechargeKey === rechargeKey}
+                                onClick={() => refundCreditRechargeBalance({
+                                  sale_type: isManual ? "manual" : "storefront",
+                                  sale_id: rowId,
+                                })}
+                              >
+                                {refundingBalanceRechargeKey === rechargeKey
+                                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                                  : <>Devolver ao saldo</>}
+                              </Button>
+                            )}
+                            {balanceAlreadyRefunded && (
+                              <Badge variant="outline" className="text-[10px] font-bold uppercase border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+                                Saldo devolvido
+                              </Badge>
                             )}
                           </div>
                         );
@@ -1678,6 +1765,12 @@ export default function RevendedorRecargas() {
         balance={balance}
         onSuccess={refreshBalance}
         mode={activeMode}
+      />
+      <CancelRechargeDialog
+        target={cancelRechargeTarget}
+        open={cancelRechargeOpen}
+        onOpenChange={setCancelRechargeOpen}
+        onDone={refreshAfterRechargeCancel}
       />
     </div>
   );
