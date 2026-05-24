@@ -91,7 +91,7 @@ export function ActivationWelcome({ embedded = false }: ActivationWelcomeProps =
   }
 
   return (
-    <div className={`relative ${embedded ? "" : "min-h-screen"} overflow-hidden bg-background p-4 py-8 sm:p-6 ${embedded ? "rounded-2xl" : ""}`}>
+    <div className={`relative ${embedded ? "" : "min-h-screen"} overflow-hidden bg-background ${embedded ? "rounded-2xl p-3 sm:p-4" : "p-4 py-8 sm:p-6"}`}>
       <div className="pointer-events-none absolute inset-0 bg-grid bg-grid-fade opacity-30" />
       <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
       <div className="relative z-10 mx-auto w-full max-w-4xl">
@@ -102,13 +102,14 @@ export function ActivationWelcome({ embedded = false }: ActivationWelcomeProps =
           </div>
         )}
 
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
-          <div className="flex flex-col gap-2 text-center">
+        <div className={`rounded-2xl border border-border/60 bg-card/60 shadow-2xl backdrop-blur-sm ${embedded ? "p-4 sm:p-5" : "p-6 sm:p-8"}`}>
+          <div className="flex flex-col gap-1.5 text-center">
             <span className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary"><Sparkles className="h-3 w-3" /> ative seu painel</span>
-            <h1 className="font-display text-2xl font-bold uppercase tracking-tight sm:text-3xl">Painel de Revendedor — <span className="text-primary">R$ 200,00</span></h1>
-            <p className="text-sm text-muted-foreground">Pagamento único. Sem mensalidade. Acesso imediato.</p>
+            <h1 className={`font-display font-bold uppercase tracking-tight ${embedded ? "text-lg sm:text-xl" : "text-2xl sm:text-3xl"}`}>Painel de Revendedor — <span className="text-primary">R$ 200,00</span></h1>
+            <p className="text-xs text-muted-foreground sm:text-sm">Pagamento único. Sem mensalidade. Acesso imediato.</p>
           </div>
 
+          {!embedded && (
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {BENEFITS.map((b) => (
               <div key={b.title} className="flex items-start gap-3 rounded-xl border border-border/50 bg-background/40 p-3">
@@ -120,8 +121,9 @@ export function ActivationWelcome({ embedded = false }: ActivationWelcomeProps =
               </div>
             ))}
           </div>
+          )}
 
-          <div className="mt-8">
+          <div className={embedded ? "mt-4" : "mt-8"}>
             {status === "payment_under_review" && (
               <div className="mb-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-center text-sm text-yellow-200">
                 <Clock className="mx-auto mb-1 h-4 w-4" />
