@@ -273,7 +273,7 @@ export default function RevendedorRecargas() {
   const loadRecentCreditPurchases = async (rid: string) => {
     const { data } = await supabase
       .from("reseller_credit_purchases")
-      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,customer_name,customer_whatsapp,provider_pedido_id,created_at,updated_at,error_message")
+      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,customer_name,customer_whatsapp,provider_pedido_id,created_at,updated_at,error_message,cancellation_status,client_refunded_at,balance_refunded_at")
       .eq("reseller_id", rid)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -283,7 +283,7 @@ export default function RevendedorRecargas() {
   const loadStorefrontCredits = async (rid: string) => {
     const { data } = await supabase
       .from("storefront_orders")
-      .select("id,short_code,status,price_cents,cost_cents,credit_amount,paid_at,created_at,buyer_name,buyer_whatsapp,error_message")
+      .select("id,short_code,status,price_cents,cost_cents,credit_amount,paid_at,created_at,buyer_name,buyer_whatsapp,error_message,cancellation_status,client_refunded_at,balance_refunded_at")
       .eq("reseller_id", rid)
       .eq("product_type", "credits")
       .order("created_at", { ascending: false })
@@ -333,7 +333,7 @@ export default function RevendedorRecargas() {
     setLoadingAllCreditPurchases(true);
     const { data } = await supabase
       .from("reseller_credit_purchases")
-      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,customer_name,customer_whatsapp,provider_pedido_id,created_at,updated_at,error_message")
+      .select("id,credits,price_cents,status,tipo_entrega,workspace_name,customer_name,customer_whatsapp,provider_pedido_id,created_at,updated_at,error_message,cancellation_status,client_refunded_at,balance_refunded_at")
       .eq("reseller_id", resellerId)
       .order("created_at", { ascending: false })
       .limit(1000);
