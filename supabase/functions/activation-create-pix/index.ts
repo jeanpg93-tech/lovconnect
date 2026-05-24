@@ -3,7 +3,7 @@ import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const MISTIC_BASE = "https://api.misticpay.com/api";
 const ACTIVATION_AMOUNT_CENTS = 20000;
-const PIX_TTL_HOURS = 24;
+const PIX_TTL_MINUTES = 30;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin
       .from("profiles").select("display_name, email").eq("id", userId).maybeSingle();
 
-    const expiresAt = new Date(Date.now() + PIX_TTL_HOURS * 3600 * 1000).toISOString();
+    const expiresAt = new Date(Date.now() + PIX_TTL_MINUTES * 60 * 1000).toISOString();
 
     const { data: intent, error: intentErr } = await admin
       .from("activation_payments")
