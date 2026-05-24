@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useSidebar } from "@/components/ui/sidebar";
+import { NotificationCenter } from "@/components/NotificationCenter";
 export function MobileNav() {
   const { pathname } = useLocation();
   const { primaryRole } = useRole();
@@ -137,6 +138,7 @@ export function MobileNav() {
           </span>
 
           <div className="flex items-center gap-0.5 shrink-0">
+            <NotificationCenter variant="inline" />
             <ThemeToggle />
             <Button
               variant="ghost"

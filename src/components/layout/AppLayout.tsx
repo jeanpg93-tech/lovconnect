@@ -11,6 +11,7 @@ import { PendingBalanceBanner } from "@/components/painel/PendingBalanceBanner";
 import { LovMainLogo } from "@/components/LovMainLogo";
 import { Button } from "@/components/ui/button";
 import { Clock, ShieldCheck, Sparkles, LogOut, MessageCircle } from "lucide-react";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -128,6 +129,7 @@ export default function AppLayout() {
           </main>
         </div>
         <MobileNav />
+          <NotificationCenter />
       </div>
     </SidebarProvider>
   );
