@@ -52,6 +52,10 @@ export default function GerenteAffiliados() {
   const [maxUses, setMaxUses] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
+  const [refs, setRefs] = useState<ReferralRow[]>([]);
+  const [refsLoading, setRefsLoading] = useState(true);
+  const [refSearch, setRefSearch] = useState("");
+
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -64,6 +68,54 @@ export default function GerenteAffiliados() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const loadReferrals = async () => {
+    setRefsLoading(true);
+    const { data: rows, error } = await supabase
+      .from("reseller_referrals")
+      .select("id, affiliate_code, total_commission_cents, created_at, referrer_reseller_id, referred_reseller_id")
+      .order("created_at", { ascending: false });
+    if (error) { toast.error(error.message); setRefsLoading(false); return; }
+    const list = rows ?? [];
+    const resellerIds = Array.from(new Set(list.flatMap((r: any) => [r.referrer_reseller_id, r.referred_reseller_id])));
+    if (resellerIds.length === 0) { setRefs([]); setRefsLoading(false); return; }
+
+    const [{ data: resellers }, { data: recharges }] = await Promise.all([
+      supabase.from("resellers").select("id, user_id, display_name, created_at").in("id", resellerIds),
+      supabase.from("recharge_intents").select("reseller_id, amount_cents").eq("status", "paid").in("reseller_id", list.map((r: any) => r.referred_reseller_id)),
+    ]);
+    const userIds = (resellers ?? []).map((r: any) => r.user_id);
+    const { data: profiles } = await supabase.from("profiles").select("id, phone").in("id", userIds);
+    const phoneByUser = new Map((profiles ?? []).map((p: any) => [p.id, p.phone]));
+    const resellerById = new Map((resellers ?? []).map((r: any) => [r.id, r]));
+
+    const recAgg = new Map<string, { count: number; total: number }>();
+    (recharges ?? []).forEach((r: any) => {
+      const cur = recAgg.get(r.reseller_id) ?? { count: 0, total: 0 };
+      cur.count += 1; cur.total += Number(r.amount_cents ?? 0);
+      recAgg.set(r.reseller_id, cur);
+    });
+
+    const enriched: ReferralRow[] = list.map((r: any) => {
+      const rr = resellerById.get(r.referrer_reseller_id);
+      const rd = resellerById.get(r.referred_reseller_id);
+      const agg = recAgg.get(r.referred_reseller_id) ?? { count: 0, total: 0 };
+      return {
+        id: r.id,
+        affiliate_code: r.affiliate_code,
+        total_commission_cents: Number(r.total_commission_cents ?? 0),
+        created_at: r.created_at,
+        referrer: rr ? { id: rr.id, display_name: rr.display_name, phone: phoneByUser.get(rr.user_id) ?? null } : null,
+        referred: rd ? { id: rd.id, display_name: rd.display_name, phone: phoneByUser.get(rd.user_id) ?? null, created_at: rd.created_at } : null,
+        recharges_count: agg.count,
+        recharges_total_cents: agg.total,
+      };
+    });
+    setRefs(enriched);
+    setRefsLoading(false);
+  };
+
+  useEffect(() => { loadReferrals(); }, []);
 
   const openDialog = () => {
     setCode(randomCode());
@@ -122,6 +174,30 @@ export default function GerenteAffiliados() {
     totalUses: list.reduce((s, l) => s + (l.uses ?? 0), 0),
   };
 
+  const fmtBRL = (cents: number) =>
+    (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+  const refStats = {
+    total: refs.length,
+    commission: refs.reduce((s, r) => s + r.total_commission_cents, 0),
+    recharges: refs.reduce((s, r) => s + r.recharges_total_cents, 0),
+    activeIndicators: new Set(refs.filter((r) => r.referrer).map((r) => r.referrer!.id)).size,
+  };
+
+  const filteredRefs = refs.filter((r) => {
+    if (!refSearch.trim()) return true;
+    const q = refSearch.toLowerCase();
+    return (
+      r.referrer?.display_name.toLowerCase().includes(q) ||
+      r.referred?.display_name.toLowerCase().includes(q) ||
+      r.referrer?.phone?.toLowerCase().includes(q) ||
+      r.referred?.phone?.toLowerCase().includes(q) ||
+      r.affiliate_code.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <PageContainer>
       <PageHeader
@@ -135,12 +211,19 @@ export default function GerenteAffiliados() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <Tabs defaultValue="codigos" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:inline-flex">
+          <TabsTrigger value="codigos" className="gap-1.5"><Tag className="h-3.5 w-3.5" /> Códigos</TabsTrigger>
+          <TabsTrigger value="indicacoes" className="gap-1.5"><Share2 className="h-3.5 w-3.5" /> Indicações</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="codigos" className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard label="Códigos" value={stats.total} icon={Tag} hint="Total cadastrado" />
         <StatCard label="Ativos" value={stats.active} icon={CheckCircle2} hint="Aceitando novos cadastros" />
         <StatCard label="Inativos" value={stats.inactive} icon={Pause} hint="Pausados ou esgotados" />
         <StatCard label="Conversões" value={stats.totalUses} icon={Users} hint="Cadastros gerados" />
-      </div>
+          </div>
 
       <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
         {loading ? (
