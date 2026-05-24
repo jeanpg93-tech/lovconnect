@@ -22,6 +22,8 @@ type Affiliate = {
   is_active: boolean;
   expires_at: string | null;
   created_at: string;
+  owner_reseller_id: string | null;
+  owner_name?: string | null;
 };
 
 type ReferralRow = {
