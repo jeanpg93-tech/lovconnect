@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 
 export type DateRange = "all" | "today" | "week" | "month";
 
@@ -84,7 +85,7 @@ export function useFinancialOverview(range: DateRange) {
     // Custo: storefront_orders pagos
     let soQ = supabase
       .from("storefront_orders")
-      .select("cost_cents, paid_at, created_at, reseller_id, status")
+      .select("cost_cents, paid_at, created_at, reseller_id, status, product_type, credit_amount")
       .in("status", ["paid", "completed", "delivered", "manual_concluido", "manual_aceito"]);
     if (startIso) soQ = soQ.gte("paid_at", startIso);
     const { data: storeOrders } = await soQ;
@@ -93,15 +94,78 @@ export function useFinancialOverview(range: DateRange) {
     // Custo: reseller_credit_purchases bem-sucedidas
     let rcpQ = supabase
       .from("reseller_credit_purchases")
-      .select("cost_cents, created_at, reseller_id, status")
+      .select("cost_cents, created_at, reseller_id, status, credits")
       .in("status", ["sucesso", "manual_aceito", "manual_concluido"]);
     if (startIso) rcpQ = rcpQ.gte("created_at", startIso);
     const { data: creditPurchases } = await rcpQ;
     const rcpArr = creditPurchases || [];
 
+    // ========================================================================
+    // CUSTO REAL DO DONO PARA RECARGAS DE CRÉDITO
+    // O campo cost_cents nessas tabelas guarda o que o REVENDEDOR paga ao dono
+    // (receita do dono), não o custo real do provedor upstream. O custo real é
+    // o "Preço Base" (credit_pricing_plans.price_cents). Como esse valor pode
+    // estar vazio no DB, buscamos via lovable-credits-api?action=quote, que é
+    // a mesma fonte usada na página de Valores das Recargas.
+    // ========================================================================
+    const creditAmounts = new Set<number>();
+    soArr.forEach((o: any) => {
+      if (o.product_type === "credits" && o.credit_amount > 0) creditAmounts.add(Number(o.credit_amount));
+    });
+    rcpArr.forEach((o: any) => {
+      if (o.credits > 0) creditAmounts.add(Number(o.credits));
+    });
+
+    const baseCostMap: Record<number, number> = {};
+    if (creditAmounts.size > 0) {
+      // Fallback: snapshot do credit_pricing_plans
+      const { data: plans } = await supabase
+        .from("credit_pricing_plans")
+        .select("credits_amount, price_cents")
+        .eq("is_active", true);
+      (plans || []).forEach((p: any) => {
+        if (p.price_cents > 0) baseCostMap[Number(p.credits_amount)] = Number(p.price_cents);
+      });
+      // Live quote (fonte oficial da página de Valores)
+      await Promise.all(
+        Array.from(creditAmounts).map(async (credits) => {
+          try {
+            const { data, error } = await invokeAuthenticatedFunction(
+              `lovable-credits-api?action=quote&credits=${credits}`,
+              { method: "GET" },
+            );
+            if (error) return;
+            const cents =
+              data?.data?.precoCentavos ??
+              data?.precoCentavos ??
+              (typeof data?.data?.precoReais === "string"
+                ? Math.round(parseFloat(data.data.precoReais) * 100)
+                : null);
+            if (typeof cents === "number" && !isNaN(cents) && cents > 0) {
+              baseCostMap[credits] = cents;
+            }
+          } catch {
+            // ignora — usa fallback
+          }
+        }),
+      );
+    }
+
+    const ownerCostForSoItem = (o: any): number => {
+      if (o.product_type === "credits" && o.credit_amount > 0) {
+        return baseCostMap[Number(o.credit_amount)] ?? 0;
+      }
+      // Licenças e outros: mantém cost_cents atual
+      return Number(o.cost_cents || 0);
+    };
+    const ownerCostForRcpItem = (o: any): number => {
+      if (o.credits > 0) return baseCostMap[Number(o.credits)] ?? 0;
+      return Number(o.cost_cents || 0);
+    };
+
     const costCreditsCents =
-      soArr.reduce((s, o: any) => s + Number(o.cost_cents || 0), 0) +
-      rcpArr.reduce((s, o: any) => s + Number(o.cost_cents || 0), 0);
+      soArr.reduce((s, o: any) => s + ownerCostForSoItem(o), 0) +
+      rcpArr.reduce((s, o: any) => s + ownerCostForRcpItem(o), 0);
     const salesCount = soArr.length + rcpArr.length;
 
     // Lançamentos manuais
@@ -144,12 +208,12 @@ export function useFinancialOverview(range: DateRange) {
     soArr.forEach((o: any) => {
       const k = key(o.paid_at || o.created_at);
       bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
-      bucket[k].cost += Number(o.cost_cents || 0);
+      bucket[k].cost += ownerCostForSoItem(o);
     });
     rcpArr.forEach((o: any) => {
       const k = key(o.created_at);
       bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
-      bucket[k].cost += Number(o.cost_cents || 0);
+      bucket[k].cost += ownerCostForRcpItem(o);
     });
     manualArr.forEach((m: any) => {
       const k = key(m.entry_date);
@@ -182,13 +246,13 @@ export function useFinancialOverview(range: DateRange) {
     soArr.forEach((o: any) => {
       const id = o.reseller_id;
       perReseller[id] = perReseller[id] || { revenue: 0, cost: 0, sales: 0 };
-      perReseller[id].cost += Number(o.cost_cents || 0);
+      perReseller[id].cost += ownerCostForSoItem(o);
       perReseller[id].sales += 1;
     });
     rcpArr.forEach((o: any) => {
       const id = o.reseller_id;
       perReseller[id] = perReseller[id] || { revenue: 0, cost: 0, sales: 0 };
-      perReseller[id].cost += Number(o.cost_cents || 0);
+      perReseller[id].cost += ownerCostForRcpItem(o);
       perReseller[id].sales += 1;
     });
     const allEntries = Object.entries(perReseller).map(([id, v]) => ({
