@@ -318,6 +318,115 @@ export default function GerenteAffiliados() {
           </>
         )}
       </div>
+        </TabsContent>
+
+        <TabsContent value="indicacoes" className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <StatCard label="Indicações" value={refStats.total} icon={Share2} hint="Vínculos ativos" />
+            <StatCard label="Indicadores" value={refStats.activeIndicators} icon={Users} hint="Revendedores que indicaram" />
+            <StatCard label="Recargas dos indicados" value={fmtBRL(refStats.recharges)} icon={TrendingUp} hint="Total recebido via PIX" />
+            <StatCard label="Comissões pagas" value={fmtBRL(refStats.commission)} icon={DollarSign} hint="Creditado aos indicadores" />
+          </div>
+
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={refSearch}
+              onChange={(e) => setRefSearch(e.target.value)}
+              placeholder="Buscar por nome, WhatsApp ou código…"
+              className="pl-9 h-10 rounded-xl bg-card"
+            />
+          </div>
+
+          <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
+            {refsLoading ? (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : filteredRefs.length === 0 ? (
+              <div className="p-10 text-center text-sm text-muted-foreground">
+                <Share2 className="mx-auto mb-2 h-8 w-8 opacity-40" />
+                {refs.length === 0 ? "Nenhuma indicação registrada ainda." : "Nenhum resultado para a busca."}
+              </div>
+            ) : (
+              <>
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-b border-white/5 text-[10px] uppercase tracking-widest text-muted-foreground/80">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-bold">Indicador</th>
+                        <th className="px-4 py-3 text-left font-bold">Indicado</th>
+                        <th className="px-4 py-3 text-left font-bold">Cadastro</th>
+                        <th className="px-4 py-3 text-right font-bold">Recargas</th>
+                        <th className="px-4 py-3 text-right font-bold">Comissão paga</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRefs.map((r) => (
+                        <tr key={r.id} className="border-b border-white/5 last:border-0 hover:bg-white/5">
+                          <td className="px-4 py-3">
+                            <div className="font-medium">{r.referrer?.display_name ?? "—"}</div>
+                            {r.referrer?.phone && <div className="text-[11px] text-muted-foreground font-mono">{r.referrer.phone}</div>}
+                            <code className="text-[10px] text-primary/80">{r.affiliate_code}</code>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="font-medium">{r.referred?.display_name ?? "—"}</div>
+                            {r.referred?.phone && <div className="text-[11px] text-muted-foreground font-mono">{r.referred.phone}</div>}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">
+                            {r.referred?.created_at ? fmtDate(r.referred.created_at) : "—"}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="font-mono text-sm">{fmtBRL(r.recharges_total_cents)}</div>
+                            <div className="text-[11px] text-muted-foreground">{r.recharges_count} recarga{r.recharges_count === 1 ? "" : "s"}</div>
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono text-sm text-emerald-500">
+                            {fmtBRL(r.total_commission_cents)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="md:hidden divide-y divide-white/5">
+                  {filteredRefs.map((r) => (
+                    <div key={r.id} className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-[10px] uppercase text-muted-foreground">Indicador</div>
+                          <div className="font-medium text-sm truncate">{r.referrer?.display_name ?? "—"}</div>
+                          {r.referrer?.phone && <div className="text-[11px] text-muted-foreground font-mono">{r.referrer.phone}</div>}
+                        </div>
+                        <code className="text-[10px] text-primary/80 shrink-0">{r.affiliate_code}</code>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase text-muted-foreground">Indicado</div>
+                        <div className="font-medium text-sm truncate">{r.referred?.display_name ?? "—"}</div>
+                        {r.referred?.phone && <div className="text-[11px] text-muted-foreground font-mono">{r.referred.phone}</div>}
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          Cadastro: {r.referred?.created_at ? fmtDate(r.referred.created_at) : "—"}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                        <div>
+                          <div className="text-[10px] uppercase text-muted-foreground">Recargas</div>
+                          <div className="font-mono text-sm">{fmtBRL(r.recharges_total_cents)}</div>
+                          <div className="text-[10px] text-muted-foreground">{r.recharges_count}x</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[10px] uppercase text-muted-foreground">Comissão</div>
+                          <div className="font-mono text-sm text-emerald-500">{fmtBRL(r.total_commission_cents)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="bg-card border-border">
