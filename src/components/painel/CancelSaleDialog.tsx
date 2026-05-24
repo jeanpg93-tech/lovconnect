@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertTriangle, ShieldCheck, Info, Ban } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -146,13 +144,15 @@ export function CancelSaleDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Alert className="border-amber-500/30 bg-amber-500/5">
-          <AlertTriangle className="h-4 w-4 text-amber-500" />
-          <AlertTitle className="text-xs font-bold uppercase tracking-wider">Sem volta</AlertTitle>
-          <AlertDescription className="text-xs">
-            A revogação da chave é imediata e o cliente perde o acesso. Confira antes de prosseguir.
-          </AlertDescription>
-        </Alert>
+        <div className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+          <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+          <div className="space-y-1">
+            <div className="text-xs font-bold uppercase tracking-wider">Sem volta</div>
+            <div className="text-xs text-muted-foreground">
+              A revogação da chave é imediata e o cliente perde o acesso. Confira antes de prosseguir.
+            </div>
+          </div>
+        </div>
 
         {allowAuto && (
           <div className="space-y-3">
@@ -164,13 +164,21 @@ export function CancelSaleDialog({
             )}
 
             {!checking && (
-              <RadioGroup value={method} onValueChange={(v) => setMethod(v as any)} className="space-y-2">
+              <div className="space-y-2">
                 <label
                   className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer ${
                     method === "auto" ? "border-primary bg-primary/5" : "border-border"
-                  } ${!check?.withdraw_enabled ? "opacity-60" : ""}`}
+                  } ${!check?.withdraw_enabled ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
-                  <RadioGroupItem value="auto" id="auto" disabled={!check?.withdraw_enabled} className="mt-1" />
+                  <input
+                    type="radio"
+                    name="refund_method"
+                    value="auto"
+                    checked={method === "auto"}
+                    disabled={!check?.withdraw_enabled}
+                    onChange={() => setMethod("auto")}
+                    className="mt-1"
+                  />
                   <div className="flex-1 space-y-1">
                     <div className="text-sm font-bold flex items-center gap-2">
                       <ShieldCheck className="h-4 w-4 text-emerald-500" /> Automático via MisticPay
@@ -188,7 +196,14 @@ export function CancelSaleDialog({
                     method === "manual" ? "border-primary bg-primary/5" : "border-border"
                   }`}
                 >
-                  <RadioGroupItem value="manual" id="manual" className="mt-1" />
+                  <input
+                    type="radio"
+                    name="refund_method"
+                    value="manual"
+                    checked={method === "manual"}
+                    onChange={() => setMethod("manual")}
+                    className="mt-1"
+                  />
                   <div className="flex-1 space-y-1">
                     <div className="text-sm font-bold flex items-center gap-2">
                       <Info className="h-4 w-4 text-muted-foreground" /> Manual (já reembolsei por fora)
@@ -198,7 +213,7 @@ export function CancelSaleDialog({
                     </p>
                   </div>
                 </label>
-              </RadioGroup>
+              </div>
             )}
 
             {method === "auto" && check?.withdraw_enabled && (
@@ -229,12 +244,12 @@ export function CancelSaleDialog({
         )}
 
         {!allowAuto && (
-          <Alert className="border-border">
-            <Info className="h-4 w-4" />
-            <AlertDescription className="text-xs">
+          <div className="flex gap-2 rounded-lg border border-border bg-muted/30 p-3">
+            <Info className="h-4 w-4 mt-0.5 shrink-0" />
+            <div className="text-xs text-muted-foreground">
               Vendas manuais (geradas pelo painel ou API) não passam pela MisticPay. Combine o reembolso com o cliente por fora. Aqui só registramos a baixa.
-            </AlertDescription>
-          </Alert>
+            </div>
+          </div>
         )}
 
         <label className="flex items-start gap-2 text-xs pt-1">
