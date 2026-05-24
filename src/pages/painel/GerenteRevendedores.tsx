@@ -521,6 +521,7 @@ export default function GerenteRevendedores() {
                         <p className="text-[11px] text-muted-foreground">@{r.display_name}</p>
                         <p className="text-xs text-muted-foreground">{prof?.email ?? "—"}</p>
                         <p className="text-[11px] text-muted-foreground font-mono">{formatPhoneBR(prof?.phone)}</p>
+                        <div className="mt-2"><ActivationBadge status={r.activation_status} /></div>
                       </div>
                       <div className="text-right">
                         <span className="font-mono font-bold text-primary block">{formatBRL(balance)}</span>
