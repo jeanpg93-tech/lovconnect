@@ -453,6 +453,7 @@ export default function RevendedorDashboard() {
   }
 
   return (
+    <>
     <div className="space-y-6 pb-20 md:pb-0">
       <PricingIssuesBannerSlot />
       {/* HERO Dashboard Geral */}
@@ -780,7 +781,8 @@ export default function RevendedorDashboard() {
       </section>
 
     </div>
-    
+    <WhatsAppFloatingButtons bottomOffset={96} />
+    </>
   );
 }
 
