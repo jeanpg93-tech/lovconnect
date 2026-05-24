@@ -481,6 +481,11 @@ export default function GerenteDashboard() {
           customer_name: enrich?.customer_name ?? null,
           customer_whatsapp: enrich?.customer_whatsapp ?? null,
           detail,
+          ref_short: enrich?.ref_short ?? (m.reference_id ? String(m.reference_id).slice(0, 8).toUpperCase() : null),
+          ref_created_at: enrich?.ref_created_at ?? null,
+          ref_kind: enrich?.ref_kind ?? null,
+          license_type: enrich?.license_type ?? null,
+          credits: enrich?.credits ?? null,
         };
       }),
     );
