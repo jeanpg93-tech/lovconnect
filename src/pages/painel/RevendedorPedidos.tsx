@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { usePendingStorefrontCharges } from "@/hooks/usePendingStorefrontCharges";
+import { CancelSaleDialog, type CancelSaleTarget } from "@/components/painel/CancelSaleDialog";
 
 type Plan = { license_type: string; label: string; price_cents: number; cost_cents: number; min_price_cents?: number; is_active: boolean };
 type MethodId = "flow" | "lovax";
@@ -64,6 +65,11 @@ type Order = {
   id: string; license_type: string; price_cents: number; status: string;
   license_key: string | null; created_at: string; is_test: boolean;
   customer?: { display_name: string | null; whatsapp: string | null } | null;
+  cancellation_status?: string | null;
+  key_revoked_at?: string | null;
+  client_refunded_at?: string | null;
+  client_refund_method?: string | null;
+  balance_refunded_at?: string | null;
 };
 
 const FALLBACK_LABEL: Record<string, string> = {
@@ -284,10 +290,17 @@ export default function RevendedorPedidos() {
     buyer_name: string | null;
     buyer_whatsapp: string | null;
     error_message: string | null;
+    cancellation_status?: string | null;
+    key_revoked_at?: string | null;
+    client_refunded_at?: string | null;
+    client_refund_method?: string | null;
+    balance_refunded_at?: string | null;
   };
   const [storefrontLicenses, setStorefrontLicenses] = useState<StorefrontLicRow[]>([]);
   const [licOriginFilter, setLicOriginFilter] = useState<"all" | "manual" | "loja">("all");
   const [cancellingStorefrontId, setCancellingStorefrontId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<CancelSaleTarget | null>(null);
+  const [refundingBalanceId, setRefundingBalanceId] = useState<string | null>(null);
 
   const loadRefunds = async (rid: string) => {
     const { data } = await supabase
@@ -301,7 +314,7 @@ export default function RevendedorPedidos() {
   const loadStorefrontLicenses = async (rid: string) => {
     const { data } = await supabase
       .from("storefront_orders")
-      .select("id,short_code,status,license_key,license_type,price_cents,cost_cents,paid_at,created_at,buyer_name,buyer_whatsapp,error_message,product_type")
+      .select("id,short_code,status,license_key,license_type,price_cents,cost_cents,paid_at,created_at,buyer_name,buyer_whatsapp,error_message,product_type,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at")
       .eq("reseller_id", rid)
       .neq("product_type", "credits")
       .order("created_at", { ascending: false })
