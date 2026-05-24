@@ -25,6 +25,12 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [affiliateCode, setAffiliateCode] = useState<string>("");
+  const [codeLookup, setCodeLookup] = useState<
+    | { status: "idle" }
+    | { status: "checking" }
+    | { status: "ok"; type: "reseller" | "campaign"; label: string }
+    | { status: "invalid" }
+  >({ status: "idle" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [invalidCodeOpen, setInvalidCodeOpen] = useState(false);
   const [whatIsCodeOpen, setWhatIsCodeOpen] = useState(false);
@@ -54,6 +60,27 @@ const Auth = () => {
       setMode("signup");
     }
   }, []);
+
+  useEffect(() => {
+    const code = affiliateCode.trim();
+    if (code.length < 4) {
+      setCodeLookup({ status: "idle" });
+      return;
+    }
+    setCodeLookup({ status: "checking" });
+    const t = setTimeout(async () => {
+      const { data, error } = await supabase.rpc("lookup_affiliate_code", { _code: code });
+      if (error) { setCodeLookup({ status: "idle" }); return; }
+      const res = data as { found?: boolean; type?: "reseller" | "campaign"; owner_name?: string; description?: string };
+      if (!res?.found) { setCodeLookup({ status: "invalid" }); return; }
+      setCodeLookup({
+        status: "ok",
+        type: res.type ?? "campaign",
+        label: res.type === "reseller" ? (res.owner_name ?? "Revendedor") : (res.description ?? "Campanha"),
+      });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [affiliateCode]);
 
   const resetErrors = () => setErrors({});
 
