@@ -3,11 +3,11 @@ import {
   Wallet,
   TrendingUp,
   TrendingDown,
-  Percent,
   ShoppingCart,
   Receipt,
   Loader2,
   Users,
+  Rocket,
 } from "lucide-react";
 import {
   AreaChart,
@@ -55,7 +55,7 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
           label="Receita Total"
           value={brlSigned(data.revenueCents, "+")}
           icon={TrendingUp}
-          hint="Recargas + manuais"
+          hint="Recargas + ativações + manuais"
           color="emerald"
         />
         <KpiCard
@@ -73,11 +73,11 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
           color="sky"
         />
         <KpiCard
-          label="Margem"
-          value={`${data.marginPct.toFixed(1)}%`}
-          icon={Percent}
-          hint="Lucro / Receita"
-          color="sky"
+          label="Ativações"
+          value={brlSigned(data.activationRevenueCents, "+")}
+          icon={Rocket}
+          hint={`${data.activationsCount} painel(éis) vendido(s)`}
+          color="fuchsia"
         />
         <KpiCard
           label="Recargas"
@@ -116,6 +116,7 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
           accent={COLOR_REVENUE}
           items={[
             { label: "Recargas pagas", hint: "revendedores", value: data.rechargesRevenueCents, color: COLOR_REVENUE },
+            { label: "Ativações de painel", hint: "novos revendedores", value: data.activationRevenueCents, color: "#d946ef" },
             { label: "Receitas manuais", hint: "lançamentos manuais", value: data.manualRevenueCents, color: "#8b5cf6" },
           ]}
         />
@@ -307,6 +308,7 @@ const colorMap = {
   sky: { text: "text-sky-500", ring: "ring-sky-500/30", glow: "from-sky-500/15", bg: "bg-sky-500/10" },
   violet: { text: "text-violet-500", ring: "ring-violet-500/20", glow: "from-violet-500/10", bg: "bg-violet-500/10" },
   amber: { text: "text-amber-500", ring: "ring-amber-500/20", glow: "from-amber-500/10", bg: "bg-amber-500/10" },
+  fuchsia: { text: "text-fuchsia-500", ring: "ring-fuchsia-500/25", glow: "from-fuchsia-500/15", bg: "bg-fuchsia-500/10" },
 } as const;
 
 function KpiCard({
