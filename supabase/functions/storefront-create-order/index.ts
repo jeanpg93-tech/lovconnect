@@ -50,10 +50,13 @@ Deno.serve(async (req) => {
     // resolve reseller
     const { data: reseller } = await admin
       .from("resellers")
-      .select("id, display_name, is_active")
+      .select("id, display_name, is_active, activation_status")
       .eq("slug", reseller_slug)
       .maybeSingle();
     if (!reseller || !reseller.is_active) return json({ error: "Loja indisponível" }, 404);
+    if (reseller.activation_status && reseller.activation_status !== "active") {
+      return json({ error: "Loja indisponível" }, 404);
+    }
 
     // storefront config
     const { data: store } = await admin

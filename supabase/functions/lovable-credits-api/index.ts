@@ -166,10 +166,25 @@ Deno.serve(async (req) => {
     if (!resellerId) {
       const { data: reseller } = await adminClient
         .from("resellers")
-        .select("id")
+        .select("id, activation_status")
         .eq("user_id", user.id)
         .maybeSingle();
       resellerId = reseller?.id;
+      if (reseller && reseller.activation_status && reseller.activation_status !== "active") {
+        return new Response(JSON.stringify({ error: "activation_required", message: "Painel pendente de ativação (R$ 200)" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      const { data: r } = await adminClient
+        .from("resellers").select("activation_status").eq("id", resellerId).maybeSingle();
+      if (r && r.activation_status && r.activation_status !== "active") {
+        return new Response(JSON.stringify({ error: "activation_required", message: "Painel pendente de ativação (R$ 200)" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // API Key: SEMPRE usa a chave mestre do gerente (gerente → provedor).

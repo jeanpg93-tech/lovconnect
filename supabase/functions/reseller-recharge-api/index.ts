@@ -88,12 +88,15 @@ Deno.serve(async (req) => {
     // user_id do revendedor (para gravar provider_credit_orders.user_id)
     const { data: reseller } = await admin
       .from("resellers")
-      .select("user_id, is_active")
+      .select("user_id, is_active, activation_status")
       .eq("id", resellerId)
       .maybeSingle();
 
     if (!reseller || reseller.is_active === false) {
       return errResp(403, "ACCOUNT_DISABLED", "Conta de revendedor desativada");
+    }
+    if (reseller.activation_status && reseller.activation_status !== "active") {
+      return errResp(403, "ACTIVATION_REQUIRED", "Painel pendente de ativação (R$ 200)");
     }
     const userId: string = reseller.user_id;
 
