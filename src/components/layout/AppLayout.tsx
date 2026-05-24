@@ -145,7 +145,7 @@ export default function AppLayout() {
                 <div
                   className={needsActivation ? "pointer-events-none select-none" : undefined}
                   aria-hidden={needsActivation || undefined}
-                  inert={needsActivation ? "" : undefined as any}
+                  {...(needsActivation ? { inert: "" } : {})}
                 >
                   <PanelRoutes />
                 </div>
