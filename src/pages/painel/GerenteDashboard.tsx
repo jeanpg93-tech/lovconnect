@@ -155,6 +155,7 @@ export default function GerenteDashboard() {
     customer_whatsapp?: string | null;
     detail?: string | null;
     ref_short?: string | null;
+    ref_full?: string | null;
     ref_created_at?: string | null;
     ref_kind?: 'license' | 'credit' | null;
     license_type?: string | null;
