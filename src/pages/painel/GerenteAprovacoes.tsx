@@ -58,11 +58,27 @@ export default function GerenteAprovacoes() {
     if (codes.length) {
       const { data: affs } = await supabase
         .from("affiliate_codes")
-        .select("code,label,owner_reseller_id, resellers:owner_reseller_id(display_name)")
+        .select("code,label,owner_reseller_id")
         .in("code", codes);
+      const ownerIds = Array.from(
+        new Set(((affs ?? []) as any[]).map((a) => a.owner_reseller_id).filter(Boolean))
+      );
+      let ownerNames: Record<string, string> = {};
+      if (ownerIds.length) {
+        const { data: owners } = await supabase
+          .from("resellers")
+          .select("id,display_name")
+          .in("id", ownerIds);
+        (owners ?? []).forEach((o: any) => {
+          ownerNames[o.id] = o.display_name;
+        });
+      }
       const map: Record<string, ReferrerInfo> = {};
       (affs ?? []).forEach((a: any) => {
-        const name = a.resellers?.display_name || a.label || "Campanha";
+        const name =
+          (a.owner_reseller_id && ownerNames[a.owner_reseller_id]) ||
+          a.label ||
+          "Campanha";
         map[String(a.code).toUpperCase()] = {
           name,
           type: a.owner_reseller_id ? "reseller" : "campaign",
