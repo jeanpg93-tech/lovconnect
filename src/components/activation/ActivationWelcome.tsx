@@ -23,7 +23,10 @@ function formatExpire(iso: string | null) {
   if (diff <= 0) return "expirado";
   const h = Math.floor(diff / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
-  return `${h}h ${m}min`;
+  const s = Math.floor((diff % 60000) / 1000);
+  if (h > 0) return `${h}h ${m}min`;
+  if (m > 0) return `${m}min ${s}s`;
+  return `${s}s`;
 }
 
 export function ActivationWelcome() {
@@ -37,12 +40,13 @@ export function ActivationWelcome() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30000);
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
 
   const pixActive = payment && payment.status === "pending" && payment.copy_paste && payment.expires_at && new Date(payment.expires_at) > new Date();
   const expiredOrNone = !payment || payment.status === "expired" || payment.status === "cancelled" || (payment.status === "pending" && payment.expires_at && new Date(payment.expires_at) <= new Date());
+  void tick;
   const expireLabel = useMemo(() => (payment?.expires_at ? formatExpire(payment.expires_at) : ""), [payment?.expires_at, tick]);
 
   const generatePix = async (forceNew = false) => {
