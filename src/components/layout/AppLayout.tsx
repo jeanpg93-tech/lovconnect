@@ -14,6 +14,7 @@ import { Clock, ShieldCheck, Sparkles, LogOut, MessageCircle } from "lucide-reac
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { PendingProfileGate } from "@/components/PendingProfileGate";
 import { ActivationBanner } from "@/components/activation/ActivationBanner";
+import { ActivationLockOverlay } from "@/components/activation/ActivationLockOverlay";
 import { useActivation } from "@/hooks/useActivation";
 
 export default function AppLayout() {
@@ -140,7 +141,10 @@ export default function AppLayout() {
             <div className="relative">
               {needsActivation && <ActivationBanner status={activationStatus!} />}
               {primaryRole === "revendedor" && <PendingBalanceBanner />}
-              <PanelRoutes />
+              <div className="relative">
+                <PanelRoutes />
+                {needsActivation && <ActivationLockOverlay status={activationStatus!} />}
+              </div>
             </div>
           </main>
         </div>
