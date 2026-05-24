@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LovMainLogo } from "@/components/LovMainLogo";
 import { toast } from "sonner";
 import { signInSchema, signUpSchema, forgotPasswordSchema } from "@/lib/auth-schemas";
-import { ArrowLeft, Loader2, Mail, Lock, User as UserIcon, Ticket, AlertTriangle, MessageCircle, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Lock, User as UserIcon, Ticket, AlertTriangle, MessageCircle, Eye, EyeOff, Phone } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
 type Mode = "signin" | "signup" | "forgot";
@@ -25,6 +25,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [affiliateCode, setAffiliateCode] = useState<string>("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [codeLookup, setCodeLookup] = useState<
     | { status: "idle" }
     | { status: "checking" }
@@ -116,7 +117,7 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     resetErrors();
-    const parsed = signUpSchema.safeParse({ email, password, displayName, affiliateCode });
+    const parsed = signUpSchema.safeParse({ email, password, displayName, affiliateCode, whatsapp });
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
       parsed.error.issues.forEach((i) => { fieldErrors[i.path[0] as string] = i.message; });
@@ -134,6 +135,7 @@ const Auth = () => {
         data: {
           display_name: parsed.data.displayName,
           affiliate_code: parsed.data.affiliateCode.trim().toUpperCase(),
+          whatsapp: parsed.data.whatsapp,
         },
       },
     });
