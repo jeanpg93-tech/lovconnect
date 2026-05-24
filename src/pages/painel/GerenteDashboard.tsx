@@ -831,7 +831,8 @@ export default function GerenteDashboard() {
                           const isManualCredit = m.kind === "manual_credit";
                           const isRecharge = m.kind === "recharge";
                           const isSaleLike = isStoreSale || isCreditPurchase || isApiOrder || isLicensePurchase;
-                          const isLicenseRoute = isLicensePurchase || isApiOrder || (isStoreSale && !isCreditPurchase);
+                          const isLicensePurchaseRefund = String(m.kind) === "license_purchase_refund";
+                          const isLicenseRoute = isLicensePurchase || isApiOrder || (isStoreSale && !isCreditPurchase) || isLicensePurchaseRefund;
                           // Tom: entrada=verde, venda/compra=azul (destaque), outras saídas=vermelho
                           const tone = isRefund
                             ? { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/30", ring: "" }
