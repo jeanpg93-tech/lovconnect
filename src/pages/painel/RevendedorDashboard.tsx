@@ -7,6 +7,7 @@ import { PageHeader, StatCard } from "@/components/painel/PageHeader";
 import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
 import { usePricingIssues } from "@/hooks/usePricingIssues";
 import { Button } from "@/components/ui/button";
+import { WhatsAppFloatingButtons } from "@/components/WhatsAppFloatingButtons";
 import {
   Users,
   Package,
@@ -452,6 +453,7 @@ export default function RevendedorDashboard() {
   }
 
   return (
+    <>
     <div className="space-y-6 pb-20 md:pb-0">
       <PricingIssuesBannerSlot />
       {/* HERO Dashboard Geral */}
@@ -779,6 +781,8 @@ export default function RevendedorDashboard() {
       </section>
 
     </div>
+    <WhatsAppFloatingButtons bottomOffset={96} />
+    </>
   );
 }
 

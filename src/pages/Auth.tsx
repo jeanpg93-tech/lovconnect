@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { signInSchema, signUpSchema, forgotPasswordSchema } from "@/lib/auth-schemas";
 import { ArrowLeft, Loader2, Mail, Lock, User as UserIcon, Ticket, AlertTriangle, MessageCircle, Eye, EyeOff, Phone } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { WhatsAppFloatingButtons } from "@/components/WhatsAppFloatingButtons";
 
 type Mode = "signin" | "signup" | "forgot";
 
@@ -480,6 +481,7 @@ const Auth = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <WhatsAppFloatingButtons />
     </div>
   );
 };
