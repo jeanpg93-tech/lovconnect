@@ -91,6 +91,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { BuyCreditsFlowModal } from "@/components/painel/BuyCreditsFlowModal";
+import { CancelRechargeDialog, type CancelRechargeTarget } from "@/components/painel/CancelRechargeDialog";
 import { useRechargeSettings } from "@/hooks/useRechargeSettings";
 import {
   Carousel,
