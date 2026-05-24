@@ -155,6 +155,7 @@ export default function GerenteDashboard() {
     customer_whatsapp?: string | null;
     detail?: string | null;
     ref_short?: string | null;
+    ref_full?: string | null;
     ref_created_at?: string | null;
     ref_kind?: 'license' | 'credit' | null;
     license_type?: string | null;
@@ -400,6 +401,7 @@ export default function GerenteDashboard() {
       customer_whatsapp?: string | null;
       detail?: string | null;
       ref_short?: string | null;
+      ref_full?: string | null;
       ref_created_at?: string | null;
       ref_kind?: 'license' | 'credit' | null;
       license_type?: string | null;
@@ -428,6 +430,7 @@ export default function GerenteDashboard() {
         customer_whatsapp: o.customer?.whatsapp ?? null,
         detail: describeLic(o.license_type) + (o.is_test ? " (teste)" : ""),
         ref_short: o.id ? String(o.id).slice(0, 8).toUpperCase() : null,
+        ref_full: o.id ?? null,
         ref_created_at: o.created_at ?? null,
         ref_kind: 'license',
         license_type: o.license_type ?? null,
@@ -442,6 +445,7 @@ export default function GerenteDashboard() {
         customer_whatsapp: c.customer_whatsapp ?? null,
         detail: `Recarga • ${c.credits} crédito${c.credits === 1 ? "" : "s"}`,
         ref_short: c.id ? String(c.id).slice(0, 8).toUpperCase() : null,
+        ref_full: c.id ?? null,
         ref_created_at: c.created_at ?? null,
         ref_kind: 'credit',
         credits: c.credits ?? null,
@@ -482,6 +486,7 @@ export default function GerenteDashboard() {
           customer_whatsapp: enrich?.customer_whatsapp ?? null,
           detail,
           ref_short: enrich?.ref_short ?? (m.reference_id ? String(m.reference_id).slice(0, 8).toUpperCase() : null),
+          ref_full: enrich?.ref_full ?? m.reference_id ?? null,
           ref_created_at: enrich?.ref_created_at ?? null,
           ref_kind: enrich?.ref_kind ?? null,
           license_type: enrich?.license_type ?? null,
@@ -915,9 +920,25 @@ export default function GerenteDashboard() {
                                    {(m.ref_short || m.ref_created_at) && (
                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] pt-0.5 font-mono">
                                        {m.ref_short && (
-                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground/70 border border-border">
+                                         <button
+                                           type="button"
+                                           onClick={(e) => {
+                                             e.preventDefault();
+                                             e.stopPropagation();
+                                             const full = String(m.kind === 'license_purchase_refund' || m.kind === 'credit_purchase_refund' || /refund|estorno/i.test(String(m.kind))
+                                               ? '' : '') + (m.ref_short ?? '');
+                                             // Copia o ID completo quando disponível via reference
+                                             const toCopy = (m as any).ref_full || m.ref_short || '';
+                                             navigator.clipboard?.writeText(toCopy).then(
+                                               () => toast({ title: "ID copiado", description: toCopy }),
+                                               () => toast({ title: "Falha ao copiar", variant: "destructive" as any })
+                                             );
+                                           }}
+                                           title="Clique para copiar o ID completo"
+                                           className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground/70 border border-border hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                                         >
                                            {isRefund ? 'venda' : 'id'} #{m.ref_short}
-                                         </span>
+                                         </button>
                                        )}
                                        {isRefund && m.ref_created_at && (
                                          <span className="text-muted-foreground/70">
