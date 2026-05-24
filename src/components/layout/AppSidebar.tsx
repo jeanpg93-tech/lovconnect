@@ -370,10 +370,10 @@ export function AppSidebar() {
     };
   }, [primaryRole]);
 
-  // Aplica scrollbars finos/vermelhos só no painel do admin (gerente)
+  // Aplica scrollbars finos/vermelhos no painel (admin e revendedor)
   useEffect(() => {
     const root = document.documentElement;
-    if (primaryRole === "gerente") {
+    if (primaryRole === "gerente" || primaryRole === "revendedor") {
       root.setAttribute("data-admin-panel", "true");
     } else {
       root.removeAttribute("data-admin-panel");
@@ -396,8 +396,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="relative border-b border-sidebar-border px-3 py-3">
-        {primaryRole === "gerente" && (
-          <button
+        <button
             type="button"
             onClick={toggleSidebar}
             title={collapsed ? "Expandir menu" : "Recolher menu"}
@@ -414,7 +413,6 @@ export function AppSidebar() {
               <ChevronLeft className="h-3.5 w-3.5" />
             )}
           </button>
-        )}
         {(() => {
           const name = profile.display_name?.trim() || profile.email?.split("@")[0] || "Usuário";
           const initial = (name[0] || "U").toUpperCase();
