@@ -134,7 +134,7 @@ export function CancelSaleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-w-lg">
+      <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Ban className="h-5 w-5 text-rose-500" /> Cancelar venda {target.label}
@@ -265,12 +265,12 @@ export function CancelSaleDialog({
           </span>
         </label>
 
-        <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>
+        <DialogFooter className="gap-2 flex-col-reverse sm:flex-row">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting} className="w-full sm:w-auto">
             Voltar
           </Button>
           <Button
-            className="bg-rose-500 text-white hover:bg-rose-600"
+            className="bg-rose-500 text-white hover:bg-rose-600 w-full sm:w-auto"
             onClick={submit}
             disabled={submitting || !confirmed}
           >
