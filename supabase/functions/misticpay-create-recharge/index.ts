@@ -38,10 +38,13 @@ Deno.serve(async (req) => {
 
     const { data: reseller } = await admin
       .from("resellers")
-      .select("id, display_name")
+      .select("id, display_name, activation_status")
       .eq("user_id", userId)
       .maybeSingle();
     if (!reseller) return json({ error: "Apenas revendedores podem recarregar" }, 403);
+    if ((reseller as any).activation_status && (reseller as any).activation_status !== "active") {
+      return json({ error: "Painel não ativado. Conclua o pagamento de R$ 200 para liberar.", reason: "activation_required" }, 403);
+    }
 
     const { data: profile } = await admin
       .from("profiles")
