@@ -138,15 +138,15 @@ Deno.serve(async (req) => {
       .eq("is_active", true)
       .maybeSingle();
     if (!plan) return null;
+    // Usa a RPC oficial: override individual > tier > Partner→Ouro > preço base
+    const { data: cost } = await svc.rpc("get_credit_pack_cost", {
+      _reseller_id: reseller.id,
+      _plan_id: plan.id,
+    });
+    const price_cents = Number(cost ?? 0);
+    if (price_cents <= 0) return null;
     const tierId = await getTierId();
-    if (!tierId) return null;
-    const { data: tp } = await svc
-      .from("tier_credit_prices")
-      .select("price_cents")
-      .eq("tier_id", tierId)
-      .eq("plan_id", plan.id)
-      .maybeSingle();
-    return { plan, tierId, price_cents: Number(tp?.price_cents ?? 0) };
+    return { plan, tierId, price_cents };
   };
 
   const getProviderApiKey = async (): Promise<string | null> => {

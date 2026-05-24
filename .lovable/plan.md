@@ -1,126 +1,61 @@
-# Ativação do Painel — R$ 200,00
+## Diagnóstico
 
-Fluxo completo: cadastro → aprovação manual do gerente → preview limitado → pagamento (PIX automático **ou** comprovante manual) → liberação total + bônus.
+A venda exibida (id local `f7562f2b...`, provider id `84cbe5ca...`) foi feita pelo revendedor `luxoapplez` (`dcf5995d-2dd4-4030-8ab1-483940e98c3a`) via **API de revendedor** (`reseller-credits-api`), não pela lojinha.
 
-## 1. Estados do revendedor
+- Override Partner cadastrado em `reseller_credit_cost_overrides`: 20 créditos = **R$ 3,05**
+- Valor efetivamente debitado: **R$ 4,90** (espelho do tier Ouro)
+- Diferença a estornar: **R$ 1,85**
 
-Novo campo `activation_status` em `resellers`:
+**Causa raiz:** a função `findPackagePrice` em `supabase/functions/reseller-credits-api/index.ts` (linha 133) lê o preço apenas de `tier_credit_prices` e ignora completamente `reseller_credit_cost_overrides` e o fallback Partner→Ouro. A lojinha (`storefront-create-order`) está correta porque usa a RPC `get_credit_pack_cost`, que aplica a precedência: override individual → tier → Partner→Ouro → preço base. A API do revendedor não usa essa RPC.
 
-| status | significado |
-|---|---|
-| `awaiting_payment` | Aprovado pelo gerente, vendo preview, sem pagar |
-| `payment_under_review` | Enviou comprovante manual, aguarda gerente |
-| `active` | Painel totalmente liberado |
-| `payment_rejected` | Comprovante recusado → volta para preview com aviso |
+Resultado: qualquer Partner com preço individual cadastrado é cobrado pelo preço do tier (Ouro) ao usar a API, em vez do override.
 
-Migration marca **todos os revendedores atuais como `active`** (grandfathered). Só novos pagam.
+## Correção
 
-## 2. Aprovação do gerente (mantida)
+### 1. Edge function `reseller-credits-api`
 
-`approve_user()` continua existindo. Diferença: agora ele cria o reseller com `activation_status = 'awaiting_payment'` em vez de já liberar tudo. As 10 chaves trial bronze **não** são geradas aqui — vêm só após pagamento.
+Reescrever `findPackagePrice` para usar a mesma RPC oficial:
 
-## 3. Preview — o que bloquear
-
-**Permitido (somente leitura):**
-- Dashboard, Preços, Níveis, Ranking, Docs API, Ajustes da conta, Indicações (visualizar código)
-
-**Bloqueado (mostra modal "Ative seu painel R$ 200"):**
-- Gerar chave / criar pedido (`place-reseller-order`, `place-method-license-order`)
-- Storefront: criar/editar/publicar loja
-- Comprar créditos Lovable, recargas de saldo
-- API do revendedor (todas as keys ficam suspensas)
-- Integrações WhatsApp / MisticPay
-- Compra/uso de extensão personalizada
-
-**Proteção em duas camadas:**
-1. Frontend: hook `useActivation()` + componente `<ActivationGate>` envolve botões/páginas críticas.
-2. Backend: cada edge function crítica chama helper `assertActive(user_id)` no início — retorna 403 se não estiver `active`. **Isso é o que de fato impede ações** (frontend é só UX).
-
-## 4. Geração do PIX (R$ 200)
-
-Reaproveita MisticPay. Nova tabela `activation_payments`:
-- `reseller_id`, `amount_cents=20000`, `status` (`pending`/`paid`/`under_review`/`approved`/`rejected`)
-- `provider`, `provider_transaction_id`, `qr_code_base64`, `copy_paste`, `expires_at`
-- `proof_url` (upload manual), `reviewer_id`, `reviewer_note`, `reviewed_at`
-- `paid_at`, `activated_at`
-
-Edge function `activation-create-pix`: cria registro + PIX. Reutiliza intent ativo se ainda válido; regenera se expirou (>24h).
-
-## 5. Webhook automático
-
-`misticpay-webhook` ganha branch: se a transação for de `activation_payments`, ao confirmar pagamento:
-- marca `status='paid'` + `paid_at`
-- chama `activate_reseller(reseller_id)` (RPC SECURITY DEFINER)
-- gera 10 trial bronze, registra log, dispara notificação in-app + Telegram
-
-## 6. Comprovante manual
-
-- Bucket privado novo: `activation-proofs` (RLS: dono escreve no próprio path; gerente lê tudo).
-- Botão "Já realizei o pagamento" → upload de imagem/PDF + observação opcional.
-- Marca `status='under_review'` → revendedor vê banner "Aguardando confirmação".
-
-## 7. Painel do gerente — `/painel/gerente/ativacoes`
-
-Nova página listando `activation_payments` em análise:
-- Cliente, valor, data envio, link do comprovante (signed URL), observação do usuário
-- Botões: **Aprovar** / **Recusar** (motivo obrigatório se recusar)
-- Aprovar → mesma `activate_reseller(...)` do webhook
-- Recusar → `status='rejected'` + notifica usuário com motivo (volta a poder pagar via PIX ou reenviar)
-
-## 8. Tela de boas-vindas / ativação
-
-Componente `ActivationWelcome` mostrado:
-- Imediatamente após login se `awaiting_payment`
-- Layout moderno: header com R$ 200, QR code grande, botão copiar PIX, lista de benefícios:
-
-> **Plano de Revenda — R$ 200,00 (pagamento único)**
-> Ao ativar, você recebe imediatamente:
-> - Painel completo para gerar suas próprias chaves
-> - Geração ilimitada de chaves de **teste** da extensão
-> - **10 chaves Bronze** para começar a vender
-> - Acesso à API, loja pública, integrações e ranking
-
-Aba secundária: **"Já paguei → enviar comprovante"**.
-
-## 9. Logs e auditoria
-
-Tabela `activation_logs`: `reseller_id`, `event` (`approved_by_manager`, `pix_generated`, `proof_uploaded`, `payment_confirmed`, `proof_approved`, `proof_rejected`, `activated`), `actor_id`, `metadata`, `created_at`.
-
-## 10. Notificações
-
-- Revendedor: PIX gerado, pagamento confirmado, comprovante em análise, comprovante recusado, painel ativado
-- Gerente: novo comprovante para analisar (in-app + Telegram)
-
-## 11. Tickets técnicos (ordem de execução)
-
-```text
-1. Migration: activation_status, activation_payments, activation_logs, bucket, RPC activate_reseller
-2. Migration de dados: marcar todos resellers atuais como 'active'
-3. Edge fn: activation-create-pix, activation-submit-proof, activation-status
-4. Backend gate: helper assertActive + integração em place-reseller-order, storefront-create-order, misticpay-create-recharge, lovable-credits-api, reseller-api etc.
-5. Webhook: branch activation no misticpay-webhook
-6. Frontend: hook useActivation, ActivationGate, ActivationWelcome (com tabs PIX | comprovante), banner persistente "Painel em preview"
-7. Frontend gerente: /painel/gerente/ativacoes
-8. Notificações + entradas Telegram
-9. Atualizar PendingProfileGate / AppLayout para roteamento por activation_status
+```ts
+const findPackagePrice = async (credits: number) => {
+  const { data: plan } = await svc
+    .from("credit_pricing_plans")
+    .select("id, credits_amount, label, is_active")
+    .eq("credits_amount", credits)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (!plan) return null;
+  const { data: cost } = await svc.rpc("get_credit_pack_cost", {
+    _reseller_id: reseller.id,
+    _plan_id: plan.id,
+  });
+  const price_cents = Number(cost ?? 0);
+  if (price_cents <= 0) return null;
+  return { plan, price_cents };
+};
 ```
 
-## Pontos extras decididos
-- PIX expira em 24h, regenerado sob demanda
-- Pagamento **não reembolsável** — aviso claro na tela de boas-vindas
-- Faixa amarela persistente no topo enquanto não `active`
-- Banimento (`is_banned`) continua tendo prioridade sobre tudo
+Isso conserta os três pontos de uso (`GET /orcamento`, POST pedido normal e o segundo fluxo POST nas linhas 308/366/753).
 
-## Status: IMPLEMENTADO ✅
-- Migration: tabelas `activation_payments`, `activation_logs`, bucket `activation-proofs`, RPC `activate_reseller`, atualização do `approve_user` (novos entram em `awaiting_payment`)
-- Grandfather: todos revendedores atuais já estão como `active`
-- Edge functions: `activation-create-pix`, `activation-submit-proof`, `activation-review`, branch no `misticpay-webhook`
-- Frontend: `useActivation`, `ActivationWelcome` (PIX + comprovante), routing no AppLayout, página `/painel/gerente/ativacoes`
-- Mensagem reformulada conforme aprovado (sem reembolso explícito, 1% comissão, entrada Bronze)
+### 2. Estorno do caso atual
 
-## Pendente (próximas iterações)
-- Banner amarelo persistente em páginas de preview (atualmente revendedor vai direto pra `ActivationWelcome`, sem preview parcial)
-- Notificação Telegram pro gerente quando comprovante chega
+Aplicar via migration/insert:
 
-## Backend gate aplicado ✅
-- `place-reseller-order`, `place-method-license-order`, `misticpay-create-recharge` retornam 403 `activation_required` se `resellers.activation_status != 'active'`.
+- Creditar **+185** centavos no saldo do revendedor `dcf5995d-2dd4-4030-8ab1-483940e98c3a` chamando `credit_reseller_balance` com `kind = 'manual_credit'` e `description = "Estorno R$1,85 — cobrança a maior na compra 20 créditos (id f7562f2b...) por bug de preço Partner"` e `reference_id = f7562f2b-f1b5-4c41-b8b3-d6a8881e7ece`.
+- Atualizar a compra `f7562f2b-f1b5-4c41-b8b3-d6a8881e7ece`: `price_cents = 305` (refletindo o preço correto) — campo `cost_cents` fica como já está (190), pois é o custo upstream do provedor (não afeta o saldo).
+
+### 3. Auditoria (recomendado, mas pergunto antes)
+
+Posso fazer uma varredura em `reseller_credit_purchases` (status `sucesso`/`processando`/`aguardando`) para identificar outras compras de partners feitas via API após a data em que os overrides foram cadastrados (24/05/2026 ~10:54) onde `price_cents` ficou ≠ ao override vigente, e estornar todas. **Pergunto antes de aplicar.**
+
+## Arquivos / mudanças
+
+- `supabase/functions/reseller-credits-api/index.ts` — reescrever `findPackagePrice` para usar `get_credit_pack_cost`.
+- Insert de saldo + update da compra atual (caso `f7562f2b...`).
+- (Opcional) Varredura e estornos para outras compras afetadas.
+
+## Validação
+
+1. Após deploy, chamar `GET /reseller-credits-api?action=orcamento&creditos=20` autenticado como o partner → deve retornar `precoCentavos: 305`.
+2. Conferir saldo de `luxoapplez` ganhou +185 centavos e `balance_transactions` registra o estorno.
+3. Próxima compra do partner debita o valor correto.
