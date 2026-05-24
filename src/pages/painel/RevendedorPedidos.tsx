@@ -359,7 +359,7 @@ export default function RevendedorPedidos() {
     setLoadingAll(true);
     const { data } = await supabase
       .from("orders")
-      .select("id,license_type,price_cents,status,license_key,created_at,is_test, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
+      .select("id,license_type,price_cents,status,license_key,created_at,is_test,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
       .eq("reseller_id", resellerId)
       .order("created_at", { ascending: false })
       .limit(1000);
