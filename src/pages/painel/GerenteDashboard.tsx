@@ -154,6 +154,11 @@ export default function GerenteDashboard() {
     customer_name?: string | null;
     customer_whatsapp?: string | null;
     detail?: string | null;
+    ref_short?: string | null;
+    ref_created_at?: string | null;
+    ref_kind?: 'license' | 'credit' | null;
+    license_type?: string | null;
+    credits?: number | null;
   }[]>([]);
   const [apiLogs, setApiLogs] = useState<{ id: string; created_at: string; endpoint: string; reseller_name?: string; status_code: number }[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -390,7 +395,16 @@ export default function GerenteDashboard() {
         .limit(300),
     ]);
 
-    type EnrichVal = { customer_name?: string | null; customer_whatsapp?: string | null; detail?: string | null };
+    type EnrichVal = {
+      customer_name?: string | null;
+      customer_whatsapp?: string | null;
+      detail?: string | null;
+      ref_short?: string | null;
+      ref_created_at?: string | null;
+      ref_kind?: 'license' | 'credit' | null;
+      license_type?: string | null;
+      credits?: number | null;
+    };
     const enrichMap = new Map<string, EnrichVal>();
     const enrichById = new Map<string, EnrichVal>();
     const bucket = (iso: string) => Math.floor(new Date(iso).getTime() / 60_000);
@@ -413,6 +427,10 @@ export default function GerenteDashboard() {
         customer_name: o.customer?.display_name ?? null,
         customer_whatsapp: o.customer?.whatsapp ?? null,
         detail: describeLic(o.license_type) + (o.is_test ? " (teste)" : ""),
+        ref_short: o.id ? String(o.id).slice(0, 8).toUpperCase() : null,
+        ref_created_at: o.created_at ?? null,
+        ref_kind: 'license',
+        license_type: o.license_type ?? null,
       };
       enrichMap.set(keyOf(o.reseller_id, o.price_cents, o.created_at), val);
       if (o.id) enrichById.set(o.id, val);
@@ -423,6 +441,10 @@ export default function GerenteDashboard() {
         customer_name: c.customer_name ?? null,
         customer_whatsapp: c.customer_whatsapp ?? null,
         detail: `Recarga • ${c.credits} crédito${c.credits === 1 ? "" : "s"}`,
+        ref_short: c.id ? String(c.id).slice(0, 8).toUpperCase() : null,
+        ref_created_at: c.created_at ?? null,
+        ref_kind: 'credit',
+        credits: c.credits ?? null,
       };
       enrichMap.set(keyOf(c.reseller_id, c.price_cents, c.created_at), val);
       if (c.id) enrichById.set(c.id, val);
@@ -459,6 +481,11 @@ export default function GerenteDashboard() {
           customer_name: enrich?.customer_name ?? null,
           customer_whatsapp: enrich?.customer_whatsapp ?? null,
           detail,
+          ref_short: enrich?.ref_short ?? (m.reference_id ? String(m.reference_id).slice(0, 8).toUpperCase() : null),
+          ref_created_at: enrich?.ref_created_at ?? null,
+          ref_kind: enrich?.ref_kind ?? null,
+          license_type: enrich?.license_type ?? null,
+          credits: enrich?.credits ?? null,
         };
       }),
     );
@@ -800,11 +827,12 @@ export default function GerenteDashboard() {
                       else groups.push({ label: lbl, items: [m] });
                     });
                     const kindLabels: Record<string, string> = {
-                      deposit: "Depósito", recharge: "Recargas", bonus: "Bônus", refund: "Estorno",
-                      adjustment: "Ajuste", license_purchase: "Compra licença", credit_purchase: "Compra recargas",
-                      order: "Pedido", debit: "Débito", order_debit: "Pedido",
-                      manual_credit: "Recarga manual", credit_purchase_refund: "Estorno compra",
-                      credit_recharge_api: "Recargas API",
+                      deposit: "Depósito de Saldo", recharge: "Depósito PIX", bonus: "Bônus", refund: "Estorno",
+                      adjustment: "Ajuste Manual", license_purchase: "Venda de Licença", credit_purchase: "Venda de Recargas",
+                      order: "Pedido", debit: "Débito", order_debit: "Venda",
+                      manual_credit: "Depósito Manual", credit_purchase_refund: "Estorno de Recargas",
+                      license_purchase_refund: "Estorno de Licença",
+                      credit_recharge_api: "Recargas via API",
                     };
                     return groups.map((g) => (
                       <div key={g.label} className="space-y-2">
@@ -884,6 +912,20 @@ export default function GerenteDashboard() {
                                    <div className="text-[9px] text-muted-foreground font-mono truncate">
                                      {m.detail ? m.detail : (desc || '—')}
                                    </div>
+                                   {(m.ref_short || m.ref_created_at) && (
+                                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] pt-0.5 font-mono">
+                                       {m.ref_short && (
+                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground/70 border border-border">
+                                           {isRefund ? 'venda' : 'id'} #{m.ref_short}
+                                         </span>
+                                       )}
+                                       {isRefund && m.ref_created_at && (
+                                         <span className="text-muted-foreground/70">
+                                           original: {new Date(m.ref_created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                         </span>
+                                       )}
+                                     </div>
+                                   )}
                                     {(m.customer_name || m.customer_whatsapp) && (
                                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] pt-0.5">
                                        {m.customer_name && (
