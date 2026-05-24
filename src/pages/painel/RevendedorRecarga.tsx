@@ -226,6 +226,9 @@ export default function RevendedorRecargas() {
     created_at: string;
     updated_at: string;
     error_message: string | null;
+    cancellation_status?: string | null;
+    client_refunded_at?: string | null;
+    balance_refunded_at?: string | null;
   };
   const [recentCreditPurchases, setRecentCreditPurchases] = useState<CreditPurchaseRow[]>([]);
   const [allCreditPurchases, setAllCreditPurchases] = useState<CreditPurchaseRow[] | null>(null);
@@ -249,6 +252,9 @@ export default function RevendedorRecargas() {
     buyer_name: string | null;
     buyer_whatsapp: string | null;
     error_message: string | null;
+    cancellation_status?: string | null;
+    client_refunded_at?: string | null;
+    balance_refunded_at?: string | null;
   };
   const [storefrontCredits, setStorefrontCredits] = useState<StorefrontCreditRow[]>([]);
   const [cpOriginFilter, setCpOriginFilter] = useState<"all" | "manual" | "loja">("all");
