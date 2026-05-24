@@ -164,7 +164,7 @@ export default function RevendedorPedidos() {
       // Método de entrega habilitado pelo gerente
       supabase.from("app_settings").select("value").eq("key", "licencas.delivery.method").maybeSingle(),
       // Override de custo individual (Partners/cliente-específico) definido pelo gerente
-      supabase.from("reseller_license_cost_overrides").select("method,pack_id,price_cents,is_active").eq("reseller_id", r.id).eq("is_active", true),
+      supabase.from("reseller_license_cost_overrides").select("pack_id,price_cents,is_active").eq("reseller_id", r.id).eq("is_active", true),
     ]);
     const sorted = ((pl ?? []) as Plan[])
       .filter(p => ORDER.includes(p.license_type))
@@ -202,13 +202,9 @@ export default function RevendedorPedidos() {
 
     const costMap: Record<string, number> = {};
     (costOverrides ?? []).forEach((row: any) => {
-      // override pode ser global (sem method) — aplica em ambos
-      if (row.method) {
-        costMap[`${row.method}|${row.pack_id}`] = row.price_cents;
-      } else {
-        costMap[`flow|${row.pack_id}`] = row.price_cents;
-        costMap[`lovax|${row.pack_id}`] = row.price_cents;
-      }
+      // overrides são globais por pack — aplicam aos dois métodos
+      costMap[`flow|${row.pack_id}`] = row.price_cents;
+      costMap[`lovax|${row.pack_id}`] = row.price_cents;
     });
     setResellerCostOverrides(costMap);
 
