@@ -334,7 +334,7 @@ const Auth = () => {
                         <UserIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
                         <Input id="signup-name" type="text" autoComplete="name" value={displayName}
                           onChange={(e) => setDisplayName(e.target.value)}
-                          className="rounded-none border-border/50 bg-background/40 pl-9 text-xs placeholder:text-muted-foreground/30 focus-visible:ring-primary/30" placeholder="NOME DO REVENDEDOR" />
+                          className="rounded-none border-border/50 bg-background/40 pl-9 text-xs placeholder:text-muted-foreground/30 focus-visible:ring-primary/30" placeholder="SEU NOME" />
                       </div>
                       {errors.displayName && <p className="text-[10px] text-destructive uppercase tracking-widest">{errors.displayName}</p>}
                     </div>
