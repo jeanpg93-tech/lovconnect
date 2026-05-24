@@ -912,6 +912,20 @@ export default function GerenteDashboard() {
                                    <div className="text-[9px] text-muted-foreground font-mono truncate">
                                      {m.detail ? m.detail : (desc || '—')}
                                    </div>
+                                   {(m.ref_short || m.ref_created_at) && (
+                                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] pt-0.5 font-mono">
+                                       {m.ref_short && (
+                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground/70 border border-border">
+                                           {isRefund ? 'venda' : 'id'} #{m.ref_short}
+                                         </span>
+                                       )}
+                                       {isRefund && m.ref_created_at && (
+                                         <span className="text-muted-foreground/70">
+                                           original: {new Date(m.ref_created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                         </span>
+                                       )}
+                                     </div>
+                                   )}
                                     {(m.customer_name || m.customer_whatsapp) && (
                                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] pt-0.5">
                                        {m.customer_name && (
