@@ -11,12 +11,12 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy } from "lucide-react";
+import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type Reseller = {
-  id: string; user_id: string; display_name: string; slug: string; is_active: boolean; test_keys_used_today: number; test_keys_per_day_override: number | null;
+  id: string; user_id: string; display_name: string; slug: string; is_active: boolean; test_keys_used_today: number; test_keys_per_day_override: number | null; activation_status?: string | null;
 };
 type Profile = { id: string; email: string; display_name: string | null; phone: string | null; is_banned: boolean | null };
 type Tier = { id: string; name: string; color: string; min_spent_cents: number; is_active: boolean; is_hidden: boolean; test_keys_per_day: number; sort_order: number };
@@ -46,6 +46,22 @@ const formatPhoneBR = (phone: string | null | undefined) => {
   if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
   if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   return phone;
+};
+
+const ActivationBadge = ({ status }: { status?: string | null }) => {
+  const s = status ?? "awaiting_payment";
+  const map: Record<string, { label: string; cls: string; Icon: any }> = {
+    active: { label: "Pago", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30", Icon: CheckCircle2 },
+    payment_under_review: { label: "Em análise", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30", Icon: Clock },
+    payment_rejected: { label: "Rejeitado", cls: "bg-rose-500/15 text-rose-500 border-rose-500/30", Icon: XCircle },
+    awaiting_payment: { label: "Aguardando pgto", cls: "bg-slate-500/15 text-slate-400 border-slate-500/30", Icon: AlertCircle },
+  };
+  const { label, cls, Icon } = map[s] ?? map.awaiting_payment;
+  return (
+    <span className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap", cls)}>
+      <Icon className="h-3 w-3" /> {label}
+    </span>
+  );
 };
 
 export default function GerenteRevendedores() {
@@ -385,6 +401,7 @@ export default function GerenteRevendedores() {
                   <tr>
                     <th className="px-6 py-4 text-left font-semibold">Nome</th>
                     <th className="px-6 py-4 text-left font-semibold">Usuário</th>
+                    <th className="px-6 py-4 text-left font-semibold">Pagamento</th>
                     <th className="px-6 py-4 text-left font-semibold">Email</th>
                     <th className="px-6 py-4 text-left font-semibold">WhatsApp</th>
                     <th className="px-6 py-4 text-center font-semibold">Nível</th>
@@ -405,6 +422,7 @@ export default function GerenteRevendedores() {
                       <tr key={r.id} className="group transition-all duration-300 hover:bg-white/5">
                         <td className="px-6 py-4 font-medium text-foreground">{firstLastName(prof?.display_name)}</td>
                         <td className="px-6 py-4 text-muted-foreground/80">{r.display_name}</td>
+                        <td className="px-6 py-4"><ActivationBadge status={r.activation_status} /></td>
                         <td className="px-6 py-4 text-muted-foreground/80">{prof?.email ?? "—"}</td>
                         <td className="px-6 py-4 text-muted-foreground/80 font-mono text-xs whitespace-nowrap">{formatPhoneBR(prof?.phone)}</td>
                         <td className="px-6 py-4 text-center">
@@ -503,6 +521,7 @@ export default function GerenteRevendedores() {
                         <p className="text-[11px] text-muted-foreground">@{r.display_name}</p>
                         <p className="text-xs text-muted-foreground">{prof?.email ?? "—"}</p>
                         <p className="text-[11px] text-muted-foreground font-mono">{formatPhoneBR(prof?.phone)}</p>
+                        <div className="mt-2"><ActivationBadge status={r.activation_status} /></div>
                       </div>
                       <div className="text-right">
                         <span className="font-mono font-bold text-primary block">{formatBRL(balance)}</span>
