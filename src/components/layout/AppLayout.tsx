@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, ShieldCheck, Sparkles, LogOut, MessageCircle } from "lucide-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { PendingProfileGate } from "@/components/PendingProfileGate";
-import { ActivationWelcome } from "@/components/activation/ActivationWelcome";
+import { ActivationBanner } from "@/components/activation/ActivationBanner";
 import { useActivation } from "@/hooks/useActivation";
 
 export default function AppLayout() {
@@ -48,16 +48,11 @@ export default function AppLayout() {
 
   if (!user) return <Navigate to="/auth" replace />;
 
-  // Revendedor aguardando pagamento / em análise / recusado → tela de ativação
-  if (
-    user &&
+  const needsActivation =
     primaryRole === "revendedor" &&
     !activationLoading &&
     activationStatus &&
-    activationStatus !== "active"
-  ) {
-    return <ActivationWelcome />;
-  }
+    activationStatus !== "active";
 
   if (!primaryRole) {
     return (
@@ -143,6 +138,7 @@ export default function AppLayout() {
           <main className="relative flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden pt-[calc(env(safe-area-inset-top)+4.5rem)] md:!pt-6">
             <div className="pointer-events-none absolute inset-0 bg-grid bg-grid-fade opacity-40" />
             <div className="relative">
+              {needsActivation && <ActivationBanner status={activationStatus!} />}
               {primaryRole === "revendedor" && <PendingBalanceBanner />}
               <PanelRoutes />
             </div>
