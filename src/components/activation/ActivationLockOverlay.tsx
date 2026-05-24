@@ -57,15 +57,12 @@ export function ActivationLockOverlay({ status }: Props) {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl border-0 bg-transparent p-0 shadow-none sm:rounded-2xl">
-          <div className="mb-3 flex flex-col items-center gap-2 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-background/80 text-primary backdrop-blur">
-              <Lock className="h-5 w-5" />
+        <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto border border-border/60 bg-background p-0 shadow-2xl sm:rounded-2xl">
+          <div className="flex items-center gap-3 border-b border-border/60 px-4 py-3 sm:px-5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/40 bg-primary/10 text-primary">
+              <Lock className="h-4 w-4" />
             </div>
-            <p className="text-sm text-muted-foreground">{subtitle}</p>
-            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" /> ver detalhes da ativação
-            </Button>
+            <p className="flex-1 text-xs text-muted-foreground sm:text-sm">{subtitle}</p>
           </div>
           <ActivationWelcome embedded />
         </DialogContent>
