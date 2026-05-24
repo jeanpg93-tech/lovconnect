@@ -52,6 +52,7 @@ export default function GerenteValoresCreditos() {
   const [tierPrices, setTierPrices] = useState<Record<string, number>>({}); // key: tierId:planId
   const [costs, setCosts] = useState<Record<number, number>>({}); // credits_amount -> cents
   const [tierEdits, setTierEdits] = useState<Record<string, string>>({});
+  const [baseEdits, setBaseEdits] = useState<Record<string, string>>({}); // plan.id -> input
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   // Preços Partner (espelho — referência: Jean). Read-only.
@@ -178,8 +179,8 @@ export default function GerenteValoresCreditos() {
   };
 
   const hasChanges = useMemo(
-    () => Object.keys(tierEdits).length > 0,
-    [tierEdits]
+    () => Object.keys(tierEdits).length > 0 || Object.keys(baseEdits).length > 0,
+    [tierEdits, baseEdits],
   );
 
   const saveAll = async () => {
@@ -201,7 +202,18 @@ export default function GerenteValoresCreditos() {
         if (error) throw error;
       }
 
+      // Preço Base por pacote (credit_pricing_plans.price_cents)
+      for (const [planId, val] of Object.entries(baseEdits)) {
+        const cents = parseInput(val);
+        const { error } = await supabase
+          .from("credit_pricing_plans")
+          .update({ price_cents: cents })
+          .eq("id", planId);
+        if (error) throw error;
+      }
+
       toast.success("Preços salvos com sucesso");
+      setBaseEdits({});
       await loadAll();
     } catch (e: any) {
       toast.error("Erro ao salvar", { description: e.message });
@@ -315,13 +327,41 @@ export default function GerenteValoresCreditos() {
                       </div>
                     </td>
                     <td className="px-4 py-4 border-l border-white/5 bg-primary/5 text-center">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-mono text-sm font-bold text-foreground/90">
-                          {costs[p.credits_amount] != null ? fmt(costs[p.credits_amount]) : "—"}
-                        </span>
-                        <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50 font-mono">
-                          custo provedor
-                        </span>
+                      <div className="flex flex-col gap-1">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-muted-foreground/50">
+                            R$
+                          </span>
+                          <Input
+                            inputMode="decimal"
+                            value={baseEdits[p.id] ?? formatInput(p.price_cents)}
+                            onChange={(e) =>
+                              setBaseEdits((s) => ({ ...s, [p.id]: e.target.value }))
+                            }
+                            placeholder={
+                              costs[p.credits_amount] != null
+                                ? formatInput(costs[p.credits_amount])
+                                : "0,00"
+                            }
+                            className="pl-9 h-10 text-right font-mono text-sm bg-background/40 border-white/10"
+                          />
+                        </div>
+                        {costs[p.credits_amount] != null && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setBaseEdits((s) => ({
+                                ...s,
+                                [p.id]: formatInput(costs[p.credits_amount]),
+                              }))
+                            }
+                            className="text-[9px] font-mono text-muted-foreground/50 hover:text-primary transition-colors flex items-center justify-end gap-1 pr-1"
+                            title="Usar valor atual do provedor"
+                          >
+                            <TrendingUp className="h-2.5 w-2.5" />
+                            provedor: {fmt(costs[p.credits_amount])}
+                          </button>
+                        )}
                       </div>
                     </td>
                     {tiers.map((t) => {
