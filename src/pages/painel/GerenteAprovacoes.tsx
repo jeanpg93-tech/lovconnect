@@ -25,8 +25,11 @@ type Pending = {
   created_at: string;
 };
 
+type ReferrerInfo = { name: string; type: "reseller" | "campaign" };
+
 export default function GerenteAprovacoes() {
   const [rows, setRows] = useState<Pending[]>([]);
+  const [referrers, setReferrers] = useState<Record<string, ReferrerInfo>>({});
   const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -45,7 +48,30 @@ export default function GerenteAprovacoes() {
       supabase.from("profiles").select("approval_status"),
     ]);
     if (error) toast.error(error.message);
-    setRows((data ?? []) as Pending[]);
+    const list = (data ?? []) as Pending[];
+    setRows(list);
+
+    // Carrega informações de quem indicou
+    const codes = Array.from(
+      new Set(list.map((r) => r.affiliate_code_used).filter(Boolean) as string[])
+    );
+    if (codes.length) {
+      const { data: affs } = await supabase
+        .from("affiliate_codes")
+        .select("code,label,owner_reseller_id, resellers:owner_reseller_id(display_name)")
+        .in("code", codes);
+      const map: Record<string, ReferrerInfo> = {};
+      (affs ?? []).forEach((a: any) => {
+        const name = a.resellers?.display_name || a.label || "Campanha";
+        map[String(a.code).toUpperCase()] = {
+          name,
+          type: a.owner_reseller_id ? "reseller" : "campaign",
+        };
+      });
+      setReferrers(map);
+    } else {
+      setReferrers({});
+    }
 
     const all = allCounts.data ?? [];
     setCounts({
@@ -85,9 +111,12 @@ export default function GerenteAprovacoes() {
       (r) =>
         (r.display_name ?? "").toLowerCase().includes(s) ||
         (r.email ?? "").toLowerCase().includes(s) ||
-        (r.affiliate_code_used ?? "").toLowerCase().includes(s)
+        (r.affiliate_code_used ?? "").toLowerCase().includes(s) ||
+        (referrers[(r.affiliate_code_used ?? "").toUpperCase()]?.name ?? "")
+          .toLowerCase()
+          .includes(s)
     );
-  }, [rows, search]);
+  }, [rows, search, referrers]);
 
   return (
     <PageContainer>
@@ -151,6 +180,7 @@ export default function GerenteAprovacoes() {
                     <th className="px-4 py-3 text-left font-bold">Nome</th>
                     <th className="px-4 py-3 text-left font-bold">Email</th>
                     <th className="px-4 py-3 text-left font-bold">Código</th>
+                    <th className="px-4 py-3 text-left font-bold">Indicado por</th>
                     <th className="px-4 py-3 text-left font-bold">Status</th>
                     <th className="px-4 py-3 text-left font-bold">Data</th>
                     <th className="px-4 py-3 text-right font-bold">Ações</th>
@@ -169,6 +199,22 @@ export default function GerenteAprovacoes() {
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {(() => {
+                          const ref = referrers[(r.affiliate_code_used ?? "").toUpperCase()];
+                          if (!ref) return <span className="text-muted-foreground">—</span>;
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm">{ref.name}</span>
+                              {ref.type === "campaign" && (
+                                <Badge variant="outline" className="text-[9px] uppercase tracking-wider">
+                                  Campanha
+                                </Badge>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3">
                         <Badge
@@ -236,6 +282,16 @@ export default function GerenteAprovacoes() {
                       </code>
                     )}
                   </div>
+                  {(() => {
+                    const ref = referrers[(r.affiliate_code_used ?? "").toUpperCase()];
+                    if (!ref) return null;
+                    return (
+                      <div className="text-[11px] text-muted-foreground">
+                        Indicado por: <span className="text-foreground font-medium">{ref.name}</span>
+                        {ref.type === "campaign" && " (campanha)"}
+                      </div>
+                    );
+                  })()}
                   <div className="flex gap-2">
                     {r.approval_status !== "approved" && (
                       <Button
