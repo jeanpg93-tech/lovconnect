@@ -384,7 +384,7 @@ export default function GerenteAffiliados() {
                       </span>
                       <div className="flex items-center gap-2">
                         {exhausted && <Badge variant="destructive" className="text-[10px]">esgotado</Badge>}
-                        <Button size="sm" variant="ghost" className="text-destructive h-7 px-2" onClick={() => remove(a)}>
+                        <Button size="sm" variant="ghost" className="text-destructive h-7 px-2" onClick={() => remove(a)} disabled={!!a.owner_reseller_id}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
