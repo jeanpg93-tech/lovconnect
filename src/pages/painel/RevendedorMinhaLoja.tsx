@@ -152,10 +152,10 @@ export default function RevendedorMinhaLoja() {
 
       const [{ data: store }, { data: integ }] = await Promise.all([
         supabase.from("reseller_storefronts").select("*").eq("reseller_id", r.id).maybeSingle(),
-        supabase.from("reseller_integrations").select("misticpay_enabled, misticpay_client_id, misticpay_client_secret").eq("reseller_id", r.id).maybeSingle(),
+        supabase.from("reseller_integrations").select("misticpay_enabled").eq("reseller_id", r.id).maybeSingle(),
       ]);
 
-      setMisticpayOk(!!(integ?.misticpay_enabled && integ.misticpay_client_id && integ.misticpay_client_secret));
+      setMisticpayOk(!!integ?.misticpay_enabled);
 
       if (store) {
         setEnabled(store.is_enabled);

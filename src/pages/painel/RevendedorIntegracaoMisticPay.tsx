@@ -45,14 +45,11 @@ export default function RevendedorIntegracaoMisticPay() {
         .from("resellers").select("id").eq("user_id", user.id).maybeSingle();
       if (!r) { setLoading(false); return; }
       setResellerId(r.id);
-      const { data: row } = await supabase
-        .from("reseller_integrations")
-        .select("misticpay_enabled, misticpay_client_id, misticpay_client_secret")
-        .eq("reseller_id", r.id).maybeSingle();
-      if (row) {
-        setEnabled(!!row.misticpay_enabled);
-        setClientId(row.misticpay_client_id ?? "");
-        setClientSecret(row.misticpay_client_secret ?? "");
+      const { data: secrets } = await supabase.functions.invoke("get-my-misticpay-credentials");
+      if (secrets && !(secrets as any).error) {
+        setEnabled(!!(secrets as any).misticpay_enabled);
+        setClientId((secrets as any).misticpay_client_id ?? "");
+        setClientSecret((secrets as any).misticpay_client_secret ?? "");
       }
       setLoading(false);
     })();
