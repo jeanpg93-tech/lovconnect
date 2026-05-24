@@ -340,6 +340,52 @@ export default function RevendedorPedidos() {
     }
   };
 
+  const openCancelForStorefront = (l: StorefrontLicRow) => {
+    setCancelTarget({
+      sale_id: l.id,
+      sale_type: "storefront",
+      label: `#${l.short_code ?? l.id.slice(0, 8)}`,
+      price_cents: Number(l.price_cents ?? 0),
+      cost_cents: Number(l.cost_cents ?? 0),
+      license_key: l.license_key,
+    });
+  };
+
+  const openCancelForManual = (o: Order) => {
+    setCancelTarget({
+      sale_id: o.id,
+      sale_type: "manual",
+      label: o.license_key ? o.license_key.slice(0, 12) + "…" : `#${o.id.slice(0, 8)}`,
+      price_cents: Number(o.price_cents ?? 0),
+      cost_cents: Number(o.price_cents ?? 0),
+      license_key: o.license_key,
+    });
+  };
+
+  const refundSaleBalance = async (
+    saleId: string,
+    saleType: "storefront" | "manual",
+  ) => {
+    if (!confirm("Devolver o valor desta venda para o seu saldo do painel?")) return;
+    setRefundingBalanceId(saleId);
+    try {
+      const { data, error } = await supabase.functions.invoke("refund-sale-balance", {
+        body: { sale_type: saleType, sale_id: saleId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).message ?? (data as any).error);
+      toast.success("Saldo devolvido ao painel.");
+      if (resellerId) {
+        loadStorefrontLicenses(resellerId);
+        if (allOrders) loadAllOrders(); else load();
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao devolver saldo.");
+    } finally {
+      setRefundingBalanceId(null);
+    }
+  };
+
   const requestRefund = async (o: Order) => {
     if (!confirm(`Solicitar reembolso de ${(o.price_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} para o seu saldo?`)) return;
     setRefundingId(o.id);
