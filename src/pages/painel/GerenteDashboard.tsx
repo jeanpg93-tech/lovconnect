@@ -154,6 +154,11 @@ export default function GerenteDashboard() {
     customer_name?: string | null;
     customer_whatsapp?: string | null;
     detail?: string | null;
+    ref_short?: string | null;
+    ref_created_at?: string | null;
+    ref_kind?: 'license' | 'credit' | null;
+    license_type?: string | null;
+    credits?: number | null;
   }[]>([]);
   const [apiLogs, setApiLogs] = useState<{ id: string; created_at: string; endpoint: string; reseller_name?: string; status_code: number }[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
