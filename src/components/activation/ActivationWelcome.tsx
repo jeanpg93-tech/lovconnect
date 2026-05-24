@@ -134,7 +134,13 @@ export function ActivationWelcome() {
                 {pixActive ? (
                   <div className="flex flex-col items-center gap-4 rounded-xl border border-border/50 bg-background/40 p-6">
                     {payment!.qr_code_base64 && (
-                      <img src={`data:image/png;base64,${payment!.qr_code_base64}`} alt="QR Code PIX" className="h-56 w-56 rounded-lg border border-border bg-white p-2" />
+                      <img
+                        src={payment!.qr_code_base64.startsWith("data:")
+                          ? payment!.qr_code_base64
+                          : `data:image/png;base64,${payment!.qr_code_base64}`}
+                        alt="QR Code PIX"
+                        className="h-56 w-56 rounded-lg border border-border bg-white p-2"
+                      />
                     )}
                     <div className="w-full max-w-md">
                       <div className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground">PIX Copia e Cola</div>
