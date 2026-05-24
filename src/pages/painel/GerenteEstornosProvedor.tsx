@@ -492,7 +492,7 @@ function PurchaseCard({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <StatusChip state={providerState} label="Provedor" />
           <StatusChip state={resellerState === "ok" ? "ok" : "pending"} label="Revendedor" />
           {providerState !== "ok" && !isManual && (
@@ -500,7 +500,7 @@ function PurchaseCard({
               Aberto: {fmtBRL(p.price_cents)}
             </Badge>
           )}
-          <Button size="sm" variant="ghost" className="h-8 px-2" onClick={onToggle}>
+          <Button size="sm" variant="ghost" className="h-8 px-2 ml-auto" onClick={onToggle}>
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </div>
