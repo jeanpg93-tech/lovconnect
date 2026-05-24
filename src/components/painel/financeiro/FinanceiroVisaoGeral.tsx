@@ -73,7 +73,7 @@ export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
           color="sky"
         />
         <KpiCard
-          label="Ativações"
+          label="Ativações Painel"
           value={brlSigned(data.activationRevenueCents, "+")}
           icon={Rocket}
           hint={`${data.activationsCount} painel(éis) vendido(s)`}
