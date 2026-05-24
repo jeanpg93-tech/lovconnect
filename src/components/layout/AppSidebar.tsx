@@ -40,6 +40,7 @@ import {
   Smartphone,
   Zap,
   Puzzle,
+  ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
