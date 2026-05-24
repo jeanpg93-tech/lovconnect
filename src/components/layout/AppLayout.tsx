@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Clock, ShieldCheck, Sparkles, LogOut, MessageCircle } from "lucide-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { PendingProfileGate } from "@/components/PendingProfileGate";
+import { ActivationWelcome } from "@/components/activation/ActivationWelcome";
+import { useActivation } from "@/hooks/useActivation";
 
 export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -20,6 +22,9 @@ export default function AppLayout() {
   const isInitialAuthLoading = authLoading && !user;
   const isInitialRoleLoading = roleLoading && !hasData;
   useRealtimeNotifications();
+  const { status: activationStatus, loading: activationLoading } = useActivation(
+    user && primaryRole === "revendedor" ? user.id : undefined,
+  );
 
   // Se estiver banido, redireciona (exceto se for gerente)
   if (user && isBanned && !isGerente) {
@@ -42,6 +47,18 @@ export default function AppLayout() {
   }
 
   if (!user) return <Navigate to="/auth" replace />;
+
+  // Revendedor aguardando pagamento / em análise / recusado → tela de ativação
+  if (
+    user &&
+    primaryRole === "revendedor" &&
+    !activationLoading &&
+    activationStatus &&
+    activationStatus !== "active"
+  ) {
+    return <ActivationWelcome />;
+  }
+
   if (!primaryRole) {
     return (
       <PendingProfileGate userId={user.id}>

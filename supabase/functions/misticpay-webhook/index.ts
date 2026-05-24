@@ -113,6 +113,59 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Activation payment? (R$ 200 ativação do painel)
+    {
+      const { data: actPay } = await admin
+        .from("activation_payments")
+        .select("*")
+        .eq("provider_transaction_id", txId)
+        .maybeSingle();
+      if (actPay) {
+        if (actPay.status === "approved" || actPay.status === "paid") {
+          return json({ ok: true, already: true });
+        }
+        if (status === "COMPLETO") {
+          await admin.from("activation_payments").update({
+            status: "paid",
+            paid_at: new Date().toISOString(),
+            raw_response: payload,
+          }).eq("id", actPay.id);
+
+          const { error: actErr } = await admin.rpc("activate_reseller", {
+            _reseller_id: actPay.reseller_id,
+            _payment_id: actPay.id,
+            _actor_id: null,
+          });
+          if (actErr) console.error("activate_reseller error", actErr);
+
+          await admin.from("activation_logs").insert({
+            reseller_id: actPay.reseller_id,
+            event: "payment_confirmed",
+            metadata: { payment_id: actPay.id, source: "webhook" },
+          });
+
+          const rUid = (await admin.from("resellers").select("user_id").eq("id", actPay.reseller_id).maybeSingle()).data?.user_id;
+          if (rUid) {
+            await admin.from("notifications").insert({
+              user_id: rUid,
+              title: "Painel ativado! 🎉",
+              body: "Pagamento confirmado. Seu painel de revendedor está totalmente liberado.",
+              type: "activation_approved",
+            });
+          }
+          return json({ ok: true, kind: "activation" });
+        }
+        if (status === "FALHA" || status === "CANCELADO") {
+          await admin.from("activation_payments").update({
+            status: "cancelled",
+            raw_response: payload,
+          }).eq("id", actPay.id);
+          return json({ ok: true, kind: "activation_failed" });
+        }
+        return json({ ok: true, status });
+      }
+    }
+
     // Try recharge intent first
     const { data: intent } = await admin
       .from("recharge_intents")
