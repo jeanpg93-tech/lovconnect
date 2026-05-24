@@ -149,6 +149,7 @@ type ActivityItem = {
 
 export default function RevendedorDashboard() {
   const { user } = useAuth();
+  const { status: activationStatus } = useActivation(user?.id);
   const [loading, setLoading] = useState(true);
   const [resellerId, setResellerId] = useState<string | null>(null);
 
@@ -782,7 +783,7 @@ export default function RevendedorDashboard() {
       </section>
 
     </div>
-    <WhatsAppFloatingButtons bottomOffset={96} />
+    <WhatsAppFloatingButtons bottomOffset={96} showGroup={activationStatus === "active"} />
     </>
   );
 }
