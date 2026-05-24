@@ -111,7 +111,14 @@ Tabela `activation_logs`: `reseller_id`, `event` (`approved_by_manager`, `pix_ge
 - Faixa amarela persistente no topo enquanto não `active`
 - Banimento (`is_banned`) continua tendo prioridade sobre tudo
 
-## Pendente para você confirmar antes de eu começar
-1. **Texto exato da mensagem de boas-vindas** acima — está bom ou quer ajustar tom/benefícios?
-2. **Chave PIX manual de fallback** — exibir alguma no rodapé caso a pessoa prefira pagar fora do QR? Se sim, qual?
-3. **Banner topo** — texto sugerido: *"Painel em modo preview. Ative por R$ 200 para liberar todas as funções."* — ok?
+## Status: IMPLEMENTADO ✅
+- Migration: tabelas `activation_payments`, `activation_logs`, bucket `activation-proofs`, RPC `activate_reseller`, atualização do `approve_user` (novos entram em `awaiting_payment`)
+- Grandfather: todos revendedores atuais já estão como `active`
+- Edge functions: `activation-create-pix`, `activation-submit-proof`, `activation-review`, branch no `misticpay-webhook`
+- Frontend: `useActivation`, `ActivationWelcome` (PIX + comprovante), routing no AppLayout, página `/painel/gerente/ativacoes`
+- Mensagem reformulada conforme aprovado (sem reembolso explícito, 1% comissão, entrada Bronze)
+
+## Pendente (próximas iterações)
+- Backend gate `assertActive()` aplicado em `place-reseller-order`, `storefront-create-order`, `misticpay-create-recharge` (frontend já redireciona — backend ainda permite ações se acessar API direto)
+- Banner amarelo persistente em páginas de preview (atualmente revendedor vai direto pra `ActivationWelcome`, sem preview parcial)
+- Notificação Telegram pro gerente quando comprovante chega
