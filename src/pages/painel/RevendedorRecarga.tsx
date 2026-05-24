@@ -1766,6 +1766,12 @@ export default function RevendedorRecargas() {
         onSuccess={refreshBalance}
         mode={activeMode}
       />
+      <CancelRechargeDialog
+        target={cancelRechargeTarget}
+        open={cancelRechargeOpen}
+        onOpenChange={setCancelRechargeOpen}
+        onDone={refreshAfterRechargeCancel}
+      />
     </div>
   );
 }
