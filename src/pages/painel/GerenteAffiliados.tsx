@@ -188,6 +188,20 @@ export default function GerenteAffiliados() {
     totalUses: list.reduce((s, l) => s + (l.uses ?? 0), 0),
   };
 
+  const filteredCodes = list.filter((a) => {
+    if (codeFilter === "reseller" && !a.owner_reseller_id) return false;
+    if (codeFilter === "campaign" && a.owner_reseller_id) return false;
+    if (codeSearch.trim()) {
+      const q = codeSearch.toLowerCase();
+      if (
+        !a.code.toLowerCase().includes(q) &&
+        !(a.label ?? "").toLowerCase().includes(q) &&
+        !(a.owner_name ?? "").toLowerCase().includes(q)
+      ) return false;
+    }
+    return true;
+  });
+
   const fmtBRL = (cents: number) =>
     (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const fmtDate = (iso: string) =>
