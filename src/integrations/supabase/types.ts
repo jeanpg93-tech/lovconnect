@@ -1167,6 +1167,7 @@ export type Database = {
           phone: string | null
           reseller_id: string | null
           updated_at: string
+          whatsapp: string | null
         }
         Insert: {
           affiliate_code_used?: string | null
@@ -1180,6 +1181,7 @@ export type Database = {
           phone?: string | null
           reseller_id?: string | null
           updated_at?: string
+          whatsapp?: string | null
         }
         Update: {
           affiliate_code_used?: string | null
@@ -1193,6 +1195,7 @@ export type Database = {
           phone?: string | null
           reseller_id?: string | null
           updated_at?: string
+          whatsapp?: string | null
         }
         Relationships: [
           {

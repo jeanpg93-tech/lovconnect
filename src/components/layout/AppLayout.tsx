@@ -12,6 +12,7 @@ import { LovMainLogo } from "@/components/LovMainLogo";
 import { Button } from "@/components/ui/button";
 import { Clock, ShieldCheck, Sparkles, LogOut, MessageCircle } from "lucide-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { PendingProfileGate } from "@/components/PendingProfileGate";
 
 export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -43,6 +44,7 @@ export default function AppLayout() {
   if (!user) return <Navigate to="/auth" replace />;
   if (!primaryRole) {
     return (
+      <PendingProfileGate userId={user.id}>
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-6">
         <div className="pointer-events-none absolute inset-0 bg-grid bg-grid-fade opacity-30" />
         <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
@@ -112,6 +114,7 @@ export default function AppLayout() {
           </div>
         </div>
       </div>
+      </PendingProfileGate>
     );
   }
 
