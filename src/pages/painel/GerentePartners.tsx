@@ -947,6 +947,14 @@ export default function GerentePartners() {
           )}
         </div>
       )}
+
+      <PartnerPriceHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        resellerId={selectedResellerId || null}
+        resellerName={selectedReseller?.display_name ?? ""}
+        onReverted={() => selectedResellerId && loadEffectivePrices(selectedResellerId)}
+      />
     </PageContainer>
   );
 }
