@@ -2856,6 +2856,7 @@ export type Database = {
         Args: { _reseller_id: string }
         Returns: undefined
       }
+      lookup_affiliate_code: { Args: { _code: string }; Returns: Json }
       reject_user: { Args: { _user_id: string }; Returns: undefined }
       reset_daily_test_keys: { Args: never; Returns: undefined }
       telegram_enqueue: { Args: { _text: string }; Returns: undefined }
