@@ -29,7 +29,11 @@ function formatExpire(iso: string | null) {
   return `${s}s`;
 }
 
-export function ActivationWelcome() {
+interface ActivationWelcomeProps {
+  embedded?: boolean;
+}
+
+export function ActivationWelcome({ embedded = false }: ActivationWelcomeProps = {}) {
   const { user, signOut } = useAuth();
   const { loading, status, payment, refresh } = useActivation(user?.id);
   const [creating, setCreating] = useState(false);
@@ -83,18 +87,20 @@ export function ActivationWelcome() {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+    return <div className={`flex ${embedded ? "min-h-[300px]" : "min-h-screen"} items-center justify-center bg-background`}><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background p-4 py-8 sm:p-6">
+    <div className={`relative ${embedded ? "" : "min-h-screen"} overflow-hidden bg-background p-4 py-8 sm:p-6 ${embedded ? "rounded-2xl" : ""}`}>
       <div className="pointer-events-none absolute inset-0 bg-grid bg-grid-fade opacity-30" />
       <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
       <div className="relative z-10 mx-auto w-full max-w-4xl">
-        <div className="mb-6 flex items-center justify-between">
-          <LovMainLogo />
-          <Button variant="ghost" size="sm" onClick={() => signOut()}><LogOut className="mr-1.5 h-3.5 w-3.5" /> sair</Button>
-        </div>
+        {!embedded && (
+          <div className="mb-6 flex items-center justify-between">
+            <LovMainLogo />
+            <Button variant="ghost" size="sm" onClick={() => signOut()}><LogOut className="mr-1.5 h-3.5 w-3.5" /> sair</Button>
+          </div>
+        )}
 
         <div className="rounded-2xl border border-border/60 bg-card/60 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
           <div className="flex flex-col gap-2 text-center">
