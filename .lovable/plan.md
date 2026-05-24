@@ -119,6 +119,8 @@ Tabela `activation_logs`: `reseller_id`, `event` (`approved_by_manager`, `pix_ge
 - Mensagem reformulada conforme aprovado (sem reembolso explícito, 1% comissão, entrada Bronze)
 
 ## Pendente (próximas iterações)
-- Backend gate `assertActive()` aplicado em `place-reseller-order`, `storefront-create-order`, `misticpay-create-recharge` (frontend já redireciona — backend ainda permite ações se acessar API direto)
 - Banner amarelo persistente em páginas de preview (atualmente revendedor vai direto pra `ActivationWelcome`, sem preview parcial)
 - Notificação Telegram pro gerente quando comprovante chega
+
+## Backend gate aplicado ✅
+- `place-reseller-order`, `place-method-license-order`, `misticpay-create-recharge` retornam 403 `activation_required` se `resellers.activation_status != 'active'`.
