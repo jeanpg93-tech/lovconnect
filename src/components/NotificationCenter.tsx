@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useId, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Bell, Check, Loader2, Inbox } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,7 @@ function timeAgo(iso: string) {
 
 export function NotificationCenter({ variant = "floating" }: { variant?: "floating" | "inline" }) {
   const { user } = useAuth();
+  const instanceId = useId();
   const [items, setItems] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,7 +58,7 @@ export function NotificationCenter({ variant = "floating" }: { variant?: "floati
     if (!user) return;
     load();
     const ch = supabase
-      .channel(`notif-center-${user.id}`)
+      .channel(`notif-center-${user.id}-${variant}-${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
