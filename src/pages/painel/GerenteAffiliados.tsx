@@ -9,7 +9,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Loader2, Copy, Trash2, Sparkles, Tag, CheckCircle2, Users, Pause } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Loader2, Copy, Trash2, Sparkles, Tag, CheckCircle2, Users, Pause, Share2, TrendingUp, DollarSign, Search } from "lucide-react";
 import { toast } from "sonner";
 
 type Affiliate = {
@@ -21,6 +22,17 @@ type Affiliate = {
   is_active: boolean;
   expires_at: string | null;
   created_at: string;
+};
+
+type ReferralRow = {
+  id: string;
+  affiliate_code: string;
+  total_commission_cents: number;
+  created_at: string;
+  referrer: { id: string; display_name: string; phone: string | null } | null;
+  referred: { id: string; display_name: string; phone: string | null; created_at: string } | null;
+  recharges_count: number;
+  recharges_total_cents: number;
 };
 
 const randomCode = () => {
