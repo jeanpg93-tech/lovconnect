@@ -401,6 +401,7 @@ export default function GerenteRevendedores() {
                   <tr>
                     <th className="px-6 py-4 text-left font-semibold">Nome</th>
                     <th className="px-6 py-4 text-left font-semibold">Usuário</th>
+                    <th className="px-6 py-4 text-left font-semibold">Pagamento</th>
                     <th className="px-6 py-4 text-left font-semibold">Email</th>
                     <th className="px-6 py-4 text-left font-semibold">WhatsApp</th>
                     <th className="px-6 py-4 text-center font-semibold">Nível</th>
@@ -421,6 +422,7 @@ export default function GerenteRevendedores() {
                       <tr key={r.id} className="group transition-all duration-300 hover:bg-white/5">
                         <td className="px-6 py-4 font-medium text-foreground">{firstLastName(prof?.display_name)}</td>
                         <td className="px-6 py-4 text-muted-foreground/80">{r.display_name}</td>
+                        <td className="px-6 py-4"><ActivationBadge status={r.activation_status} /></td>
                         <td className="px-6 py-4 text-muted-foreground/80">{prof?.email ?? "—"}</td>
                         <td className="px-6 py-4 text-muted-foreground/80 font-mono text-xs whitespace-nowrap">{formatPhoneBR(prof?.phone)}</td>
                         <td className="px-6 py-4 text-center">
