@@ -60,7 +60,7 @@ export function useActivation(userId: string | undefined) {
   useEffect(() => {
     if (!resellerId) return;
     const ch = supabase
-      .channel(`activation-${resellerId}`)
+      .channel(`activation-${resellerId}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "resellers", filter: `id=eq.${resellerId}` }, () => refresh())
       .on("postgres_changes", { event: "*", schema: "public", table: "activation_payments", filter: `reseller_id=eq.${resellerId}` }, () => refresh())
       .subscribe();
