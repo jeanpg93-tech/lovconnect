@@ -57,6 +57,8 @@ export default function GerenteAffiliados() {
   const [refs, setRefs] = useState<ReferralRow[]>([]);
   const [refsLoading, setRefsLoading] = useState(true);
   const [refSearch, setRefSearch] = useState("");
+  const [codeFilter, setCodeFilter] = useState<"all" | "reseller" | "campaign">("all");
+  const [codeSearch, setCodeSearch] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -65,7 +67,17 @@ export default function GerenteAffiliados() {
       .select("*")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
-    setList((data ?? []) as Affiliate[]);
+    const rows = (data ?? []) as Affiliate[];
+    const ownerIds = Array.from(new Set(rows.map((r) => r.owner_reseller_id).filter(Boolean))) as string[];
+    if (ownerIds.length > 0) {
+      const { data: owners } = await supabase
+        .from("resellers")
+        .select("id, display_name")
+        .in("id", ownerIds);
+      const byId = new Map((owners ?? []).map((o: any) => [o.id, o.display_name]));
+      rows.forEach((r) => { r.owner_name = r.owner_reseller_id ? (byId.get(r.owner_reseller_id) ?? null) : null; });
+    }
+    setList(rows);
     setLoading(false);
   };
 
