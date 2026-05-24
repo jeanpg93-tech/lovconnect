@@ -689,6 +689,7 @@ export default function GerenteLicencasAcompanhar() {
                   <TableRow className="border-b border-white/5 hover:bg-transparent bg-white/[0.02]">
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60 pl-6">Nome / Provedor</TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Geração</TableHead>
+                    <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Data</TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Método</TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Responsável</TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60 text-center">Status</TableHead>
@@ -729,6 +730,16 @@ export default function GerenteLicencasAcompanhar() {
                             <div className={cn("inline-flex flex-col rounded-lg px-2.5 py-1 border", gen.color)}>
                               <span className="text-[10px] font-black uppercase tracking-wider">{gen.label}</span>
                               <span className="text-[8px] opacity-70 leading-none">{gen.sub}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col leading-tight">
+                              <span className="text-[11px] font-bold tabular-nums text-foreground/90">
+                                {new Date(o.created_at).toLocaleDateString("pt-BR")}
+                              </span>
+                              <span className="text-[9px] font-mono text-muted-foreground tabular-nums">
+                                {new Date(o.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                              </span>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -843,7 +854,7 @@ export default function GerenteLicencasAcompanhar() {
                         </TableRow>
                         {isExpanded && (
                           <TableRow className="bg-black/40">
-                            <TableCell colSpan={7} className="p-6">
+                            <TableCell colSpan={8} className="p-6">
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-2">
                                 <div className="space-y-4">
                                   <h4 className="text-[10px] font-mono uppercase tracking-widest text-primary flex items-center gap-2"><Info className="h-3 w-3" /> Detalhes</h4>
@@ -952,6 +963,12 @@ export default function GerenteLicencasAcompanhar() {
                         <div className="flex flex-col gap-1 col-span-2">
                           <span className="text-[9px] opacity-50 uppercase font-mono">Responsável</span>
                           <span className={cn("text-[10px] font-mono truncate", o.creator_email ? "text-foreground/80" : "text-muted-foreground italic")}>{o.creator_email || "—"}</span>
+                        </div>
+                        <div className="flex flex-col gap-1 col-span-2">
+                          <span className="text-[9px] opacity-50 uppercase font-mono">Data da Geração</span>
+                          <span className="text-[10px] font-mono tabular-nums text-foreground/80">
+                            {formatDate(o.created_at)}
+                          </span>
                         </div>
                       </div>
 
