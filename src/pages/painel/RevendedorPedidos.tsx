@@ -267,6 +267,7 @@ export default function RevendedorPedidos() {
   const [allOrders, setAllOrders] = useState<Order[] | null>(null);
   const [loadingAll, setLoadingAll] = useState(false);
   const [licSearch, setLicSearch] = useState("");
+  const [exactSearchOrder, setExactSearchOrder] = useState<Order | null>(null);
   const [licStatusFilter, setLicStatusFilter] = useState<string>("all");
   // ids de pedidos já reembolsados
   const [refundedOrderIds, setRefundedOrderIds] = useState<Set<string>>(new Set());
@@ -408,6 +409,28 @@ export default function RevendedorPedidos() {
     setAllOrders((data ?? []) as Order[]);
     setLoadingAll(false);
   };
+
+  useEffect(() => {
+    const q = licSearch.trim().toLowerCase();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(q);
+    if (!resellerId || !isUuid) {
+      setExactSearchOrder(null);
+      return;
+    }
+
+    let cancelled = false;
+    supabase
+      .from("orders")
+      .select("id,license_type,price_cents,status,license_key,created_at,is_test,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
+      .eq("reseller_id", resellerId)
+      .eq("id", q)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setExactSearchOrder((data as Order | null) ?? null);
+      });
+
+    return () => { cancelled = true; };
+  }, [licSearch, resellerId]);
 
   const runLicenseAction = async (
     o: Order,
