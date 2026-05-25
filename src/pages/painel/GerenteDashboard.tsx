@@ -877,6 +877,7 @@ export default function GerenteDashboard() {
                        license_purchase_refund: "Estorno de Licença",
                        credit_recharge_refund: "Estorno de Recarga (Cancelada)",
                       credit_recharge_api: "Recargas via API",
+                       activation_credit: "Saldo Inicial (Ativação)",
                     };
                     return groups.map((g) => (
                       <div key={g.label} className="space-y-2">
