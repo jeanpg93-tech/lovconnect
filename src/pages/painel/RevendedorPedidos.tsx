@@ -1058,13 +1058,15 @@ export default function RevendedorPedidos() {
             const q = licSearch.trim().toLowerCase();
             if (it.origin === "manual") {
               const o = it.manual;
-              return (o.license_key ?? "").toLowerCase().includes(q) ||
+              return (o.id ?? "").toLowerCase().includes(q) ||
+                (o.license_key ?? "").toLowerCase().includes(q) ||
                 (o.license_type ?? "").toLowerCase().includes(q) ||
                 (o.customer?.display_name ?? "").toLowerCase().includes(q) ||
                 (o.customer?.whatsapp ?? "").toLowerCase().includes(q);
             }
             const l = it.loja;
-            return (l.license_key ?? "").toLowerCase().includes(q) ||
+            return (l.id ?? "").toLowerCase().includes(q) ||
+              (l.license_key ?? "").toLowerCase().includes(q) ||
               (l.license_type ?? "").toLowerCase().includes(q) ||
               (l.buyer_name ?? "").toLowerCase().includes(q) ||
               (l.buyer_whatsapp ?? "").toLowerCase().includes(q) ||
