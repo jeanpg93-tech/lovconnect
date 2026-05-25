@@ -30,6 +30,16 @@ const SUCCESS_PROVIDER = new Set([
   'sucesso', 'entregue', 'concluido', 'completed', 'success',
 ]);
 
+// Estados intermediários do provider → status local equivalente
+const INTERMEDIATE_PROVIDER: Record<string, string> = {
+  aguardando: 'aguardando',
+  pendente: 'pendente',
+  processando: 'processando',
+  configurando: 'configurando',
+  recarregando: 'recarregando',
+  entregando: 'entregando',
+};
+
 async function getMasterKey(admin: ReturnType<typeof createClient>) {
   const { data } = await admin
     .from('app_settings')
@@ -101,6 +111,9 @@ function mapProviderToLocal(providerData: any): { status: string | null; errorMe
   }
   if (SUCCESS_PROVIDER.has(raw)) {
     return { status: 'sucesso', errorMessage: null };
+  }
+  if (raw && INTERMEDIATE_PROVIDER[raw]) {
+    return { status: INTERMEDIATE_PROVIDER[raw], errorMessage: null };
   }
   return { status: null, errorMessage: null };
 }
