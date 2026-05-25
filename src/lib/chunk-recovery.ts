@@ -1,9 +1,11 @@
 const CHUNK_ERROR_PATTERNS = [
   "Importing a module script failed",
   "Failed to fetch dynamically imported module",
+  "dynamically imported module",
   "Loading chunk",
   "Loading CSS chunk",
   "error loading dynamically imported module",
+  "module script",
 ];
 
 const RELOAD_COUNT_KEY = "lov-chunk-reload-count";
@@ -31,12 +33,14 @@ export const requestFreshChunkReload = () => {
 
     sessionStorage.setItem(RELOAD_WINDOW_KEY, String(isFreshWindow ? now : windowStartedAt));
     sessionStorage.setItem(RELOAD_COUNT_KEY, String(currentCount + 1));
+    void caches?.keys?.().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
   } catch {
     // If storage is unavailable, still try a single cache-busted reload.
   }
 
   const url = new URL(window.location.href);
   url.searchParams.set("_r", String(Date.now()));
+  url.searchParams.set("_chunk", "fresh");
   window.location.replace(url.toString());
   return true;
 };
