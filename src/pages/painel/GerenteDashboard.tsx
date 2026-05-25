@@ -847,9 +847,11 @@ export default function GerenteDashboard() {
                           <span className="text-[10px] font-mono text-muted-foreground/50">{g.items.length}</span>
                         </div>
                         {g.items.map((m) => {
-                          const REFUND_KINDS_UI = new Set(["refund","credit_purchase_refund","estorno","reembolso","cancelado","cancellation"]);
+                          const REFUND_KINDS_UI = new Set(["refund","credit_purchase_refund","credit_recharge_refund","license_purchase_refund","estorno","reembolso","cancelado","cancellation"]);
                           const isRefund = REFUND_KINDS_UI.has(String(m.kind));
-                          const isIn = !isRefund && m.amount_cents >= 0;
+                          // O sinal segue SEMPRE o valor real da transação. Estornos podem ser
+                          // crédito de volta ao saldo (positivo / verde) ou débito (negativo / vermelho).
+                          const isIn = m.amount_cents >= 0;
                           const kindLabel = kindLabels[m.kind] ?? m.kind;
                           const desc = m.description ?? "";
                            const isStoreSale = m.kind === "order_debit" && /venda\s*loja/i.test(desc);
@@ -868,7 +870,9 @@ export default function GerenteDashboard() {
                           const isLicenseRoute = isLicensePurchase || isApiOrder || (isStoreSale && !isCreditPurchase) || isLicensePurchaseRefund;
                           // Tom: entrada=verde, venda/compra=azul (destaque), outras saídas=vermelho
                           const tone = isRefund
-                            ? { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/30", ring: "" }
+                            ? (isIn
+                                ? { bg: "bg-sky-500/10", text: "text-sky-600", border: "border-sky-500/30", ring: "" }
+                                : { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/30", ring: "" })
                             : isIn
                             ? { bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20", ring: "" }
                             : isApiOrder
@@ -876,7 +880,7 @@ export default function GerenteDashboard() {
                               : isSaleLike
                                 ? { bg: "bg-sky-500/15", text: "text-sky-600", border: "border-sky-500/40", ring: "ring-1 ring-sky-500/30 shadow-[0_0_0_3px_hsl(var(--background))]" }
                                 : { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/20", ring: "" };
-                          const Arrow = isRefund ? ArrowUpRight : (isIn ? ArrowDownLeft : ArrowUpRight);
+                          const Arrow = isIn ? ArrowDownLeft : ArrowUpRight;
                           const targetHref = isLicenseRoute
                             ? "/painel/gerente/todas-licencas"
                             : isCreditPurchase
@@ -972,7 +976,7 @@ export default function GerenteDashboard() {
                               </div>
                               <div className="text-right shrink-0 ml-2">
                                 <div className={`text-xs font-mono font-bold ${tone.text}`}>
-                                  {isRefund ? '−' : (isIn ? '+' : '−')}{formatBRL(Math.abs(m.amount_cents))}
+                                  {isIn ? '+' : '−'}{formatBRL(Math.abs(m.amount_cents))}
                                 </div>
                                 <div className="text-[9px] text-muted-foreground">{fmtDate(m.created_at)}</div>
                               </div>

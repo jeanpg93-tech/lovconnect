@@ -34,6 +34,7 @@ type RefundMethod = "auto" | "manual";
 
 const PRE_DELIVERY_MANUAL_STATUSES = ["aguardando", "pending", "processando"];
 const PRE_DELIVERY_PROVIDER_STATUSES = ["aguardando", "pending", "pendente"];
+const PROVIDER_BASE = "https://lojinhalovable.com/api/v1/revenda";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -130,6 +131,53 @@ Deno.serve(async (req) => {
     }
     const providerPedidoId: string | null = sale.provider_pedido_id ?? null;
     if (providerPedidoId) {
+      // (0) Verifica SEMPRE com o provedor — se o pedido já saiu de "aguardando"
+      // (ex.: cliente vinculou o bot, está em "configurando", "recarregando", "sucesso"),
+      // o cancelamento NÃO pode ser feito. Esta checagem é independente de termos
+      // ou não linhas em provider_credit_orders/manual_recharge_metadata.
+      try {
+        const { data: master } = await svc
+          .from("app_settings").select("value")
+          .eq("key", "lovable_credits_master").maybeSingle();
+        const apiKey = (master as any)?.value?.api_key;
+        if (apiKey) {
+          const r = await fetch(`${PROVIDER_BASE}/pedidos/${providerPedidoId}`, {
+            headers: { "X-API-Key": apiKey },
+          });
+          const j = await r.json().catch(() => null);
+          const pd = j?.data ?? j;
+          const pStatus = String(pd?.status ?? "").toLowerCase().trim();
+          const cancelar = pd?.cancelar === true;
+          const conviteInvalido = Number(pd?.codigoConviteStatus) === 2;
+          const stillPending = PRE_DELIVERY_PROVIDER_STATUSES.includes(pStatus) && !cancelar && !conviteInvalido;
+          // Se o provedor ainda diz "aguardando" puro, está OK cancelar.
+          // Qualquer outro estado (configurando/recarregando/entregando/sucesso/...)
+          // significa que o cliente já iniciou a entrega e NÃO podemos cancelar.
+          if (!stillPending) {
+            // libera o lock antes de retornar (não houve nenhum lock ainda aqui — segue)
+            return json({
+              error: "cannot_cancel",
+              reason: "provider_delivery_started",
+              message: `Provedor está em '${pStatus || "desconhecido"}' — recarga já iniciou ou foi entregue, não é mais possível cancelar.`,
+              provider_status: pStatus,
+            }, 409);
+          }
+        } else {
+          // Sem API key não é seguro cancelar — recusa.
+          return json({
+            error: "cannot_cancel",
+            reason: "provider_check_unavailable",
+            message: "Não foi possível verificar o status no provedor. Tente novamente em instantes.",
+          }, 503);
+        }
+      } catch (_e) {
+        return json({
+          error: "cannot_cancel",
+          reason: "provider_check_failed",
+          message: "Falha ao consultar o provedor. Tente novamente em instantes.",
+        }, 503);
+      }
+
       // (a) provedor automático
       const { data: prov } = await svc
         .from("provider_credit_orders")
