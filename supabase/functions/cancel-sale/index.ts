@@ -194,10 +194,14 @@ Deno.serve(async (req) => {
   }
 
   // Auto via MisticPay (apenas storefront)
+  const refundResellerId = sale.reseller_id ?? reseller?.id;
+  if (!refundResellerId) {
+    return json({ error: "missing_reseller_id" }, 400);
+  }
   const { data: integ } = await svc
     .from("reseller_integrations")
     .select("misticpay_client_id, misticpay_client_secret")
-    .eq("reseller_id", reseller.id)
+    .eq("reseller_id", refundResellerId)
     .maybeSingle();
   const ci = integ?.misticpay_client_id?.trim();
   const cs = integ?.misticpay_client_secret?.trim();
