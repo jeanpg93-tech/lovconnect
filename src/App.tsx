@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { isChunkLoadError, requestFreshChunkReload } from "@/lib/chunk-recovery";
 
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
@@ -44,6 +45,12 @@ const RouteFallback = () => (
     </div>
   </div>
 );
+
+const lazyWithChunkRecovery = <T extends { default: React.ComponentType<any> }>(loader: () => Promise<T>) =>
+  loader().catch((error) => {
+    if (isChunkLoadError(error)) requestFreshChunkReload();
+    throw error;
+  });
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
