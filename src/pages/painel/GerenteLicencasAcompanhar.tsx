@@ -16,10 +16,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { KeyRound, Search, Loader2, Copy, FlaskConical, CheckCircle2, RefreshCw, Infinity as InfinityIcon, ArrowUpRight, Trash2, XCircle, ChevronDown, ChevronUp, Info, RotateCcw, Zap, Sparkles, Undo2 } from "lucide-react";
+import { KeyRound, Search, Loader2, Copy, FlaskConical, CheckCircle2, RefreshCw, Infinity as InfinityIcon, ArrowUpRight, Trash2, XCircle, ChevronDown, ChevronUp, Info, RotateCcw, Zap, Sparkles, Undo2, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import RefundSaleDialog, { type RefundSaleData } from "@/components/painel/RefundSaleDialog";
+import { CancelSaleDialog, type CancelSaleTarget } from "@/components/painel/CancelSaleDialog";
 
 const PLAN_DAYS: Record<string, number | null> = {
   pro_1d: 1,
@@ -45,6 +46,8 @@ type DeliveryMethod = "flow" | "lovax";
 type OrderRow = {
   id: string;
   local_order_id?: string | null;
+  local_sale_status?: string | null;
+  cancellation_status?: string | null;
   license_key: string;
   license_type: string;
   status: string;
@@ -122,6 +125,7 @@ export default function GerenteLicencasAcompanhar() {
   const [refundInfo, setRefundInfo] = useState<Record<string, { order_id: string; price_cents: number; refunded: boolean; reseller_id: string | null }>>({});
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const [refundData, setRefundData] = useState<RefundSaleData | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<CancelSaleTarget | null>(null);
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [showExpired, setShowExpired] = useState<string>("all");
@@ -197,11 +201,11 @@ export default function GerenteLicencasAcompanhar() {
         supabase.from("resellers").select("id, display_name, user_id"),
         supabase.from("reseller_api_keys").select("id, label, reseller_id"),
         supabase.from("orders")
-          .select("id, license_key, reseller_id, api_key_id, price_cents, license_type, status, created_at, is_test")
+          .select("id, license_key, reseller_id, api_key_id, price_cents, license_type, status, created_at, is_test, cancellation_status")
           .not("license_key", "is", null)
           .order("created_at", { ascending: false }),
         supabase.from("storefront_orders")
-          .select("id, license_key, reseller_id, price_cents, license_type, status, created_at, buyer_name")
+          .select("id, license_key, reseller_id, price_cents, cost_cents, license_type, status, created_at, buyer_name, cancellation_status")
           .not("license_key", "is", null)
           .order("created_at", { ascending: false }),
       ]);
@@ -300,6 +304,8 @@ export default function GerenteLicencasAcompanhar() {
         return {
           id: u.license_key,
           local_order_id: local?.id ?? null,
+          local_sale_status: local?.status ?? sf?.status ?? null,
+          cancellation_status: local?.cancellation_status ?? sf?.cancellation_status ?? null,
           license_id: u.id,
           license_key: u.license_key,
           display_name: u.display_name,
@@ -352,6 +358,8 @@ export default function GerenteLicencasAcompanhar() {
         return {
           id: `lovax:${u.license_key}`,
           local_order_id: local?.id ?? null,
+          local_sale_status: local?.status ?? sf?.status ?? null,
+          cancellation_status: local?.cancellation_status ?? sf?.cancellation_status ?? null,
           license_id: u.id,
           license_key: u.license_key,
           display_name: u.display_name || u.customer_name,
@@ -384,6 +392,8 @@ export default function GerenteLicencasAcompanhar() {
         localOnly.push({
           id: o.license_key,
           local_order_id: o.id,
+          local_sale_status: o.status,
+          cancellation_status: o.cancellation_status ?? null,
           license_id: o.id,
           license_key: o.license_key,
           display_name: undefined,
@@ -413,6 +423,8 @@ export default function GerenteLicencasAcompanhar() {
         localOnly.push({
           id: o.license_key,
           local_order_id: null,
+          local_sale_status: o.status,
+          cancellation_status: o.cancellation_status ?? null,
           license_id: o.id,
           license_key: o.license_key,
           display_name: o.buyer_name ?? undefined,
@@ -551,6 +563,26 @@ export default function GerenteLicencasAcompanhar() {
       extra_info: LABEL[o.license_type] || o.license_type,
     });
     setRefundDialogOpen(true);
+  };
+
+  const canCancelSale = (o: OrderRow) => {
+    if (!o.local_order_id || o.source === "provider") return false;
+    const saleStatus = (o.local_sale_status || o.status || "").toLowerCase();
+    const cancellationStatus = o.cancellation_status || "none";
+    return ["completed", "paid", "delivered"].includes(saleStatus) && cancellationStatus === "none";
+  };
+
+  const openCancelSale = (o: OrderRow) => {
+    const info = refundInfo[o.license_key];
+    if (!o.local_order_id) return;
+    setCancelTarget({
+      sale_id: o.local_order_id,
+      sale_type: o.source === "storefront" ? "storefront" : "manual",
+      label: o.license_key ? o.license_key.slice(0, 12) + "…" : `#${o.local_order_id.slice(0, 8)}`,
+      price_cents: Number(info?.price_cents ?? o.price_cents ?? 0),
+      cost_cents: Number(info?.price_cents ?? o.price_cents ?? 0),
+      license_key: o.license_key,
+    });
   };
 
   const getGenerationType = (o: OrderRow) => {
@@ -795,6 +827,19 @@ export default function GerenteLicencasAcompanhar() {
                             <div className="flex items-center justify-end gap-2">
                               {(() => {
                                 const info = refundInfo[o.license_key];
+                                if (canCancelSale(o)) {
+                                  return (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-rose-500 hover:bg-rose-500/10"
+                                      onClick={() => openCancelSale(o)}
+                                      title="Cancelar venda"
+                                    >
+                                      <Ban className="h-4 w-4" />
+                                    </Button>
+                                  );
+                                }
                                 if (!info) return null;
                                 if (info.refunded) {
                                   return (
@@ -1002,6 +1047,19 @@ export default function GerenteLicencasAcompanhar() {
                       <div className="flex items-center justify-between pt-2 gap-1 overflow-x-auto pb-1 scrollbar-none">
                         {(() => {
                           const info = refundInfo[o.license_key];
+                          if (canCancelSale(o)) {
+                            return (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 flex-1 bg-white/5 text-rose-500 hover:bg-rose-500/10"
+                                onClick={() => openCancelSale(o)}
+                                title="Cancelar venda"
+                              >
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            );
+                          }
                           if (!info) return null;
                           if (info.refunded) {
                             return (
@@ -1149,6 +1207,13 @@ export default function GerenteLicencasAcompanhar() {
         onOpenChange={setRefundDialogOpen}
         data={refundData}
         onSuccess={() => { load(); }}
+      />
+
+      <CancelSaleDialog
+        target={cancelTarget}
+        open={!!cancelTarget}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        onDone={() => { setCancelTarget(null); load(); }}
       />
     </PageContainer>
   );

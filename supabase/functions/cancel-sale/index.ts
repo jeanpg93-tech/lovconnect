@@ -73,18 +73,20 @@ Deno.serve(async (req) => {
     return json({ error: "missing_pix_key" }, 400);
   }
 
-  // 0) Carrega a venda e valida que pertence ao revendedor logado
+  const { data: isManager } = await svc.rpc("has_role", { _user_id: userId, _role: "gerente" });
+
+  // 0) Carrega a venda e valida que pertence ao revendedor logado ou ao gerente
   const { data: reseller } = await svc.from("resellers")
     .select("id, is_active").eq("user_id", userId).maybeSingle();
-  if (!reseller || !reseller.is_active) return json({ error: "reseller_inactive" }, 403);
+  if (!isManager && (!reseller || !reseller.is_active)) return json({ error: "reseller_inactive" }, 403);
 
   const table = sale_type === "storefront" ? "storefront_orders" : "orders";
-  const { data: sale, error: sErr } = await svc
+  let saleQuery = svc
     .from(table)
     .select("*")
-    .eq("id", sale_id)
-    .eq("reseller_id", reseller.id)
-    .maybeSingle();
+    .eq("id", sale_id);
+  if (!isManager) saleQuery = saleQuery.eq("reseller_id", reseller.id);
+  const { data: sale, error: sErr } = await saleQuery.maybeSingle();
   if (sErr) return json({ error: sErr.message }, 500);
   if (!sale) return json({ error: "sale_not_found" }, 404);
 
@@ -192,10 +194,14 @@ Deno.serve(async (req) => {
   }
 
   // Auto via MisticPay (apenas storefront)
+  const refundResellerId = sale.reseller_id ?? reseller?.id;
+  if (!refundResellerId) {
+    return json({ error: "missing_reseller_id" }, 400);
+  }
   const { data: integ } = await svc
     .from("reseller_integrations")
     .select("misticpay_client_id, misticpay_client_secret")
-    .eq("reseller_id", reseller.id)
+    .eq("reseller_id", refundResellerId)
     .maybeSingle();
   const ci = integ?.misticpay_client_id?.trim();
   const cs = integ?.misticpay_client_secret?.trim();
