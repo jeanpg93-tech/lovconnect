@@ -1047,6 +1047,19 @@ export default function GerenteLicencasAcompanhar() {
                       <div className="flex items-center justify-between pt-2 gap-1 overflow-x-auto pb-1 scrollbar-none">
                         {(() => {
                           const info = refundInfo[o.license_key];
+                          if (canCancelSale(o)) {
+                            return (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 flex-1 bg-white/5 text-rose-500 hover:bg-rose-500/10"
+                                onClick={() => openCancelSale(o)}
+                                title="Cancelar venda"
+                              >
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            );
+                          }
                           if (!info) return null;
                           if (info.refunded) {
                             return (
