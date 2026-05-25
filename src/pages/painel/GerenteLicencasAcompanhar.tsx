@@ -391,6 +391,8 @@ export default function GerenteLicencasAcompanhar() {
         localOnly.push({
           id: o.license_key,
           local_order_id: o.id,
+          local_sale_status: o.status,
+          cancellation_status: o.cancellation_status ?? null,
           license_id: o.id,
           license_key: o.license_key,
           display_name: undefined,
@@ -420,6 +422,8 @@ export default function GerenteLicencasAcompanhar() {
         localOnly.push({
           id: o.license_key,
           local_order_id: null,
+          local_sale_status: o.status,
+          cancellation_status: o.cancellation_status ?? null,
           license_id: o.id,
           license_key: o.license_key,
           display_name: o.buyer_name ?? undefined,
