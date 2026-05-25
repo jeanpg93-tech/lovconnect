@@ -1077,10 +1077,19 @@ export default function RevendedorPedidos() {
         };
 
         const filtered = items.filter((it) => {
+          const searchValue = licSearch.trim().toLowerCase();
+          const isExactManualId = Boolean(
+            searchValue &&
+            exactSearchOrder &&
+            it.origin === "manual" &&
+            it.manual.id === exactSearchOrder.id &&
+            it.manual.id.toLowerCase() === searchValue
+          );
+          if (isExactManualId) return true;
           if (licOriginFilter !== "all" && it.origin !== licOriginFilter) return false;
           if (licStatusFilter !== "all" && normStatus(it) !== licStatusFilter) return false;
-          if (licSearch.trim()) {
-            const q = licSearch.trim().toLowerCase();
+          if (searchValue) {
+            const q = searchValue;
             if (it.origin === "manual") {
               const o = it.manual;
               return (o.id ?? "").toLowerCase().includes(q) ||
