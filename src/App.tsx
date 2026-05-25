@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ComponentType } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,16 +9,16 @@ import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { isChunkLoadError, requestFreshChunkReload } from "@/lib/chunk-recovery";
 
-const Auth = lazy(() => import("./pages/Auth.tsx"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
-const NotFound = lazy(() => import("./pages/NotFound.tsx"));
-const AppLayout = lazy(() => import("./components/layout/AppLayout"));
-const PublicStorefront = lazy(() => import("./pages/PublicStorefront"));
-const PublicExtension = lazy(() => import("./pages/PublicExtension"));
-const PublicRecharge = lazy(() => import("./pages/PublicRecharge"));
-const Banned = lazy(() => import("./pages/Banned"));
-const Inactive = lazy(() => import("./pages/Inactive"));
-const Install = lazy(() => import("./pages/Install"));
+const Auth = lazy(() => lazyWithChunkRecovery(() => import("./pages/Auth.tsx")));
+const ResetPassword = lazy(() => lazyWithChunkRecovery(() => import("./pages/ResetPassword.tsx")));
+const NotFound = lazy(() => lazyWithChunkRecovery(() => import("./pages/NotFound.tsx")));
+const AppLayout = lazy(() => lazyWithChunkRecovery(() => import("./components/layout/AppLayout")));
+const PublicStorefront = lazy(() => lazyWithChunkRecovery(() => import("./pages/PublicStorefront")));
+const PublicExtension = lazy(() => lazyWithChunkRecovery(() => import("./pages/PublicExtension")));
+const PublicRecharge = lazy(() => lazyWithChunkRecovery(() => import("./pages/PublicRecharge")));
+const Banned = lazy(() => lazyWithChunkRecovery(() => import("./pages/Banned")));
+const Inactive = lazy(() => lazyWithChunkRecovery(() => import("./pages/Inactive")));
+const Install = lazy(() => lazyWithChunkRecovery(() => import("./pages/Install")));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,11 +46,12 @@ const RouteFallback = () => (
   </div>
 );
 
-const lazyWithChunkRecovery = <T extends { default: React.ComponentType<any> }>(loader: () => Promise<T>) =>
-  loader().catch((error) => {
+function lazyWithChunkRecovery<T extends { default: ComponentType<any> }>(loader: () => Promise<T>) {
+  return loader().catch((error) => {
     if (isChunkLoadError(error)) requestFreshChunkReload();
     throw error;
   });
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
