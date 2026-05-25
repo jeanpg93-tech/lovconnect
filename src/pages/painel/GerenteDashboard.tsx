@@ -832,12 +832,12 @@ export default function GerenteDashboard() {
                       else groups.push({ label: lbl, items: [m] });
                     });
                     const kindLabels: Record<string, string> = {
-                      deposit: "Depósito de Saldo", recharge: "Depósito PIX", bonus: "Bônus", refund: "Estorno",
+                       deposit: "Depósito de Saldo", recharge: "Depósito PIX", bonus: "Bônus", refund: "Estorno de Venda",
                       adjustment: "Ajuste Manual", license_purchase: "Venda de Licença", credit_purchase: "Venda de Recargas",
                       order: "Pedido", debit: "Débito", order_debit: "Venda",
-                      manual_credit: "Depósito Manual", credit_purchase_refund: "Estorno de Recargas",
-                      license_purchase_refund: "Estorno de Licença",
-                      credit_recharge_refund: "Estorno de Recarga",
+                       manual_credit: "Depósito Manual", credit_purchase_refund: "Estorno de Recarga (Cancelada)",
+                       license_purchase_refund: "Estorno de Licença",
+                       credit_recharge_refund: "Estorno de Recarga (Cancelada)",
                       credit_recharge_api: "Recargas via API",
                     };
                     return groups.map((g) => (
@@ -850,6 +850,10 @@ export default function GerenteDashboard() {
                         {g.items.map((m) => {
                           const REFUND_KINDS_UI = new Set(["refund","credit_purchase_refund","credit_recharge_refund","license_purchase_refund","estorno","reembolso","cancelado","cancellation"]);
                           const isRefund = REFUND_KINDS_UI.has(String(m.kind));
+                          // Distingue estorno de VENDA (cliente recebe de volta) de estorno
+                          // de RECARGA CANCELADA (revendedor recebe de volta a compra própria).
+                          const isCancellationRefund = ["credit_purchase_refund","credit_recharge_refund","license_purchase_refund","cancelado","cancellation"].includes(String(m.kind));
+                          const isSaleRefund = isRefund && !isCancellationRefund;
                           // O sinal segue SEMPRE o valor real da transação. Estornos podem ser
                           // crédito de volta ao saldo (positivo / verde) ou débito (negativo / vermelho).
                           const isIn = m.amount_cents >= 0;
@@ -872,7 +876,9 @@ export default function GerenteDashboard() {
                           // Tom: entrada=verde, venda/compra=azul (destaque), outras saídas=vermelho
                           const tone = isRefund
                             ? (isIn
-                                ? { bg: "bg-sky-500/10", text: "text-sky-600", border: "border-sky-500/30", ring: "" }
+                                ? (isSaleRefund
+                                    ? { bg: "bg-amber-500/10", text: "text-amber-600", border: "border-amber-500/30", ring: "" }
+                                    : { bg: "bg-sky-500/10", text: "text-sky-600", border: "border-sky-500/30", ring: "" })
                                 : { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/30", ring: "" })
                             : isIn
                             ? { bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20", ring: "" }
