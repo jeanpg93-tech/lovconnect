@@ -1208,6 +1208,13 @@ export default function GerenteLicencasAcompanhar() {
         data={refundData}
         onSuccess={() => { load(); }}
       />
+
+      <CancelSaleDialog
+        target={cancelTarget}
+        open={!!cancelTarget}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        onDone={() => { setCancelTarget(null); load(); }}
+      />
     </PageContainer>
   );
 }
