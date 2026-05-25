@@ -303,6 +303,8 @@ export default function GerenteLicencasAcompanhar() {
         return {
           id: u.license_key,
           local_order_id: local?.id ?? null,
+          local_sale_status: local?.status ?? sf?.status ?? null,
+          cancellation_status: local?.cancellation_status ?? sf?.cancellation_status ?? null,
           license_id: u.id,
           license_key: u.license_key,
           display_name: u.display_name,
@@ -355,6 +357,8 @@ export default function GerenteLicencasAcompanhar() {
         return {
           id: `lovax:${u.license_key}`,
           local_order_id: local?.id ?? null,
+          local_sale_status: local?.status ?? sf?.status ?? null,
+          cancellation_status: local?.cancellation_status ?? sf?.cancellation_status ?? null,
           license_id: u.id,
           license_key: u.license_key,
           display_name: u.display_name || u.customer_name,
