@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.evolution-send-sale]
 verify_jwt = false
+
+[functions.telegram-delivery-progress]
+verify_jwt = false
