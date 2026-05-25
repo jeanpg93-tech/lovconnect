@@ -1054,7 +1054,9 @@ export default function RevendedorPedidos() {
         type UnifiedItem =
           | { key: string; origin: "manual"; created_at: string; manual: Order }
           | { key: string; origin: "loja"; created_at: string; loja: StorefrontLicRow };
-        const manualSrc = allOrders ?? orders;
+        const manualSrc = exactSearchOrder && !(allOrders ?? orders).some((o) => o.id === exactSearchOrder.id)
+          ? [exactSearchOrder, ...(allOrders ?? orders)]
+          : (allOrders ?? orders);
         const items: UnifiedItem[] = [
           ...manualSrc.map<UnifiedItem>((o) => ({
             key: `m:${o.id}`, origin: "manual", created_at: o.created_at, manual: o,
@@ -1164,6 +1166,12 @@ export default function RevendedorPedidos() {
                 </SelectContent>
               </Select>
             </div>
+
+            {exactSearchOrder && licSearch.trim() && licStatusFilter !== "all" && normStatus({ key: `m:${exactSearchOrder.id}`, origin: "manual", created_at: exactSearchOrder.created_at, manual: exactSearchOrder }) !== licStatusFilter && (
+              <p className="relative text-[11px] text-muted-foreground">
+                Esse ID foi encontrado, mas o filtro de status atual está ocultando a venda.
+              </p>
+            )}
 
             <div className="relative rounded-xl border border-border overflow-hidden">
               {filtered.length === 0 ? (
