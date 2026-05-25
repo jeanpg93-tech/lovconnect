@@ -44,6 +44,7 @@ type DeliveryMethod = "flow" | "lovax";
 
 type OrderRow = {
   id: string;
+  local_order_id?: string | null;
   license_key: string;
   license_type: string;
   status: string;
@@ -298,6 +299,7 @@ export default function GerenteLicencasAcompanhar() {
 
         return {
           id: u.license_key,
+          local_order_id: local?.id ?? null,
           license_id: u.id,
           license_key: u.license_key,
           display_name: u.display_name,
@@ -349,6 +351,7 @@ export default function GerenteLicencasAcompanhar() {
 
         return {
           id: `lovax:${u.license_key}`,
+          local_order_id: local?.id ?? null,
           license_id: u.id,
           license_key: u.license_key,
           display_name: u.display_name || u.customer_name,
@@ -380,6 +383,7 @@ export default function GerenteLicencasAcompanhar() {
         const email = (userId && emailMap[userId]) || null;
         localOnly.push({
           id: o.license_key,
+          local_order_id: o.id,
           license_id: o.id,
           license_key: o.license_key,
           display_name: undefined,
@@ -408,6 +412,7 @@ export default function GerenteLicencasAcompanhar() {
         const email = (userId && emailMap[userId]) || null;
         localOnly.push({
           id: o.license_key,
+          local_order_id: null,
           license_id: o.id,
           license_key: o.license_key,
           display_name: o.buyer_name ?? undefined,
