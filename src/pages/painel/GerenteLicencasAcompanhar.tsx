@@ -200,11 +200,11 @@ export default function GerenteLicencasAcompanhar() {
         supabase.from("resellers").select("id, display_name, user_id"),
         supabase.from("reseller_api_keys").select("id, label, reseller_id"),
         supabase.from("orders")
-          .select("id, license_key, reseller_id, api_key_id, price_cents, license_type, status, created_at, is_test")
+          .select("id, license_key, reseller_id, api_key_id, price_cents, license_type, status, created_at, is_test, cancellation_status")
           .not("license_key", "is", null)
           .order("created_at", { ascending: false }),
         supabase.from("storefront_orders")
-          .select("id, license_key, reseller_id, price_cents, license_type, status, created_at, buyer_name")
+          .select("id, license_key, reseller_id, price_cents, cost_cents, license_type, status, created_at, buyer_name, cancellation_status")
           .not("license_key", "is", null)
           .order("created_at", { ascending: false }),
       ]);
