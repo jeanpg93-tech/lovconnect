@@ -1862,6 +1862,8 @@ export type Database = {
           provider_response: Json | null
           reseller_id: string
           status: string
+          telegram_last_state: string | null
+          telegram_message_id: number | null
           tipo_entrega: string | null
           updated_at: string
           workspace_id: string | null
@@ -1891,6 +1893,8 @@ export type Database = {
           provider_response?: Json | null
           reseller_id: string
           status?: string
+          telegram_last_state?: string | null
+          telegram_message_id?: number | null
           tipo_entrega?: string | null
           updated_at?: string
           workspace_id?: string | null
@@ -1920,6 +1924,8 @@ export type Database = {
           provider_response?: Json | null
           reseller_id?: string
           status?: string
+          telegram_last_state?: string | null
+          telegram_message_id?: number | null
           tipo_entrega?: string | null
           updated_at?: string
           workspace_id?: string | null
@@ -2742,6 +2748,7 @@ export type Database = {
           last_low_gateway_alert_at: string | null
           last_low_provider_alert_at: string | null
           low_balance_threshold_cents: number
+          notify_delivery_progress: boolean
           notify_low_balance: boolean
           notify_recharges: boolean
           notify_refunds: boolean
@@ -2760,6 +2767,7 @@ export type Database = {
           last_low_gateway_alert_at?: string | null
           last_low_provider_alert_at?: string | null
           low_balance_threshold_cents?: number
+          notify_delivery_progress?: boolean
           notify_low_balance?: boolean
           notify_recharges?: boolean
           notify_refunds?: boolean
@@ -2778,6 +2786,7 @@ export type Database = {
           last_low_gateway_alert_at?: string | null
           last_low_provider_alert_at?: string | null
           low_balance_threshold_cents?: number
+          notify_delivery_progress?: boolean
           notify_low_balance?: boolean
           notify_recharges?: boolean
           notify_refunds?: boolean
