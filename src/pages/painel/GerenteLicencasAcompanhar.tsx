@@ -125,6 +125,7 @@ export default function GerenteLicencasAcompanhar() {
   const [refundInfo, setRefundInfo] = useState<Record<string, { order_id: string; price_cents: number; refunded: boolean; reseller_id: string | null }>>({});
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const [refundData, setRefundData] = useState<RefundSaleData | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<CancelSaleTarget | null>(null);
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [showExpired, setShowExpired] = useState<string>("all");
@@ -562,6 +563,26 @@ export default function GerenteLicencasAcompanhar() {
       extra_info: LABEL[o.license_type] || o.license_type,
     });
     setRefundDialogOpen(true);
+  };
+
+  const canCancelSale = (o: OrderRow) => {
+    if (!o.local_order_id || o.source === "provider") return false;
+    const saleStatus = (o.local_sale_status || o.status || "").toLowerCase();
+    const cancellationStatus = o.cancellation_status || "none";
+    return ["completed", "paid", "delivered"].includes(saleStatus) && cancellationStatus === "none";
+  };
+
+  const openCancelSale = (o: OrderRow) => {
+    const info = refundInfo[o.license_key];
+    if (!o.local_order_id) return;
+    setCancelTarget({
+      sale_id: o.local_order_id,
+      sale_type: o.source === "storefront" ? "storefront" : "manual",
+      label: o.license_key ? o.license_key.slice(0, 12) + "…" : `#${o.local_order_id.slice(0, 8)}`,
+      price_cents: Number(info?.price_cents ?? o.price_cents ?? 0),
+      cost_cents: Number(info?.price_cents ?? o.price_cents ?? 0),
+      license_key: o.license_key,
+    });
   };
 
   const getGenerationType = (o: OrderRow) => {
