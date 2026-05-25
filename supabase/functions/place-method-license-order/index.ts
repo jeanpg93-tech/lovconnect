@@ -283,6 +283,25 @@ Deno.serve(async (req) => {
       provider_response: providerData,
     }).eq("id", order.id);
 
+    // Disparo WhatsApp (fire-and-forget) — não bloqueia retorno
+    if (license_key && whatsapp) {
+      fetch(`${supabaseUrl}/functions/v1/evolution-send-sale`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reseller_id,
+          kind: "license",
+          to: whatsapp,
+          vars: {
+            nome: display_name,
+            chave: license_key,
+            tipo: license_type,
+            valor_cents: String(price_cents),
+          },
+        }),
+      }).catch((e) => console.warn("evolution-send-sale failed", e));
+    }
+
     return json({
       ok: true,
       order_id: order.id,
