@@ -384,13 +384,13 @@ export default function GerenteDashboard() {
     const [{ data: enrichOrders }, { data: enrichCredits }] = await Promise.all([
       supabase
         .from("orders")
-        .select("id,reseller_id,price_cents,created_at,license_type,is_test, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
+        .select("id,reseller_id,price_cents,created_at,license_type,is_test,status,cancellation_status,cancelled_at,cancelled_by,client_refund_method,client_refunded_at,client_refund_error, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
         .gte("created_at", enrichSince)
         .order("created_at", { ascending: false })
         .limit(300),
       supabase
         .from("reseller_credit_purchases")
-        .select("id,reseller_id,price_cents,credits,created_at,customer_name,customer_whatsapp")
+        .select("id,reseller_id,price_cents,credits,created_at,customer_name,customer_whatsapp,status,cancellation_status,cancelled_at,cancelled_by,client_refund_method,client_refunded_at,client_refund_error,error_message,provider_pedido_id")
         .gte("created_at", enrichSince)
         .order("created_at", { ascending: false })
         .limit(300),
@@ -406,9 +406,43 @@ export default function GerenteDashboard() {
       ref_kind?: 'license' | 'credit' | null;
       license_type?: string | null;
       credits?: number | null;
+      cancel_reason?: string | null;
     };
     const enrichMap = new Map<string, EnrichVal>();
     const enrichById = new Map<string, EnrichVal>();
+    // Deriva motivo do cancelamento/estorno a partir dos campos da venda original.
+    const deriveCancelReason = (row: any, source: 'license' | 'credit'): string | null => {
+      if (!row) return null;
+      const cs = String(row.cancellation_status ?? "none");
+      const st = String(row.status ?? "").toLowerCase();
+      const refundMethod = row.client_refund_method as string | null;
+      const cancelledBy = row.cancelled_by as string | null;
+      const errMsg = (row.error_message ?? row.client_refund_error ?? "") as string;
+
+      // Sem cancelamento registrado
+      if (cs === "none" && !["cancelado", "expired", "failed"].includes(st)) return null;
+
+      // PIX expirou sem pagamento (não chega a entrar em fluxo de refund)
+      if (st === "expired" || (st === "cancelado" && !refundMethod && !cancelledBy)) {
+        return "PIX não pago no prazo — pedido expirou";
+      }
+      // Falha na entrega pelo provedor
+      if (st === "failed" || (errMsg && cs === "balance_refunded")) {
+        return errMsg ? `Falha na entrega: ${errMsg.slice(0, 120)}` : "Falha na entrega — saldo devolvido";
+      }
+      // Cancelado manualmente pelo revendedor (tem cancelled_by)
+      if (cancelledBy) {
+        if (refundMethod === "auto") return "Cancelado pelo revendedor • reembolso PIX automático ao cliente";
+        if (refundMethod === "manual") return "Cancelado pelo revendedor • reembolso ao cliente combinado manualmente";
+        return source === "credit"
+          ? "Cancelado pelo revendedor antes da entrega da recarga"
+          : "Venda cancelada pelo revendedor";
+      }
+      // Cancelamento automático (audit/expire jobs)
+      if (cs !== "none") return "Cancelamento automático do sistema";
+      return null;
+    };
+
     const bucket = (iso: string) => Math.floor(new Date(iso).getTime() / 60_000);
     const keyOf = (resellerId: string, cents: number, iso: string) =>
       `${resellerId}|${Math.abs(cents)}|${bucket(iso)}`;
@@ -434,6 +468,7 @@ export default function GerenteDashboard() {
         ref_created_at: o.created_at ?? null,
         ref_kind: 'license',
         license_type: o.license_type ?? null,
+        cancel_reason: deriveCancelReason(o, 'license'),
       };
       enrichMap.set(keyOf(o.reseller_id, o.price_cents, o.created_at), val);
       if (o.id) enrichById.set(o.id, val);
@@ -449,6 +484,7 @@ export default function GerenteDashboard() {
         ref_created_at: c.created_at ?? null,
         ref_kind: 'credit',
         credits: c.credits ?? null,
+        cancel_reason: deriveCancelReason(c, 'credit'),
       };
       enrichMap.set(keyOf(c.reseller_id, c.price_cents, c.created_at), val);
       if (c.id) enrichById.set(c.id, val);
@@ -491,6 +527,7 @@ export default function GerenteDashboard() {
           ref_kind: enrich?.ref_kind ?? null,
           license_type: enrich?.license_type ?? null,
           credits: enrich?.credits ?? null,
+          cancel_reason: enrich?.cancel_reason ?? null,
         };
       }),
     );
