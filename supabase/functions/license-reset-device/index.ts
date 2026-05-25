@@ -43,8 +43,9 @@ Deno.serve(async (req) => {
       storefrontOrder = so;
     }
 
-    if (!order && !storefrontOrder) return json({ error: "Licença não encontrada no sistema" }, 404);
-    
+    // Se não encontrada em nenhuma tabela, ainda assim tentamos no provedor:
+    // existem licenças válidas geradas fora do registro local (ex.: criadas
+    // diretamente no provedor antigo) que continuam funcionando no upstream.
     const isLegacy = order?.is_legacy || storefrontOrder?.is_legacy;
     if (isLegacy) {
       return json({
