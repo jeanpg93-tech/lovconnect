@@ -190,6 +190,7 @@ Deno.serve(async (req) => {
       client_refund_pix_key: null,
       error_message: notes ?? sale.error_message,
     }).eq("id", sale.id);
+    await notifyCancelled(svc, { sale, sale_type, method: "manual", actorId: userId, isManager: !!isManager, notes });
     return json({ ok: true, step: "client_refunded", method: "manual" });
   }
 
@@ -259,5 +260,55 @@ Deno.serve(async (req) => {
     client_refund_error: null,
   }).eq("id", sale.id);
 
+  await notifyCancelled(svc, { sale, sale_type, method: "auto", actorId: userId, isManager: !!isManager, notes, pix_key });
   return json({ ok: true, step: "client_refunded", method: "auto", provider: d });
 });
+
+async function notifyCancelled(
+  svc: ReturnType<typeof createClient>,
+  opts: {
+    sale: any;
+    sale_type: SaleType;
+    method: RefundMethod;
+    actorId: string;
+    isManager: boolean;
+    notes: string | null;
+    pix_key?: string;
+  },
+) {
+  try {
+    const { sale, sale_type, method, actorId, isManager, notes, pix_key } = opts;
+    const { data: settings } = await svc.from("telegram_settings")
+      .select("chat_id").eq("id", 1).maybeSingle();
+    if (!settings?.chat_id) return;
+
+    const { data: rsl } = await svc.from("resellers")
+      .select("display_name").eq("id", sale.reseller_id).maybeSingle();
+    let actorName = "—";
+    if (isManager) {
+      actorName = "Gerente (Admin)";
+    } else {
+      const { data: p } = await svc.from("profiles")
+        .select("display_name,email").eq("id", actorId).maybeSingle();
+      actorName = p?.display_name ?? p?.email ?? "Revendedor";
+    }
+
+    const amountBrl = "R$ " + (Number(sale.price_cents ?? 0) / 100)
+      .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const orderRef = sale.short_code ?? String(sale.id).slice(0, 8);
+    const lines: string[] = [
+      "🚫 <b>Venda cancelada</b>",
+      `🧾 Pedido: <code>#${orderRef}</code>`,
+      `📂 Tipo: ${sale_type === "storefront" ? "Loja Pública" : "Manual/API"}`,
+      `👨‍💼 Revendedor: ${rsl?.display_name ?? "—"}`,
+      `🧑 Cancelado por: ${actorName}`,
+      `💵 Valor: ${amountBrl}`,
+    ];
+    if (sale.license_key) lines.push(`🔑 Chave: <code>${sale.license_key}</code> (revogada)`);
+    lines.push(`↩️ Estorno ao cliente: ${method === "auto" ? "Automático via PIX" : "Manual"}`);
+    if (method === "auto" && pix_key) lines.push(`🔁 PIX destino: <code>${pix_key}</code>`);
+    if (notes) lines.push(`📝 ${notes}`);
+
+    await svc.rpc("telegram_enqueue", { _text: lines.join("\n") });
+  } catch (_) { /* noop */ }
+}
