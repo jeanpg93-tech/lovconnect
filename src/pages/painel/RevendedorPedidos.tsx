@@ -1151,7 +1151,7 @@ export default function RevendedorPedidos() {
                 <Input
                   value={licSearch}
                   onChange={(e) => setLicSearch(e.target.value)}
-                  placeholder="Buscar por chave ou tipo…"
+                  placeholder="Buscar por ID, chave, cliente ou tipo…"
                   className="pl-9 h-9 text-xs"
                 />
               </div>
