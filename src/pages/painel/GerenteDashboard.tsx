@@ -837,6 +837,7 @@ export default function GerenteDashboard() {
                       order: "Pedido", debit: "Débito", order_debit: "Venda",
                       manual_credit: "Depósito Manual", credit_purchase_refund: "Estorno de Recargas",
                       license_purchase_refund: "Estorno de Licença",
+                      credit_recharge_refund: "Estorno de Recarga",
                       credit_recharge_api: "Recargas via API",
                     };
                     return groups.map((g) => (
