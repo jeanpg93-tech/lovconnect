@@ -592,6 +592,9 @@ export default function GerenteLicencasAcompanhar() {
       const reseller = o.reseller_id ? (resellers[o.reseller_id] ?? "") : "";
       const apiKeyLabel = o.api_key_id && apiKeys[o.api_key_id] ? apiKeys[o.api_key_id].label : "";
       return (
+        (o.local_order_id ?? "").toLowerCase().includes(q) ||
+        (o.license_id ?? "").toLowerCase().includes(q) ||
+        (o.id ?? "").toLowerCase().includes(q) ||
         (o.license_key ?? "").toLowerCase().includes(q) ||
         (o.display_name ?? "").toLowerCase().includes(q) ||
         (o.creator_email ?? "").toLowerCase().includes(q) ||
@@ -639,7 +642,7 @@ export default function GerenteLicencasAcompanhar() {
           <div className="pointer-events-none absolute inset-0 bg-primary/5 blur-xl rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity" />
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
           <Input
-            placeholder="Buscar por chave, revendedor, cliente ou whatsapp…"
+            placeholder="Buscar por ID, chave, revendedor ou cliente…"
             className="pl-11 h-12 bg-white/5 border-white/10 rounded-2xl text-sm transition-all focus:bg-white/10 focus:ring-primary/20"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
