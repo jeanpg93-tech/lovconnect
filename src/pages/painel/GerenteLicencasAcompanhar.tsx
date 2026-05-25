@@ -16,10 +16,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { KeyRound, Search, Loader2, Copy, FlaskConical, CheckCircle2, RefreshCw, Infinity as InfinityIcon, ArrowUpRight, Trash2, XCircle, ChevronDown, ChevronUp, Info, RotateCcw, Zap, Sparkles, Undo2 } from "lucide-react";
+import { KeyRound, Search, Loader2, Copy, FlaskConical, CheckCircle2, RefreshCw, Infinity as InfinityIcon, ArrowUpRight, Trash2, XCircle, ChevronDown, ChevronUp, Info, RotateCcw, Zap, Sparkles, Undo2, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import RefundSaleDialog, { type RefundSaleData } from "@/components/painel/RefundSaleDialog";
+import { CancelSaleDialog, type CancelSaleTarget } from "@/components/painel/CancelSaleDialog";
 
 const PLAN_DAYS: Record<string, number | null> = {
   pro_1d: 1,
@@ -45,6 +46,8 @@ type DeliveryMethod = "flow" | "lovax";
 type OrderRow = {
   id: string;
   local_order_id?: string | null;
+  local_sale_status?: string | null;
+  cancellation_status?: string | null;
   license_key: string;
   license_type: string;
   status: string;
