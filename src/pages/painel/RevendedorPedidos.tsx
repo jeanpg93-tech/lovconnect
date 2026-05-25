@@ -267,6 +267,7 @@ export default function RevendedorPedidos() {
   const [allOrders, setAllOrders] = useState<Order[] | null>(null);
   const [loadingAll, setLoadingAll] = useState(false);
   const [licSearch, setLicSearch] = useState("");
+  const [exactSearchOrder, setExactSearchOrder] = useState<Order | null>(null);
   const [licStatusFilter, setLicStatusFilter] = useState<string>("all");
   // ids de pedidos já reembolsados
   const [refundedOrderIds, setRefundedOrderIds] = useState<Set<string>>(new Set());
@@ -408,6 +409,28 @@ export default function RevendedorPedidos() {
     setAllOrders((data ?? []) as Order[]);
     setLoadingAll(false);
   };
+
+  useEffect(() => {
+    const q = licSearch.trim().toLowerCase();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(q);
+    if (!resellerId || !isUuid) {
+      setExactSearchOrder(null);
+      return;
+    }
+
+    let cancelled = false;
+    supabase
+      .from("orders")
+      .select("id,license_type,price_cents,status,license_key,created_at,is_test,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
+      .eq("reseller_id", resellerId)
+      .eq("id", q)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setExactSearchOrder((data as Order | null) ?? null);
+      });
+
+    return () => { cancelled = true; };
+  }, [licSearch, resellerId]);
 
   const runLicenseAction = async (
     o: Order,
@@ -1031,7 +1054,9 @@ export default function RevendedorPedidos() {
         type UnifiedItem =
           | { key: string; origin: "manual"; created_at: string; manual: Order }
           | { key: string; origin: "loja"; created_at: string; loja: StorefrontLicRow };
-        const manualSrc = allOrders ?? orders;
+        const manualSrc = exactSearchOrder && !(allOrders ?? orders).some((o) => o.id === exactSearchOrder.id)
+          ? [exactSearchOrder, ...(allOrders ?? orders)]
+          : (allOrders ?? orders);
         const items: UnifiedItem[] = [
           ...manualSrc.map<UnifiedItem>((o) => ({
             key: `m:${o.id}`, origin: "manual", created_at: o.created_at, manual: o,
@@ -1052,10 +1077,19 @@ export default function RevendedorPedidos() {
         };
 
         const filtered = items.filter((it) => {
+          const searchValue = licSearch.trim().toLowerCase();
+          const isExactManualId = Boolean(
+            searchValue &&
+            exactSearchOrder &&
+            it.origin === "manual" &&
+            it.manual.id === exactSearchOrder.id &&
+            it.manual.id.toLowerCase() === searchValue
+          );
+          if (isExactManualId) return true;
           if (licOriginFilter !== "all" && it.origin !== licOriginFilter) return false;
           if (licStatusFilter !== "all" && normStatus(it) !== licStatusFilter) return false;
-          if (licSearch.trim()) {
-            const q = licSearch.trim().toLowerCase();
+          if (searchValue) {
+            const q = searchValue;
             if (it.origin === "manual") {
               const o = it.manual;
               return (o.id ?? "").toLowerCase().includes(q) ||
@@ -1117,7 +1151,7 @@ export default function RevendedorPedidos() {
                 <Input
                   value={licSearch}
                   onChange={(e) => setLicSearch(e.target.value)}
-                  placeholder="Buscar por chave ou tipo…"
+                  placeholder="Buscar por ID, chave, cliente ou tipo…"
                   className="pl-9 h-9 text-xs"
                 />
               </div>
@@ -1141,6 +1175,12 @@ export default function RevendedorPedidos() {
                 </SelectContent>
               </Select>
             </div>
+
+            {exactSearchOrder && licSearch.trim() && licStatusFilter !== "all" && normStatus({ key: `m:${exactSearchOrder.id}`, origin: "manual", created_at: exactSearchOrder.created_at, manual: exactSearchOrder }) !== licStatusFilter && (
+              <p className="relative text-[11px] text-muted-foreground">
+                Esse ID foi encontrado, mas o filtro de status atual está ocultando a venda.
+              </p>
+            )}
 
             <div className="relative rounded-xl border border-border overflow-hidden">
               {filtered.length === 0 ? (
