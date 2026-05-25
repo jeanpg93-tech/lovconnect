@@ -934,7 +934,10 @@ export default function GerenteDashboard() {
                           return (
                              <Link key={m.id} to={targetHref} className={`group/item flex items-center justify-between rounded-xl sm:rounded-2xl border ${tone.border} bg-background/40 p-2 sm:p-3 hover:bg-background hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all ${isApiOrder ? "bg-fuchsia-500/[0.04]" : isSaleLike ? "bg-sky-500/[0.04]" : ""}`}>
                                <div className="flex items-center gap-3 text-left min-w-0">
-                                 <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border ${tone.bg} ${tone.text} ${tone.border}`}>
+                                 <div
+                                   className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border ${tone.bg} ${tone.text} ${tone.border}`}
+                                   title={isRefund && (m as any).cancel_reason ? `Motivo: ${(m as any).cancel_reason}` : undefined}
+                                 >
                                    <Arrow className="h-4 w-4" strokeWidth={2.5} />
                                  </div>
                                  <div className="min-w-0 flex-1">
@@ -952,6 +955,14 @@ export default function GerenteDashboard() {
                                       ) : (
                                         <span className={`text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${tone.bg} ${tone.text} ${tone.border}`}>{kindLabel}</span>
                                       )}
+                                       {isRefund && (m as any).cancel_reason && (
+                                         <span
+                                           title={`Motivo: ${(m as any).cancel_reason}`}
+                                           className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md font-mono border ${tone.bg} ${tone.text} ${tone.border} cursor-help`}
+                                         >
+                                           <Info className="h-2.5 w-2.5" /> motivo
+                                         </span>
+                                       )}
                                       {isManualCredit && (
                                         <span className="inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono bg-amber-500/15 text-amber-600 border border-amber-500/30">
                                           <Hand className="h-2.5 w-2.5" /> Manual
