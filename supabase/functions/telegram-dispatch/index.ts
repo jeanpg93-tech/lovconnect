@@ -27,24 +27,37 @@ Deno.serve(async () => {
   let sent = 0, failed = 0
   for (const msg of pending ?? []) {
     try {
-      const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
+      const isEdit = msg.is_edit === true && msg.edit_message_id
+      const method = isEdit ? 'editMessageText' : 'sendMessage'
+      const payload: Record<string, unknown> = {
+        chat_id: settings.chat_id,
+        text: msg.text,
+        parse_mode: msg.parse_mode ?? 'HTML',
+        disable_web_page_preview: true,
+      }
+      if (isEdit) payload.message_id = msg.edit_message_id
+
+      const r = await fetch(`${GATEWAY_URL}/${method}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
           'X-Connection-Api-Key': TELEGRAM_API_KEY,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          chat_id: settings.chat_id,
-          text: msg.text,
-          parse_mode: msg.parse_mode ?? 'HTML',
-          disable_web_page_preview: true,
-        }),
+        body: JSON.stringify(payload),
       })
       const body = await r.json()
-      if (r.ok && body.ok) {
+      const desc = String(body?.description ?? '')
+      // "message is not modified" é sucesso silencioso em edits
+      const notModified = isEdit && /message is not modified/i.test(desc)
+      if ((r.ok && body.ok) || notModified) {
+        const returnedMid = body?.result?.message_id ?? msg.edit_message_id ?? null
         await supabase.from('telegram_outbox')
-          .update({ sent_at: new Date().toISOString(), attempts: msg.attempts + 1 })
+          .update({
+            sent_at: new Date().toISOString(),
+            attempts: msg.attempts + 1,
+            message_id: returnedMid,
+          })
           .eq('id', msg.id)
         sent++
       } else {
