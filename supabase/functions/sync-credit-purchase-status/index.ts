@@ -122,42 +122,49 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Não autenticado' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const userClient = createClient(SUPABASE_URL, ANON, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: 'Sessão inválida' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    const userId = userData.user.id;
-
-    const body = await req.json().catch(() => ({}));
-    const ids = Array.isArray(body?.purchase_ids) ? body.purchase_ids.slice(0, 50) : null;
-
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const body = await req.json().catch(() => ({}));
+    const ids = Array.isArray(body?.purchase_ids) ? body.purchase_ids.slice(0, 100) : null;
 
-    // Gerentes podem sincronizar qualquer compra
-    const { data: roleRow } = await admin
-      .from('user_roles').select('role').eq('user_id', userId).eq('role', 'gerente').maybeSingle();
-    const isGerente = !!roleRow;
+    // Detecta chamada por cron/serviço: aceita se header apikey == ANON ou Authorization == service role.
+    const apikeyHdr = req.headers.get('apikey') ?? '';
+    const authHdr = req.headers.get('Authorization') ?? '';
+    const isServiceCall = apikeyHdr === ANON || authHdr.includes(SERVICE_ROLE);
 
-    const { data: reseller } = await admin
-      .from('resellers').select('id').eq('user_id', userId).maybeSingle();
-    if (!reseller && !isGerente) {
-      return new Response(JSON.stringify({ error: 'Revendedor não encontrado' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    let isGerente = false;
+    let resellerId: string | null = null;
+
+    if (!isServiceCall) {
+      if (!authHdr) {
+        return new Response(JSON.stringify({ error: 'Não autenticado' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const userClient = createClient(SUPABASE_URL, ANON, {
+        global: { headers: { Authorization: authHdr } },
       });
+      const { data: userData, error: userErr } = await userClient.auth.getUser();
+      if (userErr || !userData?.user) {
+        return new Response(JSON.stringify({ error: 'Sessão inválida' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const userId = userData.user.id;
+      const { data: roleRow } = await admin
+        .from('user_roles').select('role').eq('user_id', userId).eq('role', 'gerente').maybeSingle();
+      isGerente = !!roleRow;
+      const { data: reseller } = await admin
+        .from('resellers').select('id').eq('user_id', userId).maybeSingle();
+      if (!reseller && !isGerente) {
+        return new Response(JSON.stringify({ error: 'Revendedor não encontrado' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      resellerId = reseller?.id ?? null;
+    } else {
+      // service/cron: agir como gerente (todas as compras em aberto)
+      isGerente = true;
     }
-    const resellerId = reseller?.id ?? null;
 
     // Busca as compras a sincronizar (dono = reseller atual, status em aberto)
     let q = admin
@@ -169,7 +176,7 @@ Deno.serve(async (req) => {
     if (ids && ids.length > 0) {
       q = q.in('id', ids);
     } else {
-      q = q.in('status', Array.from(OPEN_LOCAL_STATUSES)).limit(50);
+      q = q.in('status', Array.from(OPEN_LOCAL_STATUSES)).limit(100);
     }
     // Nunca sincronizar compras já em fluxo de cancelamento — evita sobrescrever status após cancel-credit-recharge.
     q = q.eq('cancellation_status', 'none');
@@ -216,6 +223,12 @@ Deno.serve(async (req) => {
         const json = await r.json().catch(() => null);
         const providerData = json?.data ?? json;
         const mapped = mapProviderToLocal(providerData);
+
+        // Alerta de permissão incorreta — independente da mudança de status local
+        if (String(providerData?.statusVerificacaoConvite ?? '') === 'permissao_incorreta') {
+          await admin.rpc('notify_purchase_permission_alert', { _purchase_id: p.id });
+        }
+
         if (mapped.status && mapped.status !== p.status) {
           const { error: uErr } = await admin
             .from('reseller_credit_purchases')
