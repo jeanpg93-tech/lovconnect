@@ -1839,6 +1839,8 @@ export type Database = {
       }
       reseller_credit_purchases: {
         Row: {
+          alert_permissao_sent_at: string | null
+          alert_stuck_configurando_sent_at: string | null
           api_key_id: string | null
           balance_refunded_at: string | null
           cancellation_status: string
@@ -1862,6 +1864,7 @@ export type Database = {
           provider_response: Json | null
           reseller_id: string
           status: string
+          storefront_order_id: string | null
           telegram_last_state: string | null
           telegram_message_id: number | null
           tipo_entrega: string | null
@@ -1870,6 +1873,8 @@ export type Database = {
           workspace_name: string | null
         }
         Insert: {
+          alert_permissao_sent_at?: string | null
+          alert_stuck_configurando_sent_at?: string | null
           api_key_id?: string | null
           balance_refunded_at?: string | null
           cancellation_status?: string
@@ -1893,6 +1898,7 @@ export type Database = {
           provider_response?: Json | null
           reseller_id: string
           status?: string
+          storefront_order_id?: string | null
           telegram_last_state?: string | null
           telegram_message_id?: number | null
           tipo_entrega?: string | null
@@ -1901,6 +1907,8 @@ export type Database = {
           workspace_name?: string | null
         }
         Update: {
+          alert_permissao_sent_at?: string | null
+          alert_stuck_configurando_sent_at?: string | null
           api_key_id?: string | null
           balance_refunded_at?: string | null
           cancellation_status?: string
@@ -1924,6 +1932,7 @@ export type Database = {
           provider_response?: Json | null
           reseller_id?: string
           status?: string
+          storefront_order_id?: string | null
           telegram_last_state?: string | null
           telegram_message_id?: number | null
           tipo_entrega?: string | null
@@ -2714,27 +2723,42 @@ export type Database = {
         Row: {
           attempts: number
           created_at: string
+          edit_message_id: number | null
           id: string
+          is_edit: boolean
           last_error: string | null
+          message_id: number | null
           parse_mode: string | null
+          reference_id: string | null
+          reference_kind: string | null
           sent_at: string | null
           text: string
         }
         Insert: {
           attempts?: number
           created_at?: string
+          edit_message_id?: number | null
           id?: string
+          is_edit?: boolean
           last_error?: string | null
+          message_id?: number | null
           parse_mode?: string | null
+          reference_id?: string | null
+          reference_kind?: string | null
           sent_at?: string | null
           text: string
         }
         Update: {
           attempts?: number
           created_at?: string
+          edit_message_id?: number | null
           id?: string
+          is_edit?: boolean
           last_error?: string | null
+          message_id?: number | null
           parse_mode?: string | null
+          reference_id?: string | null
+          reference_kind?: string | null
           sent_at?: string | null
           text?: string
         }
@@ -2963,6 +2987,10 @@ export type Database = {
         Returns: undefined
       }
       approve_user: { Args: { _user_id: string }; Returns: undefined }
+      build_storefront_credit_sale_text: {
+        Args: { _order_id: string }
+        Returns: string
+      }
       credit_reseller_balance: {
         Args: {
           _amount_cents: number
@@ -3065,9 +3093,26 @@ export type Database = {
       is_reseller_active: { Args: { _user_id: string }; Returns: boolean }
       lookup_affiliate_code: { Args: { _code: string }; Returns: Json }
       mark_all_notifications_read: { Args: never; Returns: undefined }
+      notify_purchase_permission_alert: {
+        Args: { _purchase_id: string }
+        Returns: undefined
+      }
+      notify_purchase_stuck_alert: {
+        Args: { _hours: number; _purchase_id: string }
+        Returns: undefined
+      }
       reject_user: { Args: { _user_id: string }; Returns: undefined }
       reset_daily_test_keys: { Args: never; Returns: undefined }
+      scan_stuck_configurando_purchases: { Args: never; Returns: undefined }
       telegram_enqueue: { Args: { _text: string }; Returns: undefined }
+      telegram_enqueue_edit: {
+        Args: { _kind: string; _ref_id: string; _text: string }
+        Returns: undefined
+      }
+      telegram_enqueue_ref: {
+        Args: { _kind: string; _ref_id: string; _text: string }
+        Returns: undefined
+      }
       telegram_generate_pairing_code: { Args: never; Returns: string }
       telegram_unpair: { Args: never; Returns: undefined }
       try_release_pending_orders: {
