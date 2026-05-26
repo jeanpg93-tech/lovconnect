@@ -2771,6 +2771,8 @@ export type Database = {
           id: number
           last_low_gateway_alert_at: string | null
           last_low_provider_alert_at: string | null
+          last_low_provider_critical_alert_at: string | null
+          low_balance_critical_threshold_cents: number
           low_balance_threshold_cents: number
           notify_delivery_progress: boolean
           notify_low_balance: boolean
@@ -2790,6 +2792,8 @@ export type Database = {
           id?: number
           last_low_gateway_alert_at?: string | null
           last_low_provider_alert_at?: string | null
+          last_low_provider_critical_alert_at?: string | null
+          low_balance_critical_threshold_cents?: number
           low_balance_threshold_cents?: number
           notify_delivery_progress?: boolean
           notify_low_balance?: boolean
@@ -2809,6 +2813,8 @@ export type Database = {
           id?: number
           last_low_gateway_alert_at?: string | null
           last_low_provider_alert_at?: string | null
+          last_low_provider_critical_alert_at?: string | null
+          low_balance_critical_threshold_cents?: number
           low_balance_threshold_cents?: number
           notify_delivery_progress?: boolean
           notify_low_balance?: boolean
