@@ -67,6 +67,9 @@ function buildMessage(opts: { p: any; reseller: any }) {
   if (p.tipo_entrega) lines.push(`🚚 Entrega: ${p.tipo_entrega}`);
   if (p.email_conta_lovable) lines.push(`✉️ Conta: <code>${p.email_conta_lovable}</code>`);
   if (p.workspace_name) lines.push(`🗂️ Workspace: <b>${p.workspace_name}</b>`);
+  if (p.provider_pedido_id) {
+    lines.push(`🌐 Link do cliente: https://pedido.lvbcredits.com/${p.provider_pedido_id}`);
+  }
   lines.push("");
   lines.push(stage);
 

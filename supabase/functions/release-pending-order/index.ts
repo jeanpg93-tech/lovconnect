@@ -54,6 +54,7 @@ async function createProviderCreditOrder(admin: any, order: any, costCents: numb
       provider_response: providerData,
       customer_name: order.buyer_name ?? null,
       customer_whatsapp: order.buyer_whatsapp ?? null,
+      storefront_order_id: order.id,
     });
   } catch (e) { console.warn("reseller_credit_purchases insert (release) failed", e); }
   return { ok: true as const, providerPedidoId, providerData };
