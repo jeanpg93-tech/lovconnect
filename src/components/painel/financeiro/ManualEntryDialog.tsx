@@ -127,7 +127,9 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, onSubmi
         reference_kind,
         reference_meta,
         category: category.trim() || null,
-        entry_date: new Date(date).toISOString(),
+        // Salva como meia-noite LOCAL (não UTC) para alinhar com filtros do dashboard.
+        // new Date("YYYY-MM-DD") é interpretado como UTC; usar "YYYY-MM-DDT00:00:00" força local.
+        entry_date: new Date(`${date}T00:00:00`).toISOString(),
       });
       toast({ title: initial ? "Lançamento atualizado" : "Lançamento criado" });
       onOpenChange(false);
