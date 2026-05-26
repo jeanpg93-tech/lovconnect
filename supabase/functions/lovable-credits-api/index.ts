@@ -321,24 +321,36 @@ Deno.serve(async (req) => {
           });
         }
 
-        const { data: tierPrice } = await adminClient
-          .from("tier_credit_prices")
-          .select("price_cents,is_active")
-          .eq("tier_id", effectiveTierId)
-          .eq("plan_id", plan.id)
-          .eq("is_active", true)
-          .maybeSingle();
-        let costCents = Number(tierPrice?.price_cents ?? 0);
-        // Fallback: se Partner não tem preço, herda do Ouro
-        if (costCents <= 0 && isPartner && partnerFallbackTier && effectiveTierId !== partnerFallbackTier.id) {
-          const { data: fbPrice } = await adminClient
+        // Usa a RPC oficial que considera override individual do revendedor + tier + fallback Partner→Ouro,
+        // garantindo consistência com a tela de orçamento (UI) e com a vitrine pública.
+        let costCents = 0;
+        {
+          const { data: rpcCost } = await adminClient.rpc("get_credit_pack_cost", {
+            _reseller_id: resellerId,
+            _plan_id: plan.id,
+          });
+          costCents = Number(rpcCost ?? 0);
+        }
+        // Fallback defensivo: se a RPC não retornou nada, tenta a leitura direta do tier.
+        if (costCents <= 0) {
+          const { data: tierPrice } = await adminClient
             .from("tier_credit_prices")
-            .select("price_cents")
-            .eq("tier_id", partnerFallbackTier.id)
+            .select("price_cents,is_active")
+            .eq("tier_id", effectiveTierId)
             .eq("plan_id", plan.id)
             .eq("is_active", true)
             .maybeSingle();
-          costCents = Number(fbPrice?.price_cents ?? 0);
+          costCents = Number(tierPrice?.price_cents ?? 0);
+          if (costCents <= 0 && isPartner && partnerFallbackTier && effectiveTierId !== partnerFallbackTier.id) {
+            const { data: fbPrice } = await adminClient
+              .from("tier_credit_prices")
+              .select("price_cents")
+              .eq("tier_id", partnerFallbackTier.id)
+              .eq("plan_id", plan.id)
+              .eq("is_active", true)
+              .maybeSingle();
+            costCents = Number(fbPrice?.price_cents ?? 0);
+          }
         }
         if (costCents <= 0) {
           return new Response(JSON.stringify({ error: "Preço de custo não definido para este nível" }), {
