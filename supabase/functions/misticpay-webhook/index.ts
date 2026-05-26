@@ -370,7 +370,7 @@ Deno.serve(async (req) => {
       }
 
       if (credits_cost > 0) {
-        const { data: debitOk } = await admin.rpc("debit_reseller_balance", {
+        const { data: debitOk, error: debitErr } = await admin.rpc("debit_reseller_balance", {
           _reseller_id: storeOrder.reseller_id,
           _amount_cents: credits_cost,
           _kind: "order_debit",
@@ -378,7 +378,14 @@ Deno.serve(async (req) => {
           _reference_id: storeOrder.id,
         });
 
-        if (!debitOk) {
+        if (debitErr) {
+          // Erro técnico no RPC — NÃO trata como "sem saldo".
+          // Devolve 500 para o gateway tentar novamente o webhook.
+          console.error("[webhook] debit_reseller_balance RPC error (credits)", debitErr);
+          return json({ ok: false, error: "debit_rpc_failed", detail: debitErr.message }, 500);
+        }
+
+        if (debitOk === false) {
           // Sem saldo → aguarda recarga
           await admin.from("storefront_orders").update({
             status: "awaiting_balance",
@@ -594,7 +601,7 @@ Deno.serve(async (req) => {
     }
 
     if (cost_cents > 0) {
-      const { data: debitOk } = await admin.rpc("debit_reseller_balance", {
+      const { data: debitOk, error: debitErr } = await admin.rpc("debit_reseller_balance", {
         _reseller_id: storeOrder.reseller_id,
         _amount_cents: cost_cents,
         _kind: "order_debit",
@@ -602,7 +609,13 @@ Deno.serve(async (req) => {
         _reference_id: storeOrder.id,
       });
 
-      if (!debitOk) {
+      if (debitErr) {
+        // Erro técnico no RPC — NÃO trata como "sem saldo".
+        console.error("[webhook] debit_reseller_balance RPC error (license)", debitErr);
+        return json({ ok: false, error: "debit_rpc_failed", detail: debitErr.message }, 500);
+      }
+
+      if (debitOk === false) {
         // Sem saldo → coloca em espera, não chama provedor
         await admin.from("storefront_orders").update({
           status: "awaiting_balance",
