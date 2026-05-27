@@ -285,6 +285,7 @@ export type Database = {
           description: string | null
           id: string
           kind: string
+          promotion_id: string | null
           reference_id: string | null
           reseller_id: string
         }
@@ -294,6 +295,7 @@ export type Database = {
           description?: string | null
           id?: string
           kind: string
+          promotion_id?: string | null
           reference_id?: string | null
           reseller_id: string
         }
@@ -303,10 +305,18 @@ export type Database = {
           description?: string | null
           id?: string
           kind?: string
+          promotion_id?: string | null
           reference_id?: string | null
           reseller_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "balance_transactions_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "balance_transactions_reseller_id_fkey"
             columns: ["reseller_id"]
@@ -1058,6 +1068,8 @@ export type Database = {
           notes: string | null
           price_cents: number
           product_type: string | null
+          promotion_discount_cents: number
+          promotion_id: string | null
           provider_response: Json | null
           reseller_id: string
           status: string
@@ -1090,6 +1102,8 @@ export type Database = {
           notes?: string | null
           price_cents: number
           product_type?: string | null
+          promotion_discount_cents?: number
+          promotion_id?: string | null
           provider_response?: Json | null
           reseller_id: string
           status?: string
@@ -1122,6 +1136,8 @@ export type Database = {
           notes?: string | null
           price_cents?: number
           product_type?: string | null
+          promotion_discount_cents?: number
+          promotion_id?: string | null
           provider_response?: Json | null
           reseller_id?: string
           status?: string
@@ -1147,6 +1163,13 @@ export type Database = {
             columns: ["extension_id"]
             isOneToOne: false
             referencedRelation: "extensions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
             referencedColumns: ["id"]
           },
           {
@@ -1547,6 +1570,7 @@ export type Database = {
           paid_at: string | null
           payer_document: string | null
           payer_name: string | null
+          promotion_id: string | null
           provider: string
           provider_transaction_id: string | null
           qr_code_base64: string | null
@@ -1564,6 +1588,7 @@ export type Database = {
           paid_at?: string | null
           payer_document?: string | null
           payer_name?: string | null
+          promotion_id?: string | null
           provider?: string
           provider_transaction_id?: string | null
           qr_code_base64?: string | null
@@ -1581,6 +1606,7 @@ export type Database = {
           paid_at?: string | null
           payer_document?: string | null
           payer_name?: string | null
+          promotion_id?: string | null
           provider?: string
           provider_transaction_id?: string | null
           qr_code_base64?: string | null
@@ -1589,7 +1615,15 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "recharge_intents_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recharge_schedule: {
         Row: {
@@ -2006,6 +2040,8 @@ export type Database = {
           error_message: string | null
           id: string
           price_cents: number
+          promotion_discount_cents: number
+          promotion_id: string | null
           provider_pedido_id: string | null
           provider_response: Json | null
           reseller_id: string
@@ -2040,6 +2076,8 @@ export type Database = {
           error_message?: string | null
           id?: string
           price_cents: number
+          promotion_discount_cents?: number
+          promotion_id?: string | null
           provider_pedido_id?: string | null
           provider_response?: Json | null
           reseller_id: string
@@ -2074,6 +2112,8 @@ export type Database = {
           error_message?: string | null
           id?: string
           price_cents?: number
+          promotion_discount_cents?: number
+          promotion_id?: string | null
           provider_pedido_id?: string | null
           provider_response?: Json | null
           reseller_id?: string
@@ -2092,6 +2132,13 @@ export type Database = {
             columns: ["api_key_id"]
             isOneToOne: false
             referencedRelation: "reseller_api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_credit_purchases_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
             referencedColumns: ["id"]
           },
           {
@@ -2699,6 +2746,8 @@ export type Database = {
           paid_at: string | null
           price_cents: number
           product_type: string | null
+          promotion_discount_cents: number
+          promotion_id: string | null
           provider: string
           provider_transaction_id: string | null
           qr_code_base64: string | null
@@ -2738,6 +2787,8 @@ export type Database = {
           paid_at?: string | null
           price_cents: number
           product_type?: string | null
+          promotion_discount_cents?: number
+          promotion_id?: string | null
           provider?: string
           provider_transaction_id?: string | null
           qr_code_base64?: string | null
@@ -2777,6 +2828,8 @@ export type Database = {
           paid_at?: string | null
           price_cents?: number
           product_type?: string | null
+          promotion_discount_cents?: number
+          promotion_id?: string | null
           provider?: string
           provider_transaction_id?: string | null
           qr_code_base64?: string | null
@@ -2786,7 +2839,15 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "storefront_orders_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       storefront_reports: {
         Row: {
@@ -3181,6 +3242,21 @@ export type Database = {
         Args: { _order_id: string }
         Returns: string
       }
+      compute_promotion_discount: {
+        Args: { _base_cents: number; _kind: string }
+        Returns: {
+          discount_cents: number
+          final_cents: number
+          promotion_id: string
+        }[]
+      }
+      compute_recharge_bonus: {
+        Args: { _amount_cents: number }
+        Returns: {
+          bonus_cents: number
+          promotion_id: string
+        }[]
+      }
       credit_reseller_balance: {
         Args: {
           _amount_cents: number
@@ -3191,11 +3267,33 @@ export type Database = {
         }
         Returns: undefined
       }
+      credit_reseller_balance_promo: {
+        Args: {
+          _amount_cents: number
+          _description: string
+          _kind: string
+          _promotion_id: string
+          _reference_id: string
+          _reseller_id: string
+        }
+        Returns: undefined
+      }
       debit_reseller_balance: {
         Args: {
           _amount_cents: number
           _description: string
           _kind: string
+          _reference_id: string
+          _reseller_id: string
+        }
+        Returns: boolean
+      }
+      debit_reseller_balance_promo: {
+        Args: {
+          _amount_cents: number
+          _description: string
+          _kind: string
+          _promotion_id: string
           _reference_id: string
           _reseller_id: string
         }
