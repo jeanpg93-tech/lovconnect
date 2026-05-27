@@ -61,8 +61,11 @@ export default function MethodPriceTable({ method }: { method: Method }) {
         .eq("user_id", user.id)
         .maybeSingle();
       setResellerId(r?.id ?? null);
-      const [{ data: setting }, { data: tierData }, ovRes, ovCostRes, tiersAllRes] = await Promise.all([
-        supabase.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
+      const [tlpRes, { data: tierData }, ovRes, tiersAllRes] = await Promise.all([
+        supabase
+          .from("tier_license_prices")
+          .select("tier_id,duration_code,price_cents,is_active")
+          .eq("is_active", true),
         r ? supabase.rpc("get_reseller_tier", { _reseller_id: r.id }) : Promise.resolve({ data: null }),
         r
           ? supabase
@@ -71,21 +74,21 @@ export default function MethodPriceTable({ method }: { method: Method }) {
               .eq("reseller_id", r.id)
               .eq("method", method)
           : Promise.resolve({ data: [] } as any),
-        r
-          ? supabase
-              .from("reseller_license_cost_overrides")
-              .select("pack_id, price_cents, is_active")
-              .eq("reseller_id", r.id)
-              .eq("is_active", true)
-          : Promise.resolve({ data: [] } as any),
         supabase
           .from("reseller_tiers")
           .select("id,name,slug,is_hidden,min_spent_cents,sort_order")
           .eq("is_active", true)
           .order("sort_order"),
       ]);
-      const value = (setting?.value ?? { flow: {}, lovax: {} }) as PriceMap;
-      setPrices({ flow: value.flow ?? {}, lovax: value.lovax ?? {} });
+      // Constrói price map a partir da tabela única tier_license_prices (custo único Flow/Lovax)
+      const tlpRows = ((tlpRes as any)?.data ?? []) as { tier_id: string; duration_code: string; price_cents: number }[];
+      const unifiedTierPack: Record<string, Record<string, number>> = {};
+      tlpRows.forEach((row) => {
+        if (!unifiedTierPack[row.duration_code]) unifiedTierPack[row.duration_code] = {};
+        unifiedTierPack[row.duration_code][row.tier_id] = (Number(row.price_cents) || 0) / 100;
+      });
+      const value: PriceMap = { flow: unifiedTierPack as any, lovax: unifiedTierPack as any };
+      setPrices(value);
       const t = Array.isArray(tierData) ? tierData[0] : tierData;
       setTier(t);
       const rows = ((ovRes as any)?.data ?? []) as { pack_id: string; price_cents: number }[];
@@ -94,12 +97,7 @@ export default function MethodPriceTable({ method }: { method: Method }) {
         ovMap[row.pack_id as PackId] = row.price_cents / 100;
       });
       setOverrides(ovMap);
-      const costRows = ((ovCostRes as any)?.data ?? []) as { pack_id: string; price_cents: number }[];
-      const costMap: Partial<Record<PackId, number>> = {};
-      costRows.forEach((row) => {
-        costMap[row.pack_id as PackId] = row.price_cents / 100;
-      });
-      setCostOverrides(costMap);
+      setCostOverrides({});
       setAllTiers((tiersAllRes.data ?? []) as any[]);
       setLoading(false);
     })();
