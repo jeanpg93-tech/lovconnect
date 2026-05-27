@@ -51,11 +51,14 @@ export function RechargeSettingsCard() {
   const confirmModeChange = async () => {
     if (!pendingMode) return;
     setSwitching(true);
-    const next = { ...settings, active_mode: pendingMode };
+    // Override manual sempre pausa a agenda até o gerente reativar
+    const next = { ...settings, active_mode: pendingMode, schedule_paused: true };
     const { error } = await save(next);
     setSwitching(false);
     if (error) toast.error(error.message);
-    else toast.success(`Modo ${pendingMode === "automatico" ? "Automático" : "Manual"} ativado.`);
+    else toast.success(
+      `Modo ${pendingMode === "automatico" ? "Automático" : "Manual"} ativado. Agenda pausada.`,
+    );
     setPendingMode(null);
   };
 
