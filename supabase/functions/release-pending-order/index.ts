@@ -86,6 +86,62 @@ Deno.serve(async (req) => {
     // Créditos: já está pago, só marca completed e registra orders
     if (order.product_type === "credits" || order.license_type === "credits") {
       const credits_cost = Number(order.cost_cents ?? 0);
+      // Respeita o modo global: se a plataforma está em manual, NÃO chama o provedor —
+      // cria um pedido manual local e deixa a equipe processar.
+      let globalMode = "automatico";
+      try {
+        const { data: rs } = await admin
+          .from("app_settings").select("value").eq("key", "recargas_settings").maybeSingle();
+        if ((rs?.value as any)?.active_mode === "manual") globalMode = "manual";
+      } catch (_e) {}
+      if (globalMode === "manual") {
+        const localPedidoId = crypto.randomUUID();
+        const manualPayload = {
+          manual: true,
+          pedidoId: localPedidoId,
+          status: "manual_pendente",
+          creditos: order.credit_amount,
+          precoCentavos: credits_cost,
+          mode: "manual",
+          source: "storefront",
+        };
+        try {
+          await admin.from("reseller_credit_purchases").insert({
+            reseller_id: order.reseller_id,
+            credits: order.credit_amount,
+            price_cents: credits_cost,
+            cost_cents: credits_cost || null,
+            status: "manual_pendente",
+            tipo_entrega: "workspace_proprio",
+            provider_pedido_id: localPedidoId,
+            provider_response: manualPayload,
+            customer_name: order.buyer_name ?? null,
+            customer_whatsapp: order.buyer_whatsapp ?? null,
+            storefront_order_id: order.id,
+          });
+        } catch (e) { console.warn("manual credits insert failed", e); }
+        const inviteLink = `/recargas/${localPedidoId}`;
+        await admin.from("storefront_orders").update({
+          status: "completed",
+          invite_link: inviteLink,
+        }).eq("id", order.id);
+        try {
+          await admin.from("orders").insert({
+            reseller_id: order.reseller_id,
+            client_id: null,
+            customer_id: null,
+            extension_id: null,
+            license_type: "credits",
+            product_type: "credits",
+            credit_amount: order.credit_amount,
+            price_cents: credits_cost,
+            status: "pending",
+            is_test: false,
+            notes: `Venda da Loja • ${order.buyer_name} • ${order.credit_amount ?? 0} créditos • MODO MANUAL • ID Local: ${localPedidoId}`,
+          });
+        } catch (e) { console.warn("orders insert (manual release credits) failed", e); }
+        return json({ ok: true, kind: "credits_released_manual", invite_link: inviteLink });
+      }
       const prov = await createProviderCreditOrder(admin, order, credits_cost);
       if (!prov.ok) {
         if (credits_cost > 0) {
