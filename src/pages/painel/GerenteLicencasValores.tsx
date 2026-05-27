@@ -43,19 +43,22 @@ export default function GerenteLicencasValores() {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [prices, setPrices] = useState<Record<string, number>>({}); // tierId:packId -> cents
   const [edits, setEdits] = useState<Record<string, string>>({});
+  const [baseCosts, setBaseCosts] = useState<Record<string, number>>({}); // packId -> cents
+  const [baseEdits, setBaseEdits] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [{ data: tData }, { data: pData }] = await Promise.all([
+      const [{ data: tData }, { data: pData }, { data: bData }] = await Promise.all([
         supabase
           .from("reseller_tiers")
           .select("id,name,slug,color,sort_order,is_active")
           .eq("is_active", true)
           .order("sort_order"),
         supabase.from("tier_license_prices").select("tier_id,duration_code,price_cents"),
+        supabase.from("license_base_costs").select("duration_code,cost_cents"),
       ]);
       setTiers((tData ?? []) as Tier[]);
       const map: Record<string, number> = {};
@@ -63,7 +66,13 @@ export default function GerenteLicencasValores() {
         map[`${r.tier_id}:${r.duration_code}`] = Number(r.price_cents) || 0;
       });
       setPrices(map);
+      const bmap: Record<string, number> = {};
+      (bData ?? []).forEach((r: any) => {
+        bmap[r.duration_code] = Number(r.cost_cents) || 0;
+      });
+      setBaseCosts(bmap);
       setEdits({});
+      setBaseEdits({});
     } catch (e: any) {
       toast.error("Erro ao carregar preços", { description: e.message });
     } finally {
@@ -80,7 +89,10 @@ export default function GerenteLicencasValores() {
     return edits[k] ?? formatInput(prices[k] ?? 0);
   };
 
-  const hasChanges = useMemo(() => Object.keys(edits).length > 0, [edits]);
+  const hasChanges = useMemo(
+    () => Object.keys(edits).length > 0 || Object.keys(baseEdits).length > 0,
+    [edits, baseEdits],
+  );
 
   const saveAll = async () => {
     setSaving(true);
@@ -99,6 +111,17 @@ export default function GerenteLicencasValores() {
         const { error } = await supabase
           .from("tier_license_prices")
           .upsert(upserts, { onConflict: "tier_id,duration_code" });
+        if (error) throw error;
+      }
+      const baseUpserts = Object.entries(baseEdits).map(([duration_code, val]) => ({
+        duration_code,
+        cost_cents: parseInput(val),
+        updated_at: new Date().toISOString(),
+      }));
+      if (baseUpserts.length > 0) {
+        const { error } = await supabase
+          .from("license_base_costs")
+          .upsert(baseUpserts, { onConflict: "duration_code" });
         if (error) throw error;
       }
       toast.success("Preços de licença salvos");
