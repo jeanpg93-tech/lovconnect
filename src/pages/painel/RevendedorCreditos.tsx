@@ -31,7 +31,7 @@ const PLAN_META: Record<number, { tag: string; tip: string; tone: string }> = {
   50:   { tag: "Básico",    tip: "Boa margem com baixo risco. Ofereça em combo.",          tone: "text-cyan-400" },
   100:  { tag: "Popular",   tip: "Sweet spot: melhor conversão / margem.",                 tone: "text-amber-400" },
   500:  { tag: "Pro",       tip: "Mais vendido entre profissionais. Destaque na loja.",   tone: "text-emerald-400" },
-  1000: { tag: "Vitalício", tip: "Ticket alto. Use parcelamento e prova social.",         tone: "text-fuchsia-400" },
+  1000: { tag: "Premium",   tip: "Ticket alto. Use parcelamento e prova social.",         tone: "text-fuchsia-400" },
 };
 
 const formatBRL = (c: number) =>
