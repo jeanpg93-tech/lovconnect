@@ -362,6 +362,8 @@ Deno.serve(async (req) => {
 
       // Calcula custo do pacote para o revendedor
       let credits_cost = 0;
+      let credits_promo_id: string | null = null;
+      let credits_promo_discount = 0;
       try {
         const credits = Number(storeOrder.credit_amount ?? 0);
         if (credits > 0) {
@@ -376,7 +378,11 @@ Deno.serve(async (req) => {
               _reseller_id: storeOrder.reseller_id,
               _plan_id: plan.id,
             });
-            credits_cost = Number(c ?? 0);
+            const baseCost = Number(c ?? 0);
+            const promo = await computeDiscount(admin, baseCost, "credits");
+            credits_cost = promo.finalCents;
+            credits_promo_id = promo.promotionId;
+            credits_promo_discount = promo.discountCents;
           }
         }
       } catch (e) {
@@ -384,12 +390,13 @@ Deno.serve(async (req) => {
       }
 
       if (credits_cost > 0) {
-        const { data: debitOk, error: debitErr } = await admin.rpc("debit_reseller_balance", {
+        const { data: debitOk, error: debitErr } = await admin.rpc("debit_reseller_balance_promo", {
           _reseller_id: storeOrder.reseller_id,
           _amount_cents: credits_cost,
           _kind: "order_debit",
           _description: `Venda Loja: ${storeOrder.credit_amount ?? 0} créditos`,
           _reference_id: storeOrder.id,
+          _promotion_id: credits_promo_id,
         });
 
         if (debitErr) {
@@ -404,6 +411,8 @@ Deno.serve(async (req) => {
           await admin.from("storefront_orders").update({
             status: "awaiting_balance",
             cost_cents: credits_cost,
+            promotion_id: credits_promo_id,
+            promotion_discount_cents: credits_promo_discount,
           }).eq("id", storeOrder.id);
 
           await admin.from("pending_storefront_charges").insert({
@@ -449,6 +458,8 @@ Deno.serve(async (req) => {
         status: "completed",
         cost_cents: credits_cost,
         invite_link: inviteLink,
+        promotion_id: credits_promo_id,
+        promotion_discount_cents: credits_promo_discount,
       }).eq("id", storeOrder.id);
 
       try {
