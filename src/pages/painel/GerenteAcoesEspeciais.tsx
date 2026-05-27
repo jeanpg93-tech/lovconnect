@@ -345,12 +345,14 @@ export default function GerenteAcoesEspeciais() {
 
       {/* === DEFAULTS PERMANENTES === */}
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Tag className="h-4 w-4" /> Descontos padrão (sempre ativos)
-        </h2>
-        <p className="text-sm text-muted-foreground -mt-1">
-          Valores aplicados continuamente. Promoções programadas têm prioridade enquanto estiverem ativas.
-        </p>
+        <div>
+          <h2 className="text-base font-semibold flex items-center gap-2 text-muted-foreground">
+            <Tag className="h-4 w-4" /> Descontos padrão (sempre ativos)
+          </h2>
+          <p className="text-xs text-muted-foreground/80 mt-1">
+            Valores de base. Promoções programadas substituem enquanto estiverem ativas.
+          </p>
+        </div>
         <div className="grid gap-4 md:grid-cols-3">
           <DefaultCard
             icon={<Tag className="h-4 w-4" />}
