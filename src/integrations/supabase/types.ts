@@ -1337,6 +1337,92 @@ export type Database = {
           },
         ]
       }
+      promotion_logs: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          details: Json | null
+          event: string
+          id: string
+          promotion_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event: string
+          id?: string
+          promotion_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event?: string
+          id?: string
+          promotion_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_logs_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotions: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          created_by: string | null
+          credit_discount_pct: number | null
+          deactivated_at: string | null
+          description: string | null
+          ends_at: string | null
+          extension_discount_pct: number | null
+          id: string
+          name: string
+          recharge_bonus_pct: number | null
+          starts_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          credit_discount_pct?: number | null
+          deactivated_at?: string | null
+          description?: string | null
+          ends_at?: string | null
+          extension_discount_pct?: number | null
+          id?: string
+          name: string
+          recharge_bonus_pct?: number | null
+          starts_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          credit_discount_pct?: number | null
+          deactivated_at?: string | null
+          description?: string | null
+          ends_at?: string | null
+          extension_discount_pct?: number | null
+          id?: string
+          name?: string
+          recharge_bonus_pct?: number | null
+          starts_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       provider_credit_orders: {
         Row: {
           created_at: string
@@ -3137,6 +3223,31 @@ export type Database = {
       generate_reseller_referral_code: {
         Args: { _reseller_id: string }
         Returns: string
+      }
+      get_active_promotion: {
+        Args: never
+        Returns: {
+          activated_at: string | null
+          created_at: string
+          created_by: string | null
+          credit_discount_pct: number | null
+          deactivated_at: string | null
+          description: string | null
+          ends_at: string | null
+          extension_discount_pct: number | null
+          id: string
+          name: string
+          recharge_bonus_pct: number | null
+          starts_at: string | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "promotions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       get_credit_pack_cost: {
         Args: { _plan_id: string; _reseller_id: string }
