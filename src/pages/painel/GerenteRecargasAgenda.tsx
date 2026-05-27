@@ -105,6 +105,18 @@ export default function GerenteRecargasAgenda() {
     });
     setSaving(false);
     if (error) return toast.error(error.message);
+    // Notificação Telegram
+    try {
+      const whenStr = format(when, "dd/MM/yyyy HH:mm", { locale: ptBR });
+      await supabase.from("telegram_outbox").insert({
+        text:
+          `🗓️ <b>Nova troca agendada</b>\n` +
+          `Modo: <b>${MODE_LABEL[mode]}</b>\n` +
+          `Quando: <b>${whenStr}</b>` +
+          (note ? `\n📝 ${note}` : "") +
+          (mode === "maintenance" && maintMsg ? `\n💬 ${maintMsg}` : ""),
+      });
+    } catch { /* não bloqueia */ }
     toast.success("Entrada agendada.");
     setDate(undefined);
     setTime("");
@@ -115,8 +127,20 @@ export default function GerenteRecargasAgenda() {
   };
 
   const onDelete = async (id: string) => {
+    const target = entries.find((x) => x.id === id);
     const { error } = await supabase.from("recharge_schedule").delete().eq("id", id);
     if (error) return toast.error(error.message);
+    try {
+      if (target) {
+        const whenStr = format(new Date(target.scheduled_at), "dd/MM/yyyy HH:mm", { locale: ptBR });
+        await supabase.from("telegram_outbox").insert({
+          text:
+            `❌ <b>Troca agendada removida</b>\n` +
+            `Modo: <b>${MODE_LABEL[target.target_mode]}</b>\n` +
+            `Era para: <b>${whenStr}</b>`,
+        });
+      }
+    } catch { /* ignore */ }
     toast.success("Entrada removida.");
     void load();
   };
