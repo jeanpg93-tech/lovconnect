@@ -331,7 +331,7 @@ export default function GerenteAcoesEspeciais() {
           />
           <DefaultCard
             icon={<Zap className="h-4 w-4" />}
-            title="Desconto em Recargas"
+            title="Desconto em Recargas de Créditos"
             description="Aplicado na compra de pacotes de crédito."
             value={defaults.credit_discount_pct}
             max={100}
@@ -342,7 +342,7 @@ export default function GerenteAcoesEspeciais() {
           />
           <DefaultCard
             icon={<Gift className="h-4 w-4" />}
-            title="Bônus de Recarga"
+            title="Bônus de Recargas de Saldo no Painel"
             description="Crédito extra na carteira após confirmar recarga."
             value={defaults.recharge_bonus_pct}
             max={500}
@@ -440,8 +440,8 @@ function DefaultCard({ icon, title, description, value, max, saving, disabled, o
 function PromoValues({ p, compact }: { p: Promotion; compact?: boolean }) {
   const items: { icon: React.ReactNode; label: string; value: string }[] = [];
   if (p.extension_discount_pct != null) items.push({ icon: <Tag className="h-3.5 w-3.5" />, label: "Extensões", value: `-${p.extension_discount_pct}%` });
-  if (p.credit_discount_pct != null) items.push({ icon: <Zap className="h-3.5 w-3.5" />, label: "Recargas", value: `-${p.credit_discount_pct}%` });
-  if (p.recharge_bonus_pct != null) items.push({ icon: <Gift className="h-3.5 w-3.5" />, label: "Bônus", value: `+${p.recharge_bonus_pct}%` });
+  if (p.credit_discount_pct != null) items.push({ icon: <Zap className="h-3.5 w-3.5" />, label: "Recargas de Créditos", value: `-${p.credit_discount_pct}%` });
+  if (p.recharge_bonus_pct != null) items.push({ icon: <Gift className="h-3.5 w-3.5" />, label: "Bônus de Saldo", value: `+${p.recharge_bonus_pct}%` });
   if (items.length === 0) return null;
   return (
     <div className={`flex flex-wrap gap-2 ${compact ? "" : "gap-3"}`}>
@@ -579,8 +579,8 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
           <div className="space-y-3">
             <Label>O que esta promoção oferece?</Label>
             <PctRow enabled={useExt} setEnabled={setUseExt} label="Desconto em extensões" value={extPct} setValue={setExtPct} max={100} suffix="%" />
-            <PctRow enabled={useCred} setEnabled={setUseCred} label="Desconto em recargas" value={credPct} setValue={setCredPct} max={100} suffix="%" />
-            <PctRow enabled={useBonus} setEnabled={setUseBonus} label="Bônus de recarga" value={bonusPct} setValue={setBonusPct} max={500} suffix="%" />
+            <PctRow enabled={useCred} setEnabled={setUseCred} label="Desconto em recargas de créditos" value={credPct} setValue={setCredPct} max={100} suffix="%" />
+            <PctRow enabled={useBonus} setEnabled={setUseBonus} label="Bônus de recargas de saldo no painel" value={bonusPct} setValue={setBonusPct} max={500} suffix="%" />
           </div>
 
           <Separator />
