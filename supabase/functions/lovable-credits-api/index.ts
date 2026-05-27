@@ -255,7 +255,19 @@ Deno.serve(async (req) => {
         const body = await req.json().catch(() => ({}));
         const creditos = parseInt(body?.creditos ?? "0", 10);
         const tipoEntrega = (body?.tipo_entrega ?? "workspace_proprio").toString();
-        const orderMode = (body?.mode ?? "automatico").toString() === "manual" ? "manual" : "automatico";
+        let orderMode = (body?.mode ?? "automatico").toString() === "manual" ? "manual" : "automatico";
+        // Enforcement: a configuração global "active_mode" sobrescreve o que vier do cliente.
+        // Quando o gerente coloca a plataforma em modo manual, TODAS as entregas de créditos
+        // passam pela fila manual, independente do que o frontend mandar.
+        try {
+          const { data: rs } = await adminClient
+            .from("app_settings")
+            .select("value")
+            .eq("key", "recargas_settings")
+            .maybeSingle();
+          const globalMode = (rs?.value as any)?.active_mode;
+          if (globalMode === "manual") orderMode = "manual";
+        } catch (_e) { /* fallback to client mode if settings unreachable */ }
         const customerName = typeof body?.customer_name === "string"
           ? body.customer_name.trim().slice(0, 120)
           : "";
