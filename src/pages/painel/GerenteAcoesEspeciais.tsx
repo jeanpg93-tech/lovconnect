@@ -471,19 +471,55 @@ function DefaultCard({ icon, title, description, value, max, saving, disabled, o
   );
 }
 
-function PromoValues({ p, compact }: { p: Promotion; compact?: boolean }) {
+function PromoValues({ p, compact, big }: { p: Promotion; compact?: boolean; big?: boolean }) {
   const items: { icon: React.ReactNode; label: string; value: string }[] = [];
-  if (p.extension_discount_pct != null) items.push({ icon: <Tag className="h-3.5 w-3.5" />, label: "Extensões", value: `-${p.extension_discount_pct}%` });
-  if (p.credit_discount_pct != null) items.push({ icon: <Zap className="h-3.5 w-3.5" />, label: "Recargas de Créditos", value: `-${p.credit_discount_pct}%` });
-  if (p.recharge_bonus_pct != null) items.push({ icon: <Gift className="h-3.5 w-3.5" />, label: "Bônus de Saldo", value: `+${p.recharge_bonus_pct}%` });
+  const sz = big ? "h-4 w-4" : "h-3.5 w-3.5";
+  if (p.extension_discount_pct != null) items.push({ icon: <Tag className={sz} />, label: "Extensões", value: `-${p.extension_discount_pct}%` });
+  if (p.credit_discount_pct != null) items.push({ icon: <Zap className={sz} />, label: "Recargas de Créditos", value: `-${p.credit_discount_pct}%` });
+  if (p.recharge_bonus_pct != null) items.push({ icon: <Gift className={sz} />, label: "Bônus de Saldo", value: `+${p.recharge_bonus_pct}%` });
   if (items.length === 0) return null;
   return (
-    <div className={`flex flex-wrap gap-2 ${compact ? "" : "gap-3"}`}>
+    <div className="flex flex-wrap gap-2">
       {items.map((it) => (
-        <Badge key={it.label} variant="secondary" className="gap-1.5">
+        <Badge key={it.label} variant="secondary" className={cn("gap-1.5", big && "px-3 py-1.5 text-sm")}>
           {it.icon}{it.label} <span className="font-bold">{it.value}</span>
         </Badge>
       ))}
+    </div>
+  );
+}
+
+function Countdown({ endsAt }: { endsAt: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const end = new Date(endsAt).getTime();
+  const diff = Math.max(0, end - now);
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  if (diff <= 0) {
+    return <div className="text-xs text-muted-foreground">Encerrando…</div>;
+  }
+  const parts = [
+    { v: d, l: "d" },
+    { v: h, l: "h" },
+    { v: m, l: "min" },
+    { v: s, l: "s" },
+  ].filter((x, i) => i > 0 || x.v > 0);
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span className="text-muted-foreground">Termina em</span>
+      <div className="flex items-center gap-1 font-mono font-semibold tabular-nums">
+        {parts.map((p, i) => (
+          <span key={p.l} className="rounded bg-background/60 border px-1.5 py-0.5">
+            {String(p.v).padStart(2, "0")}<span className="text-[10px] text-muted-foreground ml-0.5">{p.l}</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
