@@ -102,41 +102,14 @@ Deno.serve(async (req) => {
     const tier = Array.isArray(tierData) ? tierData[0] : tierData;
     if (!tier?.id) return json({ error: "Nível não definido" }, 400);
 
-    // Cascata: override individual -> licencas.valores[tier] -> fallback Partner→Ouro -> método irmão
-    const [{ data: setting }, { data: ovRow }, { data: tiersAll }] = await Promise.all([
-      svc.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
-      svc.from("reseller_license_cost_overrides")
-        .select("price_cents,is_active")
-        .eq("reseller_id", reseller_id)
-        .eq("pack_id", pack_id)
-        .eq("is_active", true)
-        .maybeSingle(),
-      svc.from("reseller_tiers").select("id,slug,name,is_hidden").eq("is_active", true),
-    ]);
-    const valores = (setting?.value ?? {}) as Record<string, any>;
-    const otherMethod = method === "flow" ? "lovax" : "flow";
-    const ouro = (tiersAll ?? []).find((t: any) => (t.slug || "").toLowerCase() === "ouro")
-      ?? (tiersAll ?? []).find((t: any) => (t.name || "").toLowerCase().includes("ouro"));
-    let price_cents = 0;
-    if (ovRow?.price_cents && ovRow.price_cents > 0) {
-      price_cents = Number(ovRow.price_cents);
-    } else {
-      const b1 = Number(valores?.[method]?.[pack_id]?.[tier.id] ?? 0);
-      const b2 = b1 > 0 ? 0 : Number(valores?.[otherMethod]?.[pack_id]?.[tier.id] ?? 0);
-      let brl = b1 > 0 ? b1 : b2;
-      const isPartnerLike =
-        tier?.is_hidden ||
-        String(tier?.slug || "").toLowerCase() === "partner" ||
-        String(tier?.name || "").toLowerCase().includes("partner");
-      if (brl <= 0 && isPartnerLike && ouro?.id) {
-        const o1 = Number(valores?.[method]?.[pack_id]?.[ouro.id] ?? 0);
-        const o2 = o1 > 0 ? 0 : Number(valores?.[otherMethod]?.[pack_id]?.[ouro.id] ?? 0);
-        brl = o1 > 0 ? o1 : o2;
-      }
-      price_cents = Math.round(brl * 100);
-    }
+    // Fonte única de custo: tier_license_prices (com fallback Ouro embutido na RPC).
+    const { data: costData } = await svc.rpc("get_license_pack_cost", {
+      _reseller_id: reseller_id,
+      _duration_code: pack_id,
+    });
+    const price_cents = Number(costData ?? 0);
     if (!price_cents || price_cents <= 0) {
-      return json({ error: "Preço não definido para esse pacote no seu nível" }, 400);
+      return json({ error: "Preço não definido para esse pacote" }, 400);
     }
 
     if (client_id) {
