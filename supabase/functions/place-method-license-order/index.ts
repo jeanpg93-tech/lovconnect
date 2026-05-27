@@ -107,9 +107,27 @@ Deno.serve(async (req) => {
       _reseller_id: reseller_id,
       _duration_code: pack_id,
     });
-    const price_cents = Number(costData ?? 0);
+    let price_cents = Number(costData ?? 0);
     if (!price_cents || price_cents <= 0) {
       return json({ error: "Preço não definido para esse pacote" }, 400);
+    }
+
+    // Desconto promocional (extensão)
+    let promotion_id: string | null = null;
+    let promotion_discount_cents = 0;
+    try {
+      const { data: pd } = await svc.rpc("compute_promotion_discount", {
+        _base_cents: price_cents,
+        _kind: "extension",
+      });
+      const row: any = Array.isArray(pd) ? pd[0] : pd;
+      if (row) {
+        price_cents = Number(row.final_cents ?? price_cents);
+        promotion_id = row.promotion_id ?? null;
+        promotion_discount_cents = Number(row.discount_cents ?? 0);
+      }
+    } catch (e) {
+      console.warn("compute_promotion_discount failed", e);
     }
 
     if (client_id) {
@@ -120,12 +138,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: debitOk, error: debitErr } = await svc.rpc("debit_reseller_balance", {
+    const { data: debitOk, error: debitErr } = await svc.rpc("debit_reseller_balance_promo", {
       _reseller_id: reseller_id,
       _amount_cents: price_cents,
       _kind: "license_purchase",
       _description: `Licença ${method.toUpperCase()} ${pack_id}`,
       _reference_id: null,
+      _promotion_id: promotion_id,
     });
     if (debitErr) return json({ error: debitErr.message }, 500);
     if (debitOk === false) return json({ error: "Saldo insuficiente" }, 402);
@@ -144,6 +163,8 @@ Deno.serve(async (req) => {
         status: "pending",
         product_type: "extension",
         notes: JSON.stringify(notesObj),
+        promotion_id,
+        promotion_discount_cents,
       })
       .select("id")
       .single();
