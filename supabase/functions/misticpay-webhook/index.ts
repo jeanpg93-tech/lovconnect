@@ -506,6 +506,8 @@ Deno.serve(async (req) => {
     // 3) reseller_extension_prices (override por extensão) + desconto do nível + piso global
     // 4) pricing_plans.price_cents + desconto do nível + piso global
     let cost_cents = 0;
+    let lic_promo_id: string | null = null;
+    let lic_promo_discount = 0;
     {
       let tier_price_override = 0;
 
@@ -601,13 +603,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Aplica desconto promocional (extensão) sobre o custo final do revendedor
     if (cost_cents > 0) {
-      const { data: debitOk, error: debitErr } = await admin.rpc("debit_reseller_balance", {
+      const promo = await computeDiscount(admin, cost_cents, "extension");
+      cost_cents = promo.finalCents;
+      lic_promo_id = promo.promotionId;
+      lic_promo_discount = promo.discountCents;
+    }
+
+    if (cost_cents > 0) {
+      const { data: debitOk, error: debitErr } = await admin.rpc("debit_reseller_balance_promo", {
         _reseller_id: storeOrder.reseller_id,
         _amount_cents: cost_cents,
         _kind: "order_debit",
         _description: `Venda Loja: ${storeOrder.license_type}`,
         _reference_id: storeOrder.id,
+        _promotion_id: lic_promo_id,
       });
 
       if (debitErr) {
@@ -621,6 +632,8 @@ Deno.serve(async (req) => {
         await admin.from("storefront_orders").update({
           status: "awaiting_balance",
           cost_cents,
+          promotion_id: lic_promo_id,
+          promotion_discount_cents: lic_promo_discount,
         }).eq("id", storeOrder.id);
 
         await admin.from("pending_storefront_charges").insert({
