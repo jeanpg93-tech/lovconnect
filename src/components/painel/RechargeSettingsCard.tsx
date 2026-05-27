@@ -36,10 +36,17 @@ export function RechargeSettingsCard() {
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await save(draft);
+    // Mexer em manutenção manualmente também pausa a agenda
+    const maintenanceChanged =
+      draft.maintenance_enabled !== settings.maintenance_enabled ||
+      draft.maintenance_message !== settings.maintenance_message;
+    const next = maintenanceChanged ? { ...draft, schedule_paused: true } : draft;
+    const { error } = await save(next);
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Configurações atualizadas.");
+    toast.success(
+      maintenanceChanged ? "Configurações atualizadas. Agenda pausada." : "Configurações atualizadas.",
+    );
     setOpen(false);
   };
 
