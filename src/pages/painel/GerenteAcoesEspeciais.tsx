@@ -579,8 +579,8 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
           <div className="space-y-3">
             <Label>O que esta promoção oferece?</Label>
             <PctRow enabled={useExt} setEnabled={setUseExt} label="Desconto em extensões" value={extPct} setValue={setExtPct} max={100} suffix="%" />
-            <PctRow enabled={useCred} setEnabled={setUseCred} label="Desconto em recargas" value={credPct} setValue={setCredPct} max={100} suffix="%" />
-            <PctRow enabled={useBonus} setEnabled={setUseBonus} label="Bônus de recarga" value={bonusPct} setValue={setBonusPct} max={500} suffix="%" />
+            <PctRow enabled={useCred} setEnabled={setUseCred} label="Desconto em recargas de créditos" value={credPct} setValue={setCredPct} max={100} suffix="%" />
+            <PctRow enabled={useBonus} setEnabled={setUseBonus} label="Bônus de recargas de saldo no painel" value={bonusPct} setValue={setBonusPct} max={500} suffix="%" />
           </div>
 
           <Separator />
