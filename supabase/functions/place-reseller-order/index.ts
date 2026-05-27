@@ -233,6 +233,25 @@ Deno.serve(async (req) => {
       } // fim else (sem override de tier)
     }
 
+    // Desconto promocional sobre o custo final (extensão)
+    let promotion_id: string | null = null;
+    let promotion_discount_cents = 0;
+    if (price_cents > 0) {
+      try {
+        const { data: pd } = await svc.rpc("compute_promotion_discount", {
+          _base_cents: price_cents,
+          _kind: "extension",
+        });
+        const row: any = Array.isArray(pd) ? pd[0] : pd;
+        if (row) {
+          price_cents = Number(row.final_cents ?? price_cents);
+          promotion_id = row.promotion_id ?? null;
+          promotion_discount_cents = Number(row.discount_cents ?? 0);
+        }
+      } catch (e) {
+        console.warn("compute_promotion_discount failed", e);
+      }
+    }
 
     // upsert do contato do revendedor (apenas se whatsapp informado)
     let customer_id: string | null = null;
@@ -270,17 +289,20 @@ Deno.serve(async (req) => {
       price_cents,
       status: "pending",
       is_test,
+      promotion_id,
+      promotion_discount_cents,
     }).select().single();
     if (ordErr || !order) return json({ error: "Falha ao criar pedido" }, 500);
 
     // debita saldo (apenas se não for teste)
     if (!is_test) {
-      const { data: ok, error: debErr } = await svc.rpc("debit_reseller_balance", {
+      const { data: ok, error: debErr } = await svc.rpc("debit_reseller_balance_promo", {
         _reseller_id: reseller.id,
         _amount_cents: price_cents,
         _kind: "order_debit",
         _description: `Pedido ${license_type}`,
         _reference_id: order.id,
+        _promotion_id: promotion_id,
       });
       if (debErr) {
         await svc.from("orders").update({ status: "failed", error_message: debErr.message }).eq("id", order.id);
