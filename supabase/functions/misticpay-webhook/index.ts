@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { computeDiscount } from "../_shared/promotion.ts";
 
 const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -206,6 +207,19 @@ Deno.serve(async (req) => {
           console.error("credit error", credErr);
           return json({ ok: false, error: credErr.message }, 500);
         }
+        // Se a recarga foi parte de uma promoção ativa, marca a transação com o promotion_id
+        if (intent.promotion_id) {
+          try {
+            await admin
+              .from("balance_transactions")
+              .update({ promotion_id: intent.promotion_id })
+              .eq("reference_id", intent.id)
+              .eq("kind", "recharge")
+              .is("promotion_id", null);
+          } catch (e) {
+            console.warn("failed to tag recharge tx with promotion_id", e);
+          }
+        }
         // Soma o valor da recarga (sem bônus) ao total gasto p/ progresso de nível
         await admin.rpc("add_reseller_spent", {
           _reseller_id: intent.reseller_id,
@@ -348,6 +362,8 @@ Deno.serve(async (req) => {
 
       // Calcula custo do pacote para o revendedor
       let credits_cost = 0;
+      let credits_promo_id: string | null = null;
+      let credits_promo_discount = 0;
       try {
         const credits = Number(storeOrder.credit_amount ?? 0);
         if (credits > 0) {
@@ -362,7 +378,11 @@ Deno.serve(async (req) => {
               _reseller_id: storeOrder.reseller_id,
               _plan_id: plan.id,
             });
-            credits_cost = Number(c ?? 0);
+            const baseCost = Number(c ?? 0);
+            const promo = await computeDiscount(admin, baseCost, "credits");
+            credits_cost = promo.finalCents;
+            credits_promo_id = promo.promotionId;
+            credits_promo_discount = promo.discountCents;
           }
         }
       } catch (e) {
@@ -370,12 +390,13 @@ Deno.serve(async (req) => {
       }
 
       if (credits_cost > 0) {
-        const { data: debitOk, error: debitErr } = await admin.rpc("debit_reseller_balance", {
+        const { data: debitOk, error: debitErr } = await admin.rpc("debit_reseller_balance_promo", {
           _reseller_id: storeOrder.reseller_id,
           _amount_cents: credits_cost,
           _kind: "order_debit",
           _description: `Venda Loja: ${storeOrder.credit_amount ?? 0} créditos`,
           _reference_id: storeOrder.id,
+          _promotion_id: credits_promo_id,
         });
 
         if (debitErr) {
@@ -390,6 +411,8 @@ Deno.serve(async (req) => {
           await admin.from("storefront_orders").update({
             status: "awaiting_balance",
             cost_cents: credits_cost,
+            promotion_id: credits_promo_id,
+            promotion_discount_cents: credits_promo_discount,
           }).eq("id", storeOrder.id);
 
           await admin.from("pending_storefront_charges").insert({
@@ -435,6 +458,8 @@ Deno.serve(async (req) => {
         status: "completed",
         cost_cents: credits_cost,
         invite_link: inviteLink,
+        promotion_id: credits_promo_id,
+        promotion_discount_cents: credits_promo_discount,
       }).eq("id", storeOrder.id);
 
       try {
@@ -481,6 +506,8 @@ Deno.serve(async (req) => {
     // 3) reseller_extension_prices (override por extensão) + desconto do nível + piso global
     // 4) pricing_plans.price_cents + desconto do nível + piso global
     let cost_cents = 0;
+    let lic_promo_id: string | null = null;
+    let lic_promo_discount = 0;
     {
       let tier_price_override = 0;
 
@@ -576,13 +603,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Aplica desconto promocional (extensão) sobre o custo final do revendedor
     if (cost_cents > 0) {
-      const { data: debitOk, error: debitErr } = await admin.rpc("debit_reseller_balance", {
+      const promo = await computeDiscount(admin, cost_cents, "extension");
+      cost_cents = promo.finalCents;
+      lic_promo_id = promo.promotionId;
+      lic_promo_discount = promo.discountCents;
+    }
+
+    if (cost_cents > 0) {
+      const { data: debitOk, error: debitErr } = await admin.rpc("debit_reseller_balance_promo", {
         _reseller_id: storeOrder.reseller_id,
         _amount_cents: cost_cents,
         _kind: "order_debit",
         _description: `Venda Loja: ${storeOrder.license_type}`,
         _reference_id: storeOrder.id,
+        _promotion_id: lic_promo_id,
       });
 
       if (debitErr) {
@@ -596,6 +632,8 @@ Deno.serve(async (req) => {
         await admin.from("storefront_orders").update({
           status: "awaiting_balance",
           cost_cents,
+          promotion_id: lic_promo_id,
+          promotion_discount_cents: lic_promo_discount,
         }).eq("id", storeOrder.id);
 
         await admin.from("pending_storefront_charges").insert({
@@ -738,6 +776,9 @@ Deno.serve(async (req) => {
     await admin.from("storefront_orders").update({
       status: "completed",
       license_key,
+      cost_cents,
+      promotion_id: lic_promo_id,
+      promotion_discount_cents: lic_promo_discount,
     }).eq("id", storeOrder.id);
 
     // upsert customer for the reseller
@@ -776,6 +817,8 @@ Deno.serve(async (req) => {
         is_test: false,
         license_key,
         provider_response: providerData,
+        promotion_id: lic_promo_id,
+        promotion_discount_cents: lic_promo_discount,
         notes: `Venda da Loja • ${storeOrder.buyer_name} • Recebido R$ ${(Number(storeOrder.price_cents) / 100).toFixed(2)}`,
       });
     } catch (e) {
