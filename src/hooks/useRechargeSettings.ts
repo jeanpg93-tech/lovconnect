@@ -7,6 +7,7 @@ export type RechargeSettings = {
   active_mode: DeliveryMode;
   maintenance_enabled: boolean;
   maintenance_message: string;
+  schedule_paused: boolean;
 };
 
 export const DEFAULT_RECHARGE_SETTINGS: RechargeSettings = {
@@ -14,6 +15,7 @@ export const DEFAULT_RECHARGE_SETTINGS: RechargeSettings = {
   maintenance_enabled: false,
   maintenance_message:
     "Estamos em manutenção. Novas recargas estarão disponíveis em breve.",
+  schedule_paused: false,
 };
 
 const KEY = "recargas_settings";
@@ -34,6 +36,7 @@ function normalize(raw: any): RechargeSettings {
       typeof raw.maintenance_message === "string" && raw.maintenance_message
         ? raw.maintenance_message
         : DEFAULT_RECHARGE_SETTINGS.maintenance_message,
+    schedule_paused: !!raw.schedule_paused,
   };
 }
 

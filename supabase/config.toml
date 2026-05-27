@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.telegram-delivery-progress]
 verify_jwt = false
+
+[functions.apply-recharge-schedule]
+verify_jwt = false
