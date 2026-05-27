@@ -245,22 +245,6 @@ export default function GerenteValoresCreditos() {
                       </div>
                     </th>
                   ))}
-                  <th className="px-4 py-5 text-center font-bold min-w-[160px] border-l border-white/5 bg-emerald-500/5">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="flex items-center gap-1.5">
-                        <Crown className="h-3.5 w-3.5 text-emerald-400" />
-                        <span className="text-emerald-400 tracking-tighter">Partner</span>
-                        <Lock className="h-3 w-3 text-muted-foreground/60" />
-                      </div>
-                      <Link
-                        to="/painel/gerente/partners"
-                        className="text-[9px] text-muted-foreground/60 hover:text-primary normal-case tracking-normal font-normal inline-flex items-center gap-1"
-                        title="Alterar em /painel/gerente/partners"
-                      >
-                        ref: {partnerResellerName || "—"} <ExternalLink className="h-2.5 w-2.5" />
-                      </Link>
-                    </div>
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -348,18 +332,6 @@ export default function GerenteValoresCreditos() {
                         </td>
                       );
                     })}
-                    <td className="px-3 py-4 border-l border-white/5 bg-emerald-500/5 text-center">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-mono text-sm font-bold text-foreground/90">
-                          {partnerPrices[p.credits_amount] > 0
-                            ? fmt(partnerPrices[p.credits_amount])
-                            : "—"}
-                        </span>
-                        <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50 font-mono">
-                          somente leitura
-                        </span>
-                      </div>
-                    </td>
                   </tr>
                 ))}
               </tbody>
