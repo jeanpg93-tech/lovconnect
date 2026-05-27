@@ -710,7 +710,7 @@ function PctRow({ enabled, setEnabled, label, value, setValue, max, suffix }: {
   return (
     <div className="flex items-center gap-3">
       <Switch checked={enabled} onCheckedChange={setEnabled} />
-      <Label className="flex-1">{label}</Label>
+      <Label className="flex-1 text-sm leading-tight">{label}</Label>
       <div className="flex items-center gap-1">
         <Input
           type="number" min={0} max={max} value={value}
