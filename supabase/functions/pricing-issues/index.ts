@@ -58,43 +58,29 @@ function classify(cost: number, sale: number): { severity: Severity; reason: Rea
   return null;
 }
 
-function computeLicenseCost(
-  valores: any,
-  method: Method,
+// Custo de licença vem 100% da tabela tier_license_prices.
+// Mantida apenas como helper local para preencher o mapa abaixo.
+function lookupLicenseCost(
+  tlp: Map<string, number>,
+  tierId: string | null,
   pack: PackId,
-  tier: { id: string; slug?: string; name?: string; is_hidden?: boolean } | null,
   ouroId: string | null,
-  override: number | null,
 ): number {
-  if (override && override > 0) return override;
-  if (!tier?.id) return 0;
-  const other: Method = method === "flow" ? "lovax" : "flow";
-  const m1 = Number(valores?.[method]?.[pack]?.[tier.id] ?? 0) * 100;
-  if (m1 > 0) return Math.round(m1);
-  const m2 = Number(valores?.[other]?.[pack]?.[tier.id] ?? 0) * 100;
-  if (m2 > 0) return Math.round(m2);
-  const isPartner =
-    !!tier.is_hidden ||
-    (tier.slug || "").toLowerCase() === "partner" ||
-    (tier.name || "").toLowerCase().includes("partner");
-  if (isPartner && ouroId) {
-    const o1 = Number(valores?.[method]?.[pack]?.[ouroId] ?? 0) * 100;
-    if (o1 > 0) return Math.round(o1);
-    const o2 = Number(valores?.[other]?.[pack]?.[ouroId] ?? 0) * 100;
-    if (o2 > 0) return Math.round(o2);
+  if (tierId) {
+    const v = tlp.get(`${tierId}:${pack}`);
+    if (v && v > 0) return v;
   }
+  if (ouroId) return tlp.get(`${ouroId}:${pack}`) ?? 0;
   return 0;
 }
 
 async function resolveContext(svc: any, resellerId: string) {
-  const [tierRes, settingRes, licenseOverridesRes, salePricesRes, tiersRes, creditPlansRes, creditSalesRes] =
+  const [tierRes, tlpRes, salePricesRes, tiersRes, creditPlansRes, creditSalesRes] =
     await Promise.all([
       svc.rpc("get_reseller_tier", { _reseller_id: resellerId }),
-      svc.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
       svc
-        .from("reseller_license_cost_overrides")
-        .select("pack_id,price_cents,is_active")
-        .eq("reseller_id", resellerId)
+        .from("tier_license_prices")
+        .select("tier_id,duration_code,price_cents,is_active")
         .eq("is_active", true),
       svc
         .from("reseller_license_prices")
@@ -117,15 +103,13 @@ async function resolveContext(svc: any, resellerId: string) {
     ]);
 
   const tier = (Array.isArray(tierRes.data) ? tierRes.data[0] : tierRes.data) ?? null;
-  const valores = (settingRes.data?.value ?? {}) as any;
   const allTiers = (tiersRes.data ?? []) as any[];
   const ouro =
     allTiers.find((t) => (t.slug || "").toLowerCase() === "ouro") ??
     allTiers.find((t) => (t.name || "").toLowerCase().includes("ouro"));
-
-  const licenseCostOv: Partial<Record<PackId, number>> = {};
-  (licenseOverridesRes.data ?? []).forEach((r: any) => {
-    licenseCostOv[r.pack_id as PackId] = Number(r.price_cents) || 0;
+  const tlp = new Map<string, number>();
+  ((tlpRes as any).data ?? []).forEach((r: any) => {
+    tlp.set(`${r.tier_id}:${r.duration_code}`, Number(r.price_cents) || 0);
   });
 
   const licenseSale: Record<string, number> = {};
@@ -154,7 +138,7 @@ async function resolveContext(svc: any, resellerId: string) {
       creditSale[r.credits_amount] = Number(r.price_cents) || 0;
     });
 
-  return { tier, valores, ouroId: ouro?.id ?? null, licenseCostOv, licenseSale, creditPlans, creditCosts, creditSale };
+  return { tier, tlp, ouroId: ouro?.id ?? null, licenseSale, creditPlans, creditCosts, creditSale };
 }
 
 function buildIssues(ctx: Awaited<ReturnType<typeof resolveContext>>): {
@@ -170,14 +154,7 @@ function buildIssues(ctx: Awaited<ReturnType<typeof resolveContext>>): {
     for (const pack of PACKS_BY_METHOD[method]) {
       const saleKey = `${method}:${pack.id}`;
       const sale = ctx.licenseSale[saleKey] ?? 0;
-      const cost = computeLicenseCost(
-        ctx.valores,
-        method,
-        pack.id,
-        ctx.tier,
-        ctx.ouroId,
-        ctx.licenseCostOv[pack.id] ?? null,
-      );
+      const cost = lookupLicenseCost(ctx.tlp, ctx.tier?.id ?? null, pack.id, ctx.ouroId);
       // Reporta apenas se o revendedor tentou vender (tem preço cadastrado)
       // OU se o gerente definiu custo (revendedor poderia vender mas falta o sale)
       if (sale <= 0) continue; // sem preço cadastrado = não vende, ok

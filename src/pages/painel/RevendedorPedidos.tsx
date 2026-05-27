@@ -148,7 +148,7 @@ export default function RevendedorPedidos() {
     const sinceToday = todayStart.toISOString();
     const [
       { data: pl }, { data: cs }, { data: os }, { data: t }, { data: tiers }, { data: ts }, { count: testCount },
-      { data: licSetting }, { data: salePrices }, { data: deliverySetting }, { data: costOverrides },
+      { data: tlpRows }, { data: salePrices }, { data: deliverySetting },
     ] = await Promise.all([
       supabase.from("pricing_plans").select("license_type,label,price_cents,cost_cents,min_price_cents,is_active").eq("is_active", true),
       supabase.from("profiles").select("id,email,display_name").eq("reseller_id", r.id),
@@ -157,14 +157,12 @@ export default function RevendedorPedidos() {
       supabase.from("reseller_tiers").select("id,name,color,min_spent_cents,discount_percent,sort_order,is_active").eq("is_active", true).order("min_spent_cents", { ascending: true }),
       supabase.from("reseller_tier_state").select("total_spent_cents").eq("reseller_id", r.id).maybeSingle(),
       supabase.from("orders").select("id", { count: "exact", head: true }).eq("reseller_id", r.id).eq("is_test", true).gte("created_at", sinceToday),
-      // Preços definidos pelo gerente (modelo licencas.valores)
-      supabase.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
+      // Custos definidos pelo gerente — tabela única tier_license_prices (Flow=Lovax)
+      supabase.from("tier_license_prices").select("tier_id,duration_code,price_cents,is_active").eq("is_active", true),
       // Preço de venda do revendedor (sale price) por método/pack
       supabase.from("reseller_license_prices").select("method,pack_id,price_cents").eq("reseller_id", r.id),
       // Método de entrega habilitado pelo gerente
       supabase.from("app_settings").select("value").eq("key", "licencas.delivery.method").maybeSingle(),
-      // Override de custo individual (Partners/cliente-específico) definido pelo gerente
-      supabase.from("reseller_license_cost_overrides").select("pack_id,price_cents,is_active").eq("reseller_id", r.id).eq("is_active", true),
     ]);
     const sorted = ((pl ?? []) as Plan[])
       .filter(p => ORDER.includes(p.license_type))
@@ -177,9 +175,16 @@ export default function RevendedorPedidos() {
     setTierState((ts as any) ?? { total_spent_cents: 0 });
     setTestsLast24h(testCount ?? 0);
 
-    const valores = (licSetting?.value ?? {}) as Record<string, any>;
+    // Monta licValores a partir de tier_license_prices (mesmo formato esperado pelo restante do código):
+    //   licValores[method][pack][tier_id] = preço em reais
+    const unifiedPack: Record<string, Record<string, number>> = {};
+    ((tlpRows ?? []) as any[]).forEach((row) => {
+      if (!unifiedPack[row.duration_code]) unifiedPack[row.duration_code] = {};
+      unifiedPack[row.duration_code][row.tier_id] = (Number(row.price_cents) || 0) / 100;
+    });
+    const valores: Record<string, any> = { flow: unifiedPack, lovax: unifiedPack };
     setLicValores(valores as any);
-    const methods = (Object.keys(valores).filter((m) => m === "flow" || m === "lovax") as MethodId[]);
+    const methods: MethodId[] = ["flow", "lovax"];
     setAvailableMethods(methods);
 
     const enabledRaw = (deliverySetting?.value as any)?.method;
@@ -200,13 +205,7 @@ export default function RevendedorPedidos() {
     });
     setResellerSalePrices(saleMap);
 
-    const costMap: Record<string, number> = {};
-    (costOverrides ?? []).forEach((row: any) => {
-      // overrides são globais por pack — aplicam aos dois métodos
-      costMap[`flow|${row.pack_id}`] = row.price_cents;
-      costMap[`lovax|${row.pack_id}`] = row.price_cents;
-    });
-    setResellerCostOverrides(costMap);
+    setResellerCostOverrides({});
 
     setLoading(false);
   };

@@ -529,39 +529,23 @@ Deno.serve(async (req) => {
   // e preço de venda configurado (override em reseller_license_prices).
   if (req.method === "GET" && (action === "metodos" || action === "methods")) {
     const guard = await getDeliveryGuard(svc);
-    const [{ data: setting }, { data: tierData }, { data: sales }, { data: ovs }, { data: tiersAll }] = await Promise.all([
-      svc.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
+    const [{ data: tierData }, { data: sales }, { data: tlpRows }] = await Promise.all([
       svc.rpc("get_reseller_tier", { _reseller_id: reseller.id }),
       svc.from("reseller_license_prices").select("method,pack_id,price_cents").eq("reseller_id", reseller.id),
-      svc.from("reseller_license_cost_overrides")
-        .select("pack_id,price_cents,is_active")
-        .eq("reseller_id", reseller.id)
-        .eq("is_active", true),
-      svc.from("reseller_tiers").select("id,slug,name,is_hidden").eq("is_active", true),
+      svc.from("tier_license_prices").select("tier_id,duration_code,price_cents,is_active").eq("is_active", true),
     ]);
-    const valores = (setting?.value ?? {}) as Record<string, any>;
     const tier: any = Array.isArray(tierData) ? tierData[0] : tierData;
     const saleMap: Record<string, number> = {};
     (sales ?? []).forEach((r: any) => { saleMap[`${r.method}|${r.pack_id}`] = Number(r.price_cents); });
-    const ovMap: Record<string, number> = {};
-    (ovs ?? []).forEach((r: any) => { ovMap[r.pack_id] = Number(r.price_cents); });
-    const ouro = (tiersAll ?? []).find((t: any) => (t.slug || "").toLowerCase() === "ouro")
-      ?? (tiersAll ?? []).find((t: any) => (t.name || "").toLowerCase().includes("ouro"));
-
-    const costFor = (m: string, p: string): number => {
-      if (ovMap[p] && ovMap[p] > 0) return ovMap[p];
-      const other = m === "flow" ? "lovax" : "flow";
-      let brl = Number(valores?.[m]?.[p]?.[tier?.id] ?? 0);
-      if (brl <= 0) brl = Number(valores?.[other]?.[p]?.[tier?.id] ?? 0);
-      const isPartnerLike =
-        tier?.is_hidden ||
-        String(tier?.slug || "").toLowerCase() === "partner" ||
-        String(tier?.name || "").toLowerCase().includes("partner");
-      if (brl <= 0 && isPartnerLike && ouro?.id) {
-        brl = Number(valores?.[m]?.[p]?.[ouro.id] ?? 0);
-        if (brl <= 0) brl = Number(valores?.[other]?.[p]?.[ouro.id] ?? 0);
+    const OURO_ID = "4e670a7f-921c-4ca1-8792-8eac2b4905ef";
+    const tlpByTierPack: Record<string, number> = {};
+    (tlpRows ?? []).forEach((r: any) => { tlpByTierPack[`${r.tier_id}:${r.duration_code}`] = Number(r.price_cents); });
+    const costFor = (_m: string, p: string): number => {
+      if (tier?.id) {
+        const v = tlpByTierPack[`${tier.id}:${p}`];
+        if (v && v > 0) return v;
       }
-      return Math.round(brl * 100);
+      return tlpByTierPack[`${OURO_ID}:${p}`] ?? 0;
     };
 
     const result = UNIFIED_METHODS.filter((m) => m === guard.activeMethod && !guard.maintenance).map((m) => ({
@@ -633,37 +617,12 @@ Deno.serve(async (req) => {
       return json({ error: "Nível do revendedor não definido" }, 400);
     }
 
-    // Cascata custo: override individual -> tier -> Partner→Ouro -> método irmão
-    const [{ data: setting }, { data: ovRow }, { data: tiersAll }] = await Promise.all([
-      svc.from("app_settings").select("value").eq("key", "licencas.valores").maybeSingle(),
-      svc.from("reseller_license_cost_overrides")
-        .select("price_cents,is_active")
-        .eq("reseller_id", reseller.id)
-        .eq("pack_id", pacote)
-        .eq("is_active", true)
-        .maybeSingle(),
-      svc.from("reseller_tiers").select("id,slug,name,is_hidden").eq("is_active", true),
-    ]);
-    const valores = (setting?.value ?? {}) as Record<string, any>;
-    const otherMethod = metodo === "flow" ? "lovax" : "flow";
-    const ouro = (tiersAll ?? []).find((t: any) => (t.slug || "").toLowerCase() === "ouro")
-      ?? (tiersAll ?? []).find((t: any) => (t.name || "").toLowerCase().includes("ouro"));
-    let price_cents = 0;
-    if (ovRow?.price_cents && ovRow.price_cents > 0) {
-      price_cents = Number(ovRow.price_cents);
-    } else {
-      let brl = Number(valores?.[metodo]?.[pacote]?.[tier.id] ?? 0);
-      if (brl <= 0) brl = Number(valores?.[otherMethod]?.[pacote]?.[tier.id] ?? 0);
-      const isPartnerLike =
-        tier?.is_hidden ||
-        String(tier?.slug || "").toLowerCase() === "partner" ||
-        String(tier?.name || "").toLowerCase().includes("partner");
-      if (brl <= 0 && isPartnerLike && ouro?.id) {
-        brl = Number(valores?.[metodo]?.[pacote]?.[ouro.id] ?? 0);
-        if (brl <= 0) brl = Number(valores?.[otherMethod]?.[pacote]?.[ouro.id] ?? 0);
-      }
-      price_cents = Math.round(brl * 100);
-    }
+    // Fonte única de custo: RPC com fallback Ouro embutido.
+    const { data: costData } = await svc.rpc("get_license_pack_cost", {
+      _reseller_id: reseller.id,
+      _duration_code: pacote,
+    });
+    const price_cents = Number(costData ?? 0);
     if (!price_cents || price_cents <= 0) {
       await logUsage(400, { error_message: "Preço não configurado" });
       return json({ error: "Preço não configurado para esse pacote no seu nível" }, 400);
