@@ -1,61 +1,119 @@
-## Diagnóstico
+# Refatoração de preços de custo — RECARGAS
 
-A venda exibida (id local `f7562f2b...`, provider id `84cbe5ca...`) foi feita pelo revendedor `luxoapplez` (`dcf5995d-2dd4-4030-8ab1-483940e98c3a`) via **API de revendedor** (`reseller-credits-api`), não pela lojinha.
+Objetivo: eliminar todas as fontes paralelas de preço e deixar **uma única regra**: "pegue o tier do revendedor → leia o preço daquele tier para o pacote". Sem overrides, sem fallback, sem espelho.
 
-- Override Partner cadastrado em `reseller_credit_cost_overrides`: 20 créditos = **R$ 3,05**
-- Valor efetivamente debitado: **R$ 4,90** (espelho do tier Ouro)
-- Diferença a estornar: **R$ 1,85**
+---
 
-**Causa raiz:** a função `findPackagePrice` em `supabase/functions/reseller-credits-api/index.ts` (linha 133) lê o preço apenas de `tier_credit_prices` e ignora completamente `reseller_credit_cost_overrides` e o fallback Partner→Ouro. A lojinha (`storefront-create-order`) está correta porque usa a RPC `get_credit_pack_cost`, que aplica a precedência: override individual → tier → Partner→Ouro → preço base. A API do revendedor não usa essa RPC.
+## 1. Fonte única de verdade
 
-Resultado: qualquer Partner com preço individual cadastrado é cobrado pelo preço do tier (Ouro) ao usar a API, em vez do override.
+Tabela única: `tier_credit_prices` (já existe), agora também com linhas para o tier **Partner** (que já existe em `reseller_tiers` com `sort_order=999`).
 
-## Correção
+A página `/painel/gerente/recargas` aba **Valores** passa a editar diretamente essa tabela para os 4 tiers (Bronze, Prata, Ouro, **Partner**), exatamente do mesmo jeito que hoje edita Bronze/Prata/Ouro.
 
-### 1. Edge function `reseller-credits-api`
+---
 
-Reescrever `findPackagePrice` para usar a mesma RPC oficial:
+## 2. Migração de dados (seed do Partner)
 
-```ts
-const findPackagePrice = async (credits: number) => {
-  const { data: plan } = await svc
-    .from("credit_pricing_plans")
-    .select("id, credits_amount, label, is_active")
-    .eq("credits_amount", credits)
-    .eq("is_active", true)
-    .maybeSingle();
-  if (!plan) return null;
-  const { data: cost } = await svc.rpc("get_credit_pack_cost", {
-    _reseller_id: reseller.id,
-    _plan_id: plan.id,
-  });
-  const price_cents = Number(cost ?? 0);
-  if (price_cents <= 0) return null;
-  return { plan, price_cents };
-};
+Popular `tier_credit_prices` para `tier_id = Partner` usando os valores que estão hoje na coluna Partner (overrides do revendedor de referência "Jean", `dcf5995d-2dd4-4030-8ab1-483940e98c3a`):
+
+| Créditos | Preço Partner |
+|---:|---:|
+| 20 | R$ 3,05 |
+| 100 | R$ 9,35 |
+| 200 | R$ 17,75 |
+| 300 | R$ 26,15 |
+| 500 | R$ 37,70 |
+| 1000 | R$ 71,30 |
+| 2000 | R$ 131,15 |
+| 3000 | R$ 186,80 |
+| 5000 | R$ 272,90 |
+
+`reseller_credit_cost_overrides` **não é dropada** — fica como histórico, mas **ignorada** por todo o código novo.
+
+---
+
+## 3. Nova RPC `get_credit_pack_cost` (regra única)
+
+Reescrever a função para fazer **apenas**:
+
+```text
+tier = get_reseller_tier(reseller)
+return tier_credit_prices.price_cents WHERE tier_id=tier.id AND plan_id=plan AND is_active
 ```
 
-Isso conserta os três pontos de uso (`GET /orcamento`, POST pedido normal e o segundo fluxo POST nas linhas 308/366/753).
+Sem precedência, sem fallback Partner→Ouro, sem leitura de overrides. Se não houver linha ativa, retorna `0` → a venda é **bloqueada** (em vez de ser cobrada errado).
 
-### 2. Estorno do caso atual
+---
 
-Aplicar via migration/insert:
+## 4. Unificar leitura nas 7 edge functions
 
-- Creditar **+185** centavos no saldo do revendedor `dcf5995d-2dd4-4030-8ab1-483940e98c3a` chamando `credit_reseller_balance` com `kind = 'manual_credit'` e `description = "Estorno R$1,85 — cobrança a maior na compra 20 créditos (id f7562f2b...) por bug de preço Partner"` e `reference_id = f7562f2b-f1b5-4c41-b8b3-d6a8881e7ece`.
-- Atualizar a compra `f7562f2b-f1b5-4c41-b8b3-d6a8881e7ece`: `price_cents = 305` (refletindo o preço correto) — campo `cost_cents` fica como já está (190), pois é o custo upstream do provedor (não afeta o saldo).
+Hoje cada função lê de um lugar diferente. Todas passam a chamar `get_credit_pack_cost(reseller_id, plan_id)` — sem exceção, sem código próprio de preço:
 
-### 3. Auditoria (recomendado, mas pergunto antes)
+- `lovable-credits-api` (reseller_create_order)
+- `reseller-credits-api` (findPackagePrice — bug do luxoapplez)
+- `reseller-recharge-api` (POST /pedidos)
+- `storefront-create-order`
+- `misticpay-webhook` (cobrança no callback)
+- `pricing-issues` (validação)
+- `reseller-credit-costs` (listagem de custos)
 
-Posso fazer uma varredura em `reseller_credit_purchases` (status `sucesso`/`processando`/`aguardando`) para identificar outras compras de partners feitas via API após a data em que os overrides foram cadastrados (24/05/2026 ~10:54) onde `price_cents` ficou ≠ ao override vigente, e estornar todas. **Pergunto antes de aplicar.**
+---
 
-## Arquivos / mudanças
+## 5. Snapshot de custo na venda
 
-- `supabase/functions/reseller-credits-api/index.ts` — reescrever `findPackagePrice` para usar `get_credit_pack_cost`.
-- Insert de saldo + update da compra atual (caso `f7562f2b...`).
-- (Opcional) Varredura e estornos para outras compras afetadas.
+Toda venda nova grava `cost_cents` na linha de `reseller_credit_purchases` / `storefront_orders` **no momento da compra**. Se o preço da coluna Partner mudar amanhã, as vendas antigas continuam com o valor cobrado naquela hora (auditoria e estornos ficam corretos).
 
-## Validação
+---
 
-1. Após deploy, chamar `GET /reseller-credits-api?action=orcamento&creditos=20` autenticado como o partner → deve retornar `precoCentavos: 305`.
-2. Conferir saldo de `luxoapplez` ganhou +185 centavos e `balance_transactions` registra o estorno.
-3. Próxima compra do partner debita o valor correto.
+## 6. Bloqueio quando custo está ausente/zero
+
+Se `get_credit_pack_cost` retornar 0:
+- Edge functions retornam erro `PRICE_NOT_SET` (HTTP 400)
+- A loja pública mostra "Indisponível"
+- O banner `ManagerPricingIssuesBanner` (já existe) lista os pacotes/tiers sem preço para o gerente corrigir
+
+---
+
+## 7. UI
+
+**`/painel/gerente/recargas` → aba Valores**
+- Coluna **Partner** vira editável, igual Bronze/Prata/Ouro
+- Remover a leitura de espelho (overrides do Jean + fallback Ouro)
+- Remover o link "ref: Jean" e o `ExternalLink` que apontava para `/painel/gerente/partners`
+
+**`/painel/gerente/partners`**
+- Página inteira removida (rota, link no menu lateral, componente `GerentePartners.tsx`)
+- Mesma coisa com `RevendedorPrecos` se ele lê de overrides — passa a ler de `tier_credit_prices` do tier do próprio revendedor
+
+---
+
+## 8. Como atribuir um revendedor ao tier Partner
+
+Continua igual ao que já existe hoje: `reseller_tier_state.forced_tier_id = Partner.id` (já suportado por `get_reseller_tier`). Não muda nada de UX nessa parte.
+
+---
+
+## Ordem de execução (durante a manutenção 00h)
+
+1. Migration: seed `tier_credit_prices` do Partner com os 9 valores acima
+2. Migration: reescrever `get_credit_pack_cost` (regra única)
+3. Migration: adicionar coluna `cost_cents` em `reseller_credit_purchases` / `storefront_orders` se faltar, e gravar no INSERT
+4. Atualizar as 7 edge functions para chamar a RPC
+5. Atualizar `GerenteValoresCreditos.tsx` (coluna Partner editável)
+6. Remover `/painel/gerente/partners` (rota + sidebar + arquivo + `PartnerPriceHistoryDialog` se órfão)
+7. Ajustar `RevendedorPrecos` para ler de `tier_credit_prices`
+8. Testes manuais: 1 venda como Bronze, 1 como Partner, via storefront e via API → conferir cobrança igual ao mostrado
+
+---
+
+## Fora deste plano (próxima etapa)
+
+Licenças (MétodoFlow / MétodoLovax) — mesma lógica, mas só depois que recargas estiver 100% validado, conforme você pediu.
+
+---
+
+## Confirmação antes de executar
+
+- Posso considerar os 9 valores acima (do Jean) como definitivos para a coluna Partner?
+- Posso remover por completo a página `/painel/gerente/partners` (não vai mais existir esse caminho)?
+- Confirma que durante a manutenção a entrega manual está ativa, então posso fazer essas migrations sem afetar venda em andamento?
