@@ -776,6 +776,9 @@ Deno.serve(async (req) => {
     await admin.from("storefront_orders").update({
       status: "completed",
       license_key,
+      cost_cents,
+      promotion_id: lic_promo_id,
+      promotion_discount_cents: lic_promo_discount,
     }).eq("id", storeOrder.id);
 
     // upsert customer for the reseller
@@ -814,6 +817,8 @@ Deno.serve(async (req) => {
         is_test: false,
         license_key,
         provider_response: providerData,
+        promotion_id: lic_promo_id,
+        promotion_discount_cents: lic_promo_discount,
         notes: `Venda da Loja • ${storeOrder.buyer_name} • Recebido R$ ${(Number(storeOrder.price_cents) / 100).toFixed(2)}`,
       });
     } catch (e) {
