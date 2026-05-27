@@ -183,16 +183,30 @@ export default function GerenteAcoesEspeciais() {
     else { toast.success("Promoção removida"); fetchPromotions(); }
   }
 
+  function duplicatePromo(p: Promotion) {
+    setEditing({
+      ...p,
+      id: "" as any,
+      name: `${p.name} (cópia)`,
+      status: "scheduled",
+      activated_at: null,
+      deactivated_at: null,
+      starts_at: null,
+      ends_at: null,
+    });
+    setCreateOpen(true);
+  }
+
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Promoções</h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-1">
             Promoções programadas e descontos padrão para todo o sistema.
           </p>
         </div>
-        <Button onClick={() => { setEditing(null); setCreateOpen(true); }} className="gap-2">
+        <Button onClick={() => { setEditing(null); setCreateOpen(true); }} className="gap-2 w-full sm:w-auto shrink-0">
           <Plus className="h-4 w-4" /> Nova promoção
         </Button>
       </div>
@@ -205,13 +219,19 @@ export default function GerenteAcoesEspeciais() {
         {loadingPromos ? (
           <Card><CardContent className="py-8 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></CardContent></Card>
         ) : activePromo ? (
-          <Card className="border-primary/50 bg-primary/5">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
+          <Card className="border-primary/50 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent shadow-md">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle className="flex items-center gap-2 text-lg break-words">
                     {activePromo.name}
-                    <Badge>Ativa</Badge>
+                    <Badge className="gap-1.5">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
+                      </span>
+                      Ao vivo
+                    </Badge>
                   </CardTitle>
                   {activePromo.description && (
                     <CardDescription className="mt-1">{activePromo.description}</CardDescription>
@@ -219,7 +239,7 @@ export default function GerenteAcoesEspeciais() {
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" className="gap-1.5">
+                    <Button variant="destructive" size="sm" className="gap-1.5 w-full sm:w-auto shrink-0">
                       <Square className="h-3.5 w-3.5" /> Desativar agora
                     </Button>
                   </AlertDialogTrigger>
@@ -239,8 +259,9 @@ export default function GerenteAcoesEspeciais() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <PromoValues p={activePromo} />
-              <div className="text-sm text-muted-foreground grid sm:grid-cols-2 gap-2">
+              <PromoValues p={activePromo} big />
+              {activePromo.ends_at && <Countdown endsAt={activePromo.ends_at} />}
+              <div className="text-xs text-muted-foreground grid sm:grid-cols-2 gap-1.5">
                 <div><span className="font-medium text-foreground">Início:</span> {fmtBR(activePromo.starts_at ?? activePromo.activated_at)}</div>
                 <div><span className="font-medium text-foreground">Fim:</span> {activePromo.ends_at ? fmtBR(activePromo.ends_at) : "sem data fim"}</div>
               </div>
@@ -248,8 +269,12 @@ export default function GerenteAcoesEspeciais() {
           </Card>
         ) : (
           <Card>
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Nenhuma promoção ativa no momento.
+            <CardContent className="py-10 text-center space-y-2">
+              <Sparkles className="h-8 w-8 mx-auto text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">Nenhuma promoção ativa no momento.</p>
+              <Button variant="link" size="sm" onClick={() => { setEditing(null); setCreateOpen(true); }}>
+                Criar uma agora
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -258,7 +283,7 @@ export default function GerenteAcoesEspeciais() {
       {/* === AGENDADAS === */}
       <section className="space-y-3">
         <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Calendar className="h-4 w-4" /> Promoções agendadas
+          <CalendarIcon className="h-4 w-4" /> Promoções agendadas
         </h2>
         {scheduledPromos.length === 0 ? (
           <Card><CardContent className="py-6 text-center text-sm text-muted-foreground">Nenhuma promoção agendada.</CardContent></Card>
@@ -266,10 +291,10 @@ export default function GerenteAcoesEspeciais() {
           <div className="grid gap-3 md:grid-cols-2">
             {scheduledPromos.map((p) => (
               <Card key={p.id}>
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <CardTitle className="text-base flex items-center gap-2">
+                    <div className="min-w-0">
+                      <CardTitle className="text-base flex items-center gap-2 flex-wrap">
                         {p.name}
                         <Badge variant={STATUS_VARIANT[p.status]}>{STATUS_LABEL[p.status]}</Badge>
                       </CardTitle>
@@ -289,6 +314,9 @@ export default function GerenteAcoesEspeciais() {
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => { setEditing(p); setCreateOpen(true); }} className="gap-1.5">
                       <Pencil className="h-3.5 w-3.5" /> Editar
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => duplicatePromo(p)} className="gap-1.5">
+                      <Copy className="h-3.5 w-3.5" /> Duplicar
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
