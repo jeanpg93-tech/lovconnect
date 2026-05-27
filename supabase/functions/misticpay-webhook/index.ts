@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { computeDiscount } from "../_shared/promotion.ts";
 
 const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -205,6 +206,19 @@ Deno.serve(async (req) => {
         if (credErr) {
           console.error("credit error", credErr);
           return json({ ok: false, error: credErr.message }, 500);
+        }
+        // Se a recarga foi parte de uma promoção ativa, marca a transação com o promotion_id
+        if (intent.promotion_id) {
+          try {
+            await admin
+              .from("balance_transactions")
+              .update({ promotion_id: intent.promotion_id })
+              .eq("reference_id", intent.id)
+              .eq("kind", "recharge")
+              .is("promotion_id", null);
+          } catch (e) {
+            console.warn("failed to tag recharge tx with promotion_id", e);
+          }
         }
         // Soma o valor da recarga (sem bônus) ao total gasto p/ progresso de nível
         await admin.rpc("add_reseller_spent", {
