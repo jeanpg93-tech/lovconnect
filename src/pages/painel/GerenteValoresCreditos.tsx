@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, RefreshCcw, Coins, Crown, Save, TrendingUp, Lock, ExternalLink } from "lucide-react";
+import { Loader2, RefreshCcw, Coins, Crown, Save, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
@@ -55,11 +54,6 @@ export default function GerenteValoresCreditos() {
   const [baseEdits, setBaseEdits] = useState<Record<string, string>>({}); // plan.id -> input
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  // Preços Partner (espelho — referência: Jean). Read-only.
-  const [partnerPrices, setPartnerPrices] = useState<Record<number, number>>({}); // credits_amount -> cents
-  const [partnerResellerName, setPartnerResellerName] = useState<string>("");
-
-  const PARTNER_REF_RESELLER_ID = "68fddcfb-5e1f-492c-be75-9a8a3d2a63fa"; // Jean
 
   const loadAll = async () => {
     setLoading(true);
@@ -77,7 +71,8 @@ export default function GerenteValoresCreditos() {
 
       const planList = (pData ?? []) as Plan[];
       setPlans(planList);
-      setTiers(((tData ?? []) as Tier[]).filter((t) => t.slug !== "partner"));
+      // Mostra todos os níveis ativos (Bronze, Prata, Ouro, Partner) como colunas editáveis.
+      setTiers((tData ?? []) as Tier[]);
 
       const map: Record<string, number> = {};
       (tpData ?? []).forEach((tp: any) => {
@@ -85,51 +80,6 @@ export default function GerenteValoresCreditos() {
       });
       setTierPrices(map);
       setTierEdits({});
-
-      // ===== Preços Partner (espelho do Jean) =====
-      // Regra: override do revendedor > tier_credit_prices do Ouro (fallback usado em /painel/gerente/partners)
-      try {
-        const ouroTier = ((tData ?? []) as Tier[]).find(
-          (x: any) => x.slug === "ouro" || (x.name || "").toLowerCase().includes("ouro"),
-        );
-        const [{ data: refReseller }, { data: ovs }, ouroTcpRes] = await Promise.all([
-          supabase
-            .from("resellers")
-            .select("display_name")
-            .eq("id", PARTNER_REF_RESELLER_ID)
-            .maybeSingle(),
-          supabase
-            .from("reseller_credit_cost_overrides")
-            .select("credits_amount,price_cents,is_active")
-            .eq("reseller_id", PARTNER_REF_RESELLER_ID)
-            .eq("is_active", true),
-          ouroTier
-            ? supabase
-                .from("tier_credit_prices")
-                .select("price_cents,is_active,credit_pricing_plans!inner(credits_amount)")
-                .eq("tier_id", ouroTier.id)
-                .eq("is_active", true)
-            : Promise.resolve({ data: [] as any[] }),
-        ]);
-        setPartnerResellerName((refReseller as any)?.display_name || "Jean");
-        const ouroMap: Record<number, number> = {};
-        ((ouroTcpRes as any).data ?? []).forEach((row: any) => {
-          const amount = row.credit_pricing_plans?.credits_amount;
-          if (amount != null && row.price_cents > 0) ouroMap[amount] = row.price_cents;
-        });
-        const ovMap: Record<number, number> = {};
-        (ovs ?? []).forEach((o: any) => {
-          if (o.price_cents > 0) ovMap[o.credits_amount] = o.price_cents;
-        });
-        const partnerMap: Record<number, number> = {};
-        planList.forEach((p) => {
-          partnerMap[p.credits_amount] =
-            ovMap[p.credits_amount] ?? ouroMap[p.credits_amount] ?? 0;
-        });
-        setPartnerPrices(partnerMap);
-      } catch (e) {
-        console.warn("partner mirror err", e);
-      }
 
       // Fetch provider cost for each plan via /orcamento
       const costMap: Record<number, number> = {};
@@ -295,22 +245,6 @@ export default function GerenteValoresCreditos() {
                       </div>
                     </th>
                   ))}
-                  <th className="px-4 py-5 text-center font-bold min-w-[160px] border-l border-white/5 bg-emerald-500/5">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="flex items-center gap-1.5">
-                        <Crown className="h-3.5 w-3.5 text-emerald-400" />
-                        <span className="text-emerald-400 tracking-tighter">Partner</span>
-                        <Lock className="h-3 w-3 text-muted-foreground/60" />
-                      </div>
-                      <Link
-                        to="/painel/gerente/partners"
-                        className="text-[9px] text-muted-foreground/60 hover:text-primary normal-case tracking-normal font-normal inline-flex items-center gap-1"
-                        title="Alterar em /painel/gerente/partners"
-                      >
-                        ref: {partnerResellerName || "—"} <ExternalLink className="h-2.5 w-2.5" />
-                      </Link>
-                    </div>
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -398,18 +332,6 @@ export default function GerenteValoresCreditos() {
                         </td>
                       );
                     })}
-                    <td className="px-3 py-4 border-l border-white/5 bg-emerald-500/5 text-center">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-mono text-sm font-bold text-foreground/90">
-                          {partnerPrices[p.credits_amount] > 0
-                            ? fmt(partnerPrices[p.credits_amount])
-                            : "—"}
-                        </span>
-                        <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50 font-mono">
-                          somente leitura
-                        </span>
-                      </div>
-                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -175,58 +175,23 @@ Deno.serve(async (req) => {
         return errResp(400, "INVALID_CREDITS", "Quantidade inválida (10-5000, múltiplos de 10)");
       }
 
-      // 1) Busca preço definido para este revendedor ou seu nível
-      let precoCents = 0;
-      
-      // Tenta override individual primeiro
-      const { data: overRow } = await admin
-        .from("reseller_credit_prices")
-        .select("price_cents")
-        .eq("reseller_id", resellerId)
+      // Fonte única de preço: regra do nível do revendedor (RPC oficial).
+      const { data: planRow } = await admin
+        .from("credit_pricing_plans")
+        .select("id")
         .eq("credits_amount", creditos)
         .eq("is_active", true)
         .maybeSingle();
-      
-      if (overRow && overRow.price_cents > 0) {
-        precoCents = overRow.price_cents;
-      } else {
-        // Fallback para o preço do nível (tier)
-        const { data: tierRows } = await admin.rpc("get_reseller_tier", { _reseller_id: resellerId });
-        const tier = Array.isArray(tierRows) ? tierRows[0] : tierRows;
-        if (tier?.id) {
-          const { data: tierPrice } = await admin
-            .from("tier_credit_prices")
-            .select("price_cents")
-            .eq("tier_id", tier.id)
-            .eq("is_active", true)
-            .eq("plan_id", (await admin.from("credit_pricing_plans").select("id").eq("credits_amount", creditos).eq("is_active", true).maybeSingle()).data?.id)
-            .maybeSingle();
-          
-          if (tierPrice && tierPrice.price_cents > 0) {
-            precoCents = tierPrice.price_cents;
-          }
-        }
+      if (!planRow?.id) {
+        return errResp(400, "PRICE_NOT_SET", "Pacote de créditos não encontrado");
       }
-
-      // Se não achou preço específico, usa o global do plano com desconto do nível
+      const { data: rpcCost } = await admin.rpc("get_credit_pack_cost", {
+        _reseller_id: resellerId,
+        _plan_id: planRow.id,
+      });
+      const precoCents = Number(rpcCost ?? 0);
       if (precoCents <= 0) {
-        const { data: planRow } = await admin
-          .from("credit_pricing_plans")
-          .select("price_cents, min_price_cents")
-          .eq("credits_amount", creditos)
-          .eq("is_active", true)
-          .maybeSingle();
-        
-        if (!planRow || planRow.price_cents <= 0) {
-          return errResp(400, "PRICE_NOT_SET", "Preço não definido para esta quantidade de créditos");
-        }
-
-        const { data: tierRows } = await admin.rpc("get_reseller_tier", { _reseller_id: resellerId });
-        const tier = Array.isArray(tierRows) ? tierRows[0] : tierRows;
-        const discount_pct = Number(tier?.discount_percent ?? 0);
-        const min_price = Number(planRow.min_price_cents ?? 0);
-        
-        precoCents = Math.max(min_price, Math.round(planRow.price_cents * (1 - discount_pct / 100)));
+        return errResp(400, "PRICE_NOT_SET", "Preço não definido para o seu nível neste pacote");
       }
 
       // Pega preço atual no fornecedor (apenas para log/auditoria interna se necessário, mas o que vale é o precoCents acima)

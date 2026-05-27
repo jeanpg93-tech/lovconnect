@@ -69,23 +69,10 @@ Deno.serve(async (req) => {
     .sort((a, b) => a.min_spent_cents - b.min_spent_cents)
     .at(-1);
 
-  // Para CRÉDITOS: se o nível for "Partner", usa preços do nível "Ouro" como fallback
-  // (mesma regra usada na tela /painel/gerente/partners).
-  // Overrides individuais em reseller_credit_prices continuam tendo prioridade no front.
-  const isPartner = (currentTier?.name ?? "").toLowerCase().includes("partner");
-  const ouroTier =
-    allTiers.find((t) => t.name.toLowerCase() === "ouro") ??
-    allTiers.find((t) => t.name.toLowerCase().includes("ouro")) ??
-    allTiers.find((t) => t.name.toLowerCase().includes("black"));
-
-  let effectiveTierId: string | null;
-  if (isPartner && ouroTier) {
-    effectiveTierId = ouroTier.id;
-  } else if (currentTier?.is_hidden) {
-    effectiveTierId = equivalentVisibleTier?.id ?? visibleTiers[0]?.id ?? null;
-  } else {
-    effectiveTierId = currentTier?.id ?? equivalentVisibleTier?.id ?? visibleTiers[0]?.id ?? null;
-  }
+  // Fonte única: nível atual do revendedor lê direto de tier_credit_prices.
+  // Não há mais fallback Partner -> Ouro, nem overrides individuais.
+  const effectiveTierId: string | null =
+    currentTier?.id ?? equivalentVisibleTier?.id ?? visibleTiers[0]?.id ?? null;
 
   if (!effectiveTierId) return json({ costs: {} });
 
@@ -101,16 +88,6 @@ Deno.serve(async (req) => {
   (tierPrices ?? []).forEach((row: { plan_id: string; price_cents: number }) => {
     const credits = planById.get(row.plan_id);
     if (credits != null) costs[credits] = Number(row.price_cents ?? 0);
-  });
-
-  // Overrides individuais de CUSTO definidos pelo gerente (sobrepõem o tier/Ouro)
-  const { data: overrides } = await svc
-    .from("reseller_credit_cost_overrides")
-    .select("credits_amount,price_cents,is_active")
-    .eq("reseller_id", reseller.id)
-    .eq("is_active", true);
-  (overrides ?? []).forEach((row: { credits_amount: number; price_cents: number }) => {
-    if (row.price_cents > 0) costs[row.credits_amount] = Number(row.price_cents);
   });
 
   const effectiveTier = allTiers.find((tier) => tier.id === effectiveTierId) ?? null;

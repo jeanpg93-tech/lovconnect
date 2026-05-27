@@ -282,44 +282,6 @@ Deno.serve(async (req) => {
           });
         }
 
-        const { data: tier } = await adminClient.rpc("get_reseller_tier", { _reseller_id: resellerId });
-        const tierObj = Array.isArray(tier) ? tier[0] : tier;
-        const currentTierName = (tierObj?.name ?? "").toString();
-
-        const { data: tiers } = await adminClient
-          .from("reseller_tiers")
-          .select("id,name,is_hidden,min_spent_cents,sort_order")
-          .eq("is_active", true)
-          .order("sort_order", { ascending: true });
-        const { data: state } = await adminClient
-          .from("reseller_tier_state")
-          .select("total_spent_cents")
-          .eq("reseller_id", resellerId)
-          .maybeSingle();
-
-        const allTiers = (tiers ?? []) as any[];
-        const visibleTiers = allTiers.filter((t) => !t.is_hidden);
-        const totalSpent = Number(state?.total_spent_cents ?? 0);
-        const equivalentVisibleTier = [...visibleTiers]
-          .filter((t) => Number(t.min_spent_cents ?? 0) <= totalSpent)
-          .sort((a, b) => Number(a.min_spent_cents ?? 0) - Number(b.min_spent_cents ?? 0))
-          .at(-1);
-        const ouroTier = allTiers.find((t) => (t.name ?? "").toLowerCase().includes("ouro"));
-        const blackTier = allTiers.find((t) => (t.name ?? "").toLowerCase().includes("black"));
-        const partnerFallbackTier = ouroTier ?? blackTier;
-        const isPartner = currentTierName.toLowerCase().includes("partner");
-        const baseTierId = tierObj?.is_hidden
-          ? (equivalentVisibleTier?.id ?? visibleTiers[0]?.id ?? null)
-          : (tierObj?.id ?? equivalentVisibleTier?.id ?? visibleTiers[0]?.id ?? null);
-        let effectiveTierId = isPartner && partnerFallbackTier ? partnerFallbackTier.id : baseTierId;
-
-        if (!effectiveTierId) {
-          return new Response(JSON.stringify({ error: "Nível do revendedor não definido" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
         const { data: plan } = await adminClient
           .from("credit_pricing_plans")
           .select("id,credits_amount,label,is_active")
@@ -333,37 +295,12 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Usa a RPC oficial que considera override individual do revendedor + tier + fallback Partner→Ouro,
-        // garantindo consistência com a tela de orçamento (UI) e com a vitrine pública.
-        let costCents = 0;
-        {
-          const { data: rpcCost } = await adminClient.rpc("get_credit_pack_cost", {
-            _reseller_id: resellerId,
-            _plan_id: plan.id,
-          });
-          costCents = Number(rpcCost ?? 0);
-        }
-        // Fallback defensivo: se a RPC não retornou nada, tenta a leitura direta do tier.
-        if (costCents <= 0) {
-          const { data: tierPrice } = await adminClient
-            .from("tier_credit_prices")
-            .select("price_cents,is_active")
-            .eq("tier_id", effectiveTierId)
-            .eq("plan_id", plan.id)
-            .eq("is_active", true)
-            .maybeSingle();
-          costCents = Number(tierPrice?.price_cents ?? 0);
-          if (costCents <= 0 && isPartner && partnerFallbackTier && effectiveTierId !== partnerFallbackTier.id) {
-            const { data: fbPrice } = await adminClient
-              .from("tier_credit_prices")
-              .select("price_cents")
-              .eq("tier_id", partnerFallbackTier.id)
-              .eq("plan_id", plan.id)
-              .eq("is_active", true)
-              .maybeSingle();
-            costCents = Number(fbPrice?.price_cents ?? 0);
-          }
-        }
+        // Fonte única: nível do revendedor -> preço daquele nível (RPC oficial).
+        const { data: rpcCost } = await adminClient.rpc("get_credit_pack_cost", {
+          _reseller_id: resellerId,
+          _plan_id: plan.id,
+        });
+        const costCents = Number(rpcCost ?? 0);
         if (costCents <= 0) {
           return new Response(JSON.stringify({ error: "Preço de custo não definido para este nível" }), {
             status: 400,
