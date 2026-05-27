@@ -1505,6 +1505,45 @@ export type Database = {
         }
         Relationships: []
       }
+      recharge_schedule: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          executed_at: string | null
+          executed_result: string | null
+          id: string
+          maintenance_message: string | null
+          note: string | null
+          scheduled_at: string
+          target_mode: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          executed_at?: string | null
+          executed_result?: string | null
+          id?: string
+          maintenance_message?: string | null
+          note?: string | null
+          scheduled_at: string
+          target_mode: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          executed_at?: string | null
+          executed_result?: string | null
+          id?: string
+          maintenance_message?: string | null
+          note?: string | null
+          scheduled_at?: string
+          target_mode?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       refund_requests: {
         Row: {
           amount_cents: number
