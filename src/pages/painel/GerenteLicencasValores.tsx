@@ -171,6 +171,9 @@ export default function GerenteLicencasValores() {
               <thead>
                 <tr className="bg-muted/30 border-b border-border/60 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/70">
                   <th className="px-6 py-4 font-bold">Pacote</th>
+                  <th className="px-4 py-4 text-center font-bold min-w-[140px] border-l border-border/60">
+                    Preço Base
+                  </th>
                   {tiers.map((t) => (
                     <th
                       key={t.id}
@@ -200,6 +203,22 @@ export default function GerenteLicencasValores() {
                               {p.desc}
                             </span>
                           </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-4 border-l border-border/60">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-muted-foreground/50">
+                            R$
+                          </span>
+                          <Input
+                            inputMode="decimal"
+                            value={baseEdits[p.id] ?? formatInput(baseCosts[p.id] ?? 0)}
+                            onChange={(e) =>
+                              setBaseEdits((s) => ({ ...s, [p.id]: e.target.value }))
+                            }
+                            placeholder="0,00"
+                            className="pl-9 h-10 text-right font-mono text-sm bg-background/40 border-border/60"
+                          />
                         </div>
                       </td>
                       {tiers.map((t) => {
