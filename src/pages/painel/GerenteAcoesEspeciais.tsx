@@ -723,3 +723,58 @@ function PctRow({ enabled, setEnabled, label, value, setValue, max, suffix }: {
     </div>
   );
 }
+
+function DateTimeField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  // value is "YYYY-MM-DDTHH:mm" (local). Split into date + time.
+  const date = value ? new Date(value) : undefined;
+  const time = value ? value.slice(11, 16) : "12:00";
+
+  function setDate(d: Date | undefined) {
+    if (!d) return;
+    const [hh, mm] = (time || "12:00").split(":");
+    const next = new Date(d);
+    next.setHours(Number(hh) || 0, Number(mm) || 0, 0, 0);
+    const tz = next.getTimezoneOffset() * 60000;
+    onChange(new Date(next.getTime() - tz).toISOString().slice(0, 16));
+  }
+  function setTime(t: string) {
+    const base = date ?? new Date();
+    const [hh, mm] = t.split(":");
+    const next = new Date(base);
+    next.setHours(Number(hh) || 0, Number(mm) || 0, 0, 0);
+    const tz = next.getTimezoneOffset() * 60000;
+    onChange(new Date(next.getTime() - tz).toISOString().slice(0, 16));
+  }
+
+  return (
+    <div className="flex gap-2">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn("flex-1 justify-start text-left font-normal", !date && "text-muted-foreground")}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {date ? format(date, "PPP", { locale: ptBR }) : "Escolha a data"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={setDate}
+            initialFocus
+            locale={ptBR}
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </PopoverContent>
+      </Popover>
+      <Input
+        type="time"
+        value={time}
+        onChange={(e) => setTime(e.target.value)}
+        className="w-28"
+      />
+    </div>
+  );
+}
