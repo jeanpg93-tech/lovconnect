@@ -331,7 +331,7 @@ export default function GerenteAcoesEspeciais() {
           />
           <DefaultCard
             icon={<Zap className="h-4 w-4" />}
-            title="Desconto em Recargas"
+            title="Desconto em Recargas de Créditos"
             description="Aplicado na compra de pacotes de crédito."
             value={defaults.credit_discount_pct}
             max={100}
@@ -342,7 +342,7 @@ export default function GerenteAcoesEspeciais() {
           />
           <DefaultCard
             icon={<Gift className="h-4 w-4" />}
-            title="Bônus de Recarga"
+            title="Bônus de Recargas de Saldo no Painel"
             description="Crédito extra na carteira após confirmar recarga."
             value={defaults.recharge_bonus_pct}
             max={500}
