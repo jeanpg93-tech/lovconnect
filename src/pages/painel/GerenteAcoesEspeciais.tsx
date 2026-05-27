@@ -666,7 +666,7 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
               <Button type="button" size="sm" variant={startMode === "schedule" ? "default" : "outline"} onClick={() => setStartMode("schedule")}>Agendar</Button>
             </div>
             {startMode === "schedule" && (
-              <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+              <DateTimeField value={startsAt} onChange={setStartsAt} />
             )}
           </div>
 
@@ -677,7 +677,7 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
               <Button type="button" size="sm" variant={endMode === "schedule" ? "default" : "outline"} onClick={() => setEndMode("schedule")}>Agendar fim</Button>
             </div>
             {endMode === "schedule" && (
-              <Input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+              <DateTimeField value={endsAt} onChange={setEndsAt} />
             )}
           </div>
         </div>
