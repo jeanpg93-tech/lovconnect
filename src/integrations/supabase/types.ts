@@ -887,6 +887,27 @@ export type Database = {
           },
         ]
       }
+      license_base_costs: {
+        Row: {
+          cost_cents: number
+          duration_code: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cost_cents?: number
+          duration_code: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cost_cents?: number
+          duration_code?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       manual_financial_entries: {
         Row: {
           amount_cents: number
