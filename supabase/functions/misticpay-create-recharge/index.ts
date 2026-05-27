@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { computeBonus } from "../_shared/promotion.ts";
 
 const MISTIC_BASE = "https://api.misticpay.com/api";
 
@@ -55,7 +56,12 @@ Deno.serve(async (req) => {
     // Calc bonus from tier
     const { data: tier } = await admin.rpc("get_reseller_tier", { _reseller_id: reseller.id });
     const bonusPct = Number(tier?.recharge_bonus_percent ?? 0);
-    const bonusCents = Math.floor((amountCents * bonusPct) / 100);
+    const tierBonusCents = Math.floor((amountCents * bonusPct) / 100);
+
+    // Bônus de promoção ativa (somado ao bônus de nível)
+    const promo = await computeBonus(admin, amountCents);
+    const bonusCents = tierBonusCents + promo.bonusCents;
+    const promotion_id = promo.promotionId;
 
     // Create local intent first to get an ID we send as transactionId to MisticPay
     const { data: intent, error: intentErr } = await admin
@@ -64,6 +70,7 @@ Deno.serve(async (req) => {
         reseller_id: reseller.id,
         amount_cents: amountCents,
         bonus_cents: bonusCents,
+        promotion_id,
         status: "pending",
         provider: "misticpay",
         payer_name: profile?.display_name ?? reseller.display_name,
