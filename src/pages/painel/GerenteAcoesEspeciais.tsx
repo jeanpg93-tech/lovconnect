@@ -452,9 +452,12 @@ function DefaultCard({ icon, title, description, value, max, saving, disabled, o
 }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">{icon}{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm flex items-start gap-2 leading-tight">
+          <span className="shrink-0 mt-0.5">{icon}</span>
+          <span>{title}</span>
+        </CardTitle>
+        <CardDescription className="text-xs">{description}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex gap-2">
