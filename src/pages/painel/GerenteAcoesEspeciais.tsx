@@ -440,8 +440,8 @@ function DefaultCard({ icon, title, description, value, max, saving, disabled, o
 function PromoValues({ p, compact }: { p: Promotion; compact?: boolean }) {
   const items: { icon: React.ReactNode; label: string; value: string }[] = [];
   if (p.extension_discount_pct != null) items.push({ icon: <Tag className="h-3.5 w-3.5" />, label: "Extensões", value: `-${p.extension_discount_pct}%` });
-  if (p.credit_discount_pct != null) items.push({ icon: <Zap className="h-3.5 w-3.5" />, label: "Recargas", value: `-${p.credit_discount_pct}%` });
-  if (p.recharge_bonus_pct != null) items.push({ icon: <Gift className="h-3.5 w-3.5" />, label: "Bônus", value: `+${p.recharge_bonus_pct}%` });
+  if (p.credit_discount_pct != null) items.push({ icon: <Zap className="h-3.5 w-3.5" />, label: "Recargas de Créditos", value: `-${p.credit_discount_pct}%` });
+  if (p.recharge_bonus_pct != null) items.push({ icon: <Gift className="h-3.5 w-3.5" />, label: "Bônus de Saldo", value: `+${p.recharge_bonus_pct}%` });
   if (items.length === 0) return null;
   return (
     <div className={`flex flex-wrap gap-2 ${compact ? "" : "gap-3"}`}>
