@@ -2923,6 +2923,44 @@ export type Database = {
           },
         ]
       }
+      tier_license_prices: {
+        Row: {
+          created_at: string
+          duration_code: string
+          id: string
+          is_active: boolean
+          price_cents: number
+          tier_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_code: string
+          id?: string
+          is_active?: boolean
+          price_cents?: number
+          tier_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_code?: string
+          id?: string
+          is_active?: boolean
+          price_cents?: number
+          tier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tier_license_prices_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trial_registrations: {
         Row: {
           created_at: string
@@ -3042,6 +3080,10 @@ export type Database = {
       }
       get_credit_pack_cost: {
         Args: { _plan_id: string; _reseller_id: string }
+        Returns: number
+      }
+      get_license_pack_cost: {
+        Args: { _duration_code: string; _reseller_id: string }
         Returns: number
       }
       get_primary_role: {
