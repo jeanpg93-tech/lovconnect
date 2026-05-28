@@ -126,10 +126,10 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const ids = Array.isArray(body?.purchase_ids) ? body.purchase_ids.slice(0, 100) : null;
 
-    // Detecta chamada por cron/serviço: aceita se header apikey == ANON ou Authorization == service role.
-    const apikeyHdr = req.headers.get('apikey') ?? '';
+    // Detecta chamada por cron/serviço SOMENTE pela service role key.
+    // A anon key é pública e nunca pode conceder acesso administrativo.
     const authHdr = req.headers.get('Authorization') ?? '';
-    const isServiceCall = apikeyHdr === ANON || authHdr.includes(SERVICE_ROLE);
+    const isServiceCall = authHdr === `Bearer ${SERVICE_ROLE}`;
 
     let isGerente = false;
     let resellerId: string | null = null;
