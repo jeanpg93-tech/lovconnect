@@ -3242,6 +3242,10 @@ export type Database = {
         Args: { _order_id: string }
         Returns: string
       }
+      cleanup_old_trial_registrations: {
+        Args: { _days?: number }
+        Returns: number
+      }
       compute_promotion_discount: {
         Args: { _base_cents: number; _kind: string }
         Returns: {
