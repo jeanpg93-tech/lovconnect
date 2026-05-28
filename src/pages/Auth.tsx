@@ -39,6 +39,14 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const supportWhatsappUrl = "https://wa.me/5511936183472?text=Olá,%20preciso%20de%20um%20código%20de%20afiliado%20para%20me%20cadastrar.";
 
+  const passwordRules = [
+    { label: "Mínimo 8 caracteres", ok: password.length >= 8 },
+    { label: "1 letra maiúscula (A-Z)", ok: /[A-Z]/.test(password) },
+    { label: "1 letra minúscula (a-z)", ok: /[a-z]/.test(password) },
+    { label: "1 número (0-9)", ok: /[0-9]/.test(password) },
+  ];
+  const passwordValid = passwordRules.every((r) => r.ok);
+
   useEffect(() => {
     if (!authLoading && user && !isSyncing) {
       navigate("/painel", { replace: true });
