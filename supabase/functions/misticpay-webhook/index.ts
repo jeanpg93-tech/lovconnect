@@ -5,6 +5,58 @@ import { computeDiscount } from "../_shared/promotion.ts";
 const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const MISTIC_BASE = "https://api.misticpay.com/api";
+
+/**
+ * Confirma com a API da MisticPay que a transação realmente está paga (status COMPLETO).
+ * Protege o webhook contra POSTs forjados que tentam creditar saldo sem pagamento real.
+ * Procura o txId nas primeiras 3 páginas de transações COMPLETO da conta dona das credenciais.
+ */
+async function verifyMisticTxPaid(
+  ci: string | undefined | null,
+  cs: string | undefined | null,
+  txId: string,
+): Promise<boolean> {
+  if (!ci || !cs || !txId) return false;
+  try {
+    for (let page = 1; page <= 3; page++) {
+      const r = await fetch(`${MISTIC_BASE}/users/transactions/list/${page}?status=COMPLETO`, {
+        method: "GET",
+        headers: { ci, cs, "Content-Type": "application/json" },
+      });
+      if (!r.ok) {
+        console.error(`[verifyMistic] page ${page} returned ${r.status}`);
+        continue;
+      }
+      const txt = await r.text();
+      if (txt.includes(txId)) return true;
+      if (txt.length < 200) return false; // resposta vazia / sem mais páginas
+    }
+  } catch (e) {
+    console.error("verifyMisticTxPaid error", e);
+  }
+  return false;
+}
+
+/** Recupera as credenciais MisticPay do gerente (env primeiro, depois app_settings). */
+async function getManagerMisticCreds(admin: any): Promise<{ ci: string | null; cs: string | null }> {
+  let ci = Deno.env.get("MISTICPAY_CLIENT_ID") ?? null;
+  let cs = Deno.env.get("MISTICPAY_CLIENT_SECRET") ?? null;
+  if (ci && cs) return { ci, cs };
+  try {
+    const { data } = await admin.from("app_settings")
+      .select("key, value")
+      .in("key", ["misticpay_client_id", "misticpay_client_secret"]);
+    for (const row of (data ?? []) as any[]) {
+      const v = typeof row.value === "string" ? row.value : (row.value?.value ?? row.value);
+      if (row.key === "misticpay_client_id" && !ci) ci = v ?? null;
+      if (row.key === "misticpay_client_secret" && !cs) cs = v ?? null;
+    }
+  } catch (e) {
+    console.warn("getManagerMisticCreds app_settings failed", e);
+  }
+  return { ci, cs };
+}
 
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
   switch (type) {
