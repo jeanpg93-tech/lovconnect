@@ -985,6 +985,13 @@ export default function GerenteDashboard() {
                                           <Hand className="h-2.5 w-2.5" /> MisticPay
                                         </span>
                                       )}
+                                      {(m as any).promotion_id && (
+                                        <PromotionAppliedBadge
+                                          promotionId={(m as any).promotion_id}
+                                          amountCents={(m as any).promotion_discount_cents ?? 0}
+                                          variant={m.kind === "promotion_bonus" || m.kind === "recharge" ? "bonus" : "discount"}
+                                        />
+                                      )}
                                     </div>
                                    <div className="text-[9px] text-muted-foreground font-mono truncate">
                                      {m.detail ? m.detail : (desc || '—')}
