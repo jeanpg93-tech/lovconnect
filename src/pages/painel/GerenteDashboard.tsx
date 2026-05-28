@@ -173,6 +173,10 @@ export default function GerenteDashboard() {
   const [apiLogPage, setApiLogsPage] = useState(1);
   const [isRecentOrdersExpanded, setIsRecentOrdersExpanded] = useState(false);
   const [isApiLogsExpanded, setIsApiLogsExpanded] = useState(false);
+  // Filtros das movimentações
+  const [movSearch, setMovSearch] = useState("");
+  const [movType, setMovType] = useState<string>("all");
+  const [movDirection, setMovDirection] = useState<string>("all");
   const ITEMS_PER_PAGE = 10;
 
   const withTimeout = <T,>(p: Promise<T>, ms = 8000, fallback: any = { data: null, error: null }): Promise<T> =>
