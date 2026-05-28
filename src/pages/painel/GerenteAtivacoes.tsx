@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Check, X, FileText, ExternalLink, RefreshCcw } from "lucide-react";
+import { Loader2, Check, X, FileText, ExternalLink, RefreshCcw, Gift, Search } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/painel/PageHeader";
+import { Input } from "@/components/ui/input";
 
 interface Row {
   id: string;
@@ -18,6 +19,14 @@ interface Row {
   reseller?: { display_name: string; user_id: string };
 }
 
+interface PendingReseller {
+  id: string;
+  display_name: string;
+  activation_status: string;
+  created_at: string;
+  email?: string | null;
+}
+
 export default function GerenteAtivacoes() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +36,12 @@ export default function GerenteAtivacoes() {
   const [busy, setBusy] = useState(false);
   const [proofSignedUrl, setProofSignedUrl] = useState<string | null>(null);
 
+  const [pending, setPending] = useState<PendingReseller[]>([]);
+  const [search, setSearch] = useState("");
+  const [waiveTarget, setWaiveTarget] = useState<PendingReseller | null>(null);
+  const [waiveReason, setWaiveReason] = useState("");
+  const [waiveBusy, setWaiveBusy] = useState(false);
+
   const load = async () => {
     setLoading(true);
     const { data } = await supabase
@@ -35,6 +50,19 @@ export default function GerenteAtivacoes() {
       .in("status", ["under_review", "pending", "rejected"])
       .order("created_at", { ascending: false });
     setRows(((data ?? []) as any).map((r: any) => ({ ...r, reseller: r.resellers })));
+
+    const { data: pend } = await supabase
+      .from("resellers")
+      .select("id, display_name, activation_status, created_at, user_id")
+      .neq("activation_status", "active")
+      .order("created_at", { ascending: false });
+    const userIds = (pend ?? []).map((p: any) => p.user_id).filter(Boolean);
+    let emailMap: Record<string, string> = {};
+    if (userIds.length) {
+      const { data: profs } = await supabase.from("profiles").select("id, email").in("id", userIds);
+      (profs ?? []).forEach((p: any) => { emailMap[p.id] = p.email; });
+    }
+    setPending(((pend ?? []) as any[]).map((p) => ({ ...p, email: emailMap[p.user_id] ?? null })));
     setLoading(false);
   };
 
@@ -69,9 +97,80 @@ export default function GerenteAtivacoes() {
     load();
   };
 
+  const submitWaive = async () => {
+    if (!waiveTarget) return;
+    setWaiveBusy(true);
+    const { data, error } = await supabase.functions.invoke("activation-waive", {
+      body: { reseller_id: waiveTarget.id, reason: waiveReason || null },
+    });
+    setWaiveBusy(false);
+    if (error || data?.error) { toast.error(error?.message ?? data?.error); return; }
+    toast.success(`Painel de ${waiveTarget.display_name} liberado sem cobrança`);
+    setWaiveTarget(null);
+    setWaiveReason("");
+    load();
+  };
+
+  const filteredPending = pending.filter((p) => {
+    const s = search.toLowerCase().trim();
+    if (!s) return true;
+    return (
+      p.display_name?.toLowerCase().includes(s) ||
+      (p.email ?? "").toLowerCase().includes(s)
+    );
+  });
+
   return (
     <div className="space-y-6">
       <PageHeader title="Ativações de Painel" description="Aprove ou recuse pagamentos enviados por revendedores." />
+
+      {/* Liberar sem cobrança (cortesia) */}
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Gift className="h-4 w-4 text-amber-500" />
+          <h3 className="text-sm font-semibold">Liberar painel sem cobrança (cortesia)</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Ative o painel de um revendedor isentando a taxa de R$ 200. Nenhum saldo é creditado.
+        </p>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar revendedor por nome ou email..."
+            className="pl-9"
+          />
+        </div>
+        {filteredPending.length === 0 ? (
+          <div className="text-xs text-muted-foreground py-2">
+            {search ? "Nenhum revendedor encontrado." : "Nenhum revendedor aguardando ativação."}
+          </div>
+        ) : (
+          <div className="max-h-64 overflow-y-auto divide-y divide-border/40 rounded-lg border border-border/40 bg-background/40">
+            {filteredPending.slice(0, 20).map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-3 p-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{p.display_name}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {p.email ?? "—"} · {p.activation_status}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-500/40 text-amber-600 hover:bg-amber-500/10"
+                  onClick={() => { setWaiveTarget(p); setWaiveReason(""); }}
+                >
+                  <Gift className="mr-1 h-3.5 w-3.5" />
+                  Liberar grátis
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{rows.length} registro(s)</span>
         <Button size="sm" variant="outline" onClick={load}><RefreshCcw className="mr-1.5 h-3.5 w-3.5" /> atualizar</Button>
@@ -144,6 +243,39 @@ export default function GerenteAtivacoes() {
             <Button onClick={submit} disabled={busy}>
               {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
               {action === "approve" ? "aprovar e ativar" : "recusar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!waiveTarget} onOpenChange={(o) => { if (!o) { setWaiveTarget(null); setWaiveReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Liberar painel sem cobrança</DialogTitle>
+          </DialogHeader>
+          {waiveTarget && (
+            <div className="space-y-3 text-sm">
+              <div>
+                Confirma liberar o painel de <strong>{waiveTarget.display_name}</strong> isentando a taxa de R$ 200?
+              </div>
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 text-xs text-muted-foreground">
+                ⚠️ Nenhum saldo será creditado na carteira. O revendedor terá acesso completo ao painel imediatamente.
+              </div>
+              <textarea
+                value={waiveReason}
+                onChange={(e) => setWaiveReason(e.target.value)}
+                placeholder="Motivo da cortesia (opcional, ex: parceria, indicação especial)"
+                className="w-full rounded-lg border border-border bg-background p-2 text-sm"
+                rows={3}
+                maxLength={500}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWaiveTarget(null)}>cancelar</Button>
+            <Button onClick={submitWaive} disabled={waiveBusy} className="bg-amber-600 hover:bg-amber-700 text-white">
+              {waiveBusy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Gift className="mr-1.5 h-3.5 w-3.5" />}
+              liberar sem cobrança
             </Button>
           </DialogFooter>
         </DialogContent>
