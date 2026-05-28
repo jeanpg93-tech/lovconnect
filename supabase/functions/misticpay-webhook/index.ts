@@ -178,6 +178,13 @@ Deno.serve(async (req) => {
           return json({ ok: true, already: true });
         }
         if (status === "COMPLETO") {
+          // Verifica diretamente com a MisticPay antes de ativar o painel
+          const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
+          const ok = await verifyMisticTxPaid(mci, mcs, txId);
+          if (!ok) {
+            console.warn("[webhook] activation tx not confirmed by MisticPay", txId);
+            return json({ ok: false, reason: "unverified_transaction" }, 403);
+          }
           await admin.from("activation_payments").update({
             status: "paid",
             paid_at: new Date().toISOString(),
@@ -230,6 +237,13 @@ Deno.serve(async (req) => {
       if (intent.status === "paid") return json({ ok: true, already: true });
 
       if (status === "COMPLETO") {
+        // Verifica direto com a MisticPay antes de creditar a recarga
+        const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
+        const ok = await verifyMisticTxPaid(mci, mcs, txId);
+        if (!ok) {
+          console.warn("[webhook] recharge tx not confirmed by MisticPay", txId);
+          return json({ ok: false, reason: "unverified_transaction" }, 403);
+        }
         const total = Number(intent.amount_cents) + Number(intent.bonus_cents ?? 0);
         // Busca o nível atual para descrever explicitamente o bônus aplicado
         let tierLabel = "";
