@@ -308,9 +308,26 @@ Deno.serve(async (req) => {
           });
         }
 
+        // Aplica promoção (créditos)
+        let promoId: string | null = null;
+        let promoDiscount = 0;
+        let finalCost = costCents;
+        try {
+          const { data: pd } = await adminClient.rpc("compute_promotion_discount", {
+            _base_cents: costCents,
+            _kind: "credits",
+          });
+          const row: any = Array.isArray(pd) ? pd[0] : pd;
+          if (row) {
+            finalCost = Number(row.final_cents ?? costCents);
+            promoDiscount = Number(row.discount_cents ?? 0);
+            promoId = row.promotion_id ?? null;
+          }
+        } catch (_e) { /* preço cheio */ }
+
         const { data: debited, error: debitErr } = await adminClient.rpc("debit_reseller_balance", {
           _reseller_id: resellerId,
-          _amount_cents: costCents,
+          _amount_cents: finalCost,
           _kind: "credit_purchase",
           _description: `Compra ${creditos} créditos`,
           _reference_id: null,
@@ -329,13 +346,13 @@ Deno.serve(async (req) => {
             pedidoId: localPedidoId,
             status: "manual_pendente",
             creditos,
-            precoCentavos: costCents,
+            precoCentavos: finalCost,
             mode: "manual",
           };
           await adminClient.from("reseller_credit_purchases").insert({
             reseller_id: resellerId,
             credits: creditos,
-            price_cents: costCents,
+            price_cents: finalCost,
             status: "manual_pendente",
             tipo_entrega: tipoEntrega,
             provider_pedido_id: localPedidoId,
@@ -343,16 +360,20 @@ Deno.serve(async (req) => {
             cost_cents: costCents,
             customer_name: customerName || null,
             customer_whatsapp: customerWhatsapp || null,
+            promotion_id: promoId,
+            promotion_discount_cents: promoDiscount,
           });
           await adminClient.from("orders").insert({
             reseller_id: resellerId,
             license_type: "credits",
             product_type: "credits",
             credit_amount: creditos,
-            price_cents: costCents,
+            price_cents: finalCost,
             status: "pending",
             provider_response: manualPayload,
             notes: `Créditos: ${creditos}. Entrega: ${tipoEntrega}. Modo: manual. ID Local: ${localPedidoId}${customerName ? `. Cliente: ${customerName}` : ""}${customerWhatsapp ? ` (${customerWhatsapp})` : ""}`,
+            promotion_id: promoId,
+            promotion_discount_cents: promoDiscount,
           });
           return new Response(JSON.stringify({ success: true, data: { ...manualPayload, providerPedidoId: localPedidoId } }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -371,7 +392,7 @@ Deno.serve(async (req) => {
         if (!providerResponse.ok || providerData?.success === false) {
           await adminClient.rpc("credit_reseller_balance", {
             _reseller_id: resellerId,
-            _amount_cents: costCents,
+            _amount_cents: finalCost,
             _kind: "credit_purchase_refund",
             _description: `Estorno compra ${creditos} créditos`,
             _reference_id: null,
@@ -387,7 +408,7 @@ Deno.serve(async (req) => {
         await adminClient.from("reseller_credit_purchases").insert({
           reseller_id: resellerId,
           credits: creditos,
-          price_cents: costCents,
+          price_cents: finalCost,
           status: providerPayload?.status ?? "processando",
           tipo_entrega: tipoEntrega,
           provider_pedido_id: providerPedidoId,
@@ -395,19 +416,23 @@ Deno.serve(async (req) => {
           cost_cents: providerPayload?.precoCentavos ?? providerPayload?.valorCentavos ?? null,
           customer_name: customerName || null,
           customer_whatsapp: customerWhatsapp || null,
+          promotion_id: promoId,
+          promotion_discount_cents: promoDiscount,
         });
         await adminClient.from("orders").insert({
           reseller_id: resellerId,
           license_type: "credits",
           product_type: "credits",
           credit_amount: creditos,
-          price_cents: costCents,
+          price_cents: finalCost,
           status: "completed",
           provider_response: providerPayload,
           notes: `Créditos: ${creditos}. Entrega: ${tipoEntrega}. ID Provedor: ${providerPedidoId}${customerName ? `. Cliente: ${customerName}` : ""}${customerWhatsapp ? ` (${customerWhatsapp})` : ""}`,
+          promotion_id: promoId,
+          promotion_discount_cents: promoDiscount,
         });
 
-        return new Response(JSON.stringify({ success: true, data: { ...providerPayload, providerPedidoId, precoCentavos: costCents, creditos } }), {
+        return new Response(JSON.stringify({ success: true, data: { ...providerPayload, providerPedidoId, precoCentavos: finalCost, precoOriginalCentavos: costCents, descontoCentavos: promoDiscount, promotionId: promoId, creditos } }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
