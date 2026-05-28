@@ -1,15 +1,30 @@
 import { useState } from "react";
 import { PageContainer } from "@/components/painel/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { BarChart3, Receipt, PencilLine } from "lucide-react";
+import { BarChart3, Receipt, PencilLine, CalendarIcon, X } from "lucide-react";
 import FinanceiroVisaoGeral from "@/components/painel/financeiro/FinanceiroVisaoGeral";
 import FinanceiroTransacoes from "@/components/painel/financeiro/FinanceiroTransacoes";
 import FinanceiroLancamentosManuais from "@/components/painel/financeiro/FinanceiroLancamentosManuais";
-import type { DateRange } from "@/hooks/useFinancialOverview";
+import type { DateRange, CustomRange } from "@/hooks/useFinancialOverview";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import type { DateRange as RDPRange } from "react-day-picker";
 
 export default function GerenteFinanceiroGeral() {
   const [dateFilter, setDateFilter] = useState<DateRange>("month");
+  const [customRange, setCustomRange] = useState<CustomRange | undefined>();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [tab, setTab] = useState("overview");
+
+  const customLabel = customRange
+    ? customRange.to && customRange.to.getTime() !== customRange.from.getTime()
+      ? `${format(customRange.from, "dd/MM", { locale: ptBR })} - ${format(customRange.to, "dd/MM", { locale: ptBR })}`
+      : format(customRange.from, "dd/MM/yy", { locale: ptBR })
+    : "Personalizado";
 
   return (
     <PageContainer>
@@ -22,7 +37,7 @@ export default function GerenteFinanceiroGeral() {
             Receita, custos, lucro e movimentações do ecossistema em tempo real.
           </p>
         </div>
-        <div className="flex w-full sm:w-auto items-center justify-center sm:justify-end gap-2">
+        <div className="flex w-full sm:w-auto flex-col items-stretch justify-center sm:flex-row sm:items-center sm:justify-end gap-2">
           <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 w-full sm:w-auto">
             {[
               { id: "all", label: "Tudo" },
@@ -32,7 +47,7 @@ export default function GerenteFinanceiroGeral() {
             ].map((d) => (
               <button
                 key={d.id}
-                onClick={() => setDateFilter(d.id as DateRange)}
+                onClick={() => { setDateFilter(d.id as DateRange); setCustomRange(undefined); }}
                 className={`flex-1 sm:flex-none px-2 sm:px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest rounded-lg transition-all whitespace-nowrap ${
                   dateFilter === d.id
                     ? "bg-primary text-primary-foreground shadow-glow-sm"
@@ -43,6 +58,76 @@ export default function GerenteFinanceiroGeral() {
               </button>
             ))}
           </div>
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-auto gap-2 rounded-xl border-white/10 bg-white/5 px-3 py-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest",
+                  dateFilter === "custom" && "border-primary/60 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+                )}
+              >
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {customLabel}
+                {dateFilter === "custom" && (
+                  <span
+                    role="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDateFilter("month");
+                      setCustomRange(undefined);
+                    }}
+                    className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary-foreground/20 hover:bg-primary-foreground/30"
+                  >
+                    <X className="h-3 w-3" />
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="range"
+                locale={ptBR}
+                selected={customRange ? { from: customRange.from, to: customRange.to } : undefined}
+                onSelect={(r: RDPRange | undefined) => {
+                  if (r?.from) {
+                    setCustomRange({ from: r.from, to: r.to ?? r.from });
+                    setDateFilter("custom");
+                    if (r.to) setPickerOpen(false);
+                  } else {
+                    setCustomRange(undefined);
+                  }
+                }}
+                numberOfMonths={1}
+                disabled={(d) => d > new Date()}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+              <div className="flex items-center justify-between gap-2 border-t border-border p-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  onClick={() => {
+                    setCustomRange(undefined);
+                    setDateFilter("month");
+                    setPickerOpen(false);
+                  }}
+                >
+                  Limpar
+                </Button>
+                <Button
+                  size="sm"
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  disabled={!customRange}
+                  onClick={() => setPickerOpen(false)}
+                >
+                  Aplicar
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -60,10 +145,10 @@ export default function GerenteFinanceiroGeral() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-0">
-          <FinanceiroVisaoGeral range={dateFilter} />
+          <FinanceiroVisaoGeral range={dateFilter} customRange={customRange} />
         </TabsContent>
         <TabsContent value="transactions" className="mt-0">
-          <FinanceiroTransacoes dateFilter={dateFilter} />
+          <FinanceiroTransacoes dateFilter={dateFilter} customRange={customRange} />
         </TabsContent>
         <TabsContent value="manual" className="mt-0">
           <FinanceiroLancamentosManuais />
