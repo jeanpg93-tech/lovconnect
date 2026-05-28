@@ -374,6 +374,13 @@ const Auth = () => {
                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                          </button>
                        </div>
+                      {errors.password ? (
+                        <p className="text-[10px] text-destructive uppercase tracking-widest">{errors.password}</p>
+                      ) : (
+                        <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/60">
+                          mín. 8 caracteres · 1 maiúscula · 1 minúscula · 1 número
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="signup-affiliate" className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Código de Convite</Label>
