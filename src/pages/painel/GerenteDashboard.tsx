@@ -213,7 +213,7 @@ export default function GerenteDashboard() {
       withTimeout(supabase.functions.invoke("provider-api?action=gateway-balance") as any, 8000, { data: null, error: null }),
       withTimeout(supabase.functions.invoke("lovable-credits-api?action=balance", { method: "GET" }) as any, 8000, { data: null, error: null }),
       supabase.from("recharge_intents").select("amount_cents").not("paid_at", "is", null).gte("paid_at", todayIsoEarly),
-      supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id, reference_id").order("created_at", { ascending: false }).limit(100),
+      supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id, reference_id, promotion_id").order("created_at", { ascending: false }).limit(100),
     ]);
 
     const balanceAny: any = balanceRes;
@@ -385,13 +385,13 @@ export default function GerenteDashboard() {
     const [{ data: enrichOrders }, { data: enrichCredits }] = await Promise.all([
       supabase
         .from("orders")
-        .select("id,reseller_id,price_cents,created_at,license_type,is_test,status,cancellation_status,cancelled_at,cancelled_by,client_refund_method,client_refunded_at,client_refund_error, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
+        .select("id,reseller_id,price_cents,created_at,license_type,is_test,status,cancellation_status,cancelled_at,cancelled_by,client_refund_method,client_refunded_at,client_refund_error,promotion_id,promotion_discount_cents, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
         .gte("created_at", enrichSince)
         .order("created_at", { ascending: false })
         .limit(300),
       supabase
         .from("reseller_credit_purchases")
-        .select("id,reseller_id,price_cents,credits,created_at,customer_name,customer_whatsapp,status,cancellation_status,cancelled_at,cancelled_by,client_refund_method,client_refunded_at,client_refund_error,error_message,provider_pedido_id")
+        .select("id,reseller_id,price_cents,credits,created_at,customer_name,customer_whatsapp,status,cancellation_status,cancelled_at,cancelled_by,client_refund_method,client_refunded_at,client_refund_error,error_message,provider_pedido_id,promotion_id,promotion_discount_cents")
         .gte("created_at", enrichSince)
         .order("created_at", { ascending: false })
         .limit(300),

@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { PromotionAppliedBadge } from "@/components/PromotionAppliedBadge";
 
 type Row = {
   id: string;
@@ -28,6 +29,8 @@ type Row = {
   paid_at: string | null;
   created_at: string;
   raw_response: any;
+  promotion_id?: string | null;
+  promotion_discount_cents?: number | null;
 };
 
 const statusMap: Record<string, { label: string; color: string; icon: any }> = {
@@ -234,6 +237,12 @@ export default function GerenteVendasLoja() {
                           <span>🏪 {resellers[r.reseller_id] ?? r.reseller_id.slice(0, 8)}</span>
                           {r.extension_id && <span>📦 {extensions[r.extension_id] ?? r.extension_id.slice(0, 8)}</span>}
                           <span className="font-mono">{format(new Date(r.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}</span>
+                          {r.promotion_id && (
+                            <PromotionAppliedBadge
+                              promotionId={r.promotion_id}
+                              amountCents={r.promotion_discount_cents ?? 0}
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
