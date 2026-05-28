@@ -47,6 +47,22 @@ Deno.serve(async (req) => {
       return json({ error: "Painel não ativado. Conclua o pagamento de R$ 200 para liberar.", reason: "activation_required" }, 403);
     }
 
+    // Bloqueia adicionar saldo quando o gerente ativa manutenção das recargas.
+    {
+      const { data: rs } = await admin
+        .from("app_settings")
+        .select("value")
+        .eq("key", "recargas_settings")
+        .maybeSingle();
+      const v: any = rs?.value ?? {};
+      if (v.maintenance_enabled === true) {
+        return json({
+          error: v.maintenance_message || "Recargas em manutenção. Tente novamente em breve.",
+          reason: "recharge_maintenance",
+        }, 503);
+      }
+    }
+
     const { data: profile } = await admin
       .from("profiles")
       .select("display_name, email")

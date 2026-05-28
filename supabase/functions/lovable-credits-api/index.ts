@@ -252,6 +252,25 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Bloqueia compras quando o gerente ativa o modo manutenção das recargas.
+        {
+          const { data: rsMaint } = await adminClient
+            .from("app_settings")
+            .select("value")
+            .eq("key", "recargas_settings")
+            .maybeSingle();
+          const v: any = rsMaint?.value ?? {};
+          if (v.maintenance_enabled === true) {
+            return new Response(JSON.stringify({
+              error: v.maintenance_message || "Recargas em manutenção. Tente novamente em breve.",
+              code: "RECHARGE_MAINTENANCE",
+            }), {
+              status: 503,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+
         const body = await req.json().catch(() => ({}));
         const creditos = parseInt(body?.creditos ?? "0", 10);
         const tipoEntrega = (body?.tipo_entrega ?? "workspace_proprio").toString();
