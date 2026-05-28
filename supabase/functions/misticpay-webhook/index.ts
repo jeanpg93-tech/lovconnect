@@ -5,6 +5,58 @@ import { computeDiscount } from "../_shared/promotion.ts";
 const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const MISTIC_BASE = "https://api.misticpay.com/api";
+
+/**
+ * Confirma com a API da MisticPay que a transação realmente está paga (status COMPLETO).
+ * Protege o webhook contra POSTs forjados que tentam creditar saldo sem pagamento real.
+ * Procura o txId nas primeiras 3 páginas de transações COMPLETO da conta dona das credenciais.
+ */
+async function verifyMisticTxPaid(
+  ci: string | undefined | null,
+  cs: string | undefined | null,
+  txId: string,
+): Promise<boolean> {
+  if (!ci || !cs || !txId) return false;
+  try {
+    for (let page = 1; page <= 3; page++) {
+      const r = await fetch(`${MISTIC_BASE}/users/transactions/list/${page}?status=COMPLETO`, {
+        method: "GET",
+        headers: { ci, cs, "Content-Type": "application/json" },
+      });
+      if (!r.ok) {
+        console.error(`[verifyMistic] page ${page} returned ${r.status}`);
+        continue;
+      }
+      const txt = await r.text();
+      if (txt.includes(txId)) return true;
+      if (txt.length < 200) return false; // resposta vazia / sem mais páginas
+    }
+  } catch (e) {
+    console.error("verifyMisticTxPaid error", e);
+  }
+  return false;
+}
+
+/** Recupera as credenciais MisticPay do gerente (env primeiro, depois app_settings). */
+async function getManagerMisticCreds(admin: any): Promise<{ ci: string | null; cs: string | null }> {
+  let ci = Deno.env.get("MISTICPAY_CLIENT_ID") ?? null;
+  let cs = Deno.env.get("MISTICPAY_CLIENT_SECRET") ?? null;
+  if (ci && cs) return { ci, cs };
+  try {
+    const { data } = await admin.from("app_settings")
+      .select("key, value")
+      .in("key", ["misticpay_client_id", "misticpay_client_secret"]);
+    for (const row of (data ?? []) as any[]) {
+      const v = typeof row.value === "string" ? row.value : (row.value?.value ?? row.value);
+      if (row.key === "misticpay_client_id" && !ci) ci = v ?? null;
+      if (row.key === "misticpay_client_secret" && !cs) cs = v ?? null;
+    }
+  } catch (e) {
+    console.warn("getManagerMisticCreds app_settings failed", e);
+  }
+  return { ci, cs };
+}
 
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
   switch (type) {
@@ -126,6 +178,13 @@ Deno.serve(async (req) => {
           return json({ ok: true, already: true });
         }
         if (status === "COMPLETO") {
+          // Verifica diretamente com a MisticPay antes de ativar o painel
+          const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
+          const ok = await verifyMisticTxPaid(mci, mcs, txId);
+          if (!ok) {
+            console.warn("[webhook] activation tx not confirmed by MisticPay", txId);
+            return json({ ok: false, reason: "unverified_transaction" }, 403);
+          }
           await admin.from("activation_payments").update({
             status: "paid",
             paid_at: new Date().toISOString(),
@@ -178,6 +237,13 @@ Deno.serve(async (req) => {
       if (intent.status === "paid") return json({ ok: true, already: true });
 
       if (status === "COMPLETO") {
+        // Verifica direto com a MisticPay antes de creditar a recarga
+        const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
+        const ok = await verifyMisticTxPaid(mci, mcs, txId);
+        if (!ok) {
+          console.warn("[webhook] recharge tx not confirmed by MisticPay", txId);
+          return json({ ok: false, reason: "unverified_transaction" }, 403);
+        }
         const total = Number(intent.amount_cents) + Number(intent.bonus_cents ?? 0);
         // Busca o nível atual para descrever explicitamente o bônus aplicado
         let tierLabel = "";
@@ -315,6 +381,13 @@ Deno.serve(async (req) => {
         const isPaid = status === "COMPLETO" || status === "PAID" || status === "SUCCESS";
         
         if (isPaid) {
+          // Confirma com a API da MisticPay
+          const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
+          const ok = await verifyMisticTxPaid(mci, mcs, txId);
+          if (!ok) {
+            console.warn("[webhook] direct_sale tx not confirmed by MisticPay", txId);
+            return json({ ok: false, reason: "unverified_transaction" }, 403);
+          }
           await admin.from("direct_sales").update({
             status: "paid",
             updated_at: new Date().toISOString(),
@@ -350,6 +423,25 @@ Deno.serve(async (req) => {
 
     if (status !== "COMPLETO") {
       return json({ ok: true, status });
+    }
+
+    // Antes de qualquer débito/entrega da venda de loja pública, confirma com a MisticPay
+    // usando as credenciais do PRÓPRIO revendedor dono da loja (a venda foi cobrada com elas).
+    {
+      const { data: integ } = await admin
+        .from("reseller_integrations")
+        .select("misticpay_client_id, misticpay_client_secret")
+        .eq("reseller_id", storeOrder.reseller_id)
+        .maybeSingle();
+      const ok = await verifyMisticTxPaid(
+        integ?.misticpay_client_id,
+        integ?.misticpay_client_secret,
+        txId,
+      );
+      if (!ok) {
+        console.warn("[webhook] storefront tx not confirmed by MisticPay", txId, "reseller", storeOrder.reseller_id);
+        return json({ ok: false, reason: "unverified_transaction" }, 403);
+      }
     }
 
     if (storeOrder.product_type === "credits" || storeOrder.product_type === "recharge" || storeOrder.license_type === "credits") {
