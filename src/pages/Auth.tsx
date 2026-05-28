@@ -382,12 +382,30 @@ const Auth = () => {
                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                          </button>
                        </div>
-                      {errors.password ? (
+                      {(password.length > 0 || errors.password) && (
+                        <div className="mt-2 space-y-1 border border-border/40 bg-background/30 px-3 py-2">
+                          <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+                            Requisitos da senha:
+                          </p>
+                          <ul className="space-y-0.5">
+                            {passwordRules.map((r) => (
+                              <li
+                                key={r.label}
+                                className={`flex items-center gap-1.5 text-[10px] tracking-wide ${
+                                  r.ok ? "text-emerald-500" : password.length === 0 ? "text-muted-foreground/60" : "text-destructive"
+                                }`}
+                              >
+                                <span className="inline-block w-3 text-center font-bold">
+                                  {r.ok ? "✓" : "•"}
+                                </span>
+                                {r.label}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {errors.password && (
                         <p className="text-[10px] text-destructive uppercase tracking-widest">{errors.password}</p>
-                      ) : (
-                        <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/60">
-                          mín. 8 caracteres · 1 maiúscula · 1 minúscula · 1 número
-                        </p>
                       )}
                     </div>
                     <div className="space-y-1.5">
