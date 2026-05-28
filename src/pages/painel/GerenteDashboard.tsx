@@ -61,6 +61,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import ManagerPricingIssuesBanner from "@/components/painel/ManagerPricingIssuesBanner";
 import { useAllPricingIssues } from "@/hooks/useAllPricingIssues";
+import { PromotionAppliedBadge } from "@/components/PromotionAppliedBadge";
 
 function PricingIssuesAlert() {
   const { resellers } = useAllPricingIssues({ pollMs: 60_000 });
