@@ -369,10 +369,27 @@ Deno.serve(async (req) => {
       return respond({ success: false, error: "Pacote nao disponivel para essa quantidade" }, 404);
     }
 
+    // Aplica promoção (créditos) — desconto sobre o preço do pacote
+    let promoId: string | null = null;
+    let promoDiscount = 0;
+    let finalCost = pkg.price_cents;
+    try {
+      const { data: pd } = await svc.rpc("compute_promotion_discount", {
+        _base_cents: pkg.price_cents,
+        _kind: "credits",
+      });
+      const row: any = Array.isArray(pd) ? pd[0] : pd;
+      if (row) {
+        finalCost = Number(row.final_cents ?? pkg.price_cents);
+        promoDiscount = Number(row.discount_cents ?? 0);
+        promoId = row.promotion_id ?? null;
+      }
+    } catch (_e) { /* fallback ao preço cheio */ }
+
     // Debita saldo
     const { data: ok } = await svc.rpc("debit_reseller_balance", {
       _reseller_id: reseller.id,
-      _amount_cents: pkg.price_cents,
+      _amount_cents: finalCost,
       _kind: "credit_purchase_api",
       _description: `Compra ${credits} créditos via API`,
       _reference_id: null,
@@ -388,7 +405,7 @@ Deno.serve(async (req) => {
       // refund
       await svc.rpc("credit_reseller_balance", {
         _reseller_id: reseller.id,
-        _amount_cents: pkg.price_cents,
+        _amount_cents: finalCost,
         _kind: "credit_purchase_api_refund",
         _description: "Estorno: provedor nao configurado",
         _reference_id: null,
@@ -419,7 +436,7 @@ Deno.serve(async (req) => {
     if (providerStatus < 200 || providerStatus >= 300) {
       await svc.rpc("credit_reseller_balance", {
         _reseller_id: reseller.id,
-        _amount_cents: pkg.price_cents,
+        _amount_cents: finalCost,
         _kind: "credit_purchase_api_refund",
         _description: `Estorno: erro provedor`,
         _reference_id: null,
@@ -441,7 +458,7 @@ Deno.serve(async (req) => {
       reseller_id: reseller.id,
       api_key_id: keyRow.id,
       credits,
-      price_cents: pkg.price_cents,
+      price_cents: finalCost,
       status: providerData?.data?.status ?? "processando",
       tipo_entrega,
       email_conta_lovable: email_conta,
@@ -449,6 +466,8 @@ Deno.serve(async (req) => {
       provider_pedido_id: providerPedidoId,
       provider_response: providerData,
       cost_cents: costCents,
+      promotion_id: promoId,
+      promotion_discount_cents: promoDiscount,
     };
     if (providerPedidoId) insertPayload.id = providerPedidoId;
 
@@ -475,15 +494,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    await logUsage(200, { cost_cents: pkg.price_cents });
+    await logUsage(200, { cost_cents: finalCost });
     return respond({
       success: true,
       data: {
         pedidoId: purchase.id,
         providerPedidoId,
         creditos: credits,
-        precoCentavos: pkg.price_cents,
-        precoReais: toReais(pkg.price_cents),
+        precoCentavos: finalCost,
+        precoReais: toReais(finalCost),
+        precoOriginalCentavos: pkg.price_cents,
+        descontoCentavos: promoDiscount,
+        promotionId: promoId,
         status: providerData?.data?.status ?? "processando",
         tipo_entrega,
       },
