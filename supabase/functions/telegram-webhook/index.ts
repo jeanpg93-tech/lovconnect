@@ -219,6 +219,7 @@ Deno.serve(async (req) => {
     await tg('sendMessage', { chat_id: chatId, parse_mode: 'HTML', text:
       '<b>Comandos disponíveis:</b>\n' +
       '/saldo — saldos da Lojinha e da MisticPay\n' +
+      '/saldos — saldos dos revendedores\n' +
       '/vendas — vendas pagas hoje\n' +
       '/recargas — recargas hoje\n' +
       '/pendentes — cadastros aguardando aprovação\n' +
@@ -235,6 +236,32 @@ Deno.serve(async (req) => {
         `🏪 Lojinha: <b>${prov != null ? brl(prov) : 'indisponível'}</b>\n` +
         `💳 MisticPay (Gateway PIX): <b>${gw != null ? brl(gw) : 'indisponível'}</b>`
     })
+  } else if (cmd === '/saldos') {
+    const { data: balances } = await supabase
+      .from('reseller_balances')
+      .select('balance_cents, reseller:resellers(display_name, is_active)')
+      .order('balance_cents', { ascending: false })
+    const rows = (balances ?? [])
+      .map((b: any) => ({
+        name: b.reseller?.display_name ?? '—',
+        active: b.reseller?.is_active !== false,
+        cents: Number(b.balance_cents ?? 0),
+      }))
+      .filter((b) => b.cents > 0)
+    const total = rows.reduce((s, r) => s + r.cents, 0)
+    if (!rows.length) {
+      await tg('sendMessage', { chat_id: chatId, text: '💼 Nenhum revendedor com saldo positivo.' })
+    } else {
+      const top = rows.slice(0, 30)
+      const lines = top
+        .map((r, i) => `${String(i + 1).padStart(2, ' ')}. ${r.active ? '' : '⏸ '}${r.name} — <b>${brl(r.cents)}</b>`)
+        .join('\n')
+      const extra = rows.length > top.length ? `\n…e mais ${rows.length - top.length} revendedor(es)` : ''
+      await tg('sendMessage', {
+        chat_id: chatId, parse_mode: 'HTML',
+        text: `💼 <b>Saldos dos revendedores (${rows.length})</b>\n${lines}${extra}\n\n💰 Total: <b>${brl(total)}</b>`,
+      })
+    }
   } else if (cmd === '/vendas') {
     const { data } = await supabase.from('balance_transactions')
       .select('amount_cents').eq('kind', 'order_debit').gte('created_at', todayIso)
