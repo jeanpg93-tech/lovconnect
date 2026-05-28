@@ -1,4 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -8,6 +10,40 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // ── Auth: somente revendedores autenticados ────────────────────────────
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: authData, error: authErr } = await supabase.auth.getClaims(token);
+    if (authErr || !authData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = authData.claims.sub as string;
+    const { data: reseller } = await supabase
+      .from("resellers")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!reseller?.id) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY não configurado" }), {
@@ -17,7 +53,11 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const storeName: string = body?.storeName || "nossa loja";
+    // Sanitiza storeName: limita tamanho e remove caracteres de controle / quebras
+    // para reduzir superfície de prompt injection.
+    const rawName = typeof body?.storeName === "string" ? body.storeName : "";
+    const storeName: string = (rawName.replace(/[\u0000-\u001F\u007F]+/g, " ").trim().slice(0, 80))
+      || "nossa loja";
 
     const systemPrompt =
       "Você gera depoimentos curtos, autênticos e variados de clientes brasileiros satisfeitos para uma loja online de licenças/recargas. " +

@@ -301,6 +301,17 @@ Deno.serve(async (req) => {
     const cancelMatch = path.match(/^\/pedidos\/([^/]+)\/cancelar$/);
     if (method === "POST" && cancelMatch) {
       const pid = cancelMatch[1];
+      // Confirma que o pedido pertence ao revendedor autenticado antes
+      // de proxiar a chamada para o provedor com a master key.
+      const { data: ownership } = await admin
+        .from("provider_credit_orders")
+        .select("id")
+        .eq("pedido_id", pid)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!ownership) {
+        return errResp(404, "NOT_FOUND", "Pedido não encontrado");
+      }
       const r = await callProvider(`/pedidos/${pid}/cancelar`, "POST", masterKey, rawBody);
       return json(r.data, r.status);
     }
@@ -309,17 +320,20 @@ Deno.serve(async (req) => {
     const refundMatch = path.match(/^\/pedidos\/([^/]+)\/reembolso$/);
     if (method === "POST" && refundMatch) {
       const pid = refundMatch[1];
+      // Mesma checagem de ownership ANTES de chamar o provedor.
+      const { data: ownership } = await admin
+        .from("provider_credit_orders")
+        .select("id, user_id")
+        .eq("pedido_id", pid)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!ownership) {
+        return errResp(404, "NOT_FOUND", "Pedido não encontrado");
+      }
       const r = await callProvider(`/pedidos/${pid}/reembolso`, "POST", masterKey, rawBody);
       // Se houve reembolso, credita de volta na plataforma
       if (r.data?.success && r.data?.data?.valorReembolsoCentavos) {
-        // Verifica se o pedido pertence ao revendedor
-        const { data: localOrder } = await admin
-          .from("provider_credit_orders")
-          .select("id, user_id")
-          .eq("pedido_id", pid)
-          .maybeSingle();
-        if (localOrder && localOrder.user_id === userId) {
-          await admin.rpc("credit_reseller_balance", {
+        await admin.rpc("credit_reseller_balance", {
             _reseller_id: resellerId,
             _amount_cents: Number(r.data.data.valorReembolsoCentavos),
             _kind: "credit_recharge_refund",
@@ -335,7 +349,6 @@ Deno.serve(async (req) => {
           const novoSaldo = Number(bal?.balance_cents ?? 0);
           r.data.data.novoSaldoCentavos = novoSaldo;
           r.data.data.novoSaldoReais = (novoSaldo / 100).toFixed(2);
-        }
       }
       return json(r.data, r.status);
     }

@@ -23,9 +23,11 @@ Deno.serve(async (req) => {
 
     if (!license_key) return json({ error: "license_key obrigatório" }, 400);
 
-    // Confirma que esse pedido existe e não é legado
+    // Confirma que esse pedido existe e não é legado.
+    // Também precisamos do reseller_id para validar o flag reset_device_enabled
+    // configurado na storefront do revendedor.
     const { data: order } = await svc.from("orders")
-      .select("id, is_legacy")
+      .select("id, is_legacy, reseller_id")
       .eq("license_key", license_key)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -35,7 +37,7 @@ Deno.serve(async (req) => {
     let storefrontOrder = null;
     if (!order) {
       const { data: so } = await svc.from("storefront_orders")
-        .select("id, is_legacy")
+        .select("id, is_legacy, reseller_id")
         .eq("license_key", license_key)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -51,6 +53,22 @@ Deno.serve(async (req) => {
       return json({
         error: "Licença legado: foi gerada pelo provedor anterior e não pode ser resetada automaticamente.",
       }, 409);
+    }
+
+    // Aplica o flag reset_device_enabled do revendedor dono do pedido (quando
+    // conseguimos identificar o reseller_id). Licenças não rastreadas localmente
+    // seguem o comportamento legado (passa direto ao provedor).
+    const resellerId = order?.reseller_id ?? storefrontOrder?.reseller_id ?? null;
+    if (resellerId) {
+      const { data: storefront } = await svc.from("reseller_storefronts")
+        .select("reset_device_enabled")
+        .eq("reseller_id", resellerId)
+        .maybeSingle();
+      if (storefront && storefront.reset_device_enabled === false) {
+        return json({
+          error: "Reset de dispositivo desativado para esta loja. Entre em contato com o revendedor.",
+        }, 403);
+      }
     }
 
     // Provedor
