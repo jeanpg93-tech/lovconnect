@@ -161,22 +161,27 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Get reseller ID from headers or resolve from user
-    let resellerId = req.headers.get("x-reseller-id");
-    if (!resellerId) {
+    // SECURITY: x-reseller-id só é confiável quando o caller é gerente
+    // (impersonação administrativa). Para qualquer outro usuário o
+    // resellerId é sempre derivado do JWT, evitando IDOR/drenagem de saldo.
+    const requestedResellerId = req.headers.get("x-reseller-id");
+    let resellerId: string | null = null;
+    const { data: isManagerRow } = await adminClient
+      .from("user_roles").select("role").eq("user_id", user.id).eq("role", "gerente").maybeSingle();
+    const isManager = !!isManagerRow;
+
+    if (requestedResellerId && isManager) {
+      resellerId = requestedResellerId;
+    } else {
       const { data: reseller } = await adminClient
         .from("resellers")
-        .select("id, activation_status")
+        .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
-      resellerId = reseller?.id;
-      if (reseller && reseller.activation_status && reseller.activation_status !== "active") {
-        return new Response(JSON.stringify({ error: "activation_required", message: "Painel pendente de ativação (R$ 200)" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } else {
+      resellerId = reseller?.id ?? null;
+    }
+
+    if (resellerId) {
       const { data: r } = await adminClient
         .from("resellers").select("activation_status").eq("id", resellerId).maybeSingle();
       if (r && r.activation_status && r.activation_status !== "active") {
