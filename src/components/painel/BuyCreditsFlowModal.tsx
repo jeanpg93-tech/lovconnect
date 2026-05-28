@@ -497,7 +497,7 @@ export function BuyCreditsFlowModal({
                   <span className="font-semibold tabular-nums">{formatBRL(balance)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Desconto do pedido</span>
+                  <span className="text-muted-foreground">Valor do pedido</span>
                   <span className="font-semibold text-destructive tabular-nums">
                     − {formatBRL(costPrice)}
                   </span>
