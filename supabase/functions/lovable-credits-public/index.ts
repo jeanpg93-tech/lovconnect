@@ -55,6 +55,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Validação estrita do orderId para evitar PostgREST filter injection.
+    // Aceita apenas UUID (id local) ou um identificador alfanumérico curto
+    // (provider_pedido_id). Qualquer outra coisa é rejeitada antes de chegar
+    // nas chamadas `.or(...)` abaixo.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const PEDIDO_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+    if (!UUID_RE.test(orderId) && !PEDIDO_RE.test(orderId)) {
+      return new Response(JSON.stringify({ error: "invalid id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // === Cliente envia o nome do workspace na etapa de configuração (pedidos manuais) ===
     if (action === "set_workspace") {
       const admin = createClient(
