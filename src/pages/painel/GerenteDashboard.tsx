@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, StatCard } from "@/components/painel/PageHeader";
@@ -41,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -172,6 +173,10 @@ export default function GerenteDashboard() {
   const [apiLogPage, setApiLogsPage] = useState(1);
   const [isRecentOrdersExpanded, setIsRecentOrdersExpanded] = useState(false);
   const [isApiLogsExpanded, setIsApiLogsExpanded] = useState(false);
+  // Filtros das movimentações
+  const [movSearch, setMovSearch] = useState("");
+  const [movType, setMovType] = useState<string>("all");
+  const [movDirection, setMovDirection] = useState<string>("all");
   const ITEMS_PER_PAGE = 10;
 
   const withTimeout = <T,>(p: Promise<T>, ms = 8000, fallback: any = { data: null, error: null }): Promise<T> =>
@@ -658,6 +663,54 @@ export default function GerenteDashboard() {
     custom: "Período personalizado",
   };
 
+  // Classifica cada movimentação em uma categoria de filtro
+  const movCategoryOf = (m: { kind: string; description: string | null; detail?: string | null; amount_cents: number }): string => {
+    const k = String(m.kind);
+    const desc = String(m.description ?? "");
+    const det = String(m.detail ?? "");
+    if (/refund|estorno|cancel/i.test(k)) return "refund";
+    if (k === "recharge") return "recharge_pix";
+    if (k === "manual_credit" || k === "deposit") return "manual_recharge";
+    if (k === "bonus" || k === "activation_credit" || /bonus/i.test(k)) return "bonus";
+    if (k === "adjustment") return "adjustment";
+    const isRechargeDetail = /recarga|cr[ée]dito/i.test(det) || /recarga|cr[ée]dito/i.test(desc);
+    if (k === "credit_purchase" || ((k === "license_purchase" || k === "order_debit") && isRechargeDetail)) return "sale_credit";
+    if (k === "license_purchase" || k === "order_debit") {
+      return /venda\s*loja/i.test(desc) ? "sale_store" : "sale_api";
+    }
+    return "other";
+  };
+
+  const filteredMovements = useMemo(() => {
+    const q = movSearch.trim().toLowerCase();
+    return creditMovements.filter((m) => {
+      if (movDirection === "in" && m.amount_cents < 0) return false;
+      if (movDirection === "out" && m.amount_cents >= 0) return false;
+      if (movType !== "all") {
+        const cat = movCategoryOf(m);
+        if (movType === "sale") {
+          if (!cat.startsWith("sale_")) return false;
+        } else if (cat !== movType) return false;
+      }
+      if (q) {
+        const hay = [
+          m.reseller_name,
+          m.description ?? "",
+          m.detail ?? "",
+          m.customer_name ?? "",
+          m.customer_whatsapp ?? "",
+          m.ref_short ?? "",
+          m.ref_full ?? "",
+        ].join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [creditMovements, movSearch, movType, movDirection]);
+
+  // Reseta paginação quando filtros mudam
+  useEffect(() => { setOrderPage(1); }, [movSearch, movType, movDirection]);
+
   return (
     <div className="space-y-6 sm:space-y-10 animate-in fade-in duration-700 max-w-7xl mx-auto px-1 sm:px-0">
       <PricingIssuesAlert />
@@ -856,15 +909,70 @@ export default function GerenteDashboard() {
             </div>
 
             <div className={`${isRecentOrdersExpanded ? 'block' : 'hidden lg:block'}`}>
-              {creditMovements.length === 0 ? (
+              {/* Filtros */}
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-[180px]">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={movSearch}
+                    onChange={(e) => setMovSearch(e.target.value)}
+                    placeholder="Buscar por revendedor, cliente, descrição, ID…"
+                    className="h-9 pl-8 text-xs"
+                  />
+                </div>
+                <Select value={movType} onValueChange={setMovType}>
+                  <SelectTrigger className="h-9 w-[180px] text-xs">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os tipos</SelectItem>
+                    <SelectItem value="sale">Vendas (todas)</SelectItem>
+                    <SelectItem value="sale_api">— Venda via API</SelectItem>
+                    <SelectItem value="sale_store">— Venda na loja</SelectItem>
+                    <SelectItem value="sale_credit">— Venda de recargas</SelectItem>
+                    <SelectItem value="recharge_pix">Recarga PIX (MisticPay)</SelectItem>
+                    <SelectItem value="manual_recharge">Recarga manual</SelectItem>
+                    <SelectItem value="bonus">Bônus / Ativação</SelectItem>
+                    <SelectItem value="refund">Estornos</SelectItem>
+                    <SelectItem value="adjustment">Ajustes</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={movDirection} onValueChange={setMovDirection}>
+                  <SelectTrigger className="h-9 w-[140px] text-xs">
+                    <SelectValue placeholder="Direção" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Entradas e saídas</SelectItem>
+                    <SelectItem value="in">Apenas entradas</SelectItem>
+                    <SelectItem value="out">Apenas saídas</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(movSearch || movType !== "all" || movDirection !== "all") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setMovSearch(""); setMovType("all"); setMovDirection("all"); }}
+                    className="h-9 gap-1 text-[10px] font-bold uppercase tracking-widest"
+                  >
+                    <XCircle className="h-3 w-3" /> Limpar
+                  </Button>
+                )}
+                <span className="ml-auto text-[10px] font-mono text-muted-foreground">
+                  {filteredMovements.length} de {creditMovements.length}
+                </span>
+              </div>
+
+              {filteredMovements.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <Wallet className="mb-2 h-10 w-10 opacity-20" />
-                  <p className="text-sm font-medium italic">Nenhuma movimentação detectada</p>
+                  <p className="text-sm font-medium italic">
+                    {creditMovements.length === 0 ? "Nenhuma movimentação detectada" : "Nenhuma movimentação para os filtros selecionados"}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {(() => {
-                    const pageItems = creditMovements.slice((orderPage - 1) * ITEMS_PER_PAGE, orderPage * ITEMS_PER_PAGE);
+                    const pageItems = filteredMovements.slice((orderPage - 1) * ITEMS_PER_PAGE, orderPage * ITEMS_PER_PAGE);
                     const today = new Date(); today.setHours(0,0,0,0);
                     const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
                     const groupLabel = (iso: string) => {
@@ -1065,7 +1173,7 @@ export default function GerenteDashboard() {
               )}
 
               <div className="mt-6 flex items-center justify-center gap-2 border-t border-border pt-4">
-                {Array.from({ length: Math.min(5, Math.ceil(creditMovements.length / ITEMS_PER_PAGE)) }).map((_, i) => (
+                {Array.from({ length: Math.min(5, Math.ceil(filteredMovements.length / ITEMS_PER_PAGE)) }).map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setOrderPage(i + 1)}
