@@ -1,4 +1,4 @@
-import { useFinancialOverview, type DateRange } from "@/hooks/useFinancialOverview";
+import { useFinancialOverview, type DateRange, type CustomRange } from "@/hooks/useFinancialOverview";
 import {
   Wallet,
   TrendingUp,
@@ -36,8 +36,8 @@ const COLOR_REVENUE = "#10b981"; // emerald
 const COLOR_COST = "#ef4444"; // red
 const COLOR_PROFIT = "#0ea5e9"; // sky-500
 
-export default function FinanceiroVisaoGeral({ range }: { range: DateRange }) {
-  const { data, loading } = useFinancialOverview(range);
+export default function FinanceiroVisaoGeral({ range, customRange }: { range: DateRange; customRange?: CustomRange }) {
+  const { data, loading } = useFinancialOverview(range, customRange);
 
   if (loading || !data) {
     return (
