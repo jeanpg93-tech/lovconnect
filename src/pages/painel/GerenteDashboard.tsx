@@ -909,15 +909,70 @@ export default function GerenteDashboard() {
             </div>
 
             <div className={`${isRecentOrdersExpanded ? 'block' : 'hidden lg:block'}`}>
-              {creditMovements.length === 0 ? (
+              {/* Filtros */}
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-[180px]">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={movSearch}
+                    onChange={(e) => setMovSearch(e.target.value)}
+                    placeholder="Buscar por revendedor, cliente, descrição, ID…"
+                    className="h-9 pl-8 text-xs"
+                  />
+                </div>
+                <Select value={movType} onValueChange={setMovType}>
+                  <SelectTrigger className="h-9 w-[180px] text-xs">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os tipos</SelectItem>
+                    <SelectItem value="sale">Vendas (todas)</SelectItem>
+                    <SelectItem value="sale_api">— Venda via API</SelectItem>
+                    <SelectItem value="sale_store">— Venda na loja</SelectItem>
+                    <SelectItem value="sale_credit">— Venda de recargas</SelectItem>
+                    <SelectItem value="recharge_pix">Recarga PIX (MisticPay)</SelectItem>
+                    <SelectItem value="manual_recharge">Recarga manual</SelectItem>
+                    <SelectItem value="bonus">Bônus / Ativação</SelectItem>
+                    <SelectItem value="refund">Estornos</SelectItem>
+                    <SelectItem value="adjustment">Ajustes</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={movDirection} onValueChange={setMovDirection}>
+                  <SelectTrigger className="h-9 w-[140px] text-xs">
+                    <SelectValue placeholder="Direção" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Entradas e saídas</SelectItem>
+                    <SelectItem value="in">Apenas entradas</SelectItem>
+                    <SelectItem value="out">Apenas saídas</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(movSearch || movType !== "all" || movDirection !== "all") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setMovSearch(""); setMovType("all"); setMovDirection("all"); }}
+                    className="h-9 gap-1 text-[10px] font-bold uppercase tracking-widest"
+                  >
+                    <XCircle className="h-3 w-3" /> Limpar
+                  </Button>
+                )}
+                <span className="ml-auto text-[10px] font-mono text-muted-foreground">
+                  {filteredMovements.length} de {creditMovements.length}
+                </span>
+              </div>
+
+              {filteredMovements.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <Wallet className="mb-2 h-10 w-10 opacity-20" />
-                  <p className="text-sm font-medium italic">Nenhuma movimentação detectada</p>
+                  <p className="text-sm font-medium italic">
+                    {creditMovements.length === 0 ? "Nenhuma movimentação detectada" : "Nenhuma movimentação para os filtros selecionados"}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {(() => {
-                    const pageItems = creditMovements.slice((orderPage - 1) * ITEMS_PER_PAGE, orderPage * ITEMS_PER_PAGE);
+                    const pageItems = filteredMovements.slice((orderPage - 1) * ITEMS_PER_PAGE, orderPage * ITEMS_PER_PAGE);
                     const today = new Date(); today.setHours(0,0,0,0);
                     const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
                     const groupLabel = (iso: string) => {
@@ -1118,7 +1173,7 @@ export default function GerenteDashboard() {
               )}
 
               <div className="mt-6 flex items-center justify-center gap-2 border-t border-border pt-4">
-                {Array.from({ length: Math.min(5, Math.ceil(creditMovements.length / ITEMS_PER_PAGE)) }).map((_, i) => (
+                {Array.from({ length: Math.min(5, Math.ceil(filteredMovements.length / ITEMS_PER_PAGE)) }).map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setOrderPage(i + 1)}
