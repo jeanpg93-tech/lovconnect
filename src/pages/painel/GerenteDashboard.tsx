@@ -663,6 +663,54 @@ export default function GerenteDashboard() {
     custom: "Período personalizado",
   };
 
+  // Classifica cada movimentação em uma categoria de filtro
+  const movCategoryOf = (m: { kind: string; description: string | null; detail?: string | null; amount_cents: number }): string => {
+    const k = String(m.kind);
+    const desc = String(m.description ?? "");
+    const det = String(m.detail ?? "");
+    if (/refund|estorno|cancel/i.test(k)) return "refund";
+    if (k === "recharge") return "recharge_pix";
+    if (k === "manual_credit" || k === "deposit") return "manual_recharge";
+    if (k === "bonus" || k === "activation_credit" || /bonus/i.test(k)) return "bonus";
+    if (k === "adjustment") return "adjustment";
+    const isRechargeDetail = /recarga|cr[ée]dito/i.test(det) || /recarga|cr[ée]dito/i.test(desc);
+    if (k === "credit_purchase" || ((k === "license_purchase" || k === "order_debit") && isRechargeDetail)) return "sale_credit";
+    if (k === "license_purchase" || k === "order_debit") {
+      return /venda\s*loja/i.test(desc) ? "sale_store" : "sale_api";
+    }
+    return "other";
+  };
+
+  const filteredMovements = useMemo(() => {
+    const q = movSearch.trim().toLowerCase();
+    return creditMovements.filter((m) => {
+      if (movDirection === "in" && m.amount_cents < 0) return false;
+      if (movDirection === "out" && m.amount_cents >= 0) return false;
+      if (movType !== "all") {
+        const cat = movCategoryOf(m);
+        if (movType === "sale") {
+          if (!cat.startsWith("sale_")) return false;
+        } else if (cat !== movType) return false;
+      }
+      if (q) {
+        const hay = [
+          m.reseller_name,
+          m.description ?? "",
+          m.detail ?? "",
+          m.customer_name ?? "",
+          m.customer_whatsapp ?? "",
+          m.ref_short ?? "",
+          m.ref_full ?? "",
+        ].join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [creditMovements, movSearch, movType, movDirection]);
+
+  // Reseta paginação quando filtros mudam
+  useEffect(() => { setOrderPage(1); }, [movSearch, movType, movDirection]);
+
   return (
     <div className="space-y-6 sm:space-y-10 animate-in fade-in duration-700 max-w-7xl mx-auto px-1 sm:px-0">
       <PricingIssuesAlert />
