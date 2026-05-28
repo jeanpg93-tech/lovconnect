@@ -381,6 +381,13 @@ Deno.serve(async (req) => {
         const isPaid = status === "COMPLETO" || status === "PAID" || status === "SUCCESS";
         
         if (isPaid) {
+          // Confirma com a API da MisticPay
+          const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
+          const ok = await verifyMisticTxPaid(mci, mcs, txId);
+          if (!ok) {
+            console.warn("[webhook] direct_sale tx not confirmed by MisticPay", txId);
+            return json({ ok: false, reason: "unverified_transaction" }, 403);
+          }
           await admin.from("direct_sales").update({
             status: "paid",
             updated_at: new Date().toISOString(),
@@ -416,6 +423,25 @@ Deno.serve(async (req) => {
 
     if (status !== "COMPLETO") {
       return json({ ok: true, status });
+    }
+
+    // Antes de qualquer débito/entrega da venda de loja pública, confirma com a MisticPay
+    // usando as credenciais do PRÓPRIO revendedor dono da loja (a venda foi cobrada com elas).
+    {
+      const { data: integ } = await admin
+        .from("reseller_integrations")
+        .select("misticpay_client_id, misticpay_client_secret")
+        .eq("reseller_id", storeOrder.reseller_id)
+        .maybeSingle();
+      const ok = await verifyMisticTxPaid(
+        integ?.misticpay_client_id,
+        integ?.misticpay_client_secret,
+        txId,
+      );
+      if (!ok) {
+        console.warn("[webhook] storefront tx not confirmed by MisticPay", txId, "reseller", storeOrder.reseller_id);
+        return json({ ok: false, reason: "unverified_transaction" }, 403);
+      }
     }
 
     if (storeOrder.product_type === "credits" || storeOrder.product_type === "recharge" || storeOrder.license_type === "credits") {
