@@ -189,10 +189,27 @@ Deno.serve(async (req) => {
         _reseller_id: resellerId,
         _plan_id: planRow.id,
       });
-      const precoCents = Number(rpcCost ?? 0);
-      if (precoCents <= 0) {
+      const basePrecoCents = Number(rpcCost ?? 0);
+      if (basePrecoCents <= 0) {
         return errResp(400, "PRICE_NOT_SET", "Preço não definido para o seu nível neste pacote");
       }
+
+      // Aplica promoção (créditos)
+      let promoId: string | null = null;
+      let promoDiscount = 0;
+      let precoCents = basePrecoCents;
+      try {
+        const { data: pd } = await admin.rpc("compute_promotion_discount", {
+          _base_cents: basePrecoCents,
+          _kind: "credits",
+        });
+        const row: any = Array.isArray(pd) ? pd[0] : pd;
+        if (row) {
+          precoCents = Number(row.final_cents ?? basePrecoCents);
+          promoDiscount = Number(row.discount_cents ?? 0);
+          promoId = row.promotion_id ?? null;
+        }
+      } catch (_e) { /* preço cheio */ }
 
       // Pega preço atual no fornecedor (apenas para log/auditoria interna se necessário, mas o que vale é o precoCents acima)
       const quote = await callProvider(`/orcamento?creditos=${creditos}`, "GET", masterKey);
@@ -260,6 +277,8 @@ Deno.serve(async (req) => {
           tipo_entrega: "workspace_proprio",
           provider_pedido_id: pedidoId,
           provider_response: d,
+          promotion_id: promoId,
+          promotion_discount_cents: promoDiscount,
         });
       } catch (e) {
         console.error("persist reseller_credit_purchase failed", e);
