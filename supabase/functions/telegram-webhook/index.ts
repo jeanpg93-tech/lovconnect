@@ -211,7 +211,9 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: true }))
   }
 
-  const cmd = text.split(/\s+/)[0].toLowerCase()
+  const parts = text.split(/\s+/)
+  const cmd = parts[0].toLowerCase()
+  const sub = (parts[1] ?? '').toLowerCase()
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const todayIso = today.toISOString()
 
@@ -219,24 +221,13 @@ Deno.serve(async (req) => {
     await tg('sendMessage', { chat_id: chatId, parse_mode: 'HTML', text:
       '<b>Comandos disponíveis:</b>\n' +
       '/saldo — saldos da Lojinha e da MisticPay\n' +
-      '/saldos — saldos dos revendedores\n' +
+      '/saldo revendedores — saldos dos revendedores\n' +
       '/vendas — vendas pagas hoje\n' +
       '/recargas — recargas hoje\n' +
       '/pendentes — cadastros aguardando aprovação\n' +
       '/help — esta mensagem'
     })
-  } else if (cmd === '/saldo') {
-    const [prov, gw] = await Promise.all([
-      fetchProviderBalanceCents(supabase),
-      fetchGatewayBalanceCents(supabase),
-    ])
-    await tg('sendMessage', { chat_id: chatId, parse_mode: 'HTML',
-      text:
-        `💼 <b>Saldos do painel</b>\n\n` +
-        `🏪 Lojinha: <b>${prov != null ? brl(prov) : 'indisponível'}</b>\n` +
-        `💳 MisticPay (Gateway PIX): <b>${gw != null ? brl(gw) : 'indisponível'}</b>`
-    })
-  } else if (cmd === '/saldos') {
+  } else if (cmd === '/saldo' && (sub === 'revendedores' || sub === 'revendedor' || sub === 'resellers')) {
     const { data: balances } = await supabase
       .from('reseller_balances')
       .select('balance_cents, reseller:resellers(display_name, is_active)')
@@ -262,6 +253,18 @@ Deno.serve(async (req) => {
         text: `💼 <b>Saldos dos revendedores (${rows.length})</b>\n${lines}${extra}\n\n💰 Total: <b>${brl(total)}</b>`,
       })
     }
+  } else if (cmd === '/saldo') {
+    const [prov, gw] = await Promise.all([
+      fetchProviderBalanceCents(supabase),
+      fetchGatewayBalanceCents(supabase),
+    ])
+    await tg('sendMessage', { chat_id: chatId, parse_mode: 'HTML',
+      text:
+        `💼 <b>Saldos do painel</b>\n\n` +
+        `🏪 Lojinha: <b>${prov != null ? brl(prov) : 'indisponível'}</b>\n` +
+        `💳 MisticPay (Gateway PIX): <b>${gw != null ? brl(gw) : 'indisponível'}</b>\n\n` +
+        `<i>Dica: use</i> <code>/saldo revendedores</code> <i>para ver os saldos dos revendedores.</i>`
+    })
   } else if (cmd === '/vendas') {
     const { data } = await supabase.from('balance_transactions')
       .select('amount_cents').eq('kind', 'order_debit').gte('created_at', todayIso)
