@@ -61,6 +61,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import ManagerPricingIssuesBanner from "@/components/painel/ManagerPricingIssuesBanner";
 import { useAllPricingIssues } from "@/hooks/useAllPricingIssues";
+import { PromotionAppliedBadge } from "@/components/PromotionAppliedBadge";
 
 function PricingIssuesAlert() {
   const { resellers } = useAllPricingIssues({ pollMs: 60_000 });
@@ -161,6 +162,8 @@ export default function GerenteDashboard() {
     ref_kind?: 'license' | 'credit' | null;
     license_type?: string | null;
     credits?: number | null;
+    promotion_id?: string | null;
+    promotion_discount_cents?: number | null;
   }[]>([]);
   const [apiLogs, setApiLogs] = useState<{ id: string; created_at: string; endpoint: string; reseller_name?: string; status_code: number }[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -213,7 +216,7 @@ export default function GerenteDashboard() {
       withTimeout(supabase.functions.invoke("provider-api?action=gateway-balance") as any, 8000, { data: null, error: null }),
       withTimeout(supabase.functions.invoke("lovable-credits-api?action=balance", { method: "GET" }) as any, 8000, { data: null, error: null }),
       supabase.from("recharge_intents").select("amount_cents").not("paid_at", "is", null).gte("paid_at", todayIsoEarly),
-      supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id, reference_id").order("created_at", { ascending: false }).limit(100),
+      supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id, reference_id, promotion_id").order("created_at", { ascending: false }).limit(100),
     ]);
 
     const balanceAny: any = balanceRes;
@@ -385,13 +388,13 @@ export default function GerenteDashboard() {
     const [{ data: enrichOrders }, { data: enrichCredits }] = await Promise.all([
       supabase
         .from("orders")
-        .select("id,reseller_id,price_cents,created_at,license_type,is_test,status,cancellation_status,cancelled_at,cancelled_by,client_refund_method,client_refunded_at,client_refund_error, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
+        .select("id,reseller_id,price_cents,created_at,license_type,is_test,status,cancellation_status,cancelled_at,cancelled_by,client_refund_method,client_refunded_at,client_refund_error,promotion_id,promotion_discount_cents, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
         .gte("created_at", enrichSince)
         .order("created_at", { ascending: false })
         .limit(300),
       supabase
         .from("reseller_credit_purchases")
-        .select("id,reseller_id,price_cents,credits,created_at,customer_name,customer_whatsapp,status,cancellation_status,cancelled_at,cancelled_by,client_refund_method,client_refunded_at,client_refund_error,error_message,provider_pedido_id")
+        .select("id,reseller_id,price_cents,credits,created_at,customer_name,customer_whatsapp,status,cancellation_status,cancelled_at,cancelled_by,client_refund_method,client_refunded_at,client_refund_error,error_message,provider_pedido_id,promotion_id,promotion_discount_cents")
         .gte("created_at", enrichSince)
         .order("created_at", { ascending: false })
         .limit(300),
@@ -408,6 +411,8 @@ export default function GerenteDashboard() {
       license_type?: string | null;
       credits?: number | null;
       cancel_reason?: string | null;
+      promotion_id?: string | null;
+      promotion_discount_cents?: number | null;
     };
     const enrichMap = new Map<string, EnrichVal>();
     const enrichById = new Map<string, EnrichVal>();
@@ -470,6 +475,8 @@ export default function GerenteDashboard() {
         ref_kind: 'license',
         license_type: o.license_type ?? null,
         cancel_reason: deriveCancelReason(o, 'license'),
+        promotion_id: o.promotion_id ?? null,
+        promotion_discount_cents: o.promotion_discount_cents ?? null,
       };
       enrichMap.set(keyOf(o.reseller_id, o.price_cents, o.created_at), val);
       if (o.id) enrichById.set(o.id, val);
@@ -486,6 +493,8 @@ export default function GerenteDashboard() {
         ref_kind: 'credit',
         credits: c.credits ?? null,
         cancel_reason: deriveCancelReason(c, 'credit'),
+        promotion_id: c.promotion_id ?? null,
+        promotion_discount_cents: c.promotion_discount_cents ?? null,
       };
       enrichMap.set(keyOf(c.reseller_id, c.price_cents, c.created_at), val);
       if (c.id) enrichById.set(c.id, val);
@@ -529,6 +538,8 @@ export default function GerenteDashboard() {
           license_type: enrich?.license_type ?? null,
           credits: enrich?.credits ?? null,
           cancel_reason: enrich?.cancel_reason ?? null,
+          promotion_id: m.promotion_id ?? enrich?.promotion_id ?? null,
+          promotion_discount_cents: enrich?.promotion_discount_cents ?? null,
         };
       }),
     );
@@ -973,6 +984,13 @@ export default function GerenteDashboard() {
                                         <span className="inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
                                           <Hand className="h-2.5 w-2.5" /> MisticPay
                                         </span>
+                                      )}
+                                      {(m as any).promotion_id && (
+                                        <PromotionAppliedBadge
+                                          promotionId={(m as any).promotion_id}
+                                          amountCents={(m as any).promotion_discount_cents ?? 0}
+                                          variant={m.kind === "promotion_bonus" || m.kind === "recharge" ? "bonus" : "discount"}
+                                        />
                                       )}
                                     </div>
                                    <div className="text-[9px] text-muted-foreground font-mono truncate">
