@@ -2,26 +2,33 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 
-export type DateRange = "all" | "today" | "week" | "month";
+export type DateRange = "all" | "today" | "week" | "month" | "custom";
+export type CustomRange = { from: Date; to: Date };
 
 const GATEWAY_FEE_CENTS_PER_RECHARGE = 50;
 
-function rangeStart(range: DateRange): Date | null {
+function rangeWindow(
+  range: DateRange,
+  custom?: CustomRange,
+): { start: Date | null; end: Date | null } {
   const now = new Date();
   if (range === "today") {
-    const d = new Date(now);
-    d.setHours(0, 0, 0, 0);
-    return d;
+    const s = new Date(now); s.setHours(0, 0, 0, 0);
+    return { start: s, end: null };
   }
   if (range === "week") {
-    const d = new Date(now);
-    d.setDate(d.getDate() - 7);
-    return d;
+    const s = new Date(now); s.setDate(s.getDate() - 7);
+    return { start: s, end: null };
   }
   if (range === "month") {
-    return new Date(now.getFullYear(), now.getMonth(), 1);
+    return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: null };
   }
-  return null;
+  if (range === "custom" && custom?.from) {
+    const s = new Date(custom.from); s.setHours(0, 0, 0, 0);
+    const e = new Date(custom.to ?? custom.from); e.setHours(23, 59, 59, 999);
+    return { start: s, end: e };
+  }
+  return { start: null, end: null };
 }
 
 export type FinancialOverview = {
@@ -50,14 +57,15 @@ export type FinancialOverview = {
   }>;
 };
 
-export function useFinancialOverview(range: DateRange) {
+export function useFinancialOverview(range: DateRange, customRange?: CustomRange) {
   const [data, setData] = useState<FinancialOverview | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const start = rangeStart(range);
+    const { start, end } = rangeWindow(range, customRange);
     const startIso = start?.toISOString();
+    const endIso = end?.toISOString();
 
     // Receita: recharge_intents paid
     let rQ = supabase
@@ -65,6 +73,7 @@ export function useFinancialOverview(range: DateRange) {
       .select("amount_cents, paid_at, reseller_id")
       .eq("status", "paid");
     if (startIso) rQ = rQ.gte("paid_at", startIso);
+    if (endIso) rQ = rQ.lte("paid_at", endIso);
     const { data: recharges } = await rQ;
     const rechargesArr = recharges || [];
     const rechargesRevenueCents = rechargesArr.reduce((s, r: any) => s + Number(r.amount_cents || 0), 0);
@@ -77,6 +86,7 @@ export function useFinancialOverview(range: DateRange) {
       .select("amount_cents, paid_at")
       .in("status", ["paid", "approved"]);
     if (startIso) apQ = apQ.gte("paid_at", startIso);
+    if (endIso) apQ = apQ.lte("paid_at", endIso);
     const { data: activations } = await apQ;
     const activationsArr = activations || [];
     const activationRevenueCents = activationsArr.reduce((s, a: any) => s + Number(a.amount_cents || 0), 0);
@@ -88,6 +98,7 @@ export function useFinancialOverview(range: DateRange) {
       .select("cost_cents, paid_at, created_at, reseller_id, status, product_type, credit_amount")
       .in("status", ["paid", "completed", "delivered", "manual_concluido", "manual_aceito"]);
     if (startIso) soQ = soQ.gte("paid_at", startIso);
+    if (endIso) soQ = soQ.lte("paid_at", endIso);
     const { data: storeOrders } = await soQ;
     const soArr = storeOrders || [];
 
@@ -97,6 +108,7 @@ export function useFinancialOverview(range: DateRange) {
       .select("cost_cents, created_at, reseller_id, status, credits")
       .in("status", ["sucesso", "manual_aceito", "manual_concluido"]);
     if (startIso) rcpQ = rcpQ.gte("created_at", startIso);
+    if (endIso) rcpQ = rcpQ.lte("created_at", endIso);
     const { data: creditPurchases } = await rcpQ;
     const rcpArr = creditPurchases || [];
 
@@ -174,6 +186,7 @@ export function useFinancialOverview(range: DateRange) {
       .from("manual_financial_entries")
       .select("entry_type, amount_cents, cost_cents, entry_date");
     if (startIso) mQ = mQ.gte("entry_date", startIso);
+    if (endIso) mQ = mQ.lte("entry_date", endIso);
     const { data: manuals } = await mQ;
     const manualArr = manuals || [];
     const manualRevenueCents = manualArr
@@ -310,7 +323,7 @@ export function useFinancialOverview(range: DateRange) {
       resellerSales,
     });
     setLoading(false);
-  }, [range]);
+  }, [range, customRange?.from?.getTime(), customRange?.to?.getTime()]);
 
   useEffect(() => {
     load();
