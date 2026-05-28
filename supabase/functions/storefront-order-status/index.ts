@@ -31,6 +31,7 @@ Deno.serve(async (req) => {
       "id,short_code,status,license_key,price_cents,license_type,product_type,credit_amount,buyer_name,paid_at,error_message,invite_link,expires_at";
 
     let order: any = null;
+    let matchedByShortCode = false;
 
     if (UUID_RE.test(raw)) {
       const { data } = await admin
@@ -48,9 +49,23 @@ Deno.serve(async (req) => {
         .eq("short_code", digits)
         .maybeSingle();
       order = data;
+      matchedByShortCode = true;
     }
 
     if (!order) return json({ error: "Pedido não encontrado" }, 404);
+
+    // Quando o pedido é localizado pelo short_code (5 dígitos, baixa entropia
+    // e enumerável por brute force), removemos credenciais sensíveis da resposta.
+    // O comprador legítimo recebe o UUID completo no fluxo de checkout e poderá
+    // ler license_key/invite_link via aquela rota.
+    if (matchedByShortCode) {
+      order = {
+        ...order,
+        license_key: null,
+        invite_link: null,
+      };
+    }
+
     return json({ order });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "erro interno" }, 500);
