@@ -178,8 +178,8 @@ Deno.serve(async (req) => {
               precoCentavos: local.price_cents,
               tipoEntrega: local.tipo_entrega,
               workspaceName: local.workspace_name,
-              workspaceId: local.workspace_id,
-              emailConta: local.email_conta_lovable,
+              // SECURITY: workspace_id, e-mail e provider_response não são
+              // devolvidos em endpoint público para não vazar PII / dados internos.
               createdAt: local.created_at,
               updatedAt: local.updated_at,
               errorMessage: local.error_message,
@@ -224,6 +224,26 @@ Deno.serve(async (req) => {
       body,
     });
     const data = await r.json();
+    // SECURITY: ao expor 'order' publicamente, remove campos sensíveis
+    // (custo interno, e-mail completo, resposta crua do provedor) que
+    // revelariam margem do revendedor ou dados internos do cliente.
+    if (action === "order" && data && typeof data === "object") {
+      const d = (data as any).data ?? data;
+      if (d && typeof d === "object") {
+        delete d.cost_cents;
+        delete d.costCents;
+        delete d.providerResponse;
+        delete d.provider_response;
+        if (typeof d.emailConta === "string") {
+          const [u, dom] = d.emailConta.split("@");
+          d.emailConta = u && dom ? `${u.slice(0, 2)}***@${dom}` : undefined;
+        }
+        if (typeof d.email === "string") {
+          const [u, dom] = d.email.split("@");
+          d.email = u && dom ? `${u.slice(0, 2)}***@${dom}` : undefined;
+        }
+      }
+    }
     return new Response(JSON.stringify(data), {
       status: r.status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
