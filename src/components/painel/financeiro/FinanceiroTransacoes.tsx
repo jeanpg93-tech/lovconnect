@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-import type { DateRange } from "@/hooks/useFinancialOverview";
+import type { DateRange, CustomRange } from "@/hooks/useFinancialOverview";
 
 type MisticTransaction = {
   id: number;
@@ -29,7 +29,7 @@ const statusMap: Record<string, { label: string; color: string; icon: any }> = {
   CANCELADO: { label: "Cancelado", color: "bg-muted text-muted-foreground", icon: XCircle },
 };
 
-export default function FinanceiroTransacoes({ dateFilter }: { dateFilter: DateRange }) {
+export default function FinanceiroTransacoes({ dateFilter, customRange }: { dateFilter: DateRange; customRange?: CustomRange }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<MisticTransaction[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -57,6 +57,11 @@ export default function FinanceiroTransacoes({ dateFilter }: { dateFilter: DateR
               const w = new Date(); w.setDate(now.getDate() - 7); return d >= w;
             }
             if (dateFilter === "month") return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            if (dateFilter === "custom" && customRange?.from) {
+              const s = new Date(customRange.from); s.setHours(0, 0, 0, 0);
+              const e = new Date(customRange.to ?? customRange.from); e.setHours(23, 59, 59, 999);
+              return d >= s && d <= e;
+            }
             return true;
           });
         }
@@ -70,7 +75,7 @@ export default function FinanceiroTransacoes({ dateFilter }: { dateFilter: DateR
       }
     };
     load();
-  }, [page, statusFilter, dateFilter, toast]);
+  }, [page, statusFilter, dateFilter, customRange?.from?.getTime(), customRange?.to?.getTime(), toast]);
 
   return (
     <div className="rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm">
