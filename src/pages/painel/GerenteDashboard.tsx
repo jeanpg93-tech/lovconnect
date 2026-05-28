@@ -161,6 +161,8 @@ export default function GerenteDashboard() {
     ref_kind?: 'license' | 'credit' | null;
     license_type?: string | null;
     credits?: number | null;
+    promotion_id?: string | null;
+    promotion_discount_cents?: number | null;
   }[]>([]);
   const [apiLogs, setApiLogs] = useState<{ id: string; created_at: string; endpoint: string; reseller_name?: string; status_code: number }[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -408,6 +410,8 @@ export default function GerenteDashboard() {
       license_type?: string | null;
       credits?: number | null;
       cancel_reason?: string | null;
+      promotion_id?: string | null;
+      promotion_discount_cents?: number | null;
     };
     const enrichMap = new Map<string, EnrichVal>();
     const enrichById = new Map<string, EnrichVal>();
@@ -470,6 +474,8 @@ export default function GerenteDashboard() {
         ref_kind: 'license',
         license_type: o.license_type ?? null,
         cancel_reason: deriveCancelReason(o, 'license'),
+        promotion_id: o.promotion_id ?? null,
+        promotion_discount_cents: o.promotion_discount_cents ?? null,
       };
       enrichMap.set(keyOf(o.reseller_id, o.price_cents, o.created_at), val);
       if (o.id) enrichById.set(o.id, val);
@@ -486,6 +492,8 @@ export default function GerenteDashboard() {
         ref_kind: 'credit',
         credits: c.credits ?? null,
         cancel_reason: deriveCancelReason(c, 'credit'),
+        promotion_id: c.promotion_id ?? null,
+        promotion_discount_cents: c.promotion_discount_cents ?? null,
       };
       enrichMap.set(keyOf(c.reseller_id, c.price_cents, c.created_at), val);
       if (c.id) enrichById.set(c.id, val);
@@ -529,6 +537,8 @@ export default function GerenteDashboard() {
           license_type: enrich?.license_type ?? null,
           credits: enrich?.credits ?? null,
           cancel_reason: enrich?.cancel_reason ?? null,
+          promotion_id: m.promotion_id ?? enrich?.promotion_id ?? null,
+          promotion_discount_cents: enrich?.promotion_discount_cents ?? null,
         };
       }),
     );
