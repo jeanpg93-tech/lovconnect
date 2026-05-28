@@ -2,7 +2,11 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/telegram'
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  if (req.headers.get('Authorization') !== `Bearer ${SERVICE_ROLE}`) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
+  }
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
   const TELEGRAM_API_KEY = Deno.env.get('TELEGRAM_API_KEY')
   if (!LOVABLE_API_KEY || !TELEGRAM_API_KEY) {

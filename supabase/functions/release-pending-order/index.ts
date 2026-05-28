@@ -64,6 +64,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    if (req.headers.get("Authorization") !== `Bearer ${SERVICE_ROLE}`) {
+      return json({ error: "unauthorized" }, 401);
+    }
+
     const body = await req.json().catch(() => ({}));
     const orderId = String(body?.order_id ?? "");
     if (!orderId) return json({ error: "missing order_id" }, 400);
