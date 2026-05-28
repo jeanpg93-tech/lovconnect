@@ -56,7 +56,7 @@ const Auth = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");
+    const ref = params.get("ref") || params.get("code") || params.get("c");
     if (ref) {
       setAffiliateCode(ref.toUpperCase());
       setMode("signup");
