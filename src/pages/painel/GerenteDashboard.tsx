@@ -642,27 +642,6 @@ export default function GerenteDashboard() {
   };
 
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-3">
-        <div className="relative h-12 w-12">
-          <div className="absolute inset-0 rounded-full border-2 border-primary/10" />
-          <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        </div>
-        <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-muted-foreground">carregando ecossistema</p>
-      </div>
-    );
-  }
-
-  const periodLabels: Record<string, string> = {
-    all: "Histórico completo",
-    today: "Hoje",
-    week: "Últimos 7 dias",
-    month: "Mês atual",
-    last_month: "Mês anterior",
-    custom: "Período personalizado",
-  };
-
   // Classifica cada movimentação em uma categoria de filtro
   const movCategoryOf = (m: { kind: string; description: string | null; detail?: string | null; amount_cents: number }): string => {
     const k = String(m.kind);
@@ -710,6 +689,27 @@ export default function GerenteDashboard() {
 
   // Reseta paginação quando filtros mudam
   useEffect(() => { setOrderPage(1); }, [movSearch, movType, movDirection]);
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center gap-3">
+        <div className="relative h-12 w-12">
+          <div className="absolute inset-0 rounded-full border-2 border-primary/10" />
+          <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        </div>
+        <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-muted-foreground">carregando ecossistema</p>
+      </div>
+    );
+  }
+
+  const periodLabels: Record<string, string> = {
+    all: "Histórico completo",
+    today: "Hoje",
+    week: "Últimos 7 dias",
+    month: "Mês atual",
+    last_month: "Mês anterior",
+    custom: "Período personalizado",
+  };
 
   return (
     <div className="space-y-6 sm:space-y-10 animate-in fade-in duration-700 max-w-7xl mx-auto px-1 sm:px-0">
