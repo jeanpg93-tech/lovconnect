@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json().catch(() => ({}));
-    const { purchaseId, chatId: chatIdOverride } = body as { purchaseId: string; chatId?: string };
+    const { purchaseId } = body as { purchaseId: string };
     if (!purchaseId) throw new Error("purchaseId obrigatório");
 
     const { data: settings } = await admin
@@ -118,7 +118,9 @@ Deno.serve(async (req) => {
       .eq("id", 1)
       .maybeSingle();
 
-    const chatId = chatIdOverride ?? (settings?.chat_id ? String(settings.chat_id) : null);
+    // Sempre usa o chat configurado no painel. Nenhum chat-id vindo do
+    // request é aceito — evita redirecionamento de PII para chats arbitrários.
+    const chatId = settings?.chat_id ? String(settings.chat_id) : null;
     if (!chatId) {
       return new Response(JSON.stringify({ skipped: "no chat" }), { status: 200, headers: corsHeaders });
     }
