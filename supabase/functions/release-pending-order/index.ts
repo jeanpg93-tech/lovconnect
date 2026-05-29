@@ -246,6 +246,10 @@ Deno.serve(async (req) => {
           await failAndRefund(admin, order, cost_cents, "Flow não configurado");
           return json({ ok: false, error: "no provider api key" }, 500);
         }
+        if (FLOW_DISALLOWED_TYPES.has(order.license_type)) {
+          await failAndRefund(admin, order, cost_cents, "Pacote indisponível para MétodoFlow (90d/365d desativado)");
+          return json({ ok: false, error: "pack not supported by flow" }, 400);
+        }
         const r = await fetch(`${base}/generate-license`, {
           method: "POST",
           headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
