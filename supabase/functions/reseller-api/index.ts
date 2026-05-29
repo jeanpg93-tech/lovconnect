@@ -688,13 +688,141 @@ Deno.serve(async (req) => {
       return json({ error: "Saldo insuficiente" }, 402);
     }
 
-    // Gera chave localmente (sem chamar provedor) — mesmo padrão do place-method-license-order
-    const license_key = genUnifiedKey(metodo, pacote);
+    // Função de estorno em caso de falha do provedor
+    const refund = async (reason: string, providerResp?: unknown) => {
+      await svc.rpc("credit_reseller_balance", {
+        _reseller_id: reseller.id,
+        _amount_cents: price_cents,
+        _kind: "api_refund",
+        _description: `Estorno API ${metodo}/${pacote}: ${reason}`,
+        _reference_id: order.id,
+      });
+      await svc.from("orders").update({
+        status: "refunded",
+        error_message: reason,
+        provider_response: providerResp ?? null,
+      }).eq("id", order.id);
+    };
+
+    // Chama o provedor REAL (igual place-method-license-order) — não gera chave local
+    let providerData: any = null;
+    let license_key: string | null = null;
+    try {
+      if (metodo === "lovax") {
+        const { data: settings } = await svc
+          .from("app_settings")
+          .select("key,value")
+          .in("key", ["lovax_api_token", "lovax_base_url"]);
+        const tk = settings?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined;
+        const bs = (settings?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined)
+          || DEFAULT_LOVAX_BASE;
+        if (!tk) {
+          await refund("MétodoLovax não configurado pelo gerente");
+          await logUsage(500, { error_message: "MétodoLovax não configurado" });
+          return json({ error: "MétodoLovax não configurado pelo gerente" }, 500);
+        }
+        const r = await fetch(bs, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tk}`, "x-api-key": tk, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "generate_license",
+            payload: {
+              customer_name: display_name,
+              days: packToLovaxDays(pacote),
+              hours: 0,
+              minutes: 0,
+              max_devices: 1,
+            },
+          }),
+        });
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        if (!r.ok || !providerData?.success) {
+          await refund(providerData?.error ?? `Lovax retornou ${r.status}`, providerData);
+          await logUsage(502, { error_message: "Falha Lovax" });
+          return json({ error: "Falha no MétodoLovax", details: providerData }, 502);
+        }
+        license_key = providerData?.license?.license_key ?? providerData?.license_key ?? providerData?.key ?? null;
+      } else {
+        const { data: cfg } = await svc.from("provider_settings")
+          .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+        const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
+        const base = cfg?.base_url ?? DEFAULT_BASE;
+        if (!apiKey) {
+          await refund("MétodoFlow não configurado pelo gerente");
+          await logUsage(500, { error_message: "MétodoFlow não configurado" });
+          return json({ error: "MétodoFlow não configurado pelo gerente" }, 500);
+        }
+        const r = await fetch(`${base}/generate-license`, {
+          method: "POST",
+          headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ ...packToFlowBody(pacote), display_name }),
+        });
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        if (!r.ok) {
+          await refund(`MétodoFlow retornou ${r.status}`, providerData);
+          await logUsage(502, { error_message: `Provedor ${r.status}` });
+          return json({ error: "Falha no MétodoFlow", details: providerData }, 502);
+        }
+        license_key = providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
+      }
+    } catch (e) {
+      await refund(e instanceof Error ? e.message : "Erro no provedor");
+      await logUsage(502, { error_message: "Erro provedor" });
+      return json({ error: "Erro ao chamar provedor" }, 502);
+    }
+
+    if (!license_key) {
+      await refund("Provedor não retornou chave de licença", providerData);
+      await logUsage(502, { error_message: "Sem license_key" });
+      return json({ error: "Provedor não retornou chave de licença" }, 502);
+    }
+
     await svc.from("orders").update({
-      status: "completed", license_key,
+      status: "completed",
+      license_key,
+      provider_response: providerData,
     }).eq("id", order.id);
     await svc.rpc("add_reseller_spent", { _reseller_id: reseller.id, _amount_cents: price_cents });
     await logUsage(200, { cost_cents: price_cents, license_type, license_key });
+
+    // Webhook (best-effort)
+    if (keyRow.webhook_url) {
+      const payload = {
+        event: "license.generated",
+        order_id: order.id,
+        reseller_id: reseller.id,
+        license_type,
+        metodo,
+        pacote,
+        license_key,
+        price_cents,
+        created_at: new Date().toISOString(),
+      };
+      try {
+        const resp = await fetch(keyRow.webhook_url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const respText = await resp.text().catch(() => "");
+        await svc.from("reseller_api_webhook_deliveries").insert({
+          api_key_id: keyRow.id, reseller_id: reseller.id,
+          event: "license.generated", target_url: keyRow.webhook_url,
+          payload, response_status: resp.status,
+          response_body: respText.slice(0, 1000),
+          delivered_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        await svc.from("reseller_api_webhook_deliveries").insert({
+          api_key_id: keyRow.id, reseller_id: reseller.id,
+          event: "license.generated", target_url: keyRow.webhook_url,
+          payload, response_status: 0,
+          response_body: e instanceof Error ? e.message : "fetch failed",
+        });
+      }
+    }
 
     return json({
       ok: true,
