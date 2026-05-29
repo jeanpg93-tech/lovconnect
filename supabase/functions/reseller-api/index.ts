@@ -579,7 +579,7 @@ Deno.serve(async (req) => {
 
     const result = UNIFIED_METHODS.filter((m) => m === guard.activeMethod && !guard.maintenance).map((m) => ({
       metodo: m,
-      pacotes: UNIFIED_PACKS.map((p) => {
+      pacotes: UNIFIED_PACKS.filter((p) => m !== "flow" || FLOW_ALLOWED_PACKS.has(p)).map((p) => {
         const cost_cents = costFor(m, p);
         const sale_cents = saleMap[`${m}|${p}`] ?? null;
         return {
