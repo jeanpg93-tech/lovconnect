@@ -534,7 +534,12 @@ export default function GerenteRevendedores() {
                   <div key={r.id} className="p-4 space-y-4 border-b border-white/5 bg-white/5 rounded-xl mb-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-bold text-foreground">{firstLastName(prof?.display_name)}</h3>
+                        <h3 className="font-bold text-foreground flex items-center gap-2">
+                          {firstLastName(prof?.display_name)}
+                          {r.billing_mode === "subscription" && (
+                            <Badge className="bg-violet-500/15 text-violet-400 border-violet-500/30 text-[9px] uppercase">Mensalista</Badge>
+                          )}
+                        </h3>
                         <p className="text-[11px] text-muted-foreground">@{r.display_name}</p>
                         <p className="text-xs text-muted-foreground">{prof?.email ?? "—"}</p>
                         <p className="text-[11px] text-muted-foreground font-mono">{formatPhoneBR(prof?.phone)}</p>
@@ -579,6 +584,9 @@ export default function GerenteRevendedores() {
                       </Button>
                       <Button className="flex-1 h-9 rounded-lg" size="sm" variant="secondary" onClick={() => openTestKeysConfig(r)}>
                         <Settings2 className="mr-2 h-4 w-4" /> Limite
+                      </Button>
+                      <Button className="flex-1 h-9 rounded-lg" size="sm" variant={r.billing_mode === "subscription" ? "default" : "secondary"} onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/mensalidade`)}>
+                        <Repeat className="mr-2 h-4 w-4" /> Mens.
                       </Button>
                       <Button size="icon" variant="destructive" className="h-9 w-9 rounded-lg shrink-0" onClick={() => deleteReseller(r)}>
                         <Trash2 className="h-4 w-4" />
