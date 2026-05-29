@@ -442,7 +442,20 @@ export default function PublicStorefront() {
       const { data, error } = await supabase.functions.invoke("license-reset-device", {
         body: { license_key: resetKey.trim() },
       });
-      if (error || (data as any)?.error) throw new Error((data as any)?.error ?? error?.message ?? "Erro ao resetar dispositivo");
+      if (error || (data as any)?.error) {
+        let msg = (data as any)?.error as string | undefined;
+        const ctx = (error as any)?.context;
+        if (!msg && ctx instanceof Response) {
+          try {
+            const body = await ctx.clone().text();
+            try {
+              const parsed = JSON.parse(body);
+              msg = parsed?.error;
+            } catch { msg = body || undefined; }
+          } catch { /* ignore */ }
+        }
+        throw new Error(msg ?? error?.message ?? "Erro ao resetar dispositivo");
+      }
       toast.success("Vínculos resetados com sucesso! Você já pode usar em outro dispositivo.");
       setResetKey("");
       // Após sucesso, mostra o aviso de segurança
