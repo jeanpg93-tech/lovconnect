@@ -1,44 +1,143 @@
-## Diagnóstico encontrado
 
-- O envio em si está funcionando: a fila `telegram_outbox` não tem pendências agora e as últimas mensagens foram enviadas.
-- O problema está antes do envio: nem toda movimentação gera uma linha confiável na fila.
-- Há tipos de movimentação que aparecem no painel e não são tratados como venda/recarga/estorno no gatilho atual, principalmente variações de créditos via API/manual e alguns estornos.
-- O gatilho atual captura erros internamente e apenas emite warning; isso impede a transação de quebrar, mas também dificulta descobrir quando uma notificação deixou de ser enfileirada.
-- Também há casos em que o débito é criado antes do pedido relacionado existir; nesses casos a notificação cai no texto genérico e pode perder detalhes, ou depender de atualização posterior.
+# Plano — Revendedor Mensalista
 
-## Plano de correção
+Criar um novo modo de cobrança ("mensalista") aplicável a revendedores específicos. Por enquanto será usado para 1 revendedor, mas já fica modelado para reutilizar no futuro sem refazer nada.
 
-1. **Atualizar o gatilho de movimentações**
-   - Cobrir explicitamente todos os tipos reais de `balance_transactions` encontrados:
-     - vendas de licença: `license_purchase`, `api_debit`
-     - vendas de créditos: `credit_purchase`, `credit_purchase_api`, `credit_purchase_api_manual`, `credit_recharge_api`
-     - recargas: `recharge`, `deposit`
-     - estornos/reembolsos: `refund`, `order_refund`, `license_purchase_refund`, `credit_purchase_refund`, `credit_purchase_api_refund`, `credit_purchase_api_manual_refund`, `credit_recharge_refund`, `api_refund`, `estorno`, `reembolso`
-     - manuais/ajustes: `manual_credit`, `manual_debit`, `adjustment`, `adjustment_debit`, `referral_commission`, `promotion_bonus`
-   - Manter os filtros do painel Telegram: vendas, recargas, estornos e outras movimentações.
+## Como vai funcionar (visão do usuário)
 
-2. **Criar mensagem garantida mesmo sem registro relacionado**
-   - Quando `reference_id` ainda estiver vazio ou o pedido relacionado ainda não existir, enviar uma notificação completa usando os dados da própria movimentação.
-   - Isso evita que vendas via API/manual deixem de ser notificadas por dependerem de um registro criado depois.
+**Para você (gerente):**
+- Novo card no perfil do revendedor com a flag **"Modo: Mensalista"** (toggle).
+- Ao ativar, abre uma área nova: **Cobranças do Mensalista** com:
+  - Botão **"Nova cobrança"** → escolhe tipo (Mensalidade, Parcela, Taxa avulsa), valor, data de vencimento e descrição. Gera PIX automaticamente via MisticPay.
+  - Botão **"Programar recorrência"** → ex: "Todo dia 3, R$ 500, com avisos 5 dias antes". O sistema cria as cobranças sozinho mês a mês.
+  - Lista de cobranças (pendente / paga / vencida / cancelada) com link do PIX, QR Code, data de pagamento, ações (cancelar, reenviar, marcar pago manual em caso de exceção).
+- Caso 1ª mensalidade parcelada (R$ 250 hoje + R$ 250 dia 3): você cria duas cobranças avulsas e depois ativa a recorrência mensal a partir do mês seguinte.
 
-3. **Adicionar rastreabilidade anti-silêncio**
-   - Criar uma tabela simples de auditoria de falhas do Telegram, com permissões adequadas.
-   - Alterar o gatilho para registrar qualquer erro nessa auditoria, em vez de apenas “engolir” a falha sem histórico.
-   - Assim, se uma futura notificação falhar no enfileiramento, fica visível exatamente qual movimentação falhou e por quê.
+**Para o revendedor mensalista:**
+- Aba **Recargas / Adicionar Saldo** fica oculta (ou exibe aviso "indisponível no seu plano").
+- Licenças são geradas **sem custo de saldo** (mensalidade cobre tudo) — nenhum débito em `reseller_balances`.
+- Nova aba **"Minhas Cobranças"** mostra pendências, vencidas e histórico, com QR/copia-cola do PIX.
+- Banner no topo do painel quando faltar ≤ 5 dias para vencer; banner vermelho quando vencido.
+- Se vencer e não pagar até as 00:00 do dia seguinte ao vencimento (BRT) → painel entra em estado **bloqueado**: redirect para `/cobranca-pendente` mostrando o(s) PIX em aberto. Não consegue gerar licença, acessar API, nada além de pagar.
+- Pagamento confirmado via webhook MisticPay → desbloqueia automaticamente.
 
-4. **Revisar o dispatcher do Telegram**
-   - Melhorar logs do `telegram-dispatch` para registrar quantas mensagens pendentes foram buscadas, enviadas e falharam.
-   - Preservar o retry em texto puro quando o Telegram rejeitar HTML.
+## O que muda no banco
 
-5. **Verificação final**
-   - Consultar a base após a migração para confirmar:
-     - gatilho ativo em `balance_transactions`
-     - configurações do Telegram ligadas
-     - fila sem pendências antigas
-     - novos tipos mapeados corretamente
-   - Testar com uma chamada controlada/consulta de consistência sem criar venda real indevida.
+Resumo em português (detalhes técnicos na próxima seção):
+- Nova flag por revendedor: modo de cobrança ("normal" ou "mensalista").
+- Nova tabela de **cobranças do mensalista** (valor, vencimento, status, link PIX).
+- Nova tabela de **recorrências** (regra "todo dia X do mês, valor Y").
+- Job diário que: (a) gera cobranças da recorrência, (b) marca vencidas, (c) bloqueia o painel automaticamente.
 
-## Arquivos/áreas afetadas
+## Onde aparece no painel
 
-- Banco de dados: função `public.trg_telegram_balance_tx`, possível tabela de auditoria e permissões.
-- Backend function: `supabase/functions/telegram-dispatch/index.ts` para logs e robustez.
+- **Gerente** → página do revendedor (`GerenteRevendedores`) ganha uma aba/seção **"Mensalidade"** (só aparece quando o modo está ativo). Toggle de ativação fica no topo do perfil.
+- **Revendedor mensalista** → nova entrada na sidebar **"Minhas Cobranças"** substituindo "Adicionar Saldo". Aba **Recargas/Precificação > Recargas** some.
+
+## Detalhes técnicos
+
+### Schema (migration)
+
+```sql
+-- 1. Flag no revendedor
+ALTER TABLE public.resellers
+  ADD COLUMN billing_mode text NOT NULL DEFAULT 'normal'
+  CHECK (billing_mode IN ('normal','subscription'));
+
+-- 2. Cobranças
+CREATE TABLE public.reseller_subscription_charges (
+  id uuid PK,
+  reseller_id uuid NOT NULL REFERENCES resellers,
+  kind text CHECK (kind IN ('monthly','installment','one_off')),
+  description text,
+  amount_cents bigint NOT NULL,
+  due_date date NOT NULL,
+  status text CHECK (status IN ('pending','paid','overdue','cancelled')) DEFAULT 'pending',
+  provider text DEFAULT 'misticpay',
+  provider_charge_id text,
+  pix_payload text,        -- copia-cola
+  pix_qr_base64 text,
+  paid_at timestamptz,
+  cancelled_at timestamptz,
+  recurrence_id uuid,      -- FK opcional para origem
+  created_by uuid,
+  created_at/updated_at
+);
+
+-- 3. Recorrências
+CREATE TABLE public.reseller_subscription_recurrences (
+  id uuid PK,
+  reseller_id uuid NOT NULL,
+  amount_cents bigint NOT NULL,
+  day_of_month int CHECK (day_of_month BETWEEN 1 AND 28),
+  description text,
+  warning_days_before int DEFAULT 5,
+  is_active boolean DEFAULT true,
+  next_generation_date date,
+  created_at/updated_at
+);
+
+-- 4. Estado de bloqueio (campo derivado, mas materializado pra performance)
+ALTER TABLE public.resellers
+  ADD COLUMN subscription_blocked boolean NOT NULL DEFAULT false,
+  ADD COLUMN subscription_blocked_at timestamptz;
+```
+
+GRANT + RLS:
+- Gerente: full CRUD nas duas tabelas via policies `has_role(... 'gerente')`.
+- Revendedor: `SELECT` apenas das próprias cobranças (`reseller_id = (SELECT id FROM resellers WHERE user_id = auth.uid())`).
+- `service_role`: ALL (edge functions).
+
+### Edge functions novas
+- `subscription-create-charge` → cria cobrança + gera PIX MisticPay.
+- `subscription-cron-tick` (cron diário 00:05 BRT via pg_cron + pg_net):
+  1. Gera cobranças das recorrências cuja `next_generation_date <= hoje`.
+  2. Marca `pending` com `due_date < hoje` como `overdue`.
+  3. Para cada revendedor mensalista com alguma `overdue`, set `subscription_blocked = true`.
+  4. Para cada revendedor sem nenhuma overdue, set `subscription_blocked = false`.
+- `subscription-cancel-charge`.
+- Webhook MisticPay existente (`misticpay-webhook`) — adicionar handler: quando `reference_kind = 'subscription_charge'`, marca cobrança como `paid` e re-roda passo 3/4 daquele revendedor.
+
+### Bloqueio no frontend
+- `useAuth`/`useRole` já carregam o reseller — adicionar `subscription_blocked` e `billing_mode` ao retorno.
+- `AppLayout`: se `subscription_blocked` → redirect forçado para `/painel/cobranca-pendente` (exceto rotas de logout).
+- Sidebar (`AppSidebar`/`MobileNav`): se `billing_mode='subscription'` → esconder "Adicionar Saldo", "Precificação > Recargas", "Comprar Créditos"; adicionar "Minhas Cobranças".
+- Lançamento de licença (`place-method-license-order`, `reseller-api`): se `billing_mode='subscription'` → pular débito de saldo (custo = 0, mas continua registrando a venda para histórico).
+
+### Páginas/Componentes novos
+- `src/pages/painel/GerenteRevendedorMensalidade.tsx` (aba dentro de `GerenteRevendedores`).
+- `src/pages/painel/RevendedorCobrancas.tsx` (lista pra ele).
+- `src/pages/painel/CobrancaPendente.tsx` (tela de bloqueio).
+- `src/components/painel/subscription/NewChargeDialog.tsx`, `RecurrenceDialog.tsx`, `ChargesTable.tsx`.
+
+### Avisos no painel do revendedor
+- Hook `useSubscriptionStatus` busca a próxima cobrança pendente.
+- Banner: amarelo se `due_date - hoje <= warning_days_before`, vermelho se `overdue`.
+- Notificação (`notifications` table) criada pelo cron 5 dias antes do vencimento.
+
+## O que NÃO está incluso (deixar pra depois se precisar)
+
+- Boleto/cartão (só PIX nesta v1).
+- Multa/juros automáticos por atraso.
+- Relatório financeiro consolidado das mensalidades (entra no Financeiro Geral em iteração 2).
+- Painel do próprio revendedor para "antecipar pagamentos" — só vê e paga o que você gerou.
+
+## Ordem de implementação sugerida
+
+1. Migration (schema + RLS + grants).
+2. Toggle de modo + ocultar recargas/saldo na UI do revendedor.
+3. Tela do gerente: criar cobrança avulsa + integração PIX MisticPay.
+4. Webhook → marca paga.
+5. Tela "Minhas Cobranças" do revendedor + banner de aviso.
+6. Cron diário (geração de recorrências + overdue + bloqueio).
+7. Tela de bloqueio + redirect.
+8. Recorrência configurável no painel do gerente.
+
+Cada etapa é entregável independente — dá pra testar com o revendedor real já na etapa 4.
+
+---
+
+**Confirma se faz sentido?** Algumas coisas que assumi e quero validar antes de codar:
+- Bloqueio às 00:00 BRT do dia seguinte ao vencimento (não exatamente no vencimento, pra dar o dia inteiro). Pode ser?
+- Recorrência só dia 1–28 (pra evitar problema com fevereiro). OK?
+- Aviso de "faltam X dias" sai por notificação no sino + banner no painel — você quer também por WhatsApp/Telegram?
