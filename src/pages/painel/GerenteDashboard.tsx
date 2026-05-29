@@ -1075,12 +1075,21 @@ export default function GerenteDashboard() {
                                         <span className={`text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${tone.bg} ${tone.text} ${tone.border}`}>{kindLabel}</span>
                                       )}
                                        {isRefund && (m as any).cancel_reason && (
-                                         <span
-                                           title={`Motivo: ${(m as any).cancel_reason}`}
-                                           className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md font-mono border ${tone.bg} ${tone.text} ${tone.border} cursor-help`}
-                                         >
-                                           <Info className="h-2.5 w-2.5" /> motivo
-                                         </span>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              toast({
+                                                title: "Motivo do cancelamento",
+                                                description: String((m as any).cancel_reason),
+                                              });
+                                            }}
+                                            title={`Motivo: ${(m as any).cancel_reason}`}
+                                            className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md font-mono border ${tone.bg} ${tone.text} ${tone.border} cursor-pointer hover:opacity-80 transition-opacity`}
+                                          >
+                                            <Info className="h-2.5 w-2.5" /> motivo
+                                          </button>
                                        )}
                                       {isManualCredit && (
                                         <span className="inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono bg-amber-500/15 text-amber-600 border border-amber-500/30">
