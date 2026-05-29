@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { PageContainer } from "@/components/painel/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { BarChart3, Receipt, PencilLine, CalendarIcon, X } from "lucide-react";
+import { BarChart3, Receipt, PencilLine, CalendarIcon, X, Repeat } from "lucide-react";
 import FinanceiroVisaoGeral from "@/components/painel/financeiro/FinanceiroVisaoGeral";
 import FinanceiroTransacoes from "@/components/painel/financeiro/FinanceiroTransacoes";
 import FinanceiroLancamentosManuais from "@/components/painel/financeiro/FinanceiroLancamentosManuais";
+import FinanceiroMensalidades from "@/components/painel/financeiro/FinanceiroMensalidades";
 import type { DateRange, CustomRange } from "@/hooks/useFinancialOverview";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -139,6 +140,9 @@ export default function GerenteFinanceiroGeral() {
           <TabsTrigger value="transactions" className="gap-2">
             <Receipt className="h-4 w-4" /> Transações
           </TabsTrigger>
+          <TabsTrigger value="subscriptions" className="gap-2">
+            <Repeat className="h-4 w-4" /> Mensalidades
+          </TabsTrigger>
           <TabsTrigger value="manual" className="gap-2">
             <PencilLine className="h-4 w-4" /> Lançamentos Manuais
           </TabsTrigger>
@@ -149,6 +153,9 @@ export default function GerenteFinanceiroGeral() {
         </TabsContent>
         <TabsContent value="transactions" className="mt-0">
           <FinanceiroTransacoes dateFilter={dateFilter} customRange={customRange} />
+        </TabsContent>
+        <TabsContent value="subscriptions" className="mt-0">
+          <FinanceiroMensalidades range={dateFilter} customRange={customRange} />
         </TabsContent>
         <TabsContent value="manual" className="mt-0">
           <FinanceiroLancamentosManuais />
