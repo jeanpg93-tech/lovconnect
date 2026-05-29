@@ -128,7 +128,7 @@ GRANT + RLS: gerente full CRUD (`has_role('gerente')`); revendedor só `SELECT` 
 - `ChargesTable` (cancelar, copiar PIX, marcar pago manual).
 - **Entregável**: você cria e cobra as duas parcelas iniciais de R$ 250 do revendedor real.
 
-### Fase 4 — Onboarding bloqueado + Minhas Cobranças
+### Fase 4 — Onboarding bloqueado + Minhas Cobranças ✅
 - `SubscriptionLockOverlay` (blur + `OnboardingPixCard` com botão "Gerar PIX da 1ª parcela R$ 250" e prévia da 2ª).
 - Webhook completa onboarding e desbloqueia automaticamente.
 - `RevendedorCobrancas` (Minhas Cobranças) responsiva com QR/copia-cola.
