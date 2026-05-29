@@ -150,12 +150,17 @@ GRANT + RLS: gerente full CRUD (`has_role('gerente')`); revendedor só `SELECT` 
 - `subscription-create-charge` aceita chamadas internas com service-role (sem gate de gerente) e grava `recurrence_id` para rastreabilidade.
 - **Entregável**: programa "dia 3, R$ 500" e esquece.
 
-### Fase 7 — Dashboard + Telegram + Financeiro reformulado (gerente)
-- Badge roxo "Mensalista" no card de `GerenteRevendedores`.
-- Vendas do mensalista no `GerenteDashboard` com badge/cor distinta + filtro "Tipo".
-- `telegram-dispatch` 🟣 "Venda Mensalista" só pro gerente (flag `notify_subscription_sales`).
-- `GerenteFinanceiroGeral`: categoria "Mensalidades", KPIs MRR/recebido/em aberto/vencido, filtros (revendedor/tipo/status/período), gráficos separados normal vs mensalista, export CSV com coluna "Tipo".
-- **Entregável**: acompanha vendas em tempo real e bate o caixa do mês com os dois fluxos separados.
+### Fase 7 — Telegram + Financeiro reformulado (gerente) ✅
+- Badge roxo "Mensalista" em `GerenteRevendedores` (Fase 1).
+- Telegram: nova flag `notify_subscription_sales` em `telegram_settings`, toggle no `GerenteTelegram`. Webhook MisticPay envia "🟣 Venda Mensalista" ao gerente quando uma cobrança mensalista é paga.
+- `GerenteFinanceiroGeral` ganhou a aba **Mensalidades** com:
+  - KPIs: MRR Ativo, Recebido (período), Em aberto, Vencido.
+  - Filtros responsivos: busca, revendedor, tipo (mensalidade/parcela/avulsa), status.
+  - Tabela responsiva (cards no mobile) com onboarding badge e datas.
+  - Export CSV com coluna Tipo + dados completos.
+- **Entregável**: acompanha vendas mensalistas em tempo real e bate o caixa separado das vendas normais.
+
+_Refinamento futuro (fora desta v1): badge/cor distintos no `GerenteDashboard` e filtro "Tipo" no gráfico geral — o fluxo já fica isolado na nova aba._
 
 ---
 

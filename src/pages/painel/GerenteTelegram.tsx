@@ -20,6 +20,7 @@ type Settings = {
   notify_refunds: boolean;
   notify_reseller_activity: boolean;
   notify_low_balance: boolean;
+  notify_subscription_sales: boolean;
   low_balance_threshold_cents: number;
 };
 
@@ -208,6 +209,7 @@ export default function GerenteTelegram() {
             </div>
             {[
               { key: "notify_sales", label: "🛒 Vendas na loja", desc: "Quando um cliente paga um PIX e a venda é confirmada" },
+              { key: "notify_subscription_sales", label: "🟣 Vendas Mensalistas", desc: "Cobranças de mensalidade/parcela pagas por revendedores no modo Mensalista" },
               { key: "notify_recharges", label: "💰 Recargas de saldo", desc: "Quando um revendedor recarrega o saldo" },
               { key: "notify_signups", label: "🆕 Novos cadastros", desc: "Cadastros aguardando aprovação" },
               { key: "notify_refunds", label: "↩️ Reembolsos", desc: "Estornos e reembolsos processados" },
