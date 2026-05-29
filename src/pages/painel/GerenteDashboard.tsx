@@ -1125,26 +1125,24 @@ export default function GerenteDashboard() {
                                         />
                                       )}
                                     </div>
-                                   <div className="text-[9px] text-muted-foreground font-mono truncate">
-                                     {isRecharge && (m as any).recharge_base_cents != null && Number((m as any).recharge_bonus_cents ?? 0) > 0 ? (
-                                       <span>
-                                         {formatBRL(Number((m as any).recharge_base_cents))}
-                                         {" + bônus "}
-                                         {Math.round((Number((m as any).recharge_bonus_cents) / Math.max(1, Number((m as any).recharge_base_cents))) * 100)}%
-                                         {" ("}
-                                         {formatBRL(Number((m as any).recharge_bonus_cents))}
-                                         {") = "}
-                                         <span className="text-emerald-600 font-semibold">{formatBRL(Math.abs(m.amount_cents))}</span>
-                                       </span>
-                                     ) : isRecharge && (m as any).recharge_base_cents != null ? (
-                                       <span>
-                                         {formatBRL(Number((m as any).recharge_base_cents))}
-                                         {" (sem bônus)"}
-                                       </span>
-                                     ) : (
-                                       m.detail ? m.detail : (desc || '—')
-                                     )}
-                                   </div>
+                                    <div className="text-[9px] text-muted-foreground font-mono break-words leading-snug">
+                                      {isRecharge && (m as any).recharge_base_cents != null && Number((m as any).recharge_bonus_cents ?? 0) > 0 ? (
+                                        <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                                          <span>{formatBRL(Number((m as any).recharge_base_cents))}</span>
+                                          <span className="text-emerald-600 font-semibold">
+                                            + {Math.round((Number((m as any).recharge_bonus_cents) / Math.max(1, Number((m as any).recharge_base_cents))) * 100)}% bônus
+                                          </span>
+                                          <span>({formatBRL(Number((m as any).recharge_bonus_cents))})</span>
+                                        </span>
+                                      ) : isRecharge && (m as any).recharge_base_cents != null ? (
+                                        <span>
+                                          {formatBRL(Number((m as any).recharge_base_cents))}
+                                          {" (sem bônus)"}
+                                        </span>
+                                      ) : (
+                                        <span className="truncate block">{m.detail ? m.detail : (desc || '—')}</span>
+                                      )}
+                                    </div>
                                    {(m.ref_short || m.ref_created_at) && (
                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] pt-0.5 font-mono">
                                        {m.ref_short && (
