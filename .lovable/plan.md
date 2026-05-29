@@ -120,7 +120,7 @@ GRANT + RLS: gerente full CRUD (`has_role('gerente')`); revendedor só `SELECT` 
 - Sidebar substitui Pedidos/Saldo por Gerar Chave + Minhas Chaves.
 - **Entregável**: ele gera, lista, revoga e reseta chaves sozinho.
 
-### Fase 3 — Cobrança avulsa + PIX MisticPay (gerente)
+### Fase 3 — Cobrança avulsa + PIX MisticPay (gerente) ✅
 - Toggle "Modo Mensalista" no perfil + aba "Mensalidade".
 - `NewChargeDialog` (tipo, valor, vencimento, descrição).
 - `subscription-create-charge` gera PIX MisticPay.
