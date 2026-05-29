@@ -830,6 +830,22 @@ Deno.serve(async (req) => {
           }
           return json({ ok: false, error: "no provider api key" }, 500);
         }
+        if (FLOW_DISALLOWED_TYPES.has(storeOrder.license_type)) {
+          await admin.from("storefront_orders").update({
+            status: "failed",
+            error_message: "Pacote indisponível para MétodoFlow (90d/365d desativado)",
+          }).eq("id", storeOrder.id);
+          if (cost_cents > 0) {
+            await admin.rpc("credit_reseller_balance", {
+              _reseller_id: storeOrder.reseller_id,
+              _amount_cents: cost_cents,
+              _kind: "order_refund",
+              _description: `Estorno (pacote ${storeOrder.license_type} indisponível no Flow): ${storeOrder.id}`,
+              _reference_id: storeOrder.id,
+            });
+          }
+          return json({ ok: false, error: "pack not supported by flow" }, 400);
+        }
         const r = await fetch(`${base}/generate-license`, {
           method: "POST",
           headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
