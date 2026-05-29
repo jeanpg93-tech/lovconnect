@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +12,12 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
+import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type Reseller = {
-  id: string; user_id: string; display_name: string; slug: string; is_active: boolean; test_keys_used_today: number; test_keys_per_day_override: number | null; activation_status?: string | null;
+  id: string; user_id: string; display_name: string; slug: string; is_active: boolean; test_keys_used_today: number; test_keys_per_day_override: number | null; activation_status?: string | null; billing_mode?: string | null;
 };
 type Profile = { id: string; email: string; display_name: string | null; phone: string | null; is_banned: boolean | null };
 type Tier = { id: string; name: string; color: string; min_spent_cents: number; is_active: boolean; is_hidden: boolean; test_keys_per_day: number; sort_order: number };
@@ -65,6 +66,7 @@ const ActivationBadge = ({ status }: { status?: string | null }) => {
 };
 
 export default function GerenteRevendedores() {
+  const navigate = useNavigate();
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [profilesByUser, setProfilesByUser] = useState<Record<string, Profile>>({});
   const [balancesByReseller, setBalancesByReseller] = useState<Record<string, number>>({});
