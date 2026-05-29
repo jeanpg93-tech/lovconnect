@@ -1035,9 +1035,7 @@ export default function GerenteDashboard() {
                           // Tom: entrada=verde, venda/compra=azul (destaque), outras saídas=vermelho
                           const tone = isRefund
                             ? (isIn
-                                ? (isSaleRefund
-                                    ? { bg: "bg-amber-500/10", text: "text-amber-600", border: "border-amber-500/30", ring: "" }
-                                    : { bg: "bg-sky-500/10", text: "text-sky-600", border: "border-sky-500/30", ring: "" })
+                                ? { bg: "bg-rose-500/10", text: "text-rose-500", border: "border-rose-500/40", ring: "ring-1 ring-rose-500/20 shadow-[0_0_0_3px_hsl(var(--background))]" }
                                 : { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/30", ring: "" })
                             : isIn
                             ? { bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20", ring: "" }
