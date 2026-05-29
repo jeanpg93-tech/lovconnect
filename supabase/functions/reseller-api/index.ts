@@ -614,6 +614,13 @@ Deno.serve(async (req) => {
       await logUsage(400, { error_message: "pacote inválido" });
       return json({ error: "pacote inválido", permitidos: UNIFIED_PACKS }, 400);
     }
+    if (metodo === "flow" && !FLOW_ALLOWED_PACKS.has(pacote)) {
+      await logUsage(400, { error_message: "pacote indisponível para MétodoFlow" });
+      return json({
+        error: "Pacote indisponível para MétodoFlow. O provedor entrega no máximo 30 dias ou vitalício.",
+        permitidos: Array.from(FLOW_ALLOWED_PACKS),
+      }, 400);
+    }
     const guard = await getDeliveryGuard(svc);
     const denied = assertDeliveryAllowed(metodo, guard);
     if (denied) {
