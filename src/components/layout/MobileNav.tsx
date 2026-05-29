@@ -159,7 +159,7 @@ export function MobileNav() {
         <div className="relative">
           {/* Main Bar */}
           <nav className="flex h-[72px] w-full items-center justify-between px-4 pb-[env(safe-area-inset-bottom)] bg-background/95 backdrop-blur-xl border-t border-border">
-            {navItems.map((item, idx) => {
+            {navItems.filter((it: any) => !it.hidden).map((item, idx) => {
               const Icon = item.icon;
               
               if (item.isAction) {
