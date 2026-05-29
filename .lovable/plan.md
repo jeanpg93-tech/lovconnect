@@ -136,11 +136,11 @@ GRANT + RLS: gerente full CRUD (`has_role('gerente')`); revendedor só `SELECT` 
 - Notificação no sino: ao gerar cobrança e 5 dias antes do vencimento.
 - **Entregável**: revendedor entra, paga 1ª parcela, painel libera; depois paga 2ª pela aba.
 
-### Fase 5 — Bloqueio automático + cron
-- `/painel/cobranca-pendente` com PIX em aberto (responsiva).
-- `AppLayout` redireciona quando `subscription_blocked=true`.
-- `subscription-cron-tick` (00:05 BRT via pg_cron + pg_net): marca overdue, bloqueia, desbloqueia.
-- Webhook desbloqueia em tempo real.
+### Fase 5 — Bloqueio automático + cron ✅
+- `SubscriptionLockOverlay` em modo `blocked` cobre o painel quando `subscription_blocked=true` (lista cobranças vencidas/pendentes com PIX/QR/copia-cola).
+- `AppLayout` aplica o overlay + `inert` quando bloqueado.
+- `subscription-cron-tick` (pg_cron 00:05 BRT / 03:05 UTC via pg_net): marca overdue, bloqueia mensalistas com overdue, desbloqueia quem não tem mais overdue.
+- Webhook MisticPay continua desbloqueando em tempo real ao confirmar pagamento (já feito na Fase 3).
 - **Entregável**: vencimento bloqueia painel sozinho; pagamento libera.
 
 ### Fase 6 — Recorrência configurável
