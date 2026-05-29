@@ -417,7 +417,7 @@ Deno.serve(async (req) => {
       }
 
       const payload: Record<string, unknown> = isTrial
-        ? { minutes: 30, seconds: 0 }
+        ? { minutes: 15, seconds: 0 }
         : mapTypeToProviderBody(body.type);
       if (typeof body.display_name === "string" && body.display_name.trim()) {
         payload.display_name = body.display_name.trim().slice(0, 100);
@@ -456,7 +456,7 @@ Deno.serve(async (req) => {
       const r = await fetch(`${base}/generate-trial`, {
         method: "POST",
         headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ display_name: name.slice(0, 100), minutes: 30, seconds: 0 }),
+        body: JSON.stringify({ display_name: name.slice(0, 100), minutes: 15, seconds: 0 }),
       });
       const data = await safeJson(r);
       console.log("[public-generate-trial] provider response:", JSON.stringify(data));
