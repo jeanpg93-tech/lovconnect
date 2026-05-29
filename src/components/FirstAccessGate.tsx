@@ -70,9 +70,13 @@ export function FirstAccessGate({ userId, children }: Props) {
         const { error } = await supabase.auth.updateUser({ password: pwd });
         if (error) throw error;
       }
-      const update: Record<string, any> = { must_change_password: false };
+      const update: {
+        must_change_password: boolean;
+        display_name?: string;
+        whatsapp?: string;
+      } = { must_change_password: false };
       if (needName) update.display_name = name.trim();
-      if (needWa) update.whatsapp = waClean;
+      if (needWa && waClean) update.whatsapp = waClean;
       const { error: pErr } = await supabase.from("profiles").update(update).eq("id", userId);
       if (pErr) throw pErr;
       toast.success("Cadastro concluído!");
