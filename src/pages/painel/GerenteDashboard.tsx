@@ -166,6 +166,8 @@ export default function GerenteDashboard() {
     credits?: number | null;
     promotion_id?: string | null;
     promotion_discount_cents?: number | null;
+    recharge_base_cents?: number | null;
+    recharge_bonus_cents?: number | null;
   }[]>([]);
   const [apiLogs, setApiLogs] = useState<{ id: string; created_at: string; endpoint: string; reseller_name?: string; status_code: number }[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -289,7 +291,7 @@ export default function GerenteDashboard() {
         .limit(FETCH_LIMIT),
       supabase
         .from("recharge_intents")
-        .select("id,created_at,status,amount_cents,reseller_id,payer_name,paid_at")
+        .select("id,created_at,status,amount_cents,bonus_cents,reseller_id,payer_name,paid_at")
         .order("created_at", { ascending: false })
         .limit(FETCH_LIMIT),
     ]);
@@ -510,6 +512,15 @@ export default function GerenteDashboard() {
       "refund", "credit_purchase_refund", "estorno", "reembolso", "cancelado", "cancellation",
     ]);
 
+    // Mapa de recargas para mostrar detalhamento (base + bônus) nas movimentações
+    const rechargeBreakdownById = new Map<string, { base_cents: number; bonus_cents: number }>();
+    rechargesData.forEach((r: any) => {
+      rechargeBreakdownById.set(r.id, {
+        base_cents: Number(r.amount_cents ?? 0),
+        bonus_cents: Number(r.bonus_cents ?? 0),
+      });
+    });
+
     setCreditMovements(
       movesData.map((m: any) => {
         const cents = Number(m.amount_cents ?? 0);
@@ -527,6 +538,9 @@ export default function GerenteDashboard() {
         const detail = enrich?.detail
           ? (isRefund ? `Estorno de: ${enrich.detail}` : enrich.detail)
           : null;
+        const rb = m.kind === "recharge" && m.reference_id
+          ? rechargeBreakdownById.get(m.reference_id)
+          : undefined;
         return {
           id: m.id,
           created_at: m.created_at,
@@ -546,6 +560,8 @@ export default function GerenteDashboard() {
           cancel_reason: enrich?.cancel_reason ?? null,
           promotion_id: m.promotion_id ?? enrich?.promotion_id ?? null,
           promotion_discount_cents: enrich?.promotion_discount_cents ?? null,
+          recharge_base_cents: rb?.base_cents ?? null,
+          recharge_bonus_cents: rb?.bonus_cents ?? null,
         };
       }),
     );
@@ -1110,7 +1126,24 @@ export default function GerenteDashboard() {
                                       )}
                                     </div>
                                    <div className="text-[9px] text-muted-foreground font-mono truncate">
-                                     {m.detail ? m.detail : (desc || '—')}
+                                     {isRecharge && (m as any).recharge_base_cents != null && Number((m as any).recharge_bonus_cents ?? 0) > 0 ? (
+                                       <span>
+                                         {formatBRL(Number((m as any).recharge_base_cents))}
+                                         {" + bônus "}
+                                         {Math.round((Number((m as any).recharge_bonus_cents) / Math.max(1, Number((m as any).recharge_base_cents))) * 100)}%
+                                         {" ("}
+                                         {formatBRL(Number((m as any).recharge_bonus_cents))}
+                                         {") = "}
+                                         <span className="text-emerald-600 font-semibold">{formatBRL(Math.abs(m.amount_cents))}</span>
+                                       </span>
+                                     ) : isRecharge && (m as any).recharge_base_cents != null ? (
+                                       <span>
+                                         {formatBRL(Number((m as any).recharge_base_cents))}
+                                         {" (sem bônus)"}
+                                       </span>
+                                     ) : (
+                                       m.detail ? m.detail : (desc || '—')
+                                     )}
                                    </div>
                                    {(m.ref_short || m.ref_created_at) && (
                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] pt-0.5 font-mono">
