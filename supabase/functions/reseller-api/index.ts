@@ -137,10 +137,14 @@ Deno.serve(async (req) => {
   if (keyRow.scope && keyRow.scope !== "keys") return json({ error: "API key não autorizada para este endpoint" }, 403);
 
   const { data: reseller } = await svc.from("resellers")
-    .select("id, display_name, slug, is_active, activation_status").eq("id", keyRow.reseller_id).maybeSingle();
+    .select("id, display_name, slug, is_active, activation_status, billing_mode, subscription_blocked").eq("id", keyRow.reseller_id).maybeSingle();
   if (!reseller || !reseller.is_active) return json({ error: "Reseller inactive" }, 403);
   if (reseller.activation_status && reseller.activation_status !== "active") {
     return json({ error: "activation_required", message: "Painel pendente de ativação (R$ 200)" }, 403);
+  }
+  const isSubscription = (reseller as any).billing_mode === "subscription";
+  if (isSubscription && (reseller as any).subscription_blocked) {
+    return json({ error: "subscription_blocked", message: "Painel bloqueado por cobrança em aberto" }, 403);
   }
 
   const ip = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? null;
