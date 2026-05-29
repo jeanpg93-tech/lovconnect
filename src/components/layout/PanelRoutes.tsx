@@ -21,6 +21,7 @@ const GerenteApiSistema = lazy(() => import("@/pages/painel/GerenteApiSistema"))
 const GerenteResetarChave = lazy(() => import("@/pages/painel/GerenteResetarChave"));
 const GerenteUploadExtensao = lazy(() => import("@/pages/painel/GerenteUploadExtensao"));
 const GerenteRevendedorPrecos = lazy(() => import("@/pages/painel/GerenteRevendedorPrecos"));
+const GerenteRevendedorMensalidade = lazy(() => import("@/pages/painel/GerenteRevendedorMensalidade"));
 const GerenteValores = lazy(() => import("@/pages/painel/GerenteValores"));
 const GerenteValoresCreditos = lazy(() => import("@/pages/painel/GerenteValoresCreditos"));
 const GerenteNiveis = lazy(() => import("@/pages/painel/GerenteNiveis"));
@@ -174,6 +175,15 @@ export function PanelRoutes() {
     return (
       <Suspense fallback={<PageFallback />}>
         <RoleRoute allow={["gerente"]}><GerenteRevendedorPrecos /></RoleRoute>
+      </Suspense>
+    );
+  }
+
+  const dynMens = matchPath({ path: "/painel/gerente/revendedores/:id/mensalidade", end: true }, pathname);
+  if (dynMens) {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <RoleRoute allow={["gerente"]}><GerenteRevendedorMensalidade /></RoleRoute>
       </Suspense>
     );
   }
