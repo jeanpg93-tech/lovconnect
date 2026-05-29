@@ -27,7 +27,7 @@ type TierPriceRow = { id: string; tier_id: string; extension_id: string; license
 
 const blank: Omit<Tier, "id"> = {
   slug: "", name: "", color: "#888888",
-  min_spent_cents: 0, discount_percent: 0, recharge_bonus_percent: 0,
+  min_spent_cents: 0, discount_percent: 100, recharge_bonus_percent: 0,
   referral_commission_percent: 0,
   test_keys_per_day: 10,
   sort_order: 99, is_active: true,
@@ -106,7 +106,7 @@ export default function GerenteNiveis() {
       name: editTier.name.trim(),
       color: editTier.color,
       min_spent_cents: Number(editTier.min_spent_cents) || 0,
-      discount_percent: Number(editTier.discount_percent) || 0,
+      discount_percent: 100,
       recharge_bonus_percent: Number(editTier.recharge_bonus_percent) || 0,
       referral_commission_percent: Number(editTier.referral_commission_percent) || 0,
       test_keys_per_day: Math.max(0, Math.floor(Number(editTier.test_keys_per_day) || 0)),
@@ -441,9 +441,6 @@ export default function GerenteNiveis() {
               <div className="space-y-1.5 col-span-2"><Label>Gasto mínimo (centavos)</Label>
                 <Input type="number" value={editTier.min_spent_cents} onChange={(e) => setEditTier({ ...editTier, min_spent_cents: Number(e.target.value) })} />
                 <div className="text-[10px] text-muted-foreground">{fmt(Number(editTier.min_spent_cents) || 0)}</div>
-              </div>
-              <div className="space-y-1.5"><Label>Desconto (%)</Label>
-                <Input type="number" step="0.01" value={editTier.discount_percent} onChange={(e) => setEditTier({ ...editTier, discount_percent: Number(e.target.value) })} />
               </div>
               <div className="space-y-1.5"><Label>Bônus recargas (%)</Label>
                 <Input type="number" step="0.01" value={editTier.recharge_bonus_percent} onChange={(e) => setEditTier({ ...editTier, recharge_bonus_percent: Number(e.target.value) })} />
