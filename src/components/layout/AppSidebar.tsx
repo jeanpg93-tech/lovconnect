@@ -412,6 +412,7 @@ export function AppSidebar() {
         const subscriptionOnly = [
           "/painel/revendedor/gerar-chave",
           "/painel/revendedor/minhas-chaves",
+          "/painel/revendedor/cobrancas",
         ];
         if (subscriptionOnly.includes(item.url)) return false;
       }
