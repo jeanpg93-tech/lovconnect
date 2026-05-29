@@ -9,6 +9,8 @@ const json = (data: unknown, status = 200) =>
 
 const ALLOWED_METHODS = ["flow", "lovax"];
 const ALLOWED_PACKS = ["1d", "7d", "30d", "90d", "365d", "lifetime"];
+// MétodoFlow tem teto de 60 dias no provedor — bloqueia 90d/365d.
+const FLOW_ALLOWED_PACKS = new Set(["1d", "7d", "30d", "lifetime"]);
 
 const onlyDigits = (s: string) => (s ?? "").toString().replace(/\D+/g, "");
 
@@ -68,6 +70,12 @@ Deno.serve(async (req) => {
 
     if (!ALLOWED_METHODS.includes(method)) return json({ error: "Método inválido" }, 400);
     if (!ALLOWED_PACKS.includes(pack_id)) return json({ error: "Pacote inválido" }, 400);
+    if (method === "flow" && !FLOW_ALLOWED_PACKS.has(pack_id)) {
+      return json({
+        error: "Pacote indisponível para MétodoFlow. Disponíveis: 1d, 7d, 30d, vitalício.",
+        permitidos: Array.from(FLOW_ALLOWED_PACKS),
+      }, 400);
+    }
 
     // Enforce: only the method enabled by the manager can be sold.
     {
