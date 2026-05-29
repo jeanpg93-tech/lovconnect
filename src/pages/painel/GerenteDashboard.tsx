@@ -33,6 +33,7 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
+  Zap,
 } from "lucide-react";
 import {
   Select,
