@@ -143,10 +143,11 @@ GRANT + RLS: gerente full CRUD (`has_role('gerente')`); revendedor só `SELECT` 
 - Webhook MisticPay continua desbloqueando em tempo real ao confirmar pagamento (já feito na Fase 3).
 - **Entregável**: vencimento bloqueia painel sozinho; pagamento libera.
 
-### Fase 6 — Recorrência configurável
-- `RecurrenceDialog` (valor, dia 1–28, descrição, aviso N dias antes).
-- Cron gera cobranças mensalmente.
-- Lista/edição/pausa de recorrências.
+### Fase 6 — Recorrência configurável ✅
+- Seção "Recorrências" em `GerenteRevendedorMensalidade` com criar / pausar / ativar / excluir.
+- Dialog responsivo (valor, dia 1–28, descrição, aviso N dias antes).
+- `subscription-cron-tick` gera cobranças automaticamente quando `next_generation_date <= today`, com PIX MisticPay, e avança `next_generation_date` para o próximo mês.
+- `subscription-create-charge` aceita chamadas internas com service-role (sem gate de gerente) e grava `recurrence_id` para rastreabilidade.
 - **Entregável**: programa "dia 3, R$ 500" e esquece.
 
 ### Fase 7 — Dashboard + Telegram + Financeiro reformulado (gerente)
