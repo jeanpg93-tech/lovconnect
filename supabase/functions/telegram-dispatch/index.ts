@@ -2,6 +2,17 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/telegram'
 
+function stripTelegramHtml(text: string) {
+  return String(text ?? '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/?(b|strong|i|em|u|s|strike|del|code|pre)[^>]*>/gi, '')
+    .replace(/<a\s+[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi, '$2 ($1)')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+}
+
 Deno.serve(async (req) => {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
   const TELEGRAM_API_KEY = Deno.env.get('TELEGRAM_API_KEY')
@@ -21,8 +32,8 @@ Deno.serve(async (req) => {
 
   const { data: pending } = await supabase
     .from('telegram_outbox').select('*')
-    .is('sent_at', null).lt('attempts', 5)
-    .order('created_at', { ascending: true }).limit(20)
+    .is('sent_at', null)
+    .order('created_at', { ascending: true }).limit(50)
 
   let sent = 0, failed = 0
   for (const msg of pending ?? []) {
@@ -46,7 +57,13 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify(payload),
       })
-      const body = await r.json()
+      const rawBody = await r.text()
+      let body: any = {}
+      try {
+        body = rawBody ? JSON.parse(rawBody) : {}
+      } catch (_) {
+        body = { description: rawBody || `HTTP ${r.status}` }
+      }
       const desc = String(body?.description ?? '')
       // "message is not modified" é sucesso silencioso em edits
       const notModified = isEdit && /message is not modified/i.test(desc)
@@ -57,10 +74,40 @@ Deno.serve(async (req) => {
             sent_at: new Date().toISOString(),
             attempts: msg.attempts + 1,
             message_id: returnedMid,
+            last_error: null,
           })
           .eq('id', msg.id)
         sent++
       } else {
+        const shouldRetryPlainText = /parse entities|can't parse|unsupported start tag|bad request/i.test(desc)
+        if (shouldRetryPlainText) {
+          const retry = await fetch(`${GATEWAY_URL}/sendMessage`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              'X-Connection-Api-Key': TELEGRAM_API_KEY,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chat_id: settings.chat_id,
+              text: stripTelegramHtml(msg.text),
+              disable_web_page_preview: true,
+            }),
+          })
+          const retryBody = await retry.json().catch(() => ({}))
+          if (retry.ok && retryBody?.ok) {
+            await supabase.from('telegram_outbox')
+              .update({
+                sent_at: new Date().toISOString(),
+                attempts: msg.attempts + 1,
+                message_id: retryBody?.result?.message_id ?? null,
+                last_error: null,
+              })
+              .eq('id', msg.id)
+            sent++
+            continue
+          }
+        }
         await supabase.from('telegram_outbox')
           .update({ attempts: msg.attempts + 1, last_error: JSON.stringify(body).slice(0, 500) })
           .eq('id', msg.id)
