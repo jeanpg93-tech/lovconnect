@@ -26,7 +26,9 @@ type Charge = {
   created_at: string;
 };
 
-export function SubscriptionLockOverlay() {
+type Props = { mode?: "onboarding" | "blocked" };
+
+export function SubscriptionLockOverlay({ mode = "onboarding" }: Props) {
   const { user, signOut } = useAuth();
   const [charges, setCharges] = useState<Charge[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,13 +40,14 @@ export function SubscriptionLockOverlay() {
     const { data: r } = await supabase
       .from("resellers").select("id").eq("user_id", user.id).maybeSingle();
     if (!r) { setLoading(false); return; }
-    const { data } = await supabase
+    let q = supabase
       .from("reseller_subscription_charges")
       .select("*")
       .eq("reseller_id", (r as any).id)
-      .eq("is_onboarding", true)
       .in("status", ["pending", "overdue"])
       .order("due_date", { ascending: true });
+    if (mode === "onboarding") q = q.eq("is_onboarding", true);
+    const { data } = await q;
     const list = (data ?? []) as Charge[];
     setCharges(list);
     setSelected((prev) => prev ? list.find((c) => c.id === prev.id) ?? list[0] ?? null : list[0] ?? null);
@@ -59,10 +62,9 @@ export function SubscriptionLockOverlay() {
       .channel(`onboarding-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "reseller_subscription_charges" }, () => load())
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "resellers", filter: `user_id=eq.${user.id}` }, (payload: any) => {
-        if (payload.new?.subscription_onboarding_completed) {
-          // Reload roles so overlay disappears
-          window.location.reload();
-        }
+        const n = payload.new;
+        if (mode === "onboarding" && n?.subscription_onboarding_completed) window.location.reload();
+        if (mode === "blocked" && n?.subscription_blocked === false) window.location.reload();
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -86,14 +88,22 @@ export function SubscriptionLockOverlay() {
 
           <div className="rounded-2xl border border-violet-500/30 bg-card/80 p-5 shadow-2xl sm:p-8 space-y-5">
             <div className="text-center">
-              <Badge className="bg-violet-500/15 text-violet-400 border-violet-500/30 mb-3">
-                <Sparkles className="h-3 w-3 mr-1" /> Modo Mensalista
+              <Badge className={cn("mb-3", mode === "blocked"
+                ? "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                : "bg-violet-500/15 text-violet-400 border-violet-500/30")}>
+                <Sparkles className="h-3 w-3 mr-1" /> {mode === "blocked" ? "Cobrança em aberto" : "Modo Mensalista"}
               </Badge>
               <h1 className="font-display text-2xl sm:text-3xl font-black tracking-tighter">
-                Conclua sua <span className="text-violet-400 italic">ativação</span>
+                {mode === "blocked" ? (
+                  <>Painel <span className="text-rose-400 italic">bloqueado</span></>
+                ) : (
+                  <>Conclua sua <span className="text-violet-400 italic">ativação</span></>
+                )}
               </h1>
               <p className="mt-3 text-sm text-muted-foreground">
-                Seu painel será liberado automaticamente assim que o pagamento for confirmado.
+                {mode === "blocked"
+                  ? "Você tem cobranças vencidas. Regularize o pagamento para liberar o painel."
+                  : "Seu painel será liberado automaticamente assim que o pagamento for confirmado."}
               </p>
             </div>
 
