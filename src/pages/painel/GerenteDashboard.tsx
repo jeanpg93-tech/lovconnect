@@ -510,6 +510,15 @@ export default function GerenteDashboard() {
       "refund", "credit_purchase_refund", "estorno", "reembolso", "cancelado", "cancellation",
     ]);
 
+    // Mapa de recargas para mostrar detalhamento (base + bônus) nas movimentações
+    const rechargeBreakdownById = new Map<string, { base_cents: number; bonus_cents: number }>();
+    rechargesData.forEach((r: any) => {
+      rechargeBreakdownById.set(r.id, {
+        base_cents: Number(r.amount_cents ?? 0),
+        bonus_cents: Number(r.bonus_cents ?? 0),
+      });
+    });
+
     setCreditMovements(
       movesData.map((m: any) => {
         const cents = Number(m.amount_cents ?? 0);
@@ -527,6 +536,9 @@ export default function GerenteDashboard() {
         const detail = enrich?.detail
           ? (isRefund ? `Estorno de: ${enrich.detail}` : enrich.detail)
           : null;
+        const rb = m.kind === "recharge" && m.reference_id
+          ? rechargeBreakdownById.get(m.reference_id)
+          : undefined;
         return {
           id: m.id,
           created_at: m.created_at,
@@ -546,6 +558,8 @@ export default function GerenteDashboard() {
           cancel_reason: enrich?.cancel_reason ?? null,
           promotion_id: m.promotion_id ?? enrich?.promotion_id ?? null,
           promotion_discount_cents: enrich?.promotion_discount_cents ?? null,
+          recharge_base_cents: rb?.base_cents ?? null,
+          recharge_bonus_cents: rb?.bonus_cents ?? null,
         };
       }),
     );
