@@ -1126,7 +1126,24 @@ export default function GerenteDashboard() {
                                       )}
                                     </div>
                                    <div className="text-[9px] text-muted-foreground font-mono truncate">
-                                     {m.detail ? m.detail : (desc || '—')}
+                                     {isRecharge && (m as any).recharge_base_cents != null && Number((m as any).recharge_bonus_cents ?? 0) > 0 ? (
+                                       <span>
+                                         {formatBRL(Number((m as any).recharge_base_cents))}
+                                         {" + bônus "}
+                                         {Math.round((Number((m as any).recharge_bonus_cents) / Math.max(1, Number((m as any).recharge_base_cents))) * 100)}%
+                                         {" ("}
+                                         {formatBRL(Number((m as any).recharge_bonus_cents))}
+                                         {") = "}
+                                         <span className="text-emerald-600 font-semibold">{formatBRL(Math.abs(m.amount_cents))}</span>
+                                       </span>
+                                     ) : isRecharge && (m as any).recharge_base_cents != null ? (
+                                       <span>
+                                         {formatBRL(Number((m as any).recharge_base_cents))}
+                                         {" (sem bônus)"}
+                                       </span>
+                                     ) : (
+                                       m.detail ? m.detail : (desc || '—')
+                                     )}
                                    </div>
                                    {(m.ref_short || m.ref_created_at) && (
                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] pt-0.5 font-mono">
