@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+// MétodoFlow tem teto de 60 dias no provedor — bloqueia 90d/365d como defesa adicional.
+const FLOW_DISALLOWED_TYPES = new Set(["90d", "365d"]);
 
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
   switch (type) {
