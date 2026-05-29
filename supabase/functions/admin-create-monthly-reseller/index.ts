@@ -34,24 +34,33 @@ Deno.serve(async (req) => {
     const displayName = body.display_name ? String(body.display_name) : null;
     if (!email || !password) return json({ error: "email and password required" }, 400);
 
+    // Trigger handle_new_user requires a valid affiliate code in user_metadata.
+    const { data: affRow } = await admin
+      .from("affiliate_codes")
+      .select("code")
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+    const affCode = (affRow as any)?.code ?? null;
+
     // Create auth user
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
+      user_metadata: affCode ? { affiliate_code: affCode } : {},
     });
     if (createErr || !created.user) return json({ error: createErr?.message ?? "create failed" }, 400);
     const userId = created.user.id;
 
-    // Profile (force password change on first access; leave display_name/whatsapp empty so gate triggers)
-    await admin.from("profiles").upsert({
-      id: userId,
-      email,
+    // Trigger already inserted the profile (approval_status='pending').
+    // Force password change on first access; clear name/whatsapp so onboarding gate triggers.
+    await admin.from("profiles").update({
       display_name: displayName,
       whatsapp: null,
       must_change_password: true,
       approval_status: "approved",
-    }, { onConflict: "id" });
+    }).eq("id", userId);
 
     // Role
     await admin.from("user_roles").upsert({ user_id: userId, role: "revendedor" }, { onConflict: "user_id,role" });
