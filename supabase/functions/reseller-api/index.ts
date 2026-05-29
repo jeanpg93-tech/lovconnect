@@ -19,6 +19,9 @@ const DEFAULT_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/rese
 
 const UNIFIED_METHODS = ["flow", "lovax"];
 const UNIFIED_PACKS = ["1d", "7d", "30d", "90d", "365d", "lifetime"];
+// MétodoFlow tem teto de 60 dias no provedor — 90d/365d entregavam apenas 60d.
+// Mantemos somente as durações que o provedor honra de verdade.
+const FLOW_ALLOWED_PACKS = new Set(["1d", "7d", "30d", "lifetime"]);
 const PACK_LABEL: Record<string, string> = {
   "1d": "1 Dia", "7d": "7 Dias", "30d": "30 Dias",
   "90d": "90 Dias", "365d": "1 Ano", "lifetime": "Vitalícia",
