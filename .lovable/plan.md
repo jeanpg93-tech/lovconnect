@@ -137,7 +137,30 @@ Cada etapa é entregável independente — dá pra testar com o revendedor real 
 
 ---
 
-**Confirma se faz sentido?** Algumas coisas que assumi e quero validar antes de codar:
-- Bloqueio às 00:00 BRT do dia seguinte ao vencimento (não exatamente no vencimento, pra dar o dia inteiro). Pode ser?
-- Recorrência só dia 1–28 (pra evitar problema com fevereiro). OK?
-- Aviso de "faltam X dias" sai por notificação no sino + banner no painel — você quer também por WhatsApp/Telegram?
+## Decisões confirmadas
+
+- **Bloqueio**: 00:00 BRT do dia seguinte ao vencimento.
+- **Recorrência**: só dia 1–28 (pra "fim de mês", usa dia 28).
+- **Avisos de vencimento**: só sino + banner no painel (sem WhatsApp/Telegram pro revendedor).
+- **Telegram de vendas do mensalista**: SOMENTE pro gerente. O revendedor não recebe nada extra.
+
+## Extras — vendas do mensalista
+
+O mensalista usa o painel normal pra gerar/gerenciar licenças, mas **sem débito de saldo**.
+
+**No painel dele (igual aos outros, sem custo):**
+- Geração manual de licença (`RevendedorPedidos` / gerador manual): produto, duração, dados do cliente, gera a chave — sem débito.
+- "Minhas Vendas" lista as chaves geradas.
+- Revogar chave, resetar device, histórico — usa endpoints existentes (`reseller-license-action`, `license-reset-device`).
+- API revendedor disponível, também sem débito.
+
+**No painel do gerente:**
+- Badge roxo **"Mensalista"** no card em `GerenteRevendedores`.
+- Vendas do mensalista no dashboard com badge/cor distinta ("Venda Mensalista") + coluna "Tipo".
+- Filtro pra ver só vendas de mensalistas.
+- Telegram: cada venda dele dispara notificação no bot do gerente (ícone 🟣), reutilizando `telegram-dispatch`, com flag `notify_subscription_sales` na config.
+
+**Onde mexer:**
+- `place-method-license-order` / `reseller-api` / gerador manual: pular débito quando `billing_mode='subscription'`, mas continuar gravando a venda (custo = 0) pro histórico funcionar.
+- `telegram-dispatch`: branch quando vendedor for mensalista → manda só pro gerente, formato diferenciado.
+- `GerenteDashboard` / lista de vendas: badge + filtro.
