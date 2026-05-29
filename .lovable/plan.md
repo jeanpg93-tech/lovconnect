@@ -151,11 +151,16 @@ Cada etapa é entregável independente — dá pra testar com o revendedor real 
 
 O mensalista usa o painel normal pra gerar/gerenciar licenças, mas **sem débito de saldo**.
 
-**No painel dele (igual aos outros, sem custo):**
-- Geração manual de licença (`RevendedorPedidos` / gerador manual): produto, duração, dados do cliente, gera a chave — sem débito.
-- "Minhas Vendas" lista as chaves geradas.
-- Revogar chave, resetar device, histórico — usa endpoints existentes (`reseller-license-action`, `license-reset-device`).
-- API revendedor disponível, também sem débito.
+**No painel dele (sem custo, fluxo manual simplificado):**
+- Página **"Gerar Chave"** inspirada na `GerenteGeracaoManual`, mas simplificada:
+  - **NÃO** mostra seleção de método — usa automaticamente o **método ativo** do sistema (mesmo do storefront/loja pública).
+  - Mostra apenas: **Tipo de licença** (teste, 1 dia, 7 dias, 15 dias, 30 dias, vitalícia), **Nome do cliente**, **WhatsApp do cliente**, botão **Gerar chave**.
+  - Sem campo de preço/custo (não há débito).
+  - Após gerar: exibe a chave gerada + botão de copiar + opção de enviar pelo WhatsApp (reusando integração existente, se ele tiver).
+- Página **"Minhas Vendas / Chaves"** lista todas as chaves geradas (cliente, WhatsApp, produto/duração, status, data, devices ativos) — semelhante à visão do gerente em `GerenteTodasLicencas`/`GerenteLicencasAcompanhar` mas escopada só pra ele.
+  - Ações por linha: **Copiar chave**, **Revogar**, **Resetar device** (libera HWID), **Ver histórico**.
+  - Reutiliza endpoints existentes (`reseller-license-action`, `license-reset-device`) — só garantindo que aceitem `billing_mode='subscription'` sem exigir saldo.
+- **API do revendedor** continua disponível (se ele preferir automatizar) — também sem débito.
 
 **No painel do gerente:**
 - Badge roxo **"Mensalista"** no card em `GerenteRevendedores`.
@@ -189,6 +194,19 @@ Tudo de mensalista aparece no **Financeiro Geral** (`GerenteFinanceiroGeral`) se
 - `place-method-license-order` / `reseller-api` / gerador manual: branch que pula débito **e promoções** quando `billing_mode='subscription'`.
 - Sidebar do mensalista esconde "Adicionar Saldo", "Comprar Créditos", "Precificação > Recargas".
 - **Entregável**: marca revendedor como mensalista no banco, ele já gera chave sem débito/desconto.
+
+### Fase 1.5 — Páginas do mensalista (gerar / listar / gerenciar chaves)
+- Nova página **`RevendedorGerarChave`** (rota `/painel/revendedor/gerar-chave`):
+  - Formulário: tipo de licença + nome cliente + WhatsApp.
+  - Método: pega o **método ativo** automaticamente (sem seletor).
+  - Chama edge `place-method-license-order` com flag de subscription (sem débito).
+  - Exibe chave + copiar + enviar WhatsApp.
+- Nova página **`RevendedorMinhasChaves`** (rota `/painel/revendedor/minhas-chaves`):
+  - Tabela de licenças geradas (filtros por status/data/cliente).
+  - Ações: copiar, revogar, resetar device, ver histórico de devices.
+  - Reutiliza `reseller-license-action` e `license-reset-device`.
+- Sidebar do mensalista substitui "Pedidos/Adicionar Saldo" por **"Gerar Chave"** + **"Minhas Chaves"**.
+- **Entregável**: ele gera, lista, revoga e reseta chaves sozinho pelo painel.
 
 ### Fase 2 — Cobrança avulsa + PIX MisticPay
 - Toggle "Modo Mensalista" no perfil do revendedor.
