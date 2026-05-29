@@ -660,11 +660,12 @@ Deno.serve(async (req) => {
       _reseller_id: reseller.id,
       _duration_code: pacote,
     });
-    const price_cents = Number(costData ?? 0);
-    if (!price_cents || price_cents <= 0) {
+    let price_cents = Number(costData ?? 0);
+    if (!isSubscription && (!price_cents || price_cents <= 0)) {
       await logUsage(400, { error_message: "Preço não configurado" });
       return json({ error: "Preço não configurado para esse pacote no seu nível" }, 400);
     }
+    if (isSubscription) price_cents = 0;
     const license_type = `${metodo}_${pacote}`;
 
     // Cria pedido pendente
@@ -676,39 +677,43 @@ Deno.serve(async (req) => {
       status: "pending",
       api_key_id: keyRow.id,
       product_type: "extension",
-      notes: JSON.stringify({ method: metodo, pack_id: pacote, display_name, whatsapp: whatsapp || null, source: "unified_api" }),
+      notes: JSON.stringify({ method: metodo, pack_id: pacote, display_name, whatsapp: whatsapp || null, source: "unified_api", billing_mode: isSubscription ? "subscription" : "normal" }),
     }).select().single();
     if (ordErr || !order) {
       await logUsage(500, { error_message: "Falha pedido" });
       return json({ error: "Falha ao criar pedido" }, 500);
     }
 
-    // Debita
-    const { data: ok, error: debErr } = await svc.rpc("debit_reseller_balance", {
-      _reseller_id: reseller.id,
-      _amount_cents: price_cents,
-      _kind: "api_debit",
-      _description: `API ${metodo.toUpperCase()} ${pacote}`,
-      _reference_id: order.id,
-    });
-    if (debErr || !ok) {
-      await svc.from("orders").update({
-        status: "failed",
-        error_message: debErr?.message ?? "Saldo insuficiente",
-      }).eq("id", order.id);
-      await logUsage(402, { error_message: "Saldo insuficiente" });
-      return json({ error: "Saldo insuficiente" }, 402);
+    // Debita (mensalista pula)
+    if (!isSubscription) {
+      const { data: ok, error: debErr } = await svc.rpc("debit_reseller_balance", {
+        _reseller_id: reseller.id,
+        _amount_cents: price_cents,
+        _kind: "api_debit",
+        _description: `API ${metodo.toUpperCase()} ${pacote}`,
+        _reference_id: order.id,
+      });
+      if (debErr || !ok) {
+        await svc.from("orders").update({
+          status: "failed",
+          error_message: debErr?.message ?? "Saldo insuficiente",
+        }).eq("id", order.id);
+        await logUsage(402, { error_message: "Saldo insuficiente" });
+        return json({ error: "Saldo insuficiente" }, 402);
+      }
     }
 
     // Função de estorno em caso de falha do provedor
     const refund = async (reason: string, providerResp?: unknown) => {
-      await svc.rpc("credit_reseller_balance", {
-        _reseller_id: reseller.id,
-        _amount_cents: price_cents,
-        _kind: "api_refund",
-        _description: `Estorno API ${metodo}/${pacote}: ${reason}`,
-        _reference_id: order.id,
-      });
+      if (!isSubscription) {
+        await svc.rpc("credit_reseller_balance", {
+          _reseller_id: reseller.id,
+          _amount_cents: price_cents,
+          _kind: "api_refund",
+          _description: `Estorno API ${metodo}/${pacote}: ${reason}`,
+          _reference_id: order.id,
+        });
+      }
       await svc.from("orders").update({
         status: "refunded",
         error_message: reason,
