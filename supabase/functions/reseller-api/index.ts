@@ -517,7 +517,7 @@ Deno.serve(async (req) => {
       const r = await fetch(`${base}/generate-trial`, {
         method: "POST",
         headers: { "x-api-token": provKey, "x-api-key": provKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ display_name, minutes: 30, seconds: 0 }),
+        body: JSON.stringify({ display_name, minutes: 15, seconds: 0 }),
       });
       const text = await r.text();
       try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
