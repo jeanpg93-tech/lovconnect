@@ -289,7 +289,7 @@ export default function GerenteDashboard() {
         .limit(FETCH_LIMIT),
       supabase
         .from("recharge_intents")
-        .select("id,created_at,status,amount_cents,reseller_id,payer_name,paid_at")
+        .select("id,created_at,status,amount_cents,bonus_cents,reseller_id,payer_name,paid_at")
         .order("created_at", { ascending: false })
         .limit(FETCH_LIMIT),
     ]);
