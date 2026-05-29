@@ -213,6 +213,31 @@ Deno.serve(async (req) => {
       provider_response: providerData,
     }).eq("id", order.id);
 
+    // Notifica gerente no Telegram (revendedor mensalista gerou licença)
+    try {
+      const { data: rInfo } = await svc
+        .from("resellers")
+        .select("display_name")
+        .eq("id", reseller_id)
+        .maybeSingle();
+      const resellerName = (rInfo as any)?.display_name ?? "—";
+      const pacote = isTrial
+        ? "Trial"
+        : type === "lifetime"
+          ? "Vitalícia"
+          : `PRO ${type}`;
+      const txt =
+        `🟣 <b>Mensalista — Licença gerada</b>\n` +
+        `👨‍💼 Revendedor: ${resellerName}\n` +
+        `📦 Pacote: ${pacote} (${activeMethod.toUpperCase()})\n` +
+        `🔑 Chave: <code>${license_key}</code>` +
+        (isTrial ? "" : `\n👤 Cliente: ${display_name}` + (whatsapp ? ` (${whatsapp})` : "")) +
+        `\n💳 Pagamento: Mensalidade (sem débito)`;
+      await svc.rpc("telegram_enqueue", { _text: txt });
+    } catch (e) {
+      console.warn("telegram_enqueue (subscription license) failed", e);
+    }
+
     // WhatsApp fire-and-forget
     if (license_key && whatsapp && !isTrial) {
       fetch(`${supabaseUrl}/functions/v1/evolution-send-sale`, {
