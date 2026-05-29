@@ -95,8 +95,12 @@ function getExpiry(o: { license_type: string; created_at: string; expires_at?: s
       return { date: exp, label: formatDate(exp.toISOString()), expired: exp.getTime() < Date.now(), lifetime: false };
     }
   }
-  // 2) Usa days do provedor ou PLAN_DAYS como fallback
-  const days = (typeof o.days === "number" ? o.days : null) ?? PLAN_DAYS[o.license_type];
+  // 2) Usa days do provedor, PLAN_DAYS, ou extrai do próprio license_type (ex.: flow_7d, lovax_15d, custom_30d → 7/15/30)
+  let days: number | null | undefined = (typeof o.days === "number" ? o.days : null) ?? PLAN_DAYS[o.license_type];
+  if (days === null || days === undefined) {
+    const m = String(o.license_type || "").toLowerCase().match(/(?:^|_)(\d+)\s*d$/);
+    if (m) days = parseInt(m[1], 10);
+  }
   if (days === null || days === undefined) {
     return { date: null, label: "—", expired: false, lifetime: false };
   }
@@ -122,8 +126,12 @@ function computeStatus(o: { status: string }, exp: { expired: boolean; lifetime:
   if (["revoked", "revogado", "revogada", "banned", "blocked"].includes(s)) {
     return { kind: "revoked" as const, label: "Revogada", className: "bg-destructive/15 text-destructive border border-destructive/30" };
   }
-  const isStatusActive = ["success", "active", "trial", "valid", "approved", "completed", "paid", "delivered"].includes(s);
-  if (!isStatusActive || (!exp.lifetime && exp.expired)) {
+  // Lista de status que indicam que a licença NÃO está em uso (falha, cancelamento, estorno).
+  // Qualquer outro status (active, completed, paid, success, valid, etc., ou desconhecido) é tratado como potencialmente ativo
+  // — a decisão final fica com a data de expiração. Isso evita marcar como "Expirada" toda nova string de status que o provedor venha a usar.
+  const inactiveStatuses = ["failed", "error", "cancelled", "canceled", "cancelado", "refunded", "estornado", "expired", "expirada", "pending"];
+  const isInactive = inactiveStatuses.includes(s);
+  if (isInactive || (!exp.lifetime && exp.expired)) {
     return { kind: "expired" as const, label: "Expirada", className: "bg-amber-500/15 text-amber-400 border border-amber-500/30" };
   }
   return { kind: "active" as const, label: "Ativa", className: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)]" };
