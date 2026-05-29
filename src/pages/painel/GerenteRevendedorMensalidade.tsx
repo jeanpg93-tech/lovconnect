@@ -529,6 +529,44 @@ export default function GerenteRevendedorMensalidade() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Recurrence dialog */}
+      <Dialog open={recOpen} onOpenChange={setRecOpen}>
+        <DialogContent className="max-w-md w-[calc(100vw-2rem)] sm:w-full">
+          <DialogHeader>
+            <DialogTitle>Nova recorrência</DialogTitle>
+            <DialogDescription>
+              Cobrança gerada automaticamente todo mês no dia escolhido. O painel cria a cobrança com PIX MisticPay e envia notificação interna ao revendedor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Valor (R$)</Label>
+              <Input value={recAmount} onChange={(e) => setRecAmount(e.target.value)} placeholder="500,00" inputMode="decimal" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Dia do mês (1–28)</Label>
+                <Input type="number" min={1} max={28} value={recDay} onChange={(e) => setRecDay(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Avisar N dias antes</Label>
+                <Input type="number" min={0} max={30} value={recWarn} onChange={(e) => setRecWarn(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Descrição</Label>
+              <Textarea rows={2} value={recDesc} onChange={(e) => setRecDesc(e.target.value)} placeholder="Mensalidade do painel" />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setRecOpen(false)}>Cancelar</Button>
+            <Button onClick={submitRecurrence} disabled={recSaving}>
+              {recSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Criar recorrência
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
