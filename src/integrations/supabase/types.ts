@@ -1317,6 +1317,7 @@ export type Database = {
           email: string | null
           id: string
           is_banned: boolean | null
+          must_change_password: boolean
           phone: string | null
           reseller_id: string | null
           updated_at: string
@@ -1331,6 +1332,7 @@ export type Database = {
           email?: string | null
           id: string
           is_banned?: boolean | null
+          must_change_password?: boolean
           phone?: string | null
           reseller_id?: string | null
           updated_at?: string
@@ -1345,6 +1347,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_banned?: boolean | null
+          must_change_password?: boolean
           phone?: string | null
           reseller_id?: string | null
           updated_at?: string
