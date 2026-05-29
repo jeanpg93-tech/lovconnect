@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.apply-recharge-schedule]
 verify_jwt = false
+
+[functions.subscription-create-charge]
+verify_jwt = false
