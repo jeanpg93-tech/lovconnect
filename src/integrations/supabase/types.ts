@@ -2926,6 +2926,42 @@ export type Database = {
           },
         ]
       }
+      telegram_notification_failures: {
+        Row: {
+          amount_cents: number | null
+          balance_tx_id: string | null
+          context: Json | null
+          created_at: string
+          id: string
+          kind: string | null
+          reason: string
+          reseller_id: string | null
+          sqlstate: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          balance_tx_id?: string | null
+          context?: Json | null
+          created_at?: string
+          id?: string
+          kind?: string | null
+          reason: string
+          reseller_id?: string | null
+          sqlstate?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          balance_tx_id?: string | null
+          context?: Json | null
+          created_at?: string
+          id?: string
+          kind?: string | null
+          reason?: string
+          reseller_id?: string | null
+          sqlstate?: string | null
+        }
+        Relationships: []
+      }
       telegram_outbox: {
         Row: {
           attempts: number
