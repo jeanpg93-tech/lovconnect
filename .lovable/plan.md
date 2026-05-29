@@ -143,6 +143,9 @@ Cada etapa é entregável independente — dá pra testar com o revendedor real 
 - **Recorrência**: só dia 1–28 (pra "fim de mês", usa dia 28).
 - **Avisos de vencimento**: só sino + banner no painel (sem WhatsApp/Telegram pro revendedor).
 - **Telegram de vendas do mensalista**: SOMENTE pro gerente. O revendedor não recebe nada extra.
+- **Sem saldo**: mensalista NÃO tem `reseller_balances`, NÃO faz recarga, NÃO compra crédito. A mensalidade cobre todas as chaves emitidas no período.
+- **Sem promoções/descontos**: nenhuma promoção do sistema (desconto de licença, bônus de recarga, desconto de créditos) se aplica. Cobrado é o valor exato da mensalidade/taxa — pular `compute_promotion_discount` e `compute_recharge_bonus`.
+- **Tipos de cobrança**: (1) Mensalidade recorrente (ex: dia 3 ou 5 todo mês), (2) Taxas avulsas (atualização, manutenção), (3) Parcelas pontuais.
 
 ## Extras — vendas do mensalista
 
@@ -164,3 +167,67 @@ O mensalista usa o painel normal pra gerar/gerenciar licenças, mas **sem débit
 - `place-method-license-order` / `reseller-api` / gerador manual: pular débito quando `billing_mode='subscription'`, mas continuar gravando a venda (custo = 0) pro histórico funcionar.
 - `telegram-dispatch`: branch quando vendedor for mensalista → manda só pro gerente, formato diferenciado.
 - `GerenteDashboard` / lista de vendas: badge + filtro.
+
+## Financeiro do gerente — reformulação (entra no plano)
+
+Tudo de mensalista aparece no **Financeiro Geral** (`GerenteFinanceiroGeral`) separado do fluxo normal:
+
+- Nova categoria **"Mensalidades"** com sub-tipos (mensalidade, taxa avulsa, parcela).
+- Filtros: por revendedor mensalista, tipo, status (pago/pendente/vencido), período.
+- KPIs no topo: **MRR**, recebido no mês de mensalistas, em aberto, vencido.
+- Separação visual clara (cor/badge) entre receita normal e receita mensalista — gráficos e tabelas.
+- Export CSV com coluna "Tipo".
+- Cada cobrança paga vira lançamento automático (origem = `subscription_charge`) com link pra cobrança.
+
+---
+
+## Fases de implementação (entrega incremental)
+
+### Fase 1 — Fundação
+- Migration: `billing_mode`, `subscription_blocked`, tabelas `reseller_subscription_charges` + `reseller_subscription_recurrences`, RLS, grants.
+- `useRole`/`useAuth` expõem `billing_mode` e `subscription_blocked`.
+- `place-method-license-order` / `reseller-api` / gerador manual: branch que pula débito **e promoções** quando `billing_mode='subscription'`.
+- Sidebar do mensalista esconde "Adicionar Saldo", "Comprar Créditos", "Precificação > Recargas".
+- **Entregável**: marca revendedor como mensalista no banco, ele já gera chave sem débito/desconto.
+
+### Fase 2 — Cobrança avulsa + PIX MisticPay
+- Toggle "Modo Mensalista" no perfil do revendedor.
+- Aba "Mensalidade" com botão **Nova cobrança** (tipo, valor, vencimento, descrição).
+- Edge `subscription-create-charge` → gera PIX MisticPay.
+- Webhook MisticPay marca `paid` + cria lançamento no financeiro.
+- Tabela de cobranças (cancelar, copiar PIX, marcar pago manual).
+- **Entregável**: cobra o revendedor real (as duas parcelas iniciais de R$ 250).
+
+### Fase 3 — Painel do mensalista
+- Página **Minhas Cobranças** (pendentes/pagas/vencidas + QR/copia-cola).
+- Banner amarelo (≤ 5 dias) / vermelho (vencido).
+- Notificação no sino: ao gerar e 5 dias antes do vencimento.
+- **Entregável**: ele paga sozinho.
+
+### Fase 4 — Bloqueio automático
+- Página `/painel/cobranca-pendente` com PIX em aberto.
+- `AppLayout` redireciona quando `subscription_blocked=true`.
+- Cron `subscription-cron-tick` (00:05 BRT): marca overdue, bloqueia, desbloqueia.
+- Webhook desbloqueia em tempo real ao confirmar pagamento.
+- **Entregável**: vencimento bloqueia painel sozinho.
+
+### Fase 5 — Recorrência configurável
+- Botão **Programar recorrência** (valor, dia 1–28, descrição, aviso N dias antes).
+- Cron gera as cobranças mensalmente.
+- Lista/edição/pausa de recorrências.
+- **Entregável**: programa "dia 3, R$ 500" e esquece.
+
+### Fase 6 — Dashboard + Telegram do gerente
+- Badge "Mensalista" no card em `GerenteRevendedores`.
+- Vendas do mensalista no `GerenteDashboard` com badge/cor distinta + filtro "Tipo".
+- Telegram do gerente: 🟣 "Venda Mensalista" via `telegram-dispatch`.
+- Flag `notify_subscription_sales` em `telegram_settings`.
+- **Entregável**: acompanha vendas dele em tempo real.
+
+### Fase 7 — Financeiro reformulado
+- Categoria "Mensalidades" no `GerenteFinanceiroGeral`.
+- KPIs MRR / recebido / em aberto / vencido.
+- Filtros por revendedor, tipo, status, período.
+- Gráficos separados normal vs mensalista.
+- Export CSV com coluna "Tipo".
+- **Entregável**: bate o caixa do mês com os dois fluxos separados.
