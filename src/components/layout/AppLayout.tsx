@@ -17,6 +17,7 @@ import { ActivationBanner } from "@/components/activation/ActivationBanner";
 import { ActivationLockOverlay } from "@/components/activation/ActivationLockOverlay";
 import { useActivation } from "@/hooks/useActivation";
 import { SubscriptionLockOverlay } from "@/components/subscription/SubscriptionLockOverlay";
+import { FirstAccessGate } from "@/components/FirstAccessGate";
 
 export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -145,6 +146,7 @@ export default function AppLayout() {
 
   return (
     <SidebarProvider>
+      <FirstAccessGate userId={user.id}>
       <div className="flex min-h-screen w-full bg-background text-foreground">
         <AppSidebar />
         <div className="flex flex-1 flex-col min-w-0 pb-28 md:pb-0">
@@ -171,6 +173,7 @@ export default function AppLayout() {
         <MobileNav />
           <NotificationCenter />
       </div>
+      </FirstAccessGate>
     </SidebarProvider>
   );
 }
