@@ -353,12 +353,13 @@ Deno.serve(async (req) => {
         _duration_code: duration_code,
       });
       price_cents = Number(costData ?? 0);
-      if (!price_cents || price_cents <= 0) {
+      if (!isSubscription && (!price_cents || price_cents <= 0)) {
         await logUsage(400, { error_message: "Preço não configurado" });
         return json({ error: "Preço não configurado para esse tipo pelo gerente" }, 400);
       }
     }
 
+    if (isSubscription) price_cents = 0;
 
     // Cria pedido
     const { data: order, error: ordErr } = await svc.from("orders").insert({
@@ -374,21 +375,23 @@ Deno.serve(async (req) => {
       return json({ error: "Falha ao criar pedido" }, 500);
     }
 
-    // Debita
-    const { data: ok, error: debErr } = await svc.rpc("debit_reseller_balance", {
-      _reseller_id: reseller.id,
-      _amount_cents: price_cents,
-      _kind: "api_debit",
-      _description: `API ${license_type}`,
-      _reference_id: order.id,
-    });
-    if (debErr || !ok) {
-      await svc.from("orders").update({
-        status: "failed",
-        error_message: debErr?.message ?? "Saldo insuficiente",
-      }).eq("id", order.id);
-      await logUsage(402, { error_message: "Saldo insuficiente" });
-      return json({ error: "Saldo insuficiente" }, 402);
+    // Debita (mensalista pula)
+    if (!isSubscription) {
+      const { data: ok, error: debErr } = await svc.rpc("debit_reseller_balance", {
+        _reseller_id: reseller.id,
+        _amount_cents: price_cents,
+        _kind: "api_debit",
+        _description: `API ${license_type}`,
+        _reference_id: order.id,
+      });
+      if (debErr || !ok) {
+        await svc.from("orders").update({
+          status: "failed",
+          error_message: debErr?.message ?? "Saldo insuficiente",
+        }).eq("id", order.id);
+        await logUsage(402, { error_message: "Saldo insuficiente" });
+        return json({ error: "Saldo insuficiente" }, 402);
+      }
     }
 
     // Provedor
@@ -398,13 +401,15 @@ Deno.serve(async (req) => {
     const base = cfg?.base_url ?? DEFAULT_BASE;
 
     const refund = async (reason: string, providerResp?: unknown) => {
-      await svc.rpc("credit_reseller_balance", {
-        _reseller_id: reseller.id,
-        _amount_cents: price_cents,
-        _kind: "api_refund",
-        _description: `Refund API ${order.id}`,
-        _reference_id: order.id,
-      });
+      if (!isSubscription) {
+        await svc.rpc("credit_reseller_balance", {
+          _reseller_id: reseller.id,
+          _amount_cents: price_cents,
+          _kind: "api_refund",
+          _description: `Refund API ${order.id}`,
+          _reference_id: order.id,
+        });
+      }
       await svc.from("orders").update({
         status: "refunded", error_message: reason, provider_response: providerResp ?? null,
       }).eq("id", order.id);
