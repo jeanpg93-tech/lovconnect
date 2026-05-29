@@ -8,6 +8,7 @@ import {
   Loader2,
   Users,
   Rocket,
+  Repeat,
 } from "lucide-react";
 import {
   AreaChart,
@@ -80,6 +81,13 @@ export default function FinanceiroVisaoGeral({ range, customRange }: { range: Da
           color="fuchsia"
         />
         <KpiCard
+          label="Mensalidades"
+          value={brlSigned(data.subscriptionRevenueCents, "+")}
+          icon={Repeat}
+          hint={`${data.subscriptionCount} cobrança(s) paga(s)`}
+          color="sky"
+        />
+        <KpiCard
           label="Recargas"
           value={String(data.rechargesCount)}
           icon={Receipt}
@@ -117,6 +125,7 @@ export default function FinanceiroVisaoGeral({ range, customRange }: { range: Da
           items={[
             { label: "Recargas pagas", hint: "revendedores", value: data.rechargesRevenueCents, color: COLOR_REVENUE },
             { label: "Ativações Painel", hint: "novos revendedores", value: data.activationRevenueCents, color: "#d946ef" },
+            { label: "Mensalidades", hint: "revendedores mensalistas", value: data.subscriptionRevenueCents, color: "#0ea5e9" },
             { label: "Receitas manuais", hint: "lançamentos manuais", value: data.manualRevenueCents, color: "#8b5cf6" },
           ]}
         />

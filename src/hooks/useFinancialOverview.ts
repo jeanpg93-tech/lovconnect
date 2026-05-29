@@ -37,6 +37,8 @@ export type FinancialOverview = {
   manualRevenueCents: number;
   activationRevenueCents: number;
   activationsCount: number;
+  subscriptionRevenueCents: number;
+  subscriptionCount: number;
   costCents: number;
   costCreditsCents: number;
   gatewayFeeCents: number;
@@ -91,6 +93,18 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const activationsArr = activations || [];
     const activationRevenueCents = activationsArr.reduce((s, a: any) => s + Number(a.amount_cents || 0), 0);
     const activationsCount = activationsArr.length;
+
+    // Receita: mensalidades pagas (reseller_subscription_charges)
+    let scQ = supabase
+      .from("reseller_subscription_charges")
+      .select("amount_cents, paid_at")
+      .eq("status", "paid");
+    if (startIso) scQ = scQ.gte("paid_at", startIso);
+    if (endIso) scQ = scQ.lte("paid_at", endIso);
+    const { data: subsCharges } = await scQ;
+    const subsArr = subsCharges || [];
+    const subscriptionRevenueCents = subsArr.reduce((s, a: any) => s + Number(a.amount_cents || 0), 0);
+    const subscriptionCount = subsArr.length;
 
     // Custo: storefront_orders pagos
     let soQ = supabase
@@ -200,7 +214,8 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       .filter((m: any) => m.entry_type === "revenue")
       .reduce((s, m: any) => s + Number(m.cost_cents || 0), 0);
 
-    const revenueCents = rechargesRevenueCents + manualRevenueCents + activationRevenueCents;
+    const revenueCents =
+      rechargesRevenueCents + manualRevenueCents + activationRevenueCents + subscriptionRevenueCents;
     const costCents = costCreditsCents + gatewayFeeCents + manualExpenseCents + manualRevenueCostCents;
     const profitCents = revenueCents - costCents;
     const marginPct = revenueCents > 0 ? (profitCents / revenueCents) * 100 : 0;
@@ -215,6 +230,11 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       bucket[k].cost += GATEWAY_FEE_CENTS_PER_RECHARGE;
     });
     activationsArr.forEach((a: any) => {
+      const k = key(a.paid_at);
+      bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
+      bucket[k].revenue += Number(a.amount_cents || 0);
+    });
+    subsArr.forEach((a: any) => {
       const k = key(a.paid_at);
       bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
       bucket[k].revenue += Number(a.amount_cents || 0);
@@ -310,6 +330,8 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       manualRevenueCents,
       activationRevenueCents,
       activationsCount,
+      subscriptionRevenueCents,
+      subscriptionCount,
       costCents,
       costCreditsCents,
       gatewayFeeCents,
