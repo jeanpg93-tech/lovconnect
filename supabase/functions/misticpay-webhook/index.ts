@@ -444,6 +444,39 @@ Deno.serve(async (req) => {
               subscription_blocked_at: null,
             }).eq("id", subCharge.reseller_id);
           }
+
+          // Telegram notification for manager (mensalista sale)
+          try {
+            const { data: tg } = await admin
+              .from("telegram_settings")
+              .select("chat_id, notify_subscription_sales")
+              .eq("id", 1)
+              .maybeSingle();
+            if (tg?.chat_id && (tg as any).notify_subscription_sales !== false) {
+              const { data: r } = await admin
+                .from("resellers")
+                .select("display_name")
+                .eq("id", subCharge.reseller_id)
+                .maybeSingle();
+              const amountBRL = "R$ " +
+                (Number(subCharge.amount_cents) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              const kindLabel = subCharge.kind === "monthly"
+                ? "Mensalidade"
+                : subCharge.kind === "installment" ? "Parcela" : "Cobrança avulsa";
+              const text =
+                "🟣 <b>Venda Mensalista</b>\n" +
+                "👨‍💼 Revendedor: " + (r?.display_name ?? "—") + "\n" +
+                "💵 Valor: " + amountBRL + "\n" +
+                "📦 Tipo: " + kindLabel +
+                (subCharge.is_onboarding ? " (onboarding)" : "") + "\n" +
+                (subCharge.description ? "📝 " + subCharge.description + "\n" : "") +
+                "💳 Pagamento: PIX (MisticPay)";
+              await admin.from("telegram_outbox").insert({ text });
+            }
+          } catch (e) {
+            console.warn("[webhook] telegram subscription notify failed", e);
+          }
+
           return json({ ok: true, kind: "subscription_charge" });
         }
 
