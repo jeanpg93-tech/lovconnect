@@ -105,6 +105,10 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Carteira", url: "/painel/revendedor/carteira", icon: Wallet },
       { title: "Indique e ganhe", url: "/painel/revendedor/indicacoes", icon: Gift },
     ]},
+    { label: "Mensalidade", items: [
+      { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles },
+      { title: "Minhas Chaves", url: "/painel/revendedor/minhas-chaves", icon: KeyRound },
+    ]},
     { label: "Minhas vendas", items: [
       { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
       { title: "Licenças", url: "/painel/revendedor/licencas", icon: Puzzle },
@@ -399,8 +403,16 @@ export function AppSidebar() {
           "/painel/revendedor/api-recargas",
           "/painel/revendedor/loja",
           "/painel/revendedor/indicacoes",
+          "/painel/revendedor/licencas",
         ];
         if (hiddenForSubscription.includes(item.url)) return false;
+      } else {
+        // Esconde itens exclusivos de mensalista para revendedores normais
+        const subscriptionOnly = [
+          "/painel/revendedor/gerar-chave",
+          "/painel/revendedor/minhas-chaves",
+        ];
+        if (subscriptionOnly.includes(item.url)) return false;
       }
       return true;
     })
