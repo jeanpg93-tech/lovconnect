@@ -14,7 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
-import { ArrowLeft, Plus, Loader2, Copy, Ban, CheckCircle2, QrCode, Calendar } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Copy, Ban, CheckCircle2, QrCode, Calendar, Repeat, Pause, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +44,12 @@ type Charge = {
   is_onboarding: boolean | null; created_at: string;
 };
 
+type Recurrence = {
+  id: string; reseller_id: string; amount_cents: number; day_of_month: number;
+  description: string | null; warning_days_before: number;
+  is_active: boolean; next_generation_date: string | null;
+};
+
 const statusBadge = (status: string) => {
   const map: Record<string, { label: string; cls: string }> = {
     pending: { label: "Pendente", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
@@ -62,6 +68,7 @@ export default function GerenteRevendedorMensalidade() {
   const navigate = useNavigate();
   const [reseller, setReseller] = useState<Reseller | null>(null);
   const [charges, setCharges] = useState<Charge[]>([]);
+  const [recurrences, setRecurrences] = useState<Recurrence[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingMode, setSavingMode] = useState(false);
 
@@ -80,15 +87,25 @@ export default function GerenteRevendedorMensalidade() {
   // PIX view dialog
   const [pixCharge, setPixCharge] = useState<Charge | null>(null);
 
+  // Recurrence dialog
+  const [recOpen, setRecOpen] = useState(false);
+  const [recAmount, setRecAmount] = useState("");
+  const [recDay, setRecDay] = useState("3");
+  const [recDesc, setRecDesc] = useState("Mensalidade");
+  const [recWarn, setRecWarn] = useState("5");
+  const [recSaving, setRecSaving] = useState(false);
+
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [{ data: r }, { data: c }] = await Promise.all([
+    const [{ data: r }, { data: c }, { data: rec }] = await Promise.all([
       supabase.from("resellers").select("id, display_name, user_id, billing_mode, subscription_blocked, subscription_onboarding_completed").eq("id", id).maybeSingle(),
       supabase.from("reseller_subscription_charges").select("*").eq("reseller_id", id).order("created_at", { ascending: false }),
+      supabase.from("reseller_subscription_recurrences").select("*").eq("reseller_id", id).order("created_at", { ascending: false }),
     ]);
     setReseller(r as any);
     setCharges((c ?? []) as any);
+    setRecurrences((rec ?? []) as any);
     setLoading(false);
   };
 
@@ -100,9 +117,57 @@ export default function GerenteRevendedorMensalidade() {
     const ch = supabase
       .channel(`sub-charges-${id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "reseller_subscription_charges", filter: `reseller_id=eq.${id}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "reseller_subscription_recurrences", filter: `reseller_id=eq.${id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
+
+  const computeNextGeneration = (dom: number): string => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth();
+    const todayDay = today.getDate();
+    let target = new Date(y, m, dom);
+    if (dom <= todayDay) target = new Date(y, m + 1, dom);
+    return target.toISOString().slice(0, 10);
+  };
+
+  const submitRecurrence = async () => {
+    if (!reseller) return;
+    const cents = Math.round(parseFloat(recAmount.replace(",", ".")) * 100);
+    const dom = parseInt(recDay, 10);
+    const warn = parseInt(recWarn, 10);
+    if (!Number.isFinite(cents) || cents < 100) { toast.error("Valor inválido"); return; }
+    if (!Number.isInteger(dom) || dom < 1 || dom > 28) { toast.error("Dia deve estar entre 1 e 28"); return; }
+    setRecSaving(true);
+    const { error } = await supabase.from("reseller_subscription_recurrences").insert({
+      reseller_id: reseller.id,
+      amount_cents: cents,
+      day_of_month: dom,
+      description: recDesc || "Mensalidade",
+      warning_days_before: Number.isFinite(warn) ? warn : 5,
+      is_active: true,
+      next_generation_date: computeNextGeneration(dom),
+    });
+    setRecSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Recorrência criada");
+    setRecOpen(false);
+    setRecAmount(""); setRecDay("3"); setRecDesc("Mensalidade"); setRecWarn("5");
+    load();
+  };
+
+  const toggleRecurrence = async (r: Recurrence) => {
+    const { error } = await supabase.from("reseller_subscription_recurrences")
+      .update({ is_active: !r.is_active }).eq("id", r.id);
+    if (error) toast.error(error.message); else { toast.success(r.is_active ? "Pausada" : "Ativada"); load(); }
+  };
+
+  const deleteRecurrence = async (r: Recurrence) => {
+    if (!confirm("Excluir esta recorrência? As cobranças já geradas serão mantidas.")) return;
+    const { error } = await supabase.from("reseller_subscription_recurrences").delete().eq("id", r.id);
+    if (error) toast.error(error.message); else { toast.success("Excluída"); load(); }
+  };
 
   const toggleBillingMode = async (checked: boolean) => {
     if (!reseller) return;
