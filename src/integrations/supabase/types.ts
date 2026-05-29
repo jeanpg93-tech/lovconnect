@@ -2575,6 +2575,140 @@ export type Database = {
         }
         Relationships: []
       }
+      reseller_subscription_charges: {
+        Row: {
+          amount_cents: number
+          cancel_reason: string | null
+          cancelled_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string
+          id: string
+          is_onboarding: boolean
+          kind: string
+          paid_at: string | null
+          paid_method: string | null
+          pix_payload: string | null
+          pix_qr_base64: string | null
+          provider: string
+          provider_charge_id: string | null
+          recurrence_id: string | null
+          reseller_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date: string
+          id?: string
+          is_onboarding?: boolean
+          kind: string
+          paid_at?: string | null
+          paid_method?: string | null
+          pix_payload?: string | null
+          pix_qr_base64?: string | null
+          provider?: string
+          provider_charge_id?: string | null
+          recurrence_id?: string | null
+          reseller_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string
+          id?: string
+          is_onboarding?: boolean
+          kind?: string
+          paid_at?: string | null
+          paid_method?: string | null
+          pix_payload?: string | null
+          pix_qr_base64?: string | null
+          provider?: string
+          provider_charge_id?: string | null
+          recurrence_id?: string | null
+          reseller_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_subscription_charges_recurrence_id_fkey"
+            columns: ["recurrence_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_subscription_recurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_subscription_charges_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reseller_subscription_recurrences: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          created_by: string | null
+          day_of_month: number
+          description: string | null
+          id: string
+          is_active: boolean
+          next_generation_date: string | null
+          reseller_id: string
+          updated_at: string
+          warning_days_before: number
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          created_by?: string | null
+          day_of_month: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          next_generation_date?: string | null
+          reseller_id: string
+          updated_at?: string
+          warning_days_before?: number
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          created_by?: string | null
+          day_of_month?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          next_generation_date?: string | null
+          reseller_id?: string
+          updated_at?: string
+          warning_days_before?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_subscription_recurrences_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reseller_tier_state: {
         Row: {
           forced_tier_id: string | null
@@ -2665,6 +2799,7 @@ export type Database = {
       resellers: {
         Row: {
           activation_status: string
+          billing_mode: string
           bonus_min_tier_id: string | null
           created_at: string
           display_name: string
@@ -2672,6 +2807,9 @@ export type Database = {
           is_active: boolean
           last_test_key_reset: string | null
           slug: string
+          subscription_blocked: boolean
+          subscription_blocked_at: string | null
+          subscription_onboarding_completed: boolean
           test_keys_per_day_override: number | null
           test_keys_used_today: number | null
           updated_at: string
@@ -2679,6 +2817,7 @@ export type Database = {
         }
         Insert: {
           activation_status?: string
+          billing_mode?: string
           bonus_min_tier_id?: string | null
           created_at?: string
           display_name: string
@@ -2686,6 +2825,9 @@ export type Database = {
           is_active?: boolean
           last_test_key_reset?: string | null
           slug: string
+          subscription_blocked?: boolean
+          subscription_blocked_at?: string | null
+          subscription_onboarding_completed?: boolean
           test_keys_per_day_override?: number | null
           test_keys_used_today?: number | null
           updated_at?: string
@@ -2693,6 +2835,7 @@ export type Database = {
         }
         Update: {
           activation_status?: string
+          billing_mode?: string
           bonus_min_tier_id?: string | null
           created_at?: string
           display_name?: string
@@ -2700,6 +2843,9 @@ export type Database = {
           is_active?: boolean
           last_test_key_reset?: string | null
           slug?: string
+          subscription_blocked?: boolean
+          subscription_blocked_at?: string | null
+          subscription_onboarding_completed?: boolean
           test_keys_per_day_override?: number | null
           test_keys_used_today?: number | null
           updated_at?: string

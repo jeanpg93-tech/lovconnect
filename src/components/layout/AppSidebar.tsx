@@ -159,7 +159,7 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
-  const { primaryRole, loading, hasData } = useRole();
+  const { primaryRole, loading, hasData, isSubscription } = useRole();
   const { signOut, user } = useAuth();
 
   const [openGroups, setOpenGroups] = useState<string[]>(["Visão geral", "Painel", "Vender", "Operação"]);
@@ -209,7 +209,10 @@ export function AppSidebar() {
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [user?.id]);
 
-  const dangerItems = (primaryRole && dangerItemsByRole[primaryRole]) || [];
+  const dangerItems = ((primaryRole && dangerItemsByRole[primaryRole]) || []).filter((d) => {
+    if (isSubscription && d.url === "/painel/revendedor/integracoes/misticpay") return false;
+    return true;
+  });
   const dangerActive = dangerItems.some((d) => pathname === d.url);
   const [dangerOpen, setDangerOpen] = useState(dangerActive);
 
@@ -388,9 +391,20 @@ export function AppSidebar() {
     ...group,
     items: group.items.filter(item => {
       if (isPartner && item.url === "/painel/revendedor/niveis") return false;
+      if (isSubscription) {
+        const hiddenForSubscription = [
+          "/painel/revendedor/carteira",
+          "/painel/revendedor/recargas",
+          "/painel/revendedor/precos",
+          "/painel/revendedor/api-recargas",
+          "/painel/revendedor/loja",
+          "/painel/revendedor/indicacoes",
+        ];
+        if (hiddenForSubscription.includes(item.url)) return false;
+      }
       return true;
     })
-  }));
+  })).filter(g => g.items.length > 0);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">

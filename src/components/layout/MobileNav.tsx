@@ -18,7 +18,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { NotificationCenter } from "@/components/NotificationCenter";
 export function MobileNav() {
   const { pathname } = useLocation();
-  const { primaryRole } = useRole();
+  const { primaryRole, isSubscription } = useRole();
   const { user, signOut } = useAuth();
   const { setOpenMobile } = useSidebar();
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
@@ -88,6 +88,7 @@ export function MobileNav() {
       icon: Zap,
       url: "/painel/revendedor/recargas",
       active: pathname === "/painel/revendedor/recargas",
+      hidden: isSubscription,
     },
     {
       label: "Novo",
@@ -112,6 +113,7 @@ export function MobileNav() {
       icon: Wallet,
       onClick: () => setIsWalletModalOpen(true),
       active: isWalletModalOpen,
+      hidden: isSubscription,
     },
   ];
 
@@ -157,7 +159,7 @@ export function MobileNav() {
         <div className="relative">
           {/* Main Bar */}
           <nav className="flex h-[72px] w-full items-center justify-between px-4 pb-[env(safe-area-inset-bottom)] bg-background/95 backdrop-blur-xl border-t border-border">
-            {navItems.map((item, idx) => {
+            {navItems.filter((it: any) => !it.hidden).map((item, idx) => {
               const Icon = item.icon;
               
               if (item.isAction) {
