@@ -19,6 +19,9 @@ const DEFAULT_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/rese
 
 const UNIFIED_METHODS = ["flow", "lovax"];
 const UNIFIED_PACKS = ["1d", "7d", "30d", "90d", "365d", "lifetime"];
+// MétodoFlow tem teto de 60 dias no provedor — 90d/365d entregavam apenas 60d.
+// Mantemos somente as durações que o provedor honra de verdade.
+const FLOW_ALLOWED_PACKS = new Set(["1d", "7d", "30d", "lifetime"]);
 const PACK_LABEL: Record<string, string> = {
   "1d": "1 Dia", "7d": "7 Dias", "30d": "30 Dias",
   "90d": "90 Dias", "365d": "1 Ano", "lifetime": "Vitalícia",
@@ -576,7 +579,7 @@ Deno.serve(async (req) => {
 
     const result = UNIFIED_METHODS.filter((m) => m === guard.activeMethod && !guard.maintenance).map((m) => ({
       metodo: m,
-      pacotes: UNIFIED_PACKS.map((p) => {
+      pacotes: UNIFIED_PACKS.filter((p) => m !== "flow" || FLOW_ALLOWED_PACKS.has(p)).map((p) => {
         const cost_cents = costFor(m, p);
         const sale_cents = saleMap[`${m}|${p}`] ?? null;
         return {
@@ -610,6 +613,13 @@ Deno.serve(async (req) => {
     if (!UNIFIED_PACKS.includes(pacote)) {
       await logUsage(400, { error_message: "pacote inválido" });
       return json({ error: "pacote inválido", permitidos: UNIFIED_PACKS }, 400);
+    }
+    if (metodo === "flow" && !FLOW_ALLOWED_PACKS.has(pacote)) {
+      await logUsage(400, { error_message: "pacote indisponível para MétodoFlow" });
+      return json({
+        error: "Pacote indisponível para MétodoFlow. O provedor entrega no máximo 30 dias ou vitalício.",
+        permitidos: Array.from(FLOW_ALLOWED_PACKS),
+      }, 400);
     }
     const guard = await getDeliveryGuard(svc);
     const denied = assertDeliveryAllowed(metodo, guard);

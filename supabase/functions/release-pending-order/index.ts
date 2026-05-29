@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+// MétodoFlow tem teto de 60 dias no provedor — bloqueia 90d/365d como defesa adicional.
+const FLOW_DISALLOWED_TYPES = new Set(["90d", "365d"]);
 
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
   switch (type) {
@@ -243,6 +245,10 @@ Deno.serve(async (req) => {
         if (!apiKey) {
           await failAndRefund(admin, order, cost_cents, "Flow não configurado");
           return json({ ok: false, error: "no provider api key" }, 500);
+        }
+        if (FLOW_DISALLOWED_TYPES.has(order.license_type)) {
+          await failAndRefund(admin, order, cost_cents, "Pacote indisponível para MétodoFlow (90d/365d desativado)");
+          return json({ ok: false, error: "pack not supported by flow" }, 400);
         }
         const r = await fetch(`${base}/generate-license`, {
           method: "POST",

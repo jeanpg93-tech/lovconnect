@@ -9,6 +9,8 @@ const corsHeaders = {
 
 const MISTIC_BASE = "https://api.misticpay.com/api";
 const ALLOWED_TYPES = ["1d", "7d", "30d", "90d", "365d", "pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
+// MétodoFlow tem teto de 60 dias no provedor — bloqueia 90d/365d quando a loja entrega via Flow.
+const FLOW_DISALLOWED_TYPES = new Set(["90d", "365d"]);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -90,6 +92,11 @@ Deno.serve(async (req) => {
     } else if (license_type) {
       // It's a license purchase
       const method = (store as any).extension_method === "lovax" ? "lovax" : "flow";
+      if (method === "flow" && FLOW_DISALLOWED_TYPES.has(license_type)) {
+        return json({
+          error: "Pacote indisponível para MétodoFlow. Disponíveis: 1d, 7d, 30d, vitalício.",
+        }, 400);
+      }
       const { data: methodPrice } = await admin
         .from("reseller_license_prices")
         .select("price_cents")
