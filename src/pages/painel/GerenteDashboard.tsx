@@ -1051,7 +1051,7 @@ export default function GerenteDashboard() {
                               ? "/painel/gerente/recargas"
                               : "/painel/gerente/recargas";
                           return (
-                             <Link key={m.id} to={targetHref} className={`group/item flex items-center justify-between rounded-xl sm:rounded-2xl border ${tone.border} bg-background/40 p-2 sm:p-3 hover:bg-background hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all ${isApiOrder ? "bg-fuchsia-500/[0.04]" : isSaleLike ? "bg-sky-500/[0.04]" : ""}`}>
+                              <Link key={m.id} to={targetHref} className={`group/item flex items-center justify-between rounded-xl sm:rounded-2xl border ${tone.border} bg-background/40 p-2 sm:p-3 hover:bg-background hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all ${isApiOrder ? "bg-fuchsia-500/[0.04]" : isSaleLike ? "bg-sky-500/[0.04]" : (isRefund && isIn) ? "bg-rose-500/[0.05]" : ""}`}>
                                <div className="flex items-center gap-3 text-left min-w-0">
                                  <div
                                    className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border ${tone.bg} ${tone.text} ${tone.border}`}
