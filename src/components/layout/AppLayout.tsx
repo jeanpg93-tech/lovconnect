@@ -16,10 +16,11 @@ import { PendingProfileGate } from "@/components/PendingProfileGate";
 import { ActivationBanner } from "@/components/activation/ActivationBanner";
 import { ActivationLockOverlay } from "@/components/activation/ActivationLockOverlay";
 import { useActivation } from "@/hooks/useActivation";
+import { SubscriptionLockOverlay } from "@/components/subscription/SubscriptionLockOverlay";
 
 export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { primaryRole, isBanned, isActive, isGerente, loading: roleLoading, hasData } = useRole();
+  const { primaryRole, isBanned, isActive, isGerente, loading: roleLoading, hasData, isSubscription, subscriptionOnboardingCompleted } = useRole();
   const isInitialAuthLoading = authLoading && !user;
   const isInitialRoleLoading = roleLoading && !hasData;
   useRealtimeNotifications();
@@ -54,6 +55,11 @@ export default function AppLayout() {
     !activationLoading &&
     activationStatus &&
     activationStatus !== "active";
+
+  const needsSubscriptionOnboarding =
+    primaryRole === "revendedor" &&
+    isSubscription &&
+    !subscriptionOnboardingCompleted;
 
   if (!primaryRole) {
     return (
@@ -143,13 +149,14 @@ export default function AppLayout() {
               {primaryRole === "revendedor" && <PendingBalanceBanner />}
               <div className="relative">
                 <div
-                  className={needsActivation ? "pointer-events-none select-none" : undefined}
-                  aria-hidden={needsActivation || undefined}
-                  {...(needsActivation ? { inert: "" } : {})}
+                  className={(needsActivation || needsSubscriptionOnboarding) ? "pointer-events-none select-none" : undefined}
+                  aria-hidden={(needsActivation || needsSubscriptionOnboarding) || undefined}
+                  {...((needsActivation || needsSubscriptionOnboarding) ? { inert: "" } : {})}
                 >
                   <PanelRoutes />
                 </div>
                 {needsActivation && <ActivationLockOverlay status={activationStatus!} />}
+                {!needsActivation && needsSubscriptionOnboarding && <SubscriptionLockOverlay />}
               </div>
             </div>
           </main>
