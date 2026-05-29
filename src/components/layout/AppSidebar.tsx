@@ -166,7 +166,7 @@ export function AppSidebar() {
   const { primaryRole, loading, hasData, isSubscription } = useRole();
   const { signOut, user } = useAuth();
 
-  const [openGroups, setOpenGroups] = useState<string[]>(["Visão geral", "Painel", "Vender", "Operação"]);
+  const [openGroups, setOpenGroups] = useState<string[]>(["Visão geral", "Painel", "Vender", "Operação", "Mensalidade"]);
   
   // Sincroniza abertura com a rota atual se necessário
   useEffect(() => {
