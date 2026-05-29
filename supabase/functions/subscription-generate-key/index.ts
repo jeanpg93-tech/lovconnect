@@ -1,0 +1,246 @@
+// Geração de chave para revendedor mensalista.
+// - Usa o método de entrega ativo (flow/lovax) automaticamente.
+// - Sem débito de saldo, sem promoções, sem cobrança.
+// - Suporta: trial | 1d | 7d | 30d | lifetime (15d só seria possível em Lovax e não é necessário aqui).
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const DEFAULT_FLOW_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+const DEFAULT_LOVAX_BASE = "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
+
+const ALLOWED_TYPES = new Set(["trial", "1d", "7d", "30d", "lifetime"]);
+const FLOW_ALLOWED = new Set(["trial", "1d", "7d", "30d", "lifetime"]);
+
+const onlyDigits = (s: string) => (s ?? "").toString().replace(/\D+/g, "");
+
+function json(d: unknown, status = 200) {
+  return new Response(JSON.stringify(d), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function packToDays(t: string): number {
+  switch (t) {
+    case "1d": return 1;
+    case "7d": return 7;
+    case "30d": return 30;
+    case "lifetime": return 36500;
+    default: return 30;
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+  try {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+    const userClient = createClient(supabaseUrl, anon, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const svc = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
+    if (claimsErr || !claims?.claims?.sub) return json({ error: "Unauthorized" }, 401);
+    const userId = claims.claims.sub as string;
+
+    const body = await req.json().catch(() => ({}));
+    const type = String(body.type ?? "").toLowerCase();
+    const display_name = String(body.display_name ?? "").trim();
+    const whatsapp = onlyDigits(body.whatsapp ?? "");
+    const isTrial = type === "trial";
+
+    if (!ALLOWED_TYPES.has(type)) return json({ error: "Tipo inválido" }, 400);
+    if (!isTrial) {
+      if (display_name.length < 2) return json({ error: "Nome obrigatório" }, 400);
+      if (!whatsapp || whatsapp.length < 10 || whatsapp.length > 13) {
+        return json({ error: "WhatsApp inválido (com DDD)" }, 400);
+      }
+    }
+
+    // Carrega revendedor
+    const { data: reseller } = await svc
+      .from("resellers")
+      .select("id,activation_status,billing_mode,subscription_blocked")
+      .eq("user_id", userId).maybeSingle();
+    if (!reseller) return json({ error: "Revendedor não encontrado" }, 404);
+    if ((reseller as any).billing_mode !== "subscription") {
+      return json({ error: "Esta tela é exclusiva para revendedores mensalistas" }, 403);
+    }
+    if ((reseller as any).activation_status && (reseller as any).activation_status !== "active") {
+      return json({ error: "Painel ainda não ativado." }, 403);
+    }
+    if ((reseller as any).subscription_blocked) {
+      return json({ error: "Painel bloqueado por cobrança em aberto. Pague para liberar.", reason: "subscription_blocked" }, 403);
+    }
+    const reseller_id = reseller.id as string;
+
+    // Lê método ativo + manutenção
+    const { data: settingsRows } = await svc
+      .from("app_settings")
+      .select("key,value")
+      .in("key", ["licencas.delivery.method", "licencas.delivery.maintenance"]);
+    const methodVal = (settingsRows ?? []).find((r: any) => r.key === "licencas.delivery.method")?.value as any;
+    const maintenanceVal = (settingsRows ?? []).find((r: any) => r.key === "licencas.delivery.maintenance")?.value as any;
+    const activeMethod: "flow" | "lovax" =
+      methodVal?.method === "lovax" ? "lovax" : "flow";
+    if (maintenanceVal?.enabled === true) {
+      return json({ error: "Entrega de licenças em manutenção. Tente novamente em instantes.", code: "delivery_maintenance" }, 503);
+    }
+    if (activeMethod === "flow" && !FLOW_ALLOWED.has(type)) {
+      return json({ error: "Pacote indisponível para o método ativo." }, 400);
+    }
+
+    // Cria pedido pendente (preço 0, sem débito, sem promoção)
+    const license_type = isTrial ? "trial" : `${activeMethod}_${type === "lifetime" ? "lifetime" : "pro_" + type}`;
+    const notesObj = {
+      method: activeMethod,
+      pack_id: type,
+      display_name: isTrial ? null : display_name,
+      whatsapp: whatsapp || null,
+      billing_mode: "subscription",
+    };
+    const { data: order, error: orderErr } = await svc
+      .from("orders")
+      .insert({
+        reseller_id,
+        client_id: null,
+        license_type,
+        price_cents: 0,
+        status: "pending",
+        product_type: "extension",
+        is_test: isTrial,
+        notes: JSON.stringify(notesObj),
+      })
+      .select("id")
+      .single();
+    if (orderErr || !order) return json({ error: orderErr?.message ?? "Falha ao criar pedido" }, 500);
+
+    const markFailed = async (reason: string, providerResp?: unknown) => {
+      await svc.from("orders").update({
+        status: "failed",
+        error_message: reason,
+        provider_response: providerResp ?? null,
+      }).eq("id", order.id);
+    };
+
+    // Chama provedor correspondente
+    let providerData: any = null;
+    let license_key: string | null = null;
+    try {
+      if (activeMethod === "lovax") {
+        const { data: settings } = await svc
+          .from("app_settings")
+          .select("key,value")
+          .in("key", ["lovax_api_token", "lovax_base_url"]);
+        const tk = settings?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined;
+        const bs = (settings?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined) || DEFAULT_LOVAX_BASE;
+        if (!tk) {
+          await markFailed("MétodoLovax não configurado pelo gerente");
+          return json({ error: "MétodoLovax não configurado pelo gerente" }, 500);
+        }
+        const payload: Record<string, unknown> = isTrial
+          ? { days: 0, hours: 0, minutes: 30, max_devices: 1 }
+          : { customer_name: display_name, days: packToDays(type), hours: 0, minutes: 0, max_devices: 1 };
+        const r = await fetch(bs, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tk}`, "x-api-key": tk, "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "generate_license", payload }),
+        });
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        if (!r.ok || !providerData?.success) {
+          await markFailed(providerData?.error ?? `Lovax retornou ${r.status}`, providerData);
+          return json({ error: "Falha no MétodoLovax", details: providerData }, 502);
+        }
+        license_key = providerData?.license?.license_key ?? providerData?.license_key ?? providerData?.key ?? null;
+      } else {
+        // flow
+        const { data: cfg } = await svc
+          .from("provider_settings")
+          .select("api_key,base_url")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
+        const base = cfg?.base_url ?? DEFAULT_FLOW_BASE;
+        if (!apiKey) {
+          await markFailed("MétodoFlow não configurado pelo gerente");
+          return json({ error: "MétodoFlow não configurado pelo gerente" }, 500);
+        }
+        const path = isTrial ? "/generate-trial" : "/generate-license";
+        const bodyOut: Record<string, unknown> = isTrial
+          ? {}
+          : { display_name, ...(type === "lifetime" ? { lifetime: true } : { days: packToDays(type) }) };
+        const r = await fetch(`${base}${path}`, {
+          method: "POST",
+          headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
+          body: JSON.stringify(bodyOut),
+        });
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        if (!r.ok) {
+          await markFailed(`MétodoFlow retornou ${r.status}`, providerData);
+          return json({ error: "Falha no MétodoFlow", details: providerData }, 502);
+        }
+        license_key = providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
+      }
+    } catch (e) {
+      await markFailed(e instanceof Error ? e.message : "Erro no provedor");
+      return json({ error: "Erro ao chamar provedor" }, 502);
+    }
+
+    if (!license_key) {
+      await markFailed("Provedor não retornou chave de licença", providerData);
+      return json({ error: "Provedor não retornou chave de licença" }, 502);
+    }
+
+    await svc.from("orders").update({
+      status: "completed",
+      license_key,
+      provider_response: providerData,
+    }).eq("id", order.id);
+
+    // WhatsApp fire-and-forget
+    if (license_key && whatsapp && !isTrial) {
+      fetch(`${supabaseUrl}/functions/v1/evolution-send-sale`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reseller_id,
+          kind: "license",
+          to: whatsapp,
+          vars: {
+            nome: display_name,
+            chave: license_key,
+            tipo: license_type,
+            valor_cents: "0",
+          },
+        }),
+      }).catch((e) => console.warn("evolution-send-sale failed", e));
+    }
+
+    return json({
+      ok: true,
+      order_id: order.id,
+      license_key,
+      type,
+      method: activeMethod,
+      display_name: isTrial ? null : display_name,
+    });
+  } catch (e) {
+    return json({ error: (e as Error).message ?? "Erro interno" }, 500);
+  }
+});
