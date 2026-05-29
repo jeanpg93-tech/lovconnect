@@ -6,6 +6,8 @@ const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/function
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MISTIC_BASE = "https://api.misticpay.com/api";
+// MétodoFlow tem teto de 60 dias no provedor — bloqueia 90d/365d como defesa adicional.
+const FLOW_DISALLOWED_TYPES = new Set(["90d", "365d"]);
 
 /**
  * Confirma com a API da MisticPay que a transação realmente está paga (status COMPLETO).
