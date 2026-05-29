@@ -1018,7 +1018,7 @@ export default function GerenteDashboard() {
                           const kindLabel = kindLabels[m.kind] ?? m.kind;
                           const desc = m.description ?? "";
                            const isStoreSale = m.kind === "order_debit" && /venda\s*loja/i.test(desc);
-                           const isApiOrder = m.kind === "order_debit" && !isStoreSale;
+                            const isApiOrder = (m.kind === "order_debit" && !isStoreSale) || m.kind === "api_debit";
                            // Detecta venda de créditos pelo detalhe ("Recarga • N créditos")
                            // pois a mesma kind 'license_purchase' é usada para licença e para recarga manual.
                            const isRechargeDetail = /recarga|cr[ée]dito/i.test(String(m.detail ?? "")) || /recarga|cr[ée]dito/i.test(desc);
