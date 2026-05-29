@@ -17,6 +17,9 @@ type RoleSnapshot = {
   hasData: boolean;
   loading: boolean;
   userId: string | null;
+  billingMode: "normal" | "subscription";
+  subscriptionBlocked: boolean;
+  subscriptionOnboardingCompleted: boolean;
 };
 
 // ---- Singleton store shared by every useRole() consumer ----
@@ -25,6 +28,9 @@ const initialFromCache = (): RoleSnapshot => {
   let isBanned = false;
   let isActive = true;
   let hasData = false;
+  let billingMode: "normal" | "subscription" = "normal";
+  let subscriptionBlocked = false;
+  let subscriptionOnboardingCompleted = true;
   try {
     const cached = localStorage.getItem("app_roles_cache");
     if (cached) {
@@ -33,10 +39,13 @@ const initialFromCache = (): RoleSnapshot => {
     }
     if (localStorage.getItem("user_is_banned") === "true") isBanned = true;
     if (localStorage.getItem("user_is_active") === "false") isActive = false;
+    if (localStorage.getItem("user_billing_mode") === "subscription") billingMode = "subscription";
+    if (localStorage.getItem("user_subscription_blocked") === "true") subscriptionBlocked = true;
+    if (localStorage.getItem("user_subscription_onboarding") === "false") subscriptionOnboardingCompleted = false;
   } catch {
     /* noop */
   }
-  return { roles, isBanned, isActive, hasData, loading: false, userId: null };
+  return { roles, isBanned, isActive, hasData, loading: false, userId: null, billingMode, subscriptionBlocked, subscriptionOnboardingCompleted };
 };
 
 let snapshot: RoleSnapshot = initialFromCache();
@@ -58,7 +67,7 @@ const fetchRoles = async (userId: string) => {
       const [rolesRes, profileRes, resellerRes] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.from("profiles").select("id, is_banned").eq("id", userId).maybeSingle(),
-        supabase.from("resellers").select("is_active").eq("user_id", userId).maybeSingle(),
+        supabase.from("resellers").select("is_active, billing_mode, subscription_blocked, subscription_onboarding_completed").eq("user_id", userId).maybeSingle(),
       ]);
 
       const next: Partial<RoleSnapshot> = { loading: false, userId, hasData: true };
@@ -68,11 +77,21 @@ const fetchRoles = async (userId: string) => {
         localStorage.setItem("user_is_banned", next.isBanned ? "true" : "false");
       }
       if (resellerRes.data) {
-        next.isActive = !!resellerRes.data.is_active;
+        const r: any = resellerRes.data;
+        next.isActive = !!r.is_active;
         localStorage.setItem("user_is_active", next.isActive ? "true" : "false");
+        next.billingMode = r.billing_mode === "subscription" ? "subscription" : "normal";
+        localStorage.setItem("user_billing_mode", next.billingMode);
+        next.subscriptionBlocked = !!r.subscription_blocked;
+        localStorage.setItem("user_subscription_blocked", next.subscriptionBlocked ? "true" : "false");
+        next.subscriptionOnboardingCompleted = r.subscription_onboarding_completed !== false;
+        localStorage.setItem("user_subscription_onboarding", next.subscriptionOnboardingCompleted ? "true" : "false");
       } else if (!resellerRes.error) {
         next.isActive = true;
         localStorage.setItem("user_is_active", "true");
+        next.billingMode = "normal";
+        next.subscriptionBlocked = false;
+        next.subscriptionOnboardingCompleted = true;
       }
 
       if (!rolesRes.error) {
@@ -94,7 +113,10 @@ const resetRoles = () => {
   localStorage.removeItem("app_roles_cache");
   localStorage.removeItem("user_is_banned");
   localStorage.removeItem("user_is_active");
-  setSnapshot({ roles: [], isBanned: false, isActive: true, hasData: false, loading: false, userId: null });
+  localStorage.removeItem("user_billing_mode");
+  localStorage.removeItem("user_subscription_blocked");
+  localStorage.removeItem("user_subscription_onboarding");
+  setSnapshot({ roles: [], isBanned: false, isActive: true, hasData: false, loading: false, userId: null, billingMode: "normal", subscriptionBlocked: false, subscriptionOnboardingCompleted: true });
 };
 
 export const useRole = () => {
@@ -137,5 +159,9 @@ export const useRole = () => {
     loading: snapshot.loading,
     authLoading,
     hasData: snapshot.hasData,
+    billingMode: snapshot.billingMode,
+    isSubscription: snapshot.billingMode === "subscription",
+    subscriptionBlocked: snapshot.subscriptionBlocked,
+    subscriptionOnboardingCompleted: snapshot.subscriptionOnboardingCompleted,
   };
 };
