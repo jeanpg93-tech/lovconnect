@@ -46,7 +46,7 @@ const KIND_META: Record<string, { label: string; cls: string; icon: any }> = {
   affiliate_bonus: { label: "Indicação",      cls: "bg-amber-500/10 text-amber-500 border-amber-500/20",       icon: Gift },
   order_debit:     { label: "Chave",          cls: "bg-blue-500/10 text-blue-500 border-blue-500/20",          icon: Key },
   order:           { label: "Chave",          cls: "bg-blue-500/10 text-blue-500 border-blue-500/20",          icon: Key },
-  api_debit:       { label: "Saída API",      cls: "bg-rose-500/10 text-rose-500 border-rose-500/20",          icon: ArrowUpRight },
+  api_debit:       { label: "Venda API",      cls: "bg-blue-500/10 text-blue-500 border-blue-500/20",          icon: Key },
   refund:          { label: "Estorno",        cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",             icon: ArrowDownRight },
   panel_refund:    { label: "Estorno Painel", cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",             icon: ArrowDownRight },
   credit_purchase_refund: { label: "Estorno", cls: "bg-sky-500/10 text-sky-500 border-sky-500/20",           icon: ArrowDownRight },
