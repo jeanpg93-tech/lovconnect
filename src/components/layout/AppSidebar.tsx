@@ -209,7 +209,10 @@ export function AppSidebar() {
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [user?.id]);
 
-  const dangerItems = (primaryRole && dangerItemsByRole[primaryRole]) || [];
+  const dangerItems = ((primaryRole && dangerItemsByRole[primaryRole]) || []).filter((d) => {
+    if (isSubscription && d.url === "/painel/revendedor/integracoes/misticpay") return false;
+    return true;
+  });
   const dangerActive = dangerItems.some((d) => pathname === d.url);
   const [dangerOpen, setDangerOpen] = useState(dangerActive);
 
