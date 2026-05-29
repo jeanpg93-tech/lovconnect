@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
           headers: { Authorization: `Bearer ${tk}`, "x-api-key": tk, "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "generate_trial",
-            payload: { customer_name: final_display_name, minutes: 30, max_devices: 1 },
+            payload: { customer_name: final_display_name, minutes: 15, max_devices: 1 },
           }),
         });
         const text = await r.text();
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
         const r = await fetch(`${base}/generate-trial`, {
           method: "POST",
           headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
-          body: JSON.stringify({ display_name: final_display_name, minutes: 30, seconds: 0 }),
+          body: JSON.stringify({ display_name: final_display_name, minutes: 15, seconds: 0 }),
         });
         const text = await r.text();
         try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
