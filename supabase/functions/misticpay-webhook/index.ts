@@ -407,6 +407,53 @@ Deno.serve(async (req) => {
         return json({ ok: true, status });
       }
 
+      // Try subscription charge
+      const { data: subCharge } = await admin
+        .from("reseller_subscription_charges")
+        .select("*")
+        .eq("provider_charge_id", txId)
+        .maybeSingle();
+
+      if (subCharge) {
+        if (subCharge.status === "paid") return json({ ok: true, already: true });
+
+        if (status === "COMPLETO" || status === "PAID" || status === "SUCCESS") {
+          const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
+          const ok = await verifyMisticTxPaid(mci, mcs, txId);
+          if (!ok) {
+            console.warn("[webhook] subscription tx not confirmed by MisticPay", txId);
+            return json({ ok: false, reason: "unverified_transaction" }, 403);
+          }
+          const updates: Record<string, unknown> = {
+            status: "paid",
+            paid_at: new Date().toISOString(),
+          };
+          await admin.from("reseller_subscription_charges").update(updates).eq("id", subCharge.id);
+
+          // If onboarding charge, mark onboarding completed and unblock reseller
+          if (subCharge.is_onboarding) {
+            await admin.from("resellers").update({
+              subscription_onboarding_completed: true,
+              subscription_blocked: false,
+              subscription_blocked_at: null,
+            }).eq("id", subCharge.reseller_id);
+          } else {
+            // Any paid charge should unblock if blocked
+            await admin.from("resellers").update({
+              subscription_blocked: false,
+              subscription_blocked_at: null,
+            }).eq("id", subCharge.reseller_id);
+          }
+          return json({ ok: true, kind: "subscription_charge" });
+        }
+
+        if (status === "FALHA" || status === "CANCELADO" || status === "FAILED") {
+          // Keep charge pending; do not auto-cancel on provider failure
+          return json({ ok: true });
+        }
+        return json({ ok: true, status });
+      }
+
       console.warn("no intent/order/sale for tx", txId);
       return json({ ok: false, reason: "not found" }, 200);
     }

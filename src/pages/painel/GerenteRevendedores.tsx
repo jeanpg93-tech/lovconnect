@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +12,12 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
+import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type Reseller = {
-  id: string; user_id: string; display_name: string; slug: string; is_active: boolean; test_keys_used_today: number; test_keys_per_day_override: number | null; activation_status?: string | null;
+  id: string; user_id: string; display_name: string; slug: string; is_active: boolean; test_keys_used_today: number; test_keys_per_day_override: number | null; activation_status?: string | null; billing_mode?: string | null;
 };
 type Profile = { id: string; email: string; display_name: string | null; phone: string | null; is_banned: boolean | null };
 type Tier = { id: string; name: string; color: string; min_spent_cents: number; is_active: boolean; is_hidden: boolean; test_keys_per_day: number; sort_order: number };
@@ -65,6 +66,7 @@ const ActivationBadge = ({ status }: { status?: string | null }) => {
 };
 
 export default function GerenteRevendedores() {
+  const navigate = useNavigate();
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [profilesByUser, setProfilesByUser] = useState<Record<string, Profile>>({});
   const [balancesByReseller, setBalancesByReseller] = useState<Record<string, number>>({});
@@ -420,7 +422,14 @@ export default function GerenteRevendedores() {
                     const progress = tierProgressFor(r.id);
                     return (
                       <tr key={r.id} className="group transition-all duration-300 hover:bg-white/5">
-                        <td className="px-6 py-4 font-medium text-foreground">{firstLastName(prof?.display_name)}</td>
+                        <td className="px-6 py-4 font-medium text-foreground">
+                          <div className="flex items-center gap-2">
+                            {firstLastName(prof?.display_name)}
+                            {r.billing_mode === "subscription" && (
+                              <Badge className="bg-violet-500/15 text-violet-400 border-violet-500/30 text-[9px] uppercase">Mensalista</Badge>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-6 py-4 text-muted-foreground/80">{r.display_name}</td>
                         <td className="px-6 py-4"><ActivationBadge status={r.activation_status} /></td>
                         <td className="px-6 py-4 text-muted-foreground/80">{prof?.email ?? "—"}</td>
@@ -493,6 +502,14 @@ export default function GerenteRevendedores() {
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
+                                  <Button size="sm" variant="ghost" onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/mensalidade`)} className={cn(r.billing_mode === "subscription" && "text-violet-400")}>
+                                    <Repeat className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Gerenciar mensalidade</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
                                   <Button size="sm" variant="ghost" onClick={() => deleteReseller(r)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
                                 </TooltipTrigger>
                                 <TooltipContent>Excluir revendedor</TooltipContent>
@@ -517,7 +534,12 @@ export default function GerenteRevendedores() {
                   <div key={r.id} className="p-4 space-y-4 border-b border-white/5 bg-white/5 rounded-xl mb-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-bold text-foreground">{firstLastName(prof?.display_name)}</h3>
+                        <h3 className="font-bold text-foreground flex items-center gap-2">
+                          {firstLastName(prof?.display_name)}
+                          {r.billing_mode === "subscription" && (
+                            <Badge className="bg-violet-500/15 text-violet-400 border-violet-500/30 text-[9px] uppercase">Mensalista</Badge>
+                          )}
+                        </h3>
                         <p className="text-[11px] text-muted-foreground">@{r.display_name}</p>
                         <p className="text-xs text-muted-foreground">{prof?.email ?? "—"}</p>
                         <p className="text-[11px] text-muted-foreground font-mono">{formatPhoneBR(prof?.phone)}</p>
@@ -562,6 +584,9 @@ export default function GerenteRevendedores() {
                       </Button>
                       <Button className="flex-1 h-9 rounded-lg" size="sm" variant="secondary" onClick={() => openTestKeysConfig(r)}>
                         <Settings2 className="mr-2 h-4 w-4" /> Limite
+                      </Button>
+                      <Button className="flex-1 h-9 rounded-lg" size="sm" variant={r.billing_mode === "subscription" ? "default" : "secondary"} onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/mensalidade`)}>
+                        <Repeat className="mr-2 h-4 w-4" /> Mens.
                       </Button>
                       <Button size="icon" variant="destructive" className="h-9 w-9 rounded-lg shrink-0" onClick={() => deleteReseller(r)}>
                         <Trash2 className="h-4 w-4" />
