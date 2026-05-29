@@ -45,6 +45,8 @@ const RevendedorClientes = lazy(() => import("@/pages/painel/RevendedorClientes"
 const RevendedorExtensoes = lazy(() => import("@/pages/painel/RevendedorExtensoes"));
 const RevendedorPrecos = lazy(() => import("@/pages/painel/RevendedorPrecos"));
 const RevendedorPedidos = lazy(() => import("@/pages/painel/RevendedorPedidos"));
+const RevendedorGerarChave = lazy(() => import("@/pages/painel/RevendedorGerarChave"));
+const RevendedorMinhasChaves = lazy(() => import("@/pages/painel/RevendedorMinhasChaves"));
 const RevendedorAdicionarSaldo = lazy(() => import("@/pages/painel/RevendedorAdicionarSaldo"));
 const RevendedorCarteira = lazy(() => import("@/pages/painel/RevendedorCarteira"));
 const RevendedorIntegracaoMisticPay = lazy(() => import("@/pages/painel/RevendedorIntegracaoMisticPay"));
@@ -119,6 +121,8 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/revendedor/clientes", match: exact("/painel/revendedor/clientes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorClientes /></RoleRoute> },
   { key: "/painel/revendedor/licencas", match: exact("/painel/revendedor/licencas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPedidos /></RoleRoute> },
   { key: "/painel/revendedor/pedidos", match: exact("/painel/revendedor/pedidos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPedidos /></RoleRoute> },
+  { key: "/painel/revendedor/gerar-chave", match: exact("/painel/revendedor/gerar-chave"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorGerarChave /></RoleRoute> },
+  { key: "/painel/revendedor/minhas-chaves", match: exact("/painel/revendedor/minhas-chaves"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorMinhasChaves /></RoleRoute> },
   { key: "/painel/revendedor/extensoes", match: exact("/painel/revendedor/extensoes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorExtensoes /></RoleRoute> },
   { key: "/painel/revendedor/precos", match: exact("/painel/revendedor/precos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPrecos /></RoleRoute> },
   { key: "/painel/revendedor/creditos", match: exact("/painel/revendedor/creditos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorCreditos /></RoleRoute> },

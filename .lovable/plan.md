@@ -114,7 +114,7 @@ GRANT + RLS: gerente full CRUD (`has_role('gerente')`); revendedor só `SELECT` 
 - Sidebar (desktop + mobile) esconde Adicionar Saldo / Comprar Créditos / Precificação>Recargas para mensalista.
 - **Entregável**: marca revendedor como mensalista, gera chave sem débito/desconto.
 
-### Fase 2 — Páginas do mensalista (gerar / listar / gerenciar chaves)
+### Fase 2 — Páginas do mensalista (gerar / listar / gerenciar chaves) ✅
 - `RevendedorGerarChave` (método ativo automático; tipo + nome + WhatsApp; envio WhatsApp opcional).
 - `RevendedorMinhasChaves` (tabela responsiva → cards no mobile; copiar, revogar, resetar device, histórico).
 - Sidebar substitui Pedidos/Saldo por Gerar Chave + Minhas Chaves.
