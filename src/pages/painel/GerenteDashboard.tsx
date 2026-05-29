@@ -653,8 +653,8 @@ export default function GerenteDashboard() {
     if (k === "bonus" || k === "activation_credit" || /bonus/i.test(k)) return "bonus";
     if (k === "adjustment") return "adjustment";
     const isRechargeDetail = /recarga|cr[ée]dito/i.test(det) || /recarga|cr[ée]dito/i.test(desc);
-    if (k === "credit_purchase" || ((k === "license_purchase" || k === "order_debit") && isRechargeDetail)) return "sale_credit";
-    if (k === "license_purchase" || k === "order_debit") {
+    if (k === "credit_purchase" || ((k === "license_purchase" || k === "order_debit" || k === "api_debit") && isRechargeDetail)) return "sale_credit";
+    if (k === "license_purchase" || k === "order_debit" || k === "api_debit") {
       return /venda\s*loja/i.test(desc) ? "sale_store" : "sale_api";
     }
     return "other";
