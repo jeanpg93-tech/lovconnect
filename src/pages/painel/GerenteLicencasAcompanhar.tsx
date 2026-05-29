@@ -27,6 +27,18 @@ const PLAN_DAYS: Record<string, number | null> = {
   pro_7d: 7,
   pro_15d: 15,
   pro_30d: 30,
+  flow_1d: 1,
+  flow_7d: 7,
+  flow_15d: 15,
+  flow_30d: 30,
+  lovax_1d: 1,
+  lovax_7d: 7,
+  lovax_15d: 15,
+  lovax_30d: 30,
+  "1d": 1,
+  "7d": 7,
+  "15d": 15,
+  "30d": 30,
   trial: 15 / (24 * 60),
   lifetime: null,
 };
@@ -110,7 +122,7 @@ function computeStatus(o: { status: string }, exp: { expired: boolean; lifetime:
   if (["revoked", "revogado", "revogada", "banned", "blocked"].includes(s)) {
     return { kind: "revoked" as const, label: "Revogada", className: "bg-destructive/15 text-destructive border border-destructive/30" };
   }
-  const isStatusActive = ["success", "active", "trial", "valid", "approved"].includes(s);
+  const isStatusActive = ["success", "active", "trial", "valid", "approved", "completed", "paid", "delivered"].includes(s);
   if (!isStatusActive || (!exp.lifetime && exp.expired)) {
     return { kind: "expired" as const, label: "Expirada", className: "bg-amber-500/15 text-amber-400 border border-amber-500/30" };
   }
