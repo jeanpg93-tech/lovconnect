@@ -14,6 +14,11 @@ Criar um novo modo de cobrança ("mensalista") aplicável a revendedores especí
 - Caso 1ª mensalidade parcelada (R$ 250 hoje + R$ 250 dia 3): você cria duas cobranças avulsas e depois ativa a recorrência mensal a partir do mês seguinte.
 
 **Para o revendedor mensalista:**
+- **Primeiro acesso (onboarding)**: o gerente cadastra o e-mail/senha do mensalista. Ao logar pela primeira vez, o painel aparece **bloqueado e com blur** (parecido com o estado de revendedor novo aguardando aprovação) — ele vê a estrutura, mas não consegue interagir. No centro fica um card com:
+  - Resumo das duas cobranças iniciais (1ª de R$ 250 disponível agora + 2ª de R$ 250 programada para dia 3).
+  - Botão **"Gerar PIX da 1ª parcela (R$ 250)"** → cria o PIX na hora via MisticPay e mostra QR + copia-cola.
+  - Quando chegar a data da 2ª parcela, aparece outro botão **"Gerar PIX da 2ª parcela (R$ 250)"** no mesmo card (e também fica disponível em "Minhas Cobranças").
+  - Após confirmação do pagamento da 1ª parcela via webhook → painel **desbloqueia automaticamente** e ele já consegue gerar chaves. A 2ª parcela vira só uma cobrança pendente normal (com banner de aviso), sem rebloquear até o vencimento dela.
 - Aba **Recargas / Adicionar Saldo** fica oculta (ou exibe aviso "indisponível no seu plano").
 - Licenças são geradas **sem custo de saldo** (mensalidade cobre tudo) — nenhum débito em `reseller_balances`.
 - Nova aba **"Minhas Cobranças"** mostra pendências, vencidas e histórico, com QR/copia-cola do PIX.
