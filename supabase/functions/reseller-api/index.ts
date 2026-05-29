@@ -14,7 +14,15 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-const ALLOWED_TYPES = ["pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
+const ALLOWED_TYPES = ["pro_1d", "pro_7d", "pro_30d", "lifetime"];
+// Mapeia o license_type legado da API pública para o duration_code unificado
+// usado por tier_license_prices / get_license_pack_cost.
+const LEGACY_TYPE_TO_DURATION: Record<string, string> = {
+  pro_1d: "1d",
+  pro_7d: "7d",
+  pro_30d: "30d",
+  lifetime: "lifetime",
+};
 const DEFAULT_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
 
 const UNIFIED_METHODS = ["flow", "lovax"];
@@ -280,10 +288,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Preço (Partner Override > Tier Price > Extension Price > Global Plan)
+    // Preço: Partner Override (extensão) > Tier Extension Price > tier_license_prices (unificado)
     let price_cents = 0;
-    let base_price = 0;
-    let min_price = 0;
     let tier_price_override = 0;
 
     // 1) Override individual por revendedor (Partners) tem prioridade máxima
@@ -327,39 +333,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: tier } = await svc.rpc("get_reseller_tier", { _reseller_id: reseller.id });
-    const tierRow: any = Array.isArray(tier) ? tier[0] : tier;
-    const discount = Number(tierRow?.discount_percent ?? 0);
+    const discount = 0; // Mantido para compatibilidade no response
 
     if (tier_price_override > 0) {
-      // Preço fixo: ignora desconto% e piso global
       price_cents = tier_price_override;
     } else {
-      // Busca preço customizado do revendedor (global ou por extensão)
-      const { data: overrideRow } = await svc.from("reseller_extension_prices")
-        .select("price_cents,is_active")
-        .eq("reseller_id", reseller.id)
-        .eq("license_type", license_type)
-        .or(extension_id ? `extension_id.eq.${extension_id},extension_id.is.null` : 'extension_id.is.null')
-        .eq("is_active", true)
-        .order("extension_id", { ascending: false });
-
-      if (overrideRow && overrideRow.length > 0 && overrideRow[0].price_cents > 0) {
-        base_price = overrideRow[0].price_cents;
+      // Fonte única: tier_license_prices via RPC (mesmo custo usado no painel)
+      const duration_code = LEGACY_TYPE_TO_DURATION[license_type];
+      if (!duration_code) {
+        await logUsage(400, { error_message: "Tipo sem mapeamento" });
+        return json({ error: "license_type sem preço unificado", allowed: ALLOWED_TYPES }, 400);
       }
-      
-      const { data: pl } = await svc.from("pricing_plans")
-        .select("price_cents,is_active,min_price_cents").eq("license_type", license_type).maybeSingle();
-      
-      if (base_price === 0) {
-        if (!pl?.is_active || pl.price_cents <= 0) {
-          await logUsage(400, { error_message: "Preço não configurado" });
-          return json({ error: "Preço não configurado para esse tipo pelo gerente" }, 400);
-        }
-        base_price = pl.price_cents;
+      const { data: costData } = await svc.rpc("get_license_pack_cost", {
+        _reseller_id: reseller.id,
+        _duration_code: duration_code,
+      });
+      price_cents = Number(costData ?? 0);
+      if (!price_cents || price_cents <= 0) {
+        await logUsage(400, { error_message: "Preço não configurado" });
+        return json({ error: "Preço não configurado para esse tipo pelo gerente" }, 400);
       }
-      min_price = Number(pl?.min_price_cents ?? 0);
-      price_cents = Math.max(0, min_price, Math.round(base_price * (1 - discount / 100)));
     }
 
 
