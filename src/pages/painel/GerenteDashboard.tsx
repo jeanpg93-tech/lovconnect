@@ -166,6 +166,8 @@ export default function GerenteDashboard() {
     credits?: number | null;
     promotion_id?: string | null;
     promotion_discount_cents?: number | null;
+    recharge_base_cents?: number | null;
+    recharge_bonus_cents?: number | null;
   }[]>([]);
   const [apiLogs, setApiLogs] = useState<{ id: string; created_at: string; endpoint: string; reseller_name?: string; status_code: number }[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
