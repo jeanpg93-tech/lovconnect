@@ -3170,6 +3170,7 @@ export type Database = {
           notify_reseller_activity: boolean
           notify_sales: boolean
           notify_signups: boolean
+          notify_subscription_sales: boolean
           paired_at: string | null
           pairing_code: string | null
           pairing_expires_at: string | null
@@ -3191,6 +3192,7 @@ export type Database = {
           notify_reseller_activity?: boolean
           notify_sales?: boolean
           notify_signups?: boolean
+          notify_subscription_sales?: boolean
           paired_at?: string | null
           pairing_code?: string | null
           pairing_expires_at?: string | null
@@ -3212,6 +3214,7 @@ export type Database = {
           notify_reseller_activity?: boolean
           notify_sales?: boolean
           notify_signups?: boolean
+          notify_subscription_sales?: boolean
           paired_at?: string | null
           pairing_code?: string | null
           pairing_expires_at?: string | null
