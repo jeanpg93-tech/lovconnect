@@ -30,10 +30,20 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ skipped: 'not paired' }))
   }
 
-  const { data: pending } = await supabase
+  const { data: pending, error: pendingErr } = await supabase
     .from('telegram_outbox').select('*')
     .is('sent_at', null)
     .order('created_at', { ascending: true }).limit(50)
+
+  if (pendingErr) {
+    console.error('[telegram-dispatch] failed to fetch pending', pendingErr)
+    return new Response(JSON.stringify({ error: 'fetch_failed', details: pendingErr.message }), { status: 500 })
+  }
+
+  const pendingCount = pending?.length ?? 0
+  if (pendingCount > 0) {
+    console.log(`[telegram-dispatch] processing ${pendingCount} pending message(s)`)
+  }
 
   let sent = 0, failed = 0
   for (const msg of pending ?? []) {
@@ -121,7 +131,11 @@ Deno.serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ sent, failed }), {
+  if (sent > 0 || failed > 0) {
+    console.log(`[telegram-dispatch] done sent=${sent} failed=${failed} fetched=${pendingCount}`)
+  }
+
+  return new Response(JSON.stringify({ sent, failed, fetched: pendingCount }), {
     headers: { 'Content-Type': 'application/json' },
   })
 })
