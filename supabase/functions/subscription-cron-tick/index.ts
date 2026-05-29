@@ -17,6 +17,19 @@ function todayBRT(): string {
   return brt.toISOString().slice(0, 10);
 }
 
+// Given a YYYY-MM-DD date and day_of_month (1-28), return the next occurrence
+// (strictly after the given date) as YYYY-MM-DD.
+function nextOccurrence(fromIso: string, dom: number): string {
+  const [y, m] = fromIso.split("-").map(Number);
+  // try same month first; if not strictly after `from`, advance month
+  let year = y, month = m;
+  const candidateSame = `${year}-${String(month).padStart(2, "0")}-${String(dom).padStart(2, "0")}`;
+  if (candidateSame > fromIso) return candidateSame;
+  month += 1;
+  if (month > 12) { month = 1; year += 1; }
+  return `${year}-${String(month).padStart(2, "0")}-${String(dom).padStart(2, "0")}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -25,6 +38,45 @@ Deno.serve(async (req) => {
   const log: Record<string, unknown> = { today };
 
   try {
+    // 0) Generate due recurrences (do BEFORE marking overdue so newly-created
+    //    charges with today's due_date aren't accidentally overdued).
+    const { data: dueRecs } = await admin
+      .from("reseller_subscription_recurrences")
+      .select("*")
+      .eq("is_active", true)
+      .lte("next_generation_date", today);
+    let generated = 0;
+    for (const rec of dueRecs ?? []) {
+      const r: any = rec;
+      const dueDate = r.next_generation_date ?? today;
+      const resp = await fetch(`${supabaseUrl}/functions/v1/subscription-create-charge`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({
+          reseller_id: r.reseller_id,
+          kind: "monthly",
+          amount_cents: r.amount_cents,
+          due_date: dueDate,
+          description: r.description ?? "Mensalidade",
+          recurrence_id: r.id,
+        }),
+      });
+      if (resp.ok) {
+        generated++;
+        const next = nextOccurrence(dueDate, r.day_of_month);
+        await admin
+          .from("reseller_subscription_recurrences")
+          .update({ next_generation_date: next })
+          .eq("id", r.id);
+      } else {
+        console.error("recurrence gen failed", r.id, await resp.text());
+      }
+    }
+    log.recurrences_generated = generated;
+
     // 1) Mark pending charges past due_date as overdue
     const { data: overdueRows, error: e1 } = await admin
       .from("reseller_subscription_charges")

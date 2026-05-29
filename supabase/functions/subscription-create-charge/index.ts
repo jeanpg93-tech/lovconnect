@@ -33,26 +33,25 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+    const token = authHeader.replace("Bearer ", "");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const isServiceCall = token === serviceKey;
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: claims, error: claimsErr } = await supabase.auth.getClaims(
-      authHeader.replace("Bearer ", ""),
-    );
-    if (claimsErr || !claims?.claims) return json({ error: "Unauthorized" }, 401);
-    const userId = claims.claims.sub;
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
+    let userId: string | null = null;
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    // Gate: must be manager
-    const { data: isMgr } = await admin.rpc("has_role", { _user_id: userId, _role: "gerente" });
-    if (!isMgr) return json({ error: "Apenas gerente" }, 403);
+    if (!isServiceCall) {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
+      if (claimsErr || !claims?.claims) return json({ error: "Unauthorized" }, 401);
+      userId = claims.claims.sub;
+      const { data: isMgr } = await admin.rpc("has_role", { _user_id: userId, _role: "gerente" });
+      if (!isMgr) return json({ error: "Apenas gerente" }, 403);
+    }
 
     const body = await req.json().catch(() => ({}));
     const resellerId = String(body.reseller_id ?? "");
@@ -61,6 +60,7 @@ Deno.serve(async (req) => {
     const dueDate = String(body.due_date ?? "");
     const description = String(body.description ?? "Cobrança mensalista");
     const isOnboarding = !!body.is_onboarding;
+    const recurrenceId = body.recurrence_id ? String(body.recurrence_id) : null;
 
     if (!resellerId) return json({ error: "reseller_id obrigatório" }, 400);
     if (!["monthly", "installment", "one_off"].includes(kind)) return json({ error: "kind inválido" }, 400);
@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
         provider: "misticpay",
         is_onboarding: isOnboarding,
         created_by: userId,
+        recurrence_id: recurrenceId,
       })
       .select().single();
     if (insErr || !charge) return json({ error: insErr?.message ?? "insert error" }, 500);
