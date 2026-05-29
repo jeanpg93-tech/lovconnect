@@ -99,10 +99,16 @@ Deno.serve(async (req) => {
     }
 
     const { data: reseller } = await svc
-      .from("resellers").select("id,activation_status").eq("user_id", userId).maybeSingle();
+      .from("resellers")
+      .select("id,activation_status,billing_mode,subscription_blocked")
+      .eq("user_id", userId).maybeSingle();
     if (!reseller) return json({ error: "Revendedor não encontrado" }, 404);
     if ((reseller as any).activation_status && (reseller as any).activation_status !== "active") {
       return json({ error: "Painel não ativado. Conclua o pagamento de R$ 200 para liberar.", reason: "activation_required" }, 403);
+    }
+    const isSubscription = (reseller as any).billing_mode === "subscription";
+    if (isSubscription && (reseller as any).subscription_blocked) {
+      return json({ error: "Painel bloqueado por cobrança em aberto. Pague para liberar.", reason: "subscription_blocked" }, 403);
     }
     const reseller_id = reseller.id as string;
 
@@ -116,14 +122,14 @@ Deno.serve(async (req) => {
       _duration_code: pack_id,
     });
     let price_cents = Number(costData ?? 0);
-    if (!price_cents || price_cents <= 0) {
+    if (!isSubscription && (!price_cents || price_cents <= 0)) {
       return json({ error: "Preço não definido para esse pacote" }, 400);
     }
 
     // Desconto promocional (extensão)
     let promotion_id: string | null = null;
     let promotion_discount_cents = 0;
-    try {
+    if (!isSubscription) try {
       const { data: pd } = await svc.rpc("compute_promotion_discount", {
         _base_cents: price_cents,
         _kind: "extension",
@@ -138,6 +144,13 @@ Deno.serve(async (req) => {
       console.warn("compute_promotion_discount failed", e);
     }
 
+    // Mensalista: custo zero, sem promoção
+    if (isSubscription) {
+      price_cents = 0;
+      promotion_id = null;
+      promotion_discount_cents = 0;
+    }
+
     if (client_id) {
       const { data: prof } = await svc
         .from("profiles").select("id,reseller_id").eq("id", client_id).maybeSingle();
@@ -146,19 +159,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: debitOk, error: debitErr } = await svc.rpc("debit_reseller_balance_promo", {
-      _reseller_id: reseller_id,
-      _amount_cents: price_cents,
-      _kind: "license_purchase",
-      _description: `Licença ${method.toUpperCase()} ${pack_id}`,
-      _reference_id: null,
-      _promotion_id: promotion_id,
-    });
-    if (debitErr) return json({ error: debitErr.message }, 500);
-    if (debitOk === false) return json({ error: "Saldo insuficiente" }, 402);
+    if (!isSubscription) {
+      const { data: debitOk, error: debitErr } = await svc.rpc("debit_reseller_balance_promo", {
+        _reseller_id: reseller_id,
+        _amount_cents: price_cents,
+        _kind: "license_purchase",
+        _description: `Licença ${method.toUpperCase()} ${pack_id}`,
+        _reference_id: null,
+        _promotion_id: promotion_id,
+      });
+      if (debitErr) return json({ error: debitErr.message }, 500);
+      if (debitOk === false) return json({ error: "Saldo insuficiente" }, 402);
+    }
 
     const license_type = `${method}_${pack_id}`;
-    const notesObj = { method, pack_id, display_name, whatsapp: whatsapp || null };
+    const notesObj = { method, pack_id, display_name, whatsapp: whatsapp || null, billing_mode: isSubscription ? "subscription" : "normal" };
 
     // cria pedido pendente
     const { data: order, error: orderErr } = await svc
@@ -178,24 +193,28 @@ Deno.serve(async (req) => {
       .single();
 
     if (orderErr || !order) {
-      await svc.rpc("credit_reseller_balance", {
-        _reseller_id: reseller_id,
-        _amount_cents: price_cents,
-        _kind: "refund",
-        _description: `Estorno falha criar pedido ${method}/${pack_id}`,
-        _reference_id: null,
-      });
+      if (!isSubscription) {
+        await svc.rpc("credit_reseller_balance", {
+          _reseller_id: reseller_id,
+          _amount_cents: price_cents,
+          _kind: "refund",
+          _description: `Estorno falha criar pedido ${method}/${pack_id}`,
+          _reference_id: null,
+        });
+      }
       return json({ error: orderErr?.message ?? "Falha ao criar pedido" }, 500);
     }
 
     const refund = async (reason: string, providerResp?: unknown) => {
-      await svc.rpc("credit_reseller_balance", {
-        _reseller_id: reseller_id,
-        _amount_cents: price_cents,
-        _kind: "refund",
-        _description: `Estorno ${method}/${pack_id}: ${reason}`,
-        _reference_id: order.id,
-      });
+      if (!isSubscription) {
+        await svc.rpc("credit_reseller_balance", {
+          _reseller_id: reseller_id,
+          _amount_cents: price_cents,
+          _kind: "refund",
+          _description: `Estorno ${method}/${pack_id}: ${reason}`,
+          _reference_id: order.id,
+        });
+      }
       await svc.from("orders").update({
         status: "refunded",
         error_message: reason,
