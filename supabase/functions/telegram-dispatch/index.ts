@@ -21,8 +21,8 @@ Deno.serve(async (req) => {
 
   const { data: pending } = await supabase
     .from('telegram_outbox').select('*')
-    .is('sent_at', null).lt('attempts', 5)
-    .order('created_at', { ascending: true }).limit(20)
+    .is('sent_at', null)
+    .order('created_at', { ascending: true }).limit(50)
 
   let sent = 0, failed = 0
   for (const msg of pending ?? []) {
@@ -46,7 +46,13 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify(payload),
       })
-      const body = await r.json()
+      const rawBody = await r.text()
+      let body: any = {}
+      try {
+        body = rawBody ? JSON.parse(rawBody) : {}
+      } catch (_) {
+        body = { description: rawBody || `HTTP ${r.status}` }
+      }
       const desc = String(body?.description ?? '')
       // "message is not modified" é sucesso silencioso em edits
       const notModified = isEdit && /message is not modified/i.test(desc)
@@ -57,6 +63,7 @@ Deno.serve(async (req) => {
             sent_at: new Date().toISOString(),
             attempts: msg.attempts + 1,
             message_id: returnedMid,
+            last_error: null,
           })
           .eq('id', msg.id)
         sent++
