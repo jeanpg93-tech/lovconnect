@@ -308,11 +308,6 @@ export default function GerenteRevendedorMensalidade() {
             </div>
           </div>
 
-          {/* Charges list */}
-          <div className="rounded-2xl border border-border bg-card/60 overflow-hidden">
-
-          </div>
-
           {/* Recurrences */}
           <div className="rounded-2xl border border-border bg-card/60 overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 md:p-6 border-b border-white/5">
