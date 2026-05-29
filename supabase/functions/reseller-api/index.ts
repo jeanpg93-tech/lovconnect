@@ -14,7 +14,15 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-const ALLOWED_TYPES = ["pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
+const ALLOWED_TYPES = ["pro_1d", "pro_7d", "pro_30d", "lifetime"];
+// Mapeia o license_type legado da API pública para o duration_code unificado
+// usado por tier_license_prices / get_license_pack_cost.
+const LEGACY_TYPE_TO_DURATION: Record<string, string> = {
+  pro_1d: "1d",
+  pro_7d: "7d",
+  pro_30d: "30d",
+  lifetime: "lifetime",
+};
 const DEFAULT_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
 
 const UNIFIED_METHODS = ["flow", "lovax"];
