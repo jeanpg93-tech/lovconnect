@@ -422,7 +422,14 @@ export default function GerenteRevendedores() {
                     const progress = tierProgressFor(r.id);
                     return (
                       <tr key={r.id} className="group transition-all duration-300 hover:bg-white/5">
-                        <td className="px-6 py-4 font-medium text-foreground">{firstLastName(prof?.display_name)}</td>
+                        <td className="px-6 py-4 font-medium text-foreground">
+                          <div className="flex items-center gap-2">
+                            {firstLastName(prof?.display_name)}
+                            {r.billing_mode === "subscription" && (
+                              <Badge className="bg-violet-500/15 text-violet-400 border-violet-500/30 text-[9px] uppercase">Mensalista</Badge>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-6 py-4 text-muted-foreground/80">{r.display_name}</td>
                         <td className="px-6 py-4"><ActivationBadge status={r.activation_status} /></td>
                         <td className="px-6 py-4 text-muted-foreground/80">{prof?.email ?? "—"}</td>
@@ -492,6 +499,14 @@ export default function GerenteRevendedores() {
                                   <Button size="sm" variant="ghost" onClick={() => openBalance(r)}><Wallet className="h-4 w-4" /></Button>
                                 </TooltipTrigger>
                                 <TooltipContent>Ajustar saldo do revendedor</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="sm" variant="ghost" onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/mensalidade`)} className={cn(r.billing_mode === "subscription" && "text-violet-400")}>
+                                    <Repeat className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Gerenciar mensalidade</TooltipContent>
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
