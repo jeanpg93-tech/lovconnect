@@ -310,6 +310,61 @@ export default function GerenteRevendedorMensalidade() {
 
           {/* Charges list */}
           <div className="rounded-2xl border border-border bg-card/60 overflow-hidden">
+
+          </div>
+
+          {/* Recurrences */}
+          <div className="rounded-2xl border border-border bg-card/60 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 md:p-6 border-b border-white/5">
+              <div>
+                <h3 className="font-bold text-foreground flex items-center gap-2">
+                  <Repeat className="h-4 w-4 text-violet-400" /> Recorrências
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cobranças geradas automaticamente todo mês no dia configurado.
+                </p>
+              </div>
+              <Button onClick={() => setRecOpen(true)} size="sm" variant="outline" className="gap-2" disabled={!isSubscription}>
+                <Plus className="h-4 w-4" /> Nova recorrência
+              </Button>
+            </div>
+            {!isSubscription ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">Ative o modo mensalista para configurar recorrências.</div>
+            ) : recurrences.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">Nenhuma recorrência configurada.</div>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {recurrences.map((r) => (
+                  <div key={r.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-bold text-primary">{formatBRL(r.amount_cents)}</span>
+                        <Badge variant="outline" className="text-[10px]">dia {r.day_of_month}</Badge>
+                        {r.is_active
+                          ? <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30 text-[10px]">Ativa</Badge>
+                          : <Badge className="bg-slate-500/15 text-slate-400 border-slate-500/30 text-[10px]">Pausada</Badge>}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 truncate">{r.description ?? "Mensalidade"}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> Próxima geração: {formatDate(r.next_generation_date)} · aviso {r.warning_days_before}d antes
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button size="sm" variant="secondary" onClick={() => toggleRecurrence(r)} className="gap-1">
+                        {r.is_active ? <><Pause className="h-3 w-3" /> Pausar</> : <><Play className="h-3 w-3" /> Ativar</>}
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => deleteRecurrence(r)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Charges list (continued) */}
+          <div className="rounded-2xl border border-border bg-card/60 overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 md:p-6 border-b border-white/5">
               <h3 className="font-bold text-foreground">Cobranças</h3>
               <Button onClick={() => setOpen(true)} size="sm" className="gap-2" disabled={!isSubscription}>
