@@ -361,6 +361,24 @@ export default function PublicStorefront() {
 
     setSubmitting(true);
     try {
+      // Extrai a mensagem de erro real do corpo da resposta quando a edge function
+      // retorna não-2xx (supabase-js coloca a Response em error.context).
+      const extractError = async (data: any, error: any, fallback: string) => {
+        if (data?.error) return String(data.error);
+        const ctx = error?.context;
+        if (ctx instanceof Response) {
+          try {
+            const body = await ctx.clone().text();
+            try {
+              const parsed = JSON.parse(body);
+              if (parsed?.error) return String(parsed.error);
+            } catch {
+              if (body) return body;
+            }
+          } catch { /* ignore */ }
+        }
+        return error?.message ?? fallback;
+      };
       if (isTrial) {
         const { data, error } = await supabase.functions.invoke("storefront-create-trial", {
           body: {
@@ -370,7 +388,7 @@ export default function PublicStorefront() {
           },
         });
         if (error || !data || data.error) {
-          toast.error(data?.error ?? error?.message ?? "Falha ao gerar chave teste");
+          toast.error(await extractError(data, error, "Falha ao gerar chave teste"));
           return;
         }
         setOrder({ id: data.order_id, amount_cents: 0, qr_code_base64: "", copy_paste: "" } as any);
@@ -388,7 +406,7 @@ export default function PublicStorefront() {
         },
       });
       if (error || !data || data.error) {
-        toast.error(data?.error ?? error?.message ?? "Falha ao gerar pedido");
+        toast.error(await extractError(data, error, "Falha ao gerar pedido"));
         return;
       }
       setOrder(data);
