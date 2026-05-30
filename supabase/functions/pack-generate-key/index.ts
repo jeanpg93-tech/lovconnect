@@ -237,6 +237,10 @@ Deno.serve(async (req) => {
       status: "completed",
       license_key,
       provider_response: providerData,
+      // Suprime a notificação genérica "Venda de Licença" (R$ 0,00) disparada
+      // pelo trigger trg_orders_notify_sale, já que abaixo enviamos a notificação
+      // específica "Pack — Licença gerada" com todos os detalhes do pack.
+      telegram_sale_notified_at: new Date().toISOString(),
     }).eq("id", order.id);
 
     // Notifica gerente

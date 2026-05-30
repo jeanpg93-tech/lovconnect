@@ -232,8 +232,10 @@ export default function GerenteDashboard() {
     const { data: subOrdersData } = await supabase
       .from("orders")
       .select("id, created_at, reseller_id, license_type, status, notes, license_key")
-      .eq("status", "completed")
-      .ilike("notes", "%\"billing_mode\":\"subscription\"%")
+      .in("status", ["completed", "revoked", "deleted"])
+      .or(
+        "notes.ilike.%\"billing_mode\":\"subscription\"%,notes.ilike.%\"billing_mode\":\"pack\"%"
+      )
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -583,16 +585,22 @@ export default function GerenteDashboard() {
         const isTrial = String(pack).toLowerCase().startsWith("trial") || o.license_type === "trial";
         const packLbl = pack === "lifetime" ? "vitalícia" : isTrial ? "trial" : pack ? `${String(pack).replace("d","")} ${pack === "1d" ? "dia" : "dias"}` : "";
         const methodLbl = method ? method.charAt(0).toUpperCase() + method.slice(1) : "";
+        const billingMode = parsedNotes?.billing_mode === "pack" ? "pack" : "mensalista";
+        const statusLower = String(o.status ?? "").toLowerCase();
+        const isRevoked = statusLower === "revoked" || statusLower === "deleted";
+        const baseDetail = `Licença ${methodLbl}${packLbl ? " • " + packLbl : ""}`;
         return {
-          id: `sub:${o.id}`,
+          id: `${billingMode}:${o.id}`,
           created_at: o.created_at,
           amount_cents: 0,
-          kind: "mensalista_license",
-          description: "Mensalidade (sem débito)",
+          kind: billingMode === "pack" ? "pack_license" : "mensalista_license",
+          description: billingMode === "pack"
+            ? (isRevoked ? "Pack — licença revogada" : "Pack (sem débito de saldo)")
+            : "Mensalidade (sem débito)",
           reseller_name: moveNameMap.get(o.reseller_id) ?? "—",
           customer_name: parsedNotes?.display_name ?? null,
           customer_whatsapp: parsedNotes?.whatsapp ?? null,
-          detail: `Licença ${methodLbl}${packLbl ? " • " + packLbl : ""}`,
+          detail: isRevoked ? `Estorno de: ${baseDetail}` : baseDetail,
           ref_short: o.id ? String(o.id).slice(0, 8).toUpperCase() : null,
           ref_full: o.id ?? null,
           ref_created_at: o.created_at ?? null,
@@ -708,6 +716,7 @@ export default function GerenteDashboard() {
     const det = String(m.detail ?? "");
     if (/refund|estorno|cancel/i.test(k)) return "refund";
     if (k === "mensalista_license") return "sale_mensalista";
+    if (k === "pack_license") return "sale_mensalista";
     if (k === "recharge") return "recharge_pix";
     if (k === "manual_credit" || k === "deposit") return "manual_recharge";
     if (k === "bonus" || k === "activation_credit" || /bonus/i.test(k)) return "bonus";
