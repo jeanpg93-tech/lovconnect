@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import {
   Loader2, Copy, Sparkles, CheckCircle2, Clock, Calendar,
   Infinity as InfinityIcon, Zap, KeyRound, Gift, Send, MessageCircle,
+  Package, CheckCheck, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/useRole";
@@ -41,6 +42,35 @@ export default function RevendedorGerarChave() {
   const [lastGenerated, setLastGenerated] = useState<
     { key: string; type: TypeDef["key"]; name: string; whatsapp: string } | null
   >(null);
+  const [packStats, setPackStats] = useState<{ credits: number; purchased: number; consumed: number } | null>(null);
+
+  const loadPackStats = async () => {
+    if (!isPack) return;
+    const { data: u } = await supabase.auth.getUser();
+    const uid = u.user?.id;
+    if (!uid) return;
+    const { data: r } = await supabase
+      .from("resellers")
+      .select("id")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (!r?.id) return;
+    const { data: bal } = await supabase
+      .from("reseller_pack_balances" as any)
+      .select("credits, lifetime_purchased, lifetime_consumed")
+      .eq("reseller_id", r.id)
+      .maybeSingle();
+    setPackStats({
+      credits: Number((bal as any)?.credits ?? 0),
+      purchased: Number((bal as any)?.lifetime_purchased ?? 0),
+      consumed: Number((bal as any)?.lifetime_consumed ?? 0),
+    });
+  };
+
+  useEffect(() => {
+    loadPackStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPack]);
 
   useEffect(() => {
     (async () => {
@@ -97,6 +127,7 @@ export default function RevendedorGerarChave() {
       toast.success(isTrial ? "Chave teste gerada" : "Chave gerada com sucesso");
       setGenName("");
       setGenWhatsapp("");
+      if (isPack) loadPackStats();
     } catch (e: any) {
       toast.error(e.message ?? "Falha ao gerar chave");
     } finally {
@@ -134,6 +165,44 @@ export default function RevendedorGerarChave() {
         title="Gerar Chave"
         description="Crie uma chave de extensão na hora — sem custo adicional"
       />
+
+      {isPack && (
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-border bg-card/60 p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                <Package className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Compradas</div>
+                <div className="font-display text-2xl font-bold">{packStats?.purchased ?? "—"}</div>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card/60 p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500">
+                <CheckCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Usadas</div>
+                <div className="font-display text-2xl font-bold">{packStats?.consumed ?? "—"}</div>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-500">
+                <Wallet className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Restantes</div>
+                <div className="font-display text-2xl font-bold text-emerald-500">{packStats?.credits ?? packCredits}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero */}
       <div className="mt-6 relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/15 via-card/80 to-card/40 p-5 sm:p-6 backdrop-blur-sm">
