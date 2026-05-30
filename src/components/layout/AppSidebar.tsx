@@ -550,6 +550,11 @@ export function AppSidebar() {
                     : "—"}
                 </div>
                 <div className="mt-0.5 text-[9px] text-muted-foreground/80 leading-none">Licenças usadas</div>
+                {providerUsage && providerUsage.limit ? (
+                  <div className="mt-0.5 text-[9px] font-semibold text-blue-500/90 leading-none tabular-nums">
+                    {Math.max(0, providerUsage.limit - providerUsage.used)} restantes
+                  </div>
+                ) : null}
               </div>
             </NavLink>
 
@@ -582,6 +587,11 @@ export function AppSidebar() {
                     : "—"}
                 </div>
                 <div className="mt-0.5 text-[9px] text-muted-foreground/80 leading-none">Licenças usadas</div>
+                {lovaxUsage && lovaxUsage.limit ? (
+                  <div className="mt-0.5 text-[9px] font-semibold text-violet-500/90 leading-none tabular-nums">
+                    {Math.max(0, lovaxUsage.limit - lovaxUsage.used)} restantes
+                  </div>
+                ) : null}
               </div>
             </NavLink>
 
