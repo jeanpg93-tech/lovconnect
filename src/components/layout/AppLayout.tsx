@@ -17,12 +17,11 @@ import { ActivationBanner } from "@/components/activation/ActivationBanner";
 import { ActivationLockOverlay } from "@/components/activation/ActivationLockOverlay";
 import { useActivation } from "@/hooks/useActivation";
 import { SubscriptionLockOverlay } from "@/components/subscription/SubscriptionLockOverlay";
-import { PackLockOverlay } from "@/components/pack/PackLockOverlay";
 import { FirstAccessGate } from "@/components/FirstAccessGate";
 
 export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { primaryRole, isBanned, isActive, isGerente, loading: roleLoading, hasData, isSubscription, subscriptionOnboardingCompleted, subscriptionBlocked, isPack, packBlocked } = useRole();
+  const { primaryRole, isBanned, isActive, isGerente, loading: roleLoading, hasData, isSubscription, subscriptionOnboardingCompleted, subscriptionBlocked } = useRole();
   const { pathname } = useLocation();
   const isInitialAuthLoading = authLoading && !user;
   const isInitialRoleLoading = roleLoading && !hasData;
@@ -70,17 +69,10 @@ export default function AppLayout() {
     subscriptionOnboardingCompleted &&
     subscriptionBlocked;
 
-  // Pack: bloqueia quando créditos = 0, exceto na própria página de compra
-  const PACK_ALLOWED_PATHS = [
-    "/painel/revendedor/comprar-pacote",
-    "/painel/revendedor/historico-pacote",
-    "/painel/conta",
-  ];
-  const needsPackUnblock =
-    primaryRole === "revendedor" &&
-    isPack &&
-    packBlocked &&
-    !PACK_ALLOWED_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  // Modo Pack NÃO bloqueia o painel. Pack é uma opção adicional de compra
+  // (com desconto via pacotes); o revendedor segue operando normalmente
+  // pelo fluxo unitário (carteira/loja/etc.) se preferir.
+  const needsPackUnblock = false;
 
   if (!primaryRole) {
     return (
