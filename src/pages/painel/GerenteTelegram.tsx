@@ -260,6 +260,7 @@ export default function GerenteTelegram() {
               <div><span className="text-primary">/vendas</span> — vendas pagas hoje</div>
               <div><span className="text-primary">/recargas</span> — recargas hoje</div>
               <div><span className="text-primary">/pendentes</span> — cadastros aguardando</div>
+              <div><span className="text-primary">/saldo_revendedores</span> — saldos por revendedor</div>
               <div><span className="text-primary">/help</span> — lista de comandos</div>
             </div>
           </div>
