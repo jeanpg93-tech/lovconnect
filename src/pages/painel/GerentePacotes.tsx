@@ -84,7 +84,7 @@ export default function GerentePacotes() {
       <PageHeader
         title="Pacotes de Licença"
         description="Cadastre os pacotes de créditos vendidos aos revendedores Pack"
-        action={
+        actions={
           <Button onClick={() => setEditing({ is_active: true, sort_order: packs.length })}>
             <Plus className="h-4 w-4 mr-2" /> Novo pacote
           </Button>
