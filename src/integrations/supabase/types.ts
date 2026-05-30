@@ -1073,6 +1073,7 @@ export type Database = {
           provider_response: Json | null
           reseller_id: string
           status: string
+          telegram_sale_notified_at: string | null
           updated_at: string
         }
         Insert: {
@@ -1107,6 +1108,7 @@ export type Database = {
           provider_response?: Json | null
           reseller_id: string
           status?: string
+          telegram_sale_notified_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -1141,6 +1143,7 @@ export type Database = {
           provider_response?: Json | null
           reseller_id?: string
           status?: string
+          telegram_sale_notified_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -3602,6 +3605,10 @@ export type Database = {
       is_reseller_active: { Args: { _user_id: string }; Returns: boolean }
       lookup_affiliate_code: { Args: { _code: string }; Returns: Json }
       mark_all_notifications_read: { Args: never; Returns: undefined }
+      notify_license_order_sale: {
+        Args: { _order_id: string }
+        Returns: undefined
+      }
       notify_purchase_permission_alert: {
         Args: { _purchase_id: string }
         Returns: undefined
