@@ -152,7 +152,7 @@ export default function RevendedorGerarChave() {
               </strong>
               .{" "}
               {isPack
-                ? `Modo Pack: cada chave consome 1 crédito. Saldo: ${packCredits}.`
+                ? `Modo Pack: cada chave consome 1 licença. Restam: ${packCredits}.`
                 : "Como mensalista, suas chaves não consomem saldo."}
             </p>
           </div>

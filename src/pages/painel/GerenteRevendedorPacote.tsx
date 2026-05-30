@@ -11,7 +11,7 @@ import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ArrowLeft, Plus, Minus, Package } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Minus, Package, TrendingDown, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -104,7 +104,7 @@ export default function GerenteRevendedorPacote() {
     });
     setBusy(false);
     if (error || (data as any)?.error) return toast.error((data as any)?.error ?? "Falha");
-    toast.success(`+${creditQty} créditos`);
+    toast.success(`+${creditQty} licenças`);
     setCreditDesc("");
     load();
   };
@@ -118,7 +118,7 @@ export default function GerenteRevendedorPacote() {
     });
     setBusy(false);
     if (error || (data as any)?.error) return toast.error((data as any)?.error ?? "Falha");
-    toast.success(`-${debitQty} créditos`);
+    toast.success(`-${debitQty} licenças`);
     setDebitDesc("");
     load();
   };
@@ -144,37 +144,56 @@ export default function GerenteRevendedorPacote() {
       </Button>
       <PageHeader
         title={`Pacote — ${reseller.display_name}`}
-        description="Saldo de créditos, compras e ajustes manuais"
+        description="Licenças do revendedor, compras e ajustes manuais"
       />
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr,1fr]">
-        {/* Saldo + Modo */}
-        <div className="rounded-2xl border border-border bg-card/60 p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center">
-                <Package className="h-6 w-6 text-primary" />
-              </div>
+      {(() => {
+        const totalPurchased = ledger.reduce((s, l) => s + (l.delta_credits > 0 ? l.delta_credits : 0), 0);
+        const totalUsed = ledger.reduce((s, l) => s + (l.delta_credits < 0 ? -l.delta_credits : 0), 0);
+        return (
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 flex items-center gap-3">
+              <Package className="h-5 w-5 text-primary" />
               <div>
-                <div className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Saldo atual</div>
-                <div className="font-mono text-3xl font-black text-primary">{balance?.credits ?? 0}</div>
-                <div className="text-[11px] text-muted-foreground">créditos disponíveis</div>
+                <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Licenças restantes</div>
+                <div className="font-mono text-2xl font-black text-primary">{balance?.credits ?? 0}</div>
               </div>
             </div>
-            <Badge variant="outline">
-              modo: {reseller.billing_mode ?? "normal"}
-            </Badge>
+            <div className="rounded-xl border border-border bg-card/60 px-4 py-3 flex items-center gap-3">
+              <TrendingDown className="h-5 w-5 text-rose-500" />
+              <div>
+                <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Licenças usadas</div>
+                <div className="font-mono text-2xl font-black">{totalUsed}</div>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border bg-card/60 px-4 py-3 flex items-center gap-3">
+              <ShoppingBag className="h-5 w-5 text-emerald-500" />
+              <div>
+                <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Licenças compradas</div>
+                <div className="font-mono text-2xl font-black">{totalPurchased}</div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr,1fr]">
+        {/* Modo */}
+        <div className="rounded-2xl border border-border bg-card/60 p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold">Modo de cobrança</div>
+            <Badge variant="outline">modo atual: {reseller.billing_mode ?? "normal"}</Badge>
           </div>
 
-          <div className="border-t border-border pt-4">
+          <div>
             <Label className="text-xs">Alterar modo de cobrança</Label>
             <div className="mt-1 flex items-center gap-2">
               <Select value={reseller.billing_mode ?? "normal"} onValueChange={changeMode} disabled={savingMode}>
                 <SelectTrigger className="max-w-[240px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="normal">Normal (saldo R$)</SelectItem>
+                  <SelectItem value="normal">Normal (saldo em R$)</SelectItem>
                   <SelectItem value="subscription">Mensalista</SelectItem>
-                  <SelectItem value="pack">Pack (créditos)</SelectItem>
+                  <SelectItem value="pack">Pack (licenças)</SelectItem>
                 </SelectContent>
               </Select>
               {savingMode && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -185,19 +204,19 @@ export default function GerenteRevendedorPacote() {
         {/* Ajustes */}
         <div className="rounded-2xl border border-border bg-card/60 p-5 space-y-4">
           <div>
-            <Label className="text-xs flex items-center gap-1 mb-1"><Plus className="h-3 w-3 text-emerald-500" /> Creditar manualmente</Label>
+            <Label className="text-xs flex items-center gap-1 mb-1"><Plus className="h-3 w-3 text-emerald-500" /> Adicionar licenças manualmente</Label>
             <div className="flex gap-2">
               <Input type="number" min={1} value={creditQty} onChange={(e) => setCreditQty(Number(e.target.value))} className="max-w-[100px]" />
               <Input value={creditDesc} onChange={(e) => setCreditDesc(e.target.value)} placeholder="Descrição (opcional)" />
-              <Button onClick={credit} disabled={busy}>Creditar</Button>
+              <Button onClick={credit} disabled={busy}>Adicionar</Button>
             </div>
           </div>
           <div>
-            <Label className="text-xs flex items-center gap-1 mb-1"><Minus className="h-3 w-3 text-rose-500" /> Debitar manualmente</Label>
+            <Label className="text-xs flex items-center gap-1 mb-1"><Minus className="h-3 w-3 text-rose-500" /> Remover licenças manualmente</Label>
             <div className="flex gap-2">
               <Input type="number" min={1} value={debitQty} onChange={(e) => setDebitQty(Number(e.target.value))} className="max-w-[100px]" />
               <Input value={debitDesc} onChange={(e) => setDebitDesc(e.target.value)} placeholder="Descrição (opcional)" />
-              <Button variant="destructive" onClick={debit} disabled={busy}>Debitar</Button>
+              <Button variant="destructive" onClick={debit} disabled={busy}>Remover</Button>
             </div>
           </div>
         </div>
@@ -212,7 +231,7 @@ export default function GerenteRevendedorPacote() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-widest text-muted-foreground">
-                <tr><th className="py-2">Data</th><th>Pacote</th><th>Créditos</th><th>Valor</th><th>Status</th></tr>
+                <tr><th className="py-2">Data</th><th>Pacote</th><th>Licenças</th><th>Valor</th><th>Status</th></tr>
               </thead>
               <tbody>
                 {purchases.map((p) => (
@@ -232,7 +251,7 @@ export default function GerenteRevendedorPacote() {
 
       {/* Ledger */}
       <div className="mt-6 rounded-2xl border border-border bg-card/60 p-5">
-        <h3 className="font-display text-sm font-semibold mb-3">Extrato de créditos</h3>
+        <h3 className="font-display text-sm font-semibold mb-3">Extrato de licenças</h3>
         {ledger.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">Sem movimentações.</p>
         ) : (

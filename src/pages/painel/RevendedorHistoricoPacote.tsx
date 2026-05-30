@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
-import { Loader2, Package } from "lucide-react";
+import { Loader2, Package, TrendingDown, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/hooks/useRole";
@@ -40,14 +40,33 @@ export default function RevendedorHistoricoPacote() {
     })();
   }, [user?.id]);
 
+  const totalPurchased = ledger.reduce((sum, l) => sum + (l.delta_credits > 0 ? l.delta_credits : 0), 0);
+  const totalUsed = ledger.reduce((sum, l) => sum + (l.delta_credits < 0 ? -l.delta_credits : 0), 0);
+
   return (
     <PageContainer>
-      <PageHeader title="Histórico de Pacote" description="Suas compras e movimentações de créditos" />
-      <div className="mt-4 inline-flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-        <Package className="h-5 w-5 text-primary" />
-        <div>
-          <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Saldo atual</div>
-          <div className="font-mono text-2xl font-black text-primary">{packCredits}</div>
+      <PageHeader title="Histórico de Pacote" description="Suas compras e movimentações de licenças" />
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 flex items-center gap-3">
+          <Package className="h-5 w-5 text-primary" />
+          <div>
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Licenças restantes</div>
+            <div className="font-mono text-2xl font-black text-primary">{packCredits}</div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-border bg-card/60 px-4 py-3 flex items-center gap-3">
+          <TrendingDown className="h-5 w-5 text-rose-500" />
+          <div>
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Licenças usadas</div>
+            <div className="font-mono text-2xl font-black">{totalUsed}</div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-border bg-card/60 px-4 py-3 flex items-center gap-3">
+          <ShoppingBag className="h-5 w-5 text-emerald-500" />
+          <div>
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">Licenças compradas</div>
+            <div className="font-mono text-2xl font-black">{totalPurchased}</div>
+          </div>
         </div>
       </div>
 
@@ -64,7 +83,7 @@ export default function RevendedorHistoricoPacote() {
                 {purchases.map((p) => (
                   <div key={p.id} className="flex items-center justify-between rounded-md border border-border/40 px-3 py-2">
                     <div>
-                      <div className="font-medium text-sm">{p.pack_name ?? "—"} · {p.credits} créditos</div>
+                      <div className="font-medium text-sm">{p.pack_name ?? "—"} · {p.credits} licenças</div>
                       <div className="text-[11px] text-muted-foreground">{formatDateTime(p.paid_at ?? p.created_at)} · {p.status}</div>
                     </div>
                     <div className="font-mono text-sm">{brl(p.price_cents)}</div>
