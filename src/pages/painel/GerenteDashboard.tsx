@@ -1068,6 +1068,7 @@ export default function GerenteDashboard() {
                       credit_recharge_api: "Recargas via API",
                        activation_credit: "Saldo Inicial (Ativação)",
                        mensalista_license: "Mensalista — Licença",
+                       pack_license: "Pack — Licença",
                     };
                     return groups.map((g) => (
                       <div key={g.label} className="space-y-2">
