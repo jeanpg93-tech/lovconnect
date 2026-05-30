@@ -93,26 +93,17 @@ const fetchRoles = async (userId: string) => {
         localStorage.setItem("user_subscription_onboarding", next.subscriptionOnboardingCompleted ? "true" : "false");
         if (next.billingMode === "pack") {
           try {
-            const { data: bal } = await supabase
-              .from("reseller_pack_balances" as any)
-              .select("credits")
-              .eq("user_id", userId)
-              .maybeSingle();
-            // user_id col may not exist on balances; fallback by reseller id
-            let credits = (bal as any)?.credits;
-            if (credits == null) {
-              const { data: rid } = await supabase
-                .from("resellers").select("id").eq("user_id", userId).maybeSingle();
-              if ((rid as any)?.id) {
-                const { data: bal2 } = await supabase
-                  .from("reseller_pack_balances" as any)
-                  .select("credits")
-                  .eq("reseller_id", (rid as any).id)
-                  .maybeSingle();
-                credits = (bal2 as any)?.credits ?? 0;
-              } else credits = 0;
+            const rid = (r as any).id ?? null;
+            let credits = 0;
+            if (rid) {
+              const { data: bal } = await supabase
+                .from("reseller_pack_balances" as any)
+                .select("credits")
+                .eq("reseller_id", rid)
+                .maybeSingle();
+              credits = Number((bal as any)?.credits ?? 0);
             }
-            next.packCredits = Number(credits ?? 0);
+            next.packCredits = credits;
             localStorage.setItem("user_pack_credits", String(next.packCredits));
           } catch {
             next.packCredits = 0;
