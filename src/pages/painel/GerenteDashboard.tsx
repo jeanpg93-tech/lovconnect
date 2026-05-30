@@ -1132,7 +1132,7 @@ export default function GerenteDashboard() {
                                             <StoreIcon className="h-2.5 w-2.5" /> {isMensalista ? "Licença" : isCreditPurchase ? "Recargas" : "Extensão"}
                                           </span>
                                            <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isMensalista ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isStoreSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"}`}>
-                                             {isMensalista ? <><Repeat2Icon /> Mensalista</> : isApiOrder ? <><Zap className="h-2.5 w-2.5" /> API</> : isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}
+                                             {isMensalista ? <>♻ Mensalista</> : isApiOrder ? <><Zap className="h-2.5 w-2.5" /> API</> : isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}
                                            </span>
                                         </>
                                       ) : (
