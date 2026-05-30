@@ -918,6 +918,42 @@ export type Database = {
         }
         Relationships: []
       }
+      license_packs: {
+        Row: {
+          created_at: string
+          credits: number
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          price_cents: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price_cents: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       manual_financial_entries: {
         Row: {
           amount_cents: number
@@ -2446,6 +2482,174 @@ export type Database = {
           },
         ]
       }
+      reseller_pack_balances: {
+        Row: {
+          credits: number
+          lifetime_consumed: number
+          lifetime_purchased: number
+          reseller_id: string
+          updated_at: string
+        }
+        Insert: {
+          credits?: number
+          lifetime_consumed?: number
+          lifetime_purchased?: number
+          reseller_id: string
+          updated_at?: string
+        }
+        Update: {
+          credits?: number
+          lifetime_consumed?: number
+          lifetime_purchased?: number
+          reseller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_pack_balances_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: true
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reseller_pack_ledger: {
+        Row: {
+          actor_id: string | null
+          balance_after: number
+          created_at: string
+          delta_credits: number
+          description: string | null
+          id: string
+          kind: string
+          order_id: string | null
+          purchase_id: string | null
+          reseller_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          balance_after: number
+          created_at?: string
+          delta_credits: number
+          description?: string | null
+          id?: string
+          kind: string
+          order_id?: string | null
+          purchase_id?: string | null
+          reseller_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          balance_after?: number
+          created_at?: string
+          delta_credits?: number
+          description?: string | null
+          id?: string
+          kind?: string
+          order_id?: string | null
+          purchase_id?: string | null
+          reseller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_pack_ledger_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_pack_ledger_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_pack_purchases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_pack_ledger_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reseller_pack_purchases: {
+        Row: {
+          created_at: string
+          created_by_admin: string | null
+          credits: number
+          expires_at: string | null
+          id: string
+          notes: string | null
+          pack_id: string
+          pack_name: string
+          paid_at: string | null
+          pix_copy_paste: string | null
+          pix_qr_code: string | null
+          price_cents: number
+          provider: string | null
+          provider_tx_id: string | null
+          reseller_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_admin?: string | null
+          credits: number
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          pack_id: string
+          pack_name: string
+          paid_at?: string | null
+          pix_copy_paste?: string | null
+          pix_qr_code?: string | null
+          price_cents: number
+          provider?: string | null
+          provider_tx_id?: string | null
+          reseller_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_admin?: string | null
+          credits?: number
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          pack_id?: string
+          pack_name?: string
+          paid_at?: string | null
+          pix_copy_paste?: string | null
+          pix_qr_code?: string | null
+          price_cents?: number
+          provider?: string | null
+          provider_tx_id?: string | null
+          reseller_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_pack_purchases_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "license_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_pack_purchases_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reseller_referrals: {
         Row: {
           affiliate_code: string
@@ -3616,6 +3820,30 @@ export type Database = {
       notify_purchase_stuck_alert: {
         Args: { _hours: number; _purchase_id: string }
         Returns: undefined
+      }
+      pack_consume_credit: {
+        Args: { _description: string; _order_id: string; _reseller_id: string }
+        Returns: number
+      }
+      pack_credit_balance: {
+        Args: {
+          _actor_id: string
+          _credits: number
+          _description: string
+          _kind: string
+          _purchase_id: string
+          _reseller_id: string
+        }
+        Returns: number
+      }
+      pack_debit_balance: {
+        Args: {
+          _actor_id: string
+          _credits: number
+          _description: string
+          _reseller_id: string
+        }
+        Returns: number
       }
       reject_user: { Args: { _user_id: string }; Returns: undefined }
       reset_daily_test_keys: { Args: never; Returns: undefined }

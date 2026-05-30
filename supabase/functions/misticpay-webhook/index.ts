@@ -487,6 +487,79 @@ Deno.serve(async (req) => {
         return json({ ok: true, status });
       }
 
+      // Try pack purchase (revendedor Pack comprando créditos avulsos)
+      const { data: packPurchase } = await admin
+        .from("reseller_pack_purchases")
+        .select("*")
+        .eq("provider_tx_id", txId)
+        .maybeSingle();
+
+      if (packPurchase) {
+        if ((packPurchase as any).status === "paid") return json({ ok: true, already: true });
+
+        if (status === "COMPLETO" || status === "PAID" || status === "SUCCESS") {
+          const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
+          const ok = await verifyMisticTxPaid(mci, mcs, txId);
+          if (!ok) {
+            console.warn("[webhook] pack purchase tx not confirmed by MisticPay", txId);
+            return json({ ok: false, reason: "unverified_transaction" }, 403);
+          }
+
+          await admin.from("reseller_pack_purchases").update({
+            status: "paid",
+            paid_at: new Date().toISOString(),
+          }).eq("id", (packPurchase as any).id);
+
+          const { data: newBal, error: credErr } = await admin.rpc("pack_credit_balance", {
+            _reseller_id: (packPurchase as any).reseller_id,
+            _credits: (packPurchase as any).credits,
+            _kind: "purchase",
+            _purchase_id: (packPurchase as any).id,
+            _description: `Compra ${(packPurchase as any).pack_name} (${(packPurchase as any).credits} créditos)`,
+            _actor_id: null,
+          });
+          if (credErr) {
+            console.error("[webhook] pack_credit_balance failed", credErr);
+            return json({ ok: false, error: credErr.message }, 500);
+          }
+
+          try {
+            const { data: r } = await admin
+              .from("resellers").select("display_name, user_id")
+              .eq("id", (packPurchase as any).reseller_id).maybeSingle();
+            const amountBRL = "R$ " +
+              (Number((packPurchase as any).price_cents) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            await admin.from("telegram_outbox").insert({
+              text:
+                "📦 <b>Compra de Pacote — Revendedor Pack</b>\n" +
+                "👨‍💼 Revendedor: " + ((r as any)?.display_name ?? "—") + "\n" +
+                "💵 Valor: " + amountBRL + "\n" +
+                "🎁 Pacote: " + (packPurchase as any).pack_name + " (" + (packPurchase as any).credits + " créditos)\n" +
+                "📊 Novo saldo: " + (newBal ?? "?") + " créditos",
+            });
+            if ((r as any)?.user_id) {
+              await admin.from("notifications").insert({
+                user_id: (r as any).user_id,
+                type: "pack_purchase_paid",
+                title: "Pacote confirmado!",
+                body: `${(packPurchase as any).credits} créditos liberados. Saldo: ${newBal ?? "?"}.`,
+                link: "/painel/revendedor/gerar-chave",
+              });
+            }
+          } catch (e) {
+            console.warn("[webhook] pack notify failed", e);
+          }
+
+          return json({ ok: true, kind: "pack_purchase" });
+        }
+
+        if (status === "FALHA" || status === "CANCELADO" || status === "FAILED") {
+          await admin.from("reseller_pack_purchases").update({ status: "failed" }).eq("id", (packPurchase as any).id);
+          return json({ ok: true });
+        }
+        return json({ ok: true, status });
+      }
+
       console.warn("no intent/order/sale for tx", txId);
       return json({ ok: false, reason: "not found" }, 200);
     }
