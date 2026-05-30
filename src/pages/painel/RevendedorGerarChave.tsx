@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
+import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -181,6 +182,7 @@ export default function RevendedorGerarChave() {
         title="Gerar Chave"
         description="Crie uma chave de extensão na hora — sem custo adicional"
       />
+      <PackLowBalanceBanner />
 
       {isPack && (
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
