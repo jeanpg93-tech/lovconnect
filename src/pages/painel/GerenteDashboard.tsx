@@ -227,6 +227,16 @@ export default function GerenteDashboard() {
       supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id, reference_id, promotion_id").order("created_at", { ascending: false }).limit(100),
     ]);
 
+    // Mensalistas geram licenças com price_cents=0 (sem débito), então não aparecem
+    // em balance_transactions. Buscamos separadamente para mesclar no feed.
+    const { data: subOrdersData } = await supabase
+      .from("orders")
+      .select("id, created_at, reseller_id, license_type, status, notes, license_key")
+      .eq("status", "completed")
+      .ilike("notes", "%\"billing_mode\":\"subscription\"%")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
     const balanceAny: any = balanceRes;
     const provUsageAny: any = provUsage;
     const ordersAllAny: any = ordersAll;
@@ -522,7 +532,7 @@ export default function GerenteDashboard() {
     });
 
     setCreditMovements(
-      movesData.map((m: any) => {
+      [...movesData.map((m: any) => {
         const cents = Number(m.amount_cents ?? 0);
         // Estornos/cancelamentos carregam reference_id apontando para a compra original
         let enrich: EnrichVal | undefined;
@@ -564,6 +574,38 @@ export default function GerenteDashboard() {
           recharge_bonus_cents: rb?.bonus_cents ?? null,
         };
       }),
+      // Vendas/licenças geradas por revendedores mensalistas (sem débito de saldo)
+      ...((subOrdersData ?? []) as any[]).map((o: any) => {
+        let parsedNotes: any = {};
+        try { parsedNotes = o.notes ? JSON.parse(o.notes) : {}; } catch { parsedNotes = {}; }
+        const method = parsedNotes?.method ?? null;
+        const pack = parsedNotes?.pack_id ?? null;
+        const isTrial = String(pack).toLowerCase().startsWith("trial") || o.license_type === "trial";
+        const packLbl = pack === "lifetime" ? "vitalícia" : isTrial ? "trial" : pack ? `${String(pack).replace("d","")} ${pack === "1d" ? "dia" : "dias"}` : "";
+        const methodLbl = method ? method.charAt(0).toUpperCase() + method.slice(1) : "";
+        return {
+          id: `sub:${o.id}`,
+          created_at: o.created_at,
+          amount_cents: 0,
+          kind: "mensalista_license",
+          description: "Mensalidade (sem débito)",
+          reseller_name: moveNameMap.get(o.reseller_id) ?? "—",
+          customer_name: parsedNotes?.display_name ?? null,
+          customer_whatsapp: parsedNotes?.whatsapp ?? null,
+          detail: `Licença ${methodLbl}${packLbl ? " • " + packLbl : ""}`,
+          ref_short: o.id ? String(o.id).slice(0, 8).toUpperCase() : null,
+          ref_full: o.id ?? null,
+          ref_created_at: o.created_at ?? null,
+          ref_kind: 'license' as const,
+          license_type: o.license_type ?? null,
+          credits: null,
+          promotion_id: null,
+          promotion_discount_cents: null,
+          recharge_base_cents: null,
+          recharge_bonus_cents: null,
+        };
+      }),
+      ].sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at))),
     );
 
 
@@ -665,6 +707,7 @@ export default function GerenteDashboard() {
     const desc = String(m.description ?? "");
     const det = String(m.detail ?? "");
     if (/refund|estorno|cancel/i.test(k)) return "refund";
+    if (k === "mensalista_license") return "sale_mensalista";
     if (k === "recharge") return "recharge_pix";
     if (k === "manual_credit" || k === "deposit") return "manual_recharge";
     if (k === "bonus" || k === "activation_credit" || /bonus/i.test(k)) return "bonus";
@@ -947,6 +990,7 @@ export default function GerenteDashboard() {
                     <SelectItem value="sale_api">— Venda via API</SelectItem>
                     <SelectItem value="sale_store">— Venda na loja</SelectItem>
                     <SelectItem value="sale_credit">— Venda de recargas</SelectItem>
+                    <SelectItem value="sale_mensalista">— Mensalista (licença sem débito)</SelectItem>
                     <SelectItem value="recharge_pix">Recarga PIX (MisticPay)</SelectItem>
                     <SelectItem value="manual_recharge">Recarga manual</SelectItem>
                     <SelectItem value="bonus">Bônus / Ativação</SelectItem>
@@ -1014,6 +1058,7 @@ export default function GerenteDashboard() {
                        credit_recharge_refund: "Estorno de Recarga (Cancelada)",
                       credit_recharge_api: "Recargas via API",
                        activation_credit: "Saldo Inicial (Ativação)",
+                       mensalista_license: "Mensalista — Licença",
                     };
                     return groups.map((g) => (
                       <div key={g.label} className="space-y-2">
@@ -1045,14 +1090,17 @@ export default function GerenteDashboard() {
                            const isLicensePurchase = m.kind === "license_purchase" && !isRechargeDetail;
                           const isManualCredit = m.kind === "manual_credit";
                           const isRecharge = m.kind === "recharge";
-                          const isSaleLike = isStoreSale || isCreditPurchase || isApiOrder || isLicensePurchase;
+                          const isMensalista = m.kind === "mensalista_license";
+                          const isSaleLike = isStoreSale || isCreditPurchase || isApiOrder || isLicensePurchase || isMensalista;
                           const isLicensePurchaseRefund = String(m.kind) === "license_purchase_refund";
-                          const isLicenseRoute = isLicensePurchase || isApiOrder || (isStoreSale && !isCreditPurchase) || isLicensePurchaseRefund;
+                          const isLicenseRoute = isLicensePurchase || isApiOrder || (isStoreSale && !isCreditPurchase) || isLicensePurchaseRefund || isMensalista;
                           // Tom: entrada=verde, venda/compra=azul (destaque), outras saídas=vermelho
                           const tone = isRefund
                             ? (isIn
                                 ? { bg: "bg-rose-500/10", text: "text-rose-500", border: "border-rose-500/40", ring: "ring-1 ring-rose-500/20 shadow-[0_0_0_3px_hsl(var(--background))]" }
                                 : { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/30", ring: "" })
+                            : isMensalista
+                            ? { bg: "bg-fuchsia-500/15", text: "text-fuchsia-600", border: "border-fuchsia-500/40", ring: "ring-1 ring-fuchsia-500/30 shadow-[0_0_0_3px_hsl(var(--background))]" }
                             : isIn
                             ? { bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20", ring: "" }
                             : isApiOrder
@@ -1080,11 +1128,11 @@ export default function GerenteDashboard() {
                                       {m.reseller_name}
                                       {isSaleLike ? (
                                         <>
-                                          <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : "bg-sky-500/15 text-sky-600 border-sky-500/30"}`}>
-                                            <StoreIcon className="h-2.5 w-2.5" /> {isCreditPurchase ? "Recargas" : "Extensão"}
+                                          <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isMensalista ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : "bg-sky-500/15 text-sky-600 border-sky-500/30"}`}>
+                                            <StoreIcon className="h-2.5 w-2.5" /> {isMensalista ? "Licença" : isCreditPurchase ? "Recargas" : "Extensão"}
                                           </span>
-                                           <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isStoreSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"}`}>
-                                             {isApiOrder ? <><Zap className="h-2.5 w-2.5" /> API</> : isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}
+                                           <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isMensalista ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isStoreSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"}`}>
+                                             {isMensalista ? <>♻ Mensalista</> : isApiOrder ? <><Zap className="h-2.5 w-2.5" /> API</> : isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}
                                            </span>
                                         </>
                                       ) : (
@@ -1198,7 +1246,9 @@ export default function GerenteDashboard() {
                               </div>
                               <div className="text-right shrink-0 ml-2">
                                 <div className={`text-xs font-mono font-bold ${tone.text}`}>
-                                  {isIn ? '+' : '−'}{formatBRL(Math.abs(m.amount_cents))}
+                                  {isMensalista
+                                    ? "sem débito"
+                                    : `${isIn ? '+' : '−'}${formatBRL(Math.abs(m.amount_cents))}`}
                                 </div>
                                 <div className="text-[9px] text-muted-foreground">{fmtDate(m.created_at)}</div>
                               </div>
