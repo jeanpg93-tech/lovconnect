@@ -3845,6 +3845,10 @@ export type Database = {
         }
         Returns: number
       }
+      pack_refund_credit: {
+        Args: { _description: string; _order_id: string; _reseller_id: string }
+        Returns: number
+      }
       reject_user: { Args: { _user_id: string }; Returns: undefined }
       reset_daily_test_keys: { Args: never; Returns: undefined }
       scan_stuck_configurando_purchases: { Args: never; Returns: undefined }
