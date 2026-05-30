@@ -119,7 +119,23 @@ export default function RevendedorGerarChave() {
           whatsapp: isTrial ? undefined : whatsappDigits,
         },
       });
-      if (error) throw new Error(error.message);
+      if (error) {
+        // Quando a edge function responde com status não-2xx, o supabase-js
+        // expõe o corpo da resposta em error.context (um Response). Lemos pra
+        // mostrar o motivo real (ex.: "Sem créditos no pacote") em vez do
+        // genérico "Edge Function returned a non-2xx status code".
+        let realMsg: string | null = null;
+        try {
+          const ctx: any = (error as any)?.context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            realMsg = body?.error ?? body?.message ?? null;
+          } else if (ctx && typeof ctx.text === "function") {
+            realMsg = await ctx.text();
+          }
+        } catch { /* ignore */ }
+        throw new Error(realMsg || error.message);
+      }
       if ((data as any)?.error) throw new Error((data as any).error);
       const key = (data as any)?.license_key;
       if (!key) throw new Error("Resposta sem chave de licença");
