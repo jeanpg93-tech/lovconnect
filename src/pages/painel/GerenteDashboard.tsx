@@ -1058,6 +1058,7 @@ export default function GerenteDashboard() {
                        credit_recharge_refund: "Estorno de Recarga (Cancelada)",
                       credit_recharge_api: "Recargas via API",
                        activation_credit: "Saldo Inicial (Ativação)",
+                       mensalista_license: "Mensalista — Licença",
                     };
                     return groups.map((g) => (
                       <div key={g.label} className="space-y-2">
@@ -1089,14 +1090,17 @@ export default function GerenteDashboard() {
                            const isLicensePurchase = m.kind === "license_purchase" && !isRechargeDetail;
                           const isManualCredit = m.kind === "manual_credit";
                           const isRecharge = m.kind === "recharge";
-                          const isSaleLike = isStoreSale || isCreditPurchase || isApiOrder || isLicensePurchase;
+                          const isMensalista = m.kind === "mensalista_license";
+                          const isSaleLike = isStoreSale || isCreditPurchase || isApiOrder || isLicensePurchase || isMensalista;
                           const isLicensePurchaseRefund = String(m.kind) === "license_purchase_refund";
-                          const isLicenseRoute = isLicensePurchase || isApiOrder || (isStoreSale && !isCreditPurchase) || isLicensePurchaseRefund;
+                          const isLicenseRoute = isLicensePurchase || isApiOrder || (isStoreSale && !isCreditPurchase) || isLicensePurchaseRefund || isMensalista;
                           // Tom: entrada=verde, venda/compra=azul (destaque), outras saídas=vermelho
                           const tone = isRefund
                             ? (isIn
                                 ? { bg: "bg-rose-500/10", text: "text-rose-500", border: "border-rose-500/40", ring: "ring-1 ring-rose-500/20 shadow-[0_0_0_3px_hsl(var(--background))]" }
                                 : { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/30", ring: "" })
+                            : isMensalista
+                            ? { bg: "bg-fuchsia-500/15", text: "text-fuchsia-600", border: "border-fuchsia-500/40", ring: "ring-1 ring-fuchsia-500/30 shadow-[0_0_0_3px_hsl(var(--background))]" }
                             : isIn
                             ? { bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20", ring: "" }
                             : isApiOrder
@@ -1124,11 +1128,11 @@ export default function GerenteDashboard() {
                                       {m.reseller_name}
                                       {isSaleLike ? (
                                         <>
-                                          <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : "bg-sky-500/15 text-sky-600 border-sky-500/30"}`}>
-                                            <StoreIcon className="h-2.5 w-2.5" /> {isCreditPurchase ? "Recargas" : "Extensão"}
+                                          <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isMensalista ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : "bg-sky-500/15 text-sky-600 border-sky-500/30"}`}>
+                                            <StoreIcon className="h-2.5 w-2.5" /> {isMensalista ? "Licença" : isCreditPurchase ? "Recargas" : "Extensão"}
                                           </span>
-                                           <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isStoreSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"}`}>
-                                             {isApiOrder ? <><Zap className="h-2.5 w-2.5" /> API</> : isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}
+                                           <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isMensalista ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isStoreSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"}`}>
+                                             {isMensalista ? <><Repeat2Icon /> Mensalista</> : isApiOrder ? <><Zap className="h-2.5 w-2.5" /> API</> : isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}
                                            </span>
                                         </>
                                       ) : (
@@ -1242,7 +1246,9 @@ export default function GerenteDashboard() {
                               </div>
                               <div className="text-right shrink-0 ml-2">
                                 <div className={`text-xs font-mono font-bold ${tone.text}`}>
-                                  {isIn ? '+' : '−'}{formatBRL(Math.abs(m.amount_cents))}
+                                  {isMensalista
+                                    ? "sem débito"
+                                    : `${isIn ? '+' : '−'}${formatBRL(Math.abs(m.amount_cents))}`}
                                 </div>
                                 <div className="text-[9px] text-muted-foreground">{fmtDate(m.created_at)}</div>
                               </div>
