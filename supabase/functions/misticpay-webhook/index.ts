@@ -534,15 +534,15 @@ Deno.serve(async (req) => {
                 "📦 <b>Compra de Pacote — Revendedor Pack</b>\n" +
                 "👨‍💼 Revendedor: " + ((r as any)?.display_name ?? "—") + "\n" +
                 "💵 Valor: " + amountBRL + "\n" +
-                "🎁 Pacote: " + (packPurchase as any).pack_name + " (" + (packPurchase as any).credits + " créditos)\n" +
-                "📊 Novo saldo: " + (newBal ?? "?") + " créditos",
+                "🎁 Pacote: " + (packPurchase as any).pack_name + " (" + (packPurchase as any).credits + " licenças)\n" +
+                "📊 Licenças restantes: " + (newBal ?? "?"),
             });
             if ((r as any)?.user_id) {
               await admin.from("notifications").insert({
                 user_id: (r as any).user_id,
                 type: "pack_purchase_paid",
                 title: "Pacote confirmado!",
-                body: `${(packPurchase as any).credits} créditos liberados. Saldo: ${newBal ?? "?"}.`,
+                body: `${(packPurchase as any).credits} licenças liberadas. Restam: ${newBal ?? "?"}.`,
                 link: "/painel/revendedor/gerar-chave",
               });
             }

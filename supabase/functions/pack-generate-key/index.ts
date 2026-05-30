@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
       const credits = (bal as any)?.credits ?? 0;
       if (credits < 1) {
-        return json({ error: "Sem créditos disponíveis. Compre um pacote.", code: "no_credits" }, 402);
+        return json({ error: "Sem licenças disponíveis. Compre um pacote.", code: "no_credits" }, 402);
       }
     }
 
@@ -260,7 +260,7 @@ Deno.serve(async (req) => {
         (isTrial ? "" : `\n👤 Cliente: ${display_name}` + (whatsapp ? ` (${whatsapp})` : "")) +
         (isTrial
           ? `\n💳 Pagamento: Trial (sem débito)`
-          : `\n💳 Pagamento: 1 crédito` + (remainingCredits !== null ? ` (restam ${remainingCredits})` : ""));
+          : `\n💳 Pagamento: 1 licença` + (remainingCredits !== null ? ` (restam ${remainingCredits})` : ""));
       await svc.rpc("telegram_enqueue", { _text: txt });
     } catch (e) {
       console.warn("telegram_enqueue (pack license) failed", e);

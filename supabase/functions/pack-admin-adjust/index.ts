@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
         _actor_id: userId,
       });
       if (debErr) {
-        const msg = debErr.message?.includes("insufficient_credits") ? "Saldo insuficiente" : debErr.message;
+        const msg = debErr.message?.includes("insufficient_credits") ? "Licenças insuficientes" : debErr.message;
         return json({ error: msg }, 400);
       }
       return json({ ok: true, credits, balance: newBal });
