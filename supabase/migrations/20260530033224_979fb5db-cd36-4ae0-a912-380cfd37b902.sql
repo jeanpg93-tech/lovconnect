@@ -1,0 +1,1 @@
+ALTER TABLE public.reseller_pack_purchases ALTER COLUMN pack_id DROP NOT NULL;
