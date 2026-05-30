@@ -707,6 +707,7 @@ export default function GerenteDashboard() {
     const desc = String(m.description ?? "");
     const det = String(m.detail ?? "");
     if (/refund|estorno|cancel/i.test(k)) return "refund";
+    if (k === "mensalista_license") return "sale_mensalista";
     if (k === "recharge") return "recharge_pix";
     if (k === "manual_credit" || k === "deposit") return "manual_recharge";
     if (k === "bonus" || k === "activation_credit" || /bonus/i.test(k)) return "bonus";
@@ -989,6 +990,7 @@ export default function GerenteDashboard() {
                     <SelectItem value="sale_api">— Venda via API</SelectItem>
                     <SelectItem value="sale_store">— Venda na loja</SelectItem>
                     <SelectItem value="sale_credit">— Venda de recargas</SelectItem>
+                    <SelectItem value="sale_mensalista">— Mensalista (licença sem débito)</SelectItem>
                     <SelectItem value="recharge_pix">Recarga PIX (MisticPay)</SelectItem>
                     <SelectItem value="manual_recharge">Recarga manual</SelectItem>
                     <SelectItem value="bonus">Bônus / Ativação</SelectItem>
