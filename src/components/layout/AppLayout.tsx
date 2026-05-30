@@ -172,7 +172,6 @@ export default function AppLayout() {
                 {needsActivation && <ActivationLockOverlay status={activationStatus!} />}
                 {!needsActivation && needsSubscriptionOnboarding && <SubscriptionLockOverlay mode="onboarding" />}
                 {!needsActivation && !needsSubscriptionOnboarding && needsSubscriptionUnblock && <SubscriptionLockOverlay mode="blocked" />}
-                {!needsActivation && needsPackUnblock && <PackLockOverlay />}
               </div>
             </div>
           </main>
