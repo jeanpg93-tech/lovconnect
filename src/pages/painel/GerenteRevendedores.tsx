@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, Repeat } from "lucide-react";
+import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, Repeat, Package } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -428,6 +428,9 @@ export default function GerenteRevendedores() {
                             {r.billing_mode === "subscription" && (
                               <Badge className="bg-violet-500/15 text-violet-400 border-violet-500/30 text-[9px] uppercase">Mensalista</Badge>
                             )}
+                            {r.billing_mode === "pack" && (
+                              <Badge className="bg-primary/15 text-primary border-primary/30 text-[9px] uppercase">Pack</Badge>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-muted-foreground/80">{r.display_name}</td>
@@ -510,6 +513,14 @@ export default function GerenteRevendedores() {
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
+                                  <Button size="sm" variant="ghost" onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/pacote`)} className={cn(r.billing_mode === "pack" && "text-primary")}>
+                                    <Package className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Gerenciar pacote</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
                                   <Button size="sm" variant="ghost" onClick={() => deleteReseller(r)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
                                 </TooltipTrigger>
                                 <TooltipContent>Excluir revendedor</TooltipContent>
@@ -538,6 +549,9 @@ export default function GerenteRevendedores() {
                           {firstLastName(prof?.display_name)}
                           {r.billing_mode === "subscription" && (
                             <Badge className="bg-violet-500/15 text-violet-400 border-violet-500/30 text-[9px] uppercase">Mensalista</Badge>
+                          )}
+                          {r.billing_mode === "pack" && (
+                            <Badge className="bg-primary/15 text-primary border-primary/30 text-[9px] uppercase">Pack</Badge>
                           )}
                         </h3>
                         <p className="text-[11px] text-muted-foreground">@{r.display_name}</p>

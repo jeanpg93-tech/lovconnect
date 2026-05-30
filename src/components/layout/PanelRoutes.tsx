@@ -22,6 +22,8 @@ const GerenteResetarChave = lazy(() => import("@/pages/painel/GerenteResetarChav
 const GerenteUploadExtensao = lazy(() => import("@/pages/painel/GerenteUploadExtensao"));
 const GerenteRevendedorPrecos = lazy(() => import("@/pages/painel/GerenteRevendedorPrecos"));
 const GerenteRevendedorMensalidade = lazy(() => import("@/pages/painel/GerenteRevendedorMensalidade"));
+const GerenteRevendedorPacote = lazy(() => import("@/pages/painel/GerenteRevendedorPacote"));
+const GerentePacotes = lazy(() => import("@/pages/painel/GerentePacotes"));
 const GerenteValores = lazy(() => import("@/pages/painel/GerenteValores"));
 const GerenteValoresCreditos = lazy(() => import("@/pages/painel/GerenteValoresCreditos"));
 const GerenteNiveis = lazy(() => import("@/pages/painel/GerenteNiveis"));
@@ -63,6 +65,8 @@ const RevendedorRanking = lazy(() => import("@/pages/painel/RevendedorRanking"))
 const RevendedorTransacoes = lazy(() => import("@/pages/painel/RevendedorTransacoes"));
 const RevendedorCreditos = lazy(() => import("@/pages/painel/RevendedorCreditos"));
 const RevendedorComprarCreditos = lazy(() => import("@/pages/painel/RevendedorComprarCreditos"));
+const RevendedorComprarPacote = lazy(() => import("@/pages/painel/RevendedorComprarPacote"));
+const RevendedorHistoricoPacote = lazy(() => import("@/pages/painel/RevendedorHistoricoPacote"));
 const RevendedorResetarChave = lazy(() => import("@/pages/painel/RevendedorResetarChave"));
 
 const ClienteDashboard = lazy(() => import("@/pages/painel/ClienteDashboard"));
@@ -114,6 +118,7 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/gerente/personalizar-extensao", match: exact("/painel/gerente/personalizar-extensao"), render: () => <RoleRoute allow={["gerente"]}><GerentePersonalizarExtensao /></RoleRoute> },
   { key: "/painel/gerente/acoes-especiais", match: exact("/painel/gerente/acoes-especiais"), render: () => <RoleRoute allow={["gerente"]}><GerenteAcoesEspeciais /></RoleRoute> },
   { key: "/painel/gerente/telegram", match: exact("/painel/gerente/telegram"), render: () => <RoleRoute allow={["gerente"]}><GerenteTelegram /></RoleRoute> },
+  { key: "/painel/gerente/pacotes", match: exact("/painel/gerente/pacotes"), render: () => <RoleRoute allow={["gerente"]}><GerentePacotes /></RoleRoute> },
   { key: "/painel/gerente/instalar-app", match: exact("/painel/gerente/instalar-app"), render: () => <RoleRoute allow={["gerente"]}><InstallApp /></RoleRoute> },
   { key: "/painel/revendedor/avisos", match: exact("/painel/revendedor/avisos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorAvisos /></RoleRoute> },
   { key: "/painel/revendedor/instalar-app", match: exact("/painel/revendedor/instalar-app"), render: () => <RoleRoute allow={["revendedor"]}><InstallApp /></RoleRoute> },
@@ -130,6 +135,8 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/revendedor/precos", match: exact("/painel/revendedor/precos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPrecos /></RoleRoute> },
   { key: "/painel/revendedor/creditos", match: exact("/painel/revendedor/creditos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorCreditos /></RoleRoute> },
   { key: "/painel/revendedor/comprar-creditos", match: exact("/painel/revendedor/comprar-creditos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorComprarCreditos /></RoleRoute> },
+  { key: "/painel/revendedor/comprar-pacote", match: exact("/painel/revendedor/comprar-pacote"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorComprarPacote /></RoleRoute> },
+  { key: "/painel/revendedor/historico-pacote", match: exact("/painel/revendedor/historico-pacote"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorHistoricoPacote /></RoleRoute> },
   { key: "/painel/revendedor/adicionar-saldo", match: exact("/painel/revendedor/adicionar-saldo"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorAdicionarSaldo /></RoleRoute> },
   { key: "/painel/revendedor/carteira", match: exact("/painel/revendedor/carteira"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorCarteira /></RoleRoute> },
   { key: "/painel/revendedor/integracoes/misticpay", match: exact("/painel/revendedor/integracoes/misticpay"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorIntegracaoMisticPay /></RoleRoute> },
@@ -186,6 +193,15 @@ export function PanelRoutes() {
     return (
       <Suspense fallback={<PageFallback />}>
         <RoleRoute allow={["gerente"]}><GerenteRevendedorMensalidade /></RoleRoute>
+      </Suspense>
+    );
+  }
+
+  const dynPack = matchPath({ path: "/painel/gerente/revendedores/:id/pacote", end: true }, pathname);
+  if (dynPack) {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <RoleRoute allow={["gerente"]}><GerenteRevendedorPacote /></RoleRoute>
       </Suspense>
     );
   }

@@ -17,9 +17,10 @@ type RoleSnapshot = {
   hasData: boolean;
   loading: boolean;
   userId: string | null;
-  billingMode: "normal" | "subscription";
+  billingMode: "normal" | "subscription" | "pack";
   subscriptionBlocked: boolean;
   subscriptionOnboardingCompleted: boolean;
+  packCredits: number;
 };
 
 // ---- Singleton store shared by every useRole() consumer ----
@@ -28,9 +29,10 @@ const initialFromCache = (): RoleSnapshot => {
   let isBanned = false;
   let isActive = true;
   let hasData = false;
-  let billingMode: "normal" | "subscription" = "normal";
+  let billingMode: "normal" | "subscription" | "pack" = "normal";
   let subscriptionBlocked = false;
   let subscriptionOnboardingCompleted = true;
+  let packCredits = 0;
   try {
     const cached = localStorage.getItem("app_roles_cache");
     if (cached) {
@@ -39,13 +41,16 @@ const initialFromCache = (): RoleSnapshot => {
     }
     if (localStorage.getItem("user_is_banned") === "true") isBanned = true;
     if (localStorage.getItem("user_is_active") === "false") isActive = false;
-    if (localStorage.getItem("user_billing_mode") === "subscription") billingMode = "subscription";
+    const cachedMode = localStorage.getItem("user_billing_mode");
+    if (cachedMode === "subscription" || cachedMode === "pack") billingMode = cachedMode;
     if (localStorage.getItem("user_subscription_blocked") === "true") subscriptionBlocked = true;
     if (localStorage.getItem("user_subscription_onboarding") === "false") subscriptionOnboardingCompleted = false;
+    const cachedCredits = Number(localStorage.getItem("user_pack_credits") ?? "0");
+    if (!Number.isNaN(cachedCredits)) packCredits = cachedCredits;
   } catch {
     /* noop */
   }
-  return { roles, isBanned, isActive, hasData, loading: false, userId: null, billingMode, subscriptionBlocked, subscriptionOnboardingCompleted };
+  return { roles, isBanned, isActive, hasData, loading: false, userId: null, billingMode, subscriptionBlocked, subscriptionOnboardingCompleted, packCredits };
 };
 
 let snapshot: RoleSnapshot = initialFromCache();
@@ -67,7 +72,7 @@ const fetchRoles = async (userId: string) => {
       const [rolesRes, profileRes, resellerRes] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.from("profiles").select("id, is_banned").eq("id", userId).maybeSingle(),
-        supabase.from("resellers").select("is_active, billing_mode, subscription_blocked, subscription_onboarding_completed").eq("user_id", userId).maybeSingle(),
+        supabase.from("resellers").select("id, is_active, billing_mode, subscription_blocked, subscription_onboarding_completed").eq("user_id", userId).maybeSingle(),
       ]);
 
       const next: Partial<RoleSnapshot> = { loading: false, userId, hasData: true };
@@ -80,18 +85,40 @@ const fetchRoles = async (userId: string) => {
         const r: any = resellerRes.data;
         next.isActive = !!r.is_active;
         localStorage.setItem("user_is_active", next.isActive ? "true" : "false");
-        next.billingMode = r.billing_mode === "subscription" ? "subscription" : "normal";
+        next.billingMode = r.billing_mode === "subscription" ? "subscription" : r.billing_mode === "pack" ? "pack" : "normal";
         localStorage.setItem("user_billing_mode", next.billingMode);
         next.subscriptionBlocked = !!r.subscription_blocked;
         localStorage.setItem("user_subscription_blocked", next.subscriptionBlocked ? "true" : "false");
         next.subscriptionOnboardingCompleted = r.subscription_onboarding_completed !== false;
         localStorage.setItem("user_subscription_onboarding", next.subscriptionOnboardingCompleted ? "true" : "false");
+        if (next.billingMode === "pack") {
+          try {
+            const rid = (r as any).id ?? null;
+            let credits = 0;
+            if (rid) {
+              const { data: bal } = await supabase
+                .from("reseller_pack_balances" as any)
+                .select("credits")
+                .eq("reseller_id", rid)
+                .maybeSingle();
+              credits = Number((bal as any)?.credits ?? 0);
+            }
+            next.packCredits = credits;
+            localStorage.setItem("user_pack_credits", String(next.packCredits));
+          } catch {
+            next.packCredits = 0;
+          }
+        } else {
+          next.packCredits = 0;
+          localStorage.setItem("user_pack_credits", "0");
+        }
       } else if (!resellerRes.error) {
         next.isActive = true;
         localStorage.setItem("user_is_active", "true");
         next.billingMode = "normal";
         next.subscriptionBlocked = false;
         next.subscriptionOnboardingCompleted = true;
+        next.packCredits = 0;
       }
 
       if (!rolesRes.error) {
@@ -116,7 +143,8 @@ const resetRoles = () => {
   localStorage.removeItem("user_billing_mode");
   localStorage.removeItem("user_subscription_blocked");
   localStorage.removeItem("user_subscription_onboarding");
-  setSnapshot({ roles: [], isBanned: false, isActive: true, hasData: false, loading: false, userId: null, billingMode: "normal", subscriptionBlocked: false, subscriptionOnboardingCompleted: true });
+  localStorage.removeItem("user_pack_credits");
+  setSnapshot({ roles: [], isBanned: false, isActive: true, hasData: false, loading: false, userId: null, billingMode: "normal", subscriptionBlocked: false, subscriptionOnboardingCompleted: true, packCredits: 0 });
 };
 
 export const useRole = () => {
@@ -161,6 +189,9 @@ export const useRole = () => {
     hasData: snapshot.hasData,
     billingMode: snapshot.billingMode,
     isSubscription: snapshot.billingMode === "subscription",
+    isPack: snapshot.billingMode === "pack",
+    packCredits: snapshot.packCredits,
+    packBlocked: snapshot.billingMode === "pack" && snapshot.packCredits <= 0,
     subscriptionBlocked: snapshot.subscriptionBlocked,
     subscriptionOnboardingCompleted: snapshot.subscriptionOnboardingCompleted,
   };

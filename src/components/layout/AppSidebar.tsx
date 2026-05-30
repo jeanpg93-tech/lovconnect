@@ -97,6 +97,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
     { label: "Gestão produtos", items: [
       { title: "Gerenciar Recargas", url: "/painel/gerente/recargas", icon: Coins },
       { title: "Gerenciar Licenças", url: "/painel/gerente/todas-licencas", icon: KeyRound },
+      { title: "Pacotes", url: "/painel/gerente/pacotes", icon: Package },
     ]},
   ],
   revendedor: [
@@ -109,6 +110,12 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles },
       { title: "Minhas Chaves", url: "/painel/revendedor/minhas-chaves", icon: KeyRound },
       { title: "Minhas Cobranças", url: "/painel/revendedor/cobrancas", icon: Wallet },
+    ]},
+    { label: "Pacote", items: [
+      { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles },
+      { title: "Minhas Chaves", url: "/painel/revendedor/minhas-chaves", icon: KeyRound },
+      { title: "Comprar Pacote", url: "/painel/revendedor/comprar-pacote", icon: ShoppingCart },
+      { title: "Histórico", url: "/painel/revendedor/historico-pacote", icon: HistoryIcon },
     ]},
     { label: "Minhas vendas", items: [
       { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
@@ -164,10 +171,10 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
-  const { primaryRole, loading, hasData, isSubscription } = useRole();
+  const { primaryRole, loading, hasData, isSubscription, isPack } = useRole();
   const { signOut, user } = useAuth();
 
-  const [openGroups, setOpenGroups] = useState<string[]>(["Visão geral", "Painel", "Vender", "Operação", "Mensalidade"]);
+  const [openGroups, setOpenGroups] = useState<string[]>(["Visão geral", "Painel", "Vender", "Operação", "Mensalidade", "Pacote"]);
   
   // Sincroniza abertura com a rota atual se necessário
   useEffect(() => {
@@ -396,6 +403,9 @@ export function AppSidebar() {
     ...group,
     items: group.items.filter(item => {
       if (isPartner && item.url === "/painel/revendedor/niveis") return false;
+      // Filtra grupos por modo
+      if (group.label === "Pacote" && !isPack) return false;
+      if (group.label === "Mensalidade" && !isSubscription) return false;
       if (isSubscription) {
         const hiddenForSubscription = [
           "/painel/revendedor/carteira",
@@ -407,12 +417,26 @@ export function AppSidebar() {
           "/painel/revendedor/licencas",
         ];
         if (hiddenForSubscription.includes(item.url)) return false;
+      } else if (isPack) {
+        const hiddenForPack = [
+          "/painel/revendedor/carteira",
+          "/painel/revendedor/recargas",
+          "/painel/revendedor/precos",
+          "/painel/revendedor/api-recargas",
+          "/painel/revendedor/loja",
+          "/painel/revendedor/indicacoes",
+          "/painel/revendedor/licencas",
+          "/painel/revendedor/cobrancas",
+        ];
+        if (hiddenForPack.includes(item.url)) return false;
       } else {
         // Esconde itens exclusivos de mensalista para revendedores normais
         const subscriptionOnly = [
           "/painel/revendedor/gerar-chave",
           "/painel/revendedor/minhas-chaves",
           "/painel/revendedor/cobrancas",
+          "/painel/revendedor/comprar-pacote",
+          "/painel/revendedor/historico-pacote",
         ];
         if (subscriptionOnly.includes(item.url)) return false;
       }

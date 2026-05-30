@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,11 +17,13 @@ import { ActivationBanner } from "@/components/activation/ActivationBanner";
 import { ActivationLockOverlay } from "@/components/activation/ActivationLockOverlay";
 import { useActivation } from "@/hooks/useActivation";
 import { SubscriptionLockOverlay } from "@/components/subscription/SubscriptionLockOverlay";
+import { PackLockOverlay } from "@/components/pack/PackLockOverlay";
 import { FirstAccessGate } from "@/components/FirstAccessGate";
 
 export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { primaryRole, isBanned, isActive, isGerente, loading: roleLoading, hasData, isSubscription, subscriptionOnboardingCompleted, subscriptionBlocked } = useRole();
+  const { primaryRole, isBanned, isActive, isGerente, loading: roleLoading, hasData, isSubscription, subscriptionOnboardingCompleted, subscriptionBlocked, isPack, packBlocked } = useRole();
+  const { pathname } = useLocation();
   const isInitialAuthLoading = authLoading && !user;
   const isInitialRoleLoading = roleLoading && !hasData;
   useRealtimeNotifications();
@@ -67,6 +69,18 @@ export default function AppLayout() {
     isSubscription &&
     subscriptionOnboardingCompleted &&
     subscriptionBlocked;
+
+  // Pack: bloqueia quando créditos = 0, exceto na própria página de compra
+  const PACK_ALLOWED_PATHS = [
+    "/painel/revendedor/comprar-pacote",
+    "/painel/revendedor/historico-pacote",
+    "/painel/conta",
+  ];
+  const needsPackUnblock =
+    primaryRole === "revendedor" &&
+    isPack &&
+    packBlocked &&
+    !PACK_ALLOWED_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   if (!primaryRole) {
     return (
@@ -157,15 +171,16 @@ export default function AppLayout() {
               {primaryRole === "revendedor" && <PendingBalanceBanner />}
               <div className="relative">
                 <div
-                  className={(needsActivation || needsSubscriptionOnboarding || needsSubscriptionUnblock) ? "pointer-events-none select-none" : undefined}
-                  aria-hidden={(needsActivation || needsSubscriptionOnboarding || needsSubscriptionUnblock) || undefined}
-                  {...((needsActivation || needsSubscriptionOnboarding || needsSubscriptionUnblock) ? { inert: "" } : {})}
+                  className={(needsActivation || needsSubscriptionOnboarding || needsSubscriptionUnblock || needsPackUnblock) ? "pointer-events-none select-none" : undefined}
+                  aria-hidden={(needsActivation || needsSubscriptionOnboarding || needsSubscriptionUnblock || needsPackUnblock) || undefined}
+                  {...((needsActivation || needsSubscriptionOnboarding || needsSubscriptionUnblock || needsPackUnblock) ? { inert: "" } : {})}
                 >
                   <PanelRoutes />
                 </div>
                 {needsActivation && <ActivationLockOverlay status={activationStatus!} />}
                 {!needsActivation && needsSubscriptionOnboarding && <SubscriptionLockOverlay mode="onboarding" />}
                 {!needsActivation && !needsSubscriptionOnboarding && needsSubscriptionUnblock && <SubscriptionLockOverlay mode="blocked" />}
+                {!needsActivation && needsPackUnblock && <PackLockOverlay />}
               </div>
             </div>
           </main>
