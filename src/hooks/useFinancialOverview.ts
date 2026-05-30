@@ -108,6 +108,18 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const subscriptionRevenueCents = subsArr.reduce((s, a: any) => s + Number(a.amount_cents || 0), 0);
     const subscriptionCount = subsArr.length;
 
+    // Receita: pacotes pagos por revendedores Pack (reseller_pack_purchases)
+    let ppQ = supabase
+      .from("reseller_pack_purchases")
+      .select("price_cents, paid_at")
+      .eq("status", "paid");
+    if (startIso) ppQ = ppQ.gte("paid_at", startIso);
+    if (endIso) ppQ = ppQ.lte("paid_at", endIso);
+    const { data: packPurchases } = await ppQ;
+    const packArr = packPurchases || [];
+    const packRevenueCents = packArr.reduce((s, a: any) => s + Number(a.price_cents || 0), 0);
+    const packCount = packArr.length;
+
     // Custo: storefront_orders pagos
     let soQ = supabase
       .from("storefront_orders")
@@ -217,7 +229,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       .reduce((s, m: any) => s + Number(m.cost_cents || 0), 0);
 
     const revenueCents =
-      rechargesRevenueCents + manualRevenueCents + activationRevenueCents + subscriptionRevenueCents;
+      rechargesRevenueCents + manualRevenueCents + activationRevenueCents + subscriptionRevenueCents + packRevenueCents;
     const costCents = costCreditsCents + gatewayFeeCents + manualExpenseCents + manualRevenueCostCents;
     const profitCents = revenueCents - costCents;
     const marginPct = revenueCents > 0 ? (profitCents / revenueCents) * 100 : 0;
@@ -240,6 +252,11 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       const k = key(a.paid_at);
       bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
       bucket[k].revenue += Number(a.amount_cents || 0);
+    });
+    packArr.forEach((a: any) => {
+      const k = key(a.paid_at);
+      bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
+      bucket[k].revenue += Number(a.price_cents || 0);
     });
     soArr.forEach((o: any) => {
       const k = key(o.paid_at || o.created_at);
@@ -334,6 +351,8 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       activationsCount,
       subscriptionRevenueCents,
       subscriptionCount,
+      packRevenueCents,
+      packCount,
       costCents,
       costCreditsCents,
       gatewayFeeCents,
