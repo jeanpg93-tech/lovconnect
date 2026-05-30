@@ -602,6 +602,9 @@ export default function GerenteRevendedores() {
                       <Button className="flex-1 h-9 rounded-lg" size="sm" variant={r.billing_mode === "subscription" ? "default" : "secondary"} onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/mensalidade`)}>
                         <Repeat className="mr-2 h-4 w-4" /> Mens.
                       </Button>
+                      <Button className="flex-1 h-9 rounded-lg" size="sm" variant={r.billing_mode === "pack" ? "default" : "secondary"} onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/pacote`)}>
+                        <Package className="mr-2 h-4 w-4" /> Pack
+                      </Button>
                       <Button size="icon" variant="destructive" className="h-9 w-9 rounded-lg shrink-0" onClick={() => deleteReseller(r)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
