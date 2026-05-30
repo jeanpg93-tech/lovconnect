@@ -10,6 +10,7 @@ import {
   Infinity as InfinityIcon, Zap, KeyRound, Gift, Send, MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useRole } from "@/hooks/useRole";
 
 type TypeDef = {
   key: "trial" | "1d" | "7d" | "30d" | "lifetime";
@@ -30,6 +31,8 @@ const TYPES: TypeDef[] = [
 ];
 
 export default function RevendedorGerarChave() {
+  const { isSubscription, isPack, packCredits } = useRole();
+  const fnName = isPack ? "pack-generate-key" : isSubscription ? "subscription-generate-key" : "subscription-generate-key";
   const [activeMethod, setActiveMethod] = useState<"flow" | "lovax" | null>(null);
   const [genType, setGenType] = useState<TypeDef["key"]>("30d");
   const [genName, setGenName] = useState("");
@@ -78,7 +81,9 @@ export default function RevendedorGerarChave() {
     setGenerating(true);
     setLastGenerated(null);
     try {
-      const { data, error } = await supabase.functions.invoke("subscription-generate-key", {
+      const { data, error } = await supabase.functions.invoke(
+        isPack ? "pack-generate-key" : "subscription-generate-key",
+        {
         body: {
           type: genType,
           display_name: isTrial ? undefined : name,
