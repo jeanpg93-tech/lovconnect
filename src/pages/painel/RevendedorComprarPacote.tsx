@@ -80,6 +80,7 @@ export default function RevendedorComprarPacote() {
         title="Comprar Pacote"
         description="Cada licença = 1 chave gerada (qualquer duração). Trials são grátis."
       />
+      <PackLowBalanceBanner />
 
       <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2">
         <Package className="h-5 w-5 text-primary" />

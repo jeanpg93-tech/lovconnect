@@ -181,6 +181,7 @@ export default function RevendedorGerarChave() {
         title="Gerar Chave"
         description="Crie uma chave de extensão na hora — sem custo adicional"
       />
+      <PackLowBalanceBanner />
 
       {isPack && (
         <div className="mt-6 grid gap-3 sm:grid-cols-2">

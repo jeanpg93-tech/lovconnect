@@ -458,6 +458,7 @@ export default function RevendedorDashboard() {
     <>
     <div className="space-y-6 pb-20 md:pb-0">
       <PricingIssuesBannerSlot />
+      <PackLowBalanceBanner />
       {/* HERO Dashboard Geral */}
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-background">
         {/* grid sutil de fundo */}
