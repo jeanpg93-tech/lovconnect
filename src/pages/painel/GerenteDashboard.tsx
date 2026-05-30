@@ -232,8 +232,10 @@ export default function GerenteDashboard() {
     const { data: subOrdersData } = await supabase
       .from("orders")
       .select("id, created_at, reseller_id, license_type, status, notes, license_key")
-      .eq("status", "completed")
-      .ilike("notes", "%\"billing_mode\":\"subscription\"%")
+      .in("status", ["completed", "revoked", "deleted"])
+      .or(
+        "notes.ilike.%\"billing_mode\":\"subscription\"%,notes.ilike.%\"billing_mode\":\"pack\"%"
+      )
       .order("created_at", { ascending: false })
       .limit(50);
 
