@@ -32,7 +32,6 @@ const TYPES: TypeDef[] = [
 
 export default function RevendedorGerarChave() {
   const { isSubscription, isPack, packCredits } = useRole();
-  const fnName = isPack ? "pack-generate-key" : isSubscription ? "subscription-generate-key" : "subscription-generate-key";
   const [activeMethod, setActiveMethod] = useState<"flow" | "lovax" | null>(null);
   const [genType, setGenType] = useState<TypeDef["key"]>("30d");
   const [genName, setGenName] = useState("");
