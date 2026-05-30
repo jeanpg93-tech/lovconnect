@@ -150,7 +150,10 @@ export default function RevendedorGerarChave() {
               <strong className="text-foreground">
                 {activeMethod === "lovax" ? "LovaX" : activeMethod === "flow" ? "PromptFlow" : "carregando..."}
               </strong>
-              . Como mensalista, suas chaves não consomem saldo.
+              .{" "}
+              {isPack
+                ? `Modo Pack: cada chave consome 1 crédito. Saldo: ${packCredits}.`
+                : "Como mensalista, suas chaves não consomem saldo."}
             </p>
           </div>
         </div>
