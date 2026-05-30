@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +64,13 @@ const statusBadge = (status: string) => {
 const kindLabel = (k: string) => k === "monthly" ? "Mensalidade" : k === "installment" ? "Parcela" : "Avulsa";
 
 export default function GerenteRevendedorMensalidade() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string }>();
+  const { pathname } = useLocation();
+  // PanelRoutes renders this component outside of a <Route> with the :id pattern,
+  // so useParams returns {}. Fall back to parsing the id from the pathname.
+  const id =
+    params.id ??
+    pathname.match(/\/revendedores\/([^/]+)\/mensalidade/)?.[1];
   const navigate = useNavigate();
   const [reseller, setReseller] = useState<Reseller | null>(null);
   const [charges, setCharges] = useState<Charge[]>([]);
