@@ -221,13 +221,17 @@ Deno.serve(async (req) => {
     await tg('sendMessage', { chat_id: chatId, parse_mode: 'HTML', text:
       '<b>Comandos disponíveis:</b>\n' +
       '/saldo — saldos da Lojinha e da MisticPay\n' +
-      '/saldo revendedores — saldos dos revendedores\n' +
+      '/saldo_revendedores — saldos dos revendedores\n' +
       '/vendas — vendas pagas hoje\n' +
       '/recargas — recargas hoje\n' +
       '/pendentes — cadastros aguardando aprovação\n' +
       '/help — esta mensagem'
     })
-  } else if (cmd === '/saldo' && (sub === 'revendedores' || sub === 'revendedor' || sub === 'resellers')) {
+  } else if (
+    cmd === '/saldo_revendedores' ||
+    cmd === '/saldorevendedores' ||
+    (cmd === '/saldo' && (sub === 'revendedores' || sub === 'revendedor' || sub === 'resellers'))
+  ) {
     const { data: balances } = await supabase
       .from('reseller_balances')
       .select('balance_cents, reseller:resellers(display_name, is_active)')
