@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
+import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

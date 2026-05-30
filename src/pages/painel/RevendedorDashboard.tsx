@@ -6,6 +6,7 @@ import { useActivation } from "@/hooks/useActivation";
 import { cn } from "@/lib/utils";
 import { PageHeader, StatCard } from "@/components/painel/PageHeader";
 import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
+import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import { usePricingIssues } from "@/hooks/usePricingIssues";
 import { Button } from "@/components/ui/button";
 import { WhatsAppFloatingButtons } from "@/components/WhatsAppFloatingButtons";
