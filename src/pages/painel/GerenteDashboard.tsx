@@ -532,7 +532,7 @@ export default function GerenteDashboard() {
     });
 
     setCreditMovements(
-      movesData.map((m: any) => {
+      [...movesData.map((m: any) => {
         const cents = Number(m.amount_cents ?? 0);
         // Estornos/cancelamentos carregam reference_id apontando para a compra original
         let enrich: EnrichVal | undefined;
@@ -574,6 +574,38 @@ export default function GerenteDashboard() {
           recharge_bonus_cents: rb?.bonus_cents ?? null,
         };
       }),
+      // Vendas/licenças geradas por revendedores mensalistas (sem débito de saldo)
+      ...((subOrdersData ?? []) as any[]).map((o: any) => {
+        let parsedNotes: any = {};
+        try { parsedNotes = o.notes ? JSON.parse(o.notes) : {}; } catch { parsedNotes = {}; }
+        const method = parsedNotes?.method ?? null;
+        const pack = parsedNotes?.pack_id ?? null;
+        const isTrial = String(pack).toLowerCase().startsWith("trial") || o.license_type === "trial";
+        const packLbl = pack === "lifetime" ? "vitalícia" : isTrial ? "trial" : pack ? `${String(pack).replace("d","")} ${pack === "1d" ? "dia" : "dias"}` : "";
+        const methodLbl = method ? method.charAt(0).toUpperCase() + method.slice(1) : "";
+        return {
+          id: `sub:${o.id}`,
+          created_at: o.created_at,
+          amount_cents: 0,
+          kind: "mensalista_license",
+          description: "Mensalidade (sem débito)",
+          reseller_name: moveNameMap.get(o.reseller_id) ?? "—",
+          customer_name: parsedNotes?.display_name ?? null,
+          customer_whatsapp: parsedNotes?.whatsapp ?? null,
+          detail: `Licença ${methodLbl}${packLbl ? " • " + packLbl : ""}`,
+          ref_short: o.id ? String(o.id).slice(0, 8).toUpperCase() : null,
+          ref_full: o.id ?? null,
+          ref_created_at: o.created_at ?? null,
+          ref_kind: 'license' as const,
+          license_type: o.license_type ?? null,
+          credits: null,
+          promotion_id: null,
+          promotion_discount_cents: null,
+          recharge_base_cents: null,
+          recharge_bonus_cents: null,
+        };
+      }),
+      ].sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at))),
     );
 
 
