@@ -227,6 +227,16 @@ export default function GerenteDashboard() {
       supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id, reference_id, promotion_id").order("created_at", { ascending: false }).limit(100),
     ]);
 
+    // Mensalistas geram licenças com price_cents=0 (sem débito), então não aparecem
+    // em balance_transactions. Buscamos separadamente para mesclar no feed.
+    const { data: subOrdersData } = await supabase
+      .from("orders")
+      .select("id, created_at, reseller_id, license_type, status, notes, license_key")
+      .eq("status", "completed")
+      .ilike("notes", "%\"billing_mode\":\"subscription\"%")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
     const balanceAny: any = balanceRes;
     const provUsageAny: any = provUsage;
     const ordersAllAny: any = ordersAll;
