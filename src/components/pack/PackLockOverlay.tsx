@@ -12,7 +12,7 @@ export function PackLockOverlay() {
   const navigate = useNavigate();
   const [refreshing, setRefreshing] = useState(false);
 
-  // realtime: ao receber crédito, recarrega
+  // realtime: ao receber licença, recarrega
   useEffect(() => {
     if (!user) return;
     const ch = supabase
@@ -37,10 +37,10 @@ export function PackLockOverlay() {
                 <Sparkles className="h-3 w-3 mr-1" /> Modo Pack
               </Badge>
               <h1 className="font-display text-2xl sm:text-3xl font-black tracking-tighter">
-                Seus <span className="text-primary italic">créditos acabaram</span>
+                Suas <span className="text-primary italic">licenças acabaram</span>
               </h1>
               <p className="mt-3 text-sm text-muted-foreground">
-                Para continuar gerando chaves, compre um novo pacote de créditos.
+                Para continuar gerando chaves, compre um novo pacote de licenças.
                 O painel é liberado automaticamente assim que o pagamento for confirmado.
               </p>
             </div>
@@ -48,7 +48,7 @@ export function PackLockOverlay() {
             <div className="flex items-center justify-center gap-3 rounded-xl border border-border bg-background/40 p-5">
               <Package className="h-8 w-8 text-primary" />
               <div>
-                <div className="text-[11px] uppercase font-bold tracking-widest text-muted-foreground">Créditos restantes</div>
+                <div className="text-[11px] uppercase font-bold tracking-widest text-muted-foreground">Licenças restantes</div>
                 <div className="font-mono font-black text-3xl text-primary">0</div>
               </div>
             </div>

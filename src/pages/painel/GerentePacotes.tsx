@@ -45,7 +45,7 @@ export default function GerentePacotes() {
     const credits = Number(editing.credits);
     const price_cents = Math.round(Number(editing.price_cents));
     if (!name) return toast.error("Nome obrigatório");
-    if (!Number.isInteger(credits) || credits <= 0) return toast.error("Créditos inválidos");
+    if (!Number.isInteger(credits) || credits <= 0) return toast.error("Quantidade de licenças inválida");
     if (!Number.isFinite(price_cents) || price_cents < 0) return toast.error("Preço inválido");
 
     setSaving(true);
@@ -83,7 +83,7 @@ export default function GerentePacotes() {
     <PageContainer>
       <PageHeader
         title="Pacotes de Licença"
-        description="Cadastre os pacotes de créditos vendidos aos revendedores Pack"
+        description="Cadastre os pacotes de licenças vendidos aos revendedores Pack"
         actions={
           <Button onClick={() => setEditing({ is_active: true, sort_order: packs.length })}>
             <Plus className="h-4 w-4 mr-2" /> Novo pacote
@@ -108,14 +108,14 @@ export default function GerentePacotes() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="font-display text-lg font-bold">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">{p.credits} créditos</div>
+                      <div className="text-xs text-muted-foreground">{p.credits} licenças</div>
                     </div>
                     <Badge variant={p.is_active ? "default" : "secondary"}>
                       {p.is_active ? "Ativo" : "Inativo"}
                     </Badge>
                   </div>
                   <div className="mt-3 font-mono text-2xl font-black text-primary">{brl(p.price_cents)}</div>
-                  <div className="text-[11px] text-muted-foreground">{brl(perKey)} por chave</div>
+                  <div className="text-[11px] text-muted-foreground">{brl(perKey)} por licença</div>
                   <div className="mt-4 flex items-center gap-2">
                     <Button size="sm" variant="outline" onClick={() => setEditing(p)}>
                       <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
@@ -147,7 +147,7 @@ export default function GerentePacotes() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Créditos</Label>
+                  <Label>Licenças</Label>
                   <Input type="number" value={editing.credits ?? ""} onChange={(e) => setEditing({ ...editing, credits: Number(e.target.value) })} />
                 </div>
                 <div>

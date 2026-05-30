@@ -48,7 +48,7 @@ export default function RevendedorComprarPacote() {
       .channel(`pack-purchase-${pix.purchase_id}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "reseller_pack_purchases", filter: `id=eq.${pix.purchase_id}` }, (payload: any) => {
         if (payload.new?.status === "paid") {
-          toast.success("Pagamento confirmado! Créditos liberados.");
+          toast.success("Pagamento confirmado! Licenças liberadas.");
           setPix(null);
           setTimeout(() => window.location.reload(), 1500);
         }
@@ -78,14 +78,14 @@ export default function RevendedorComprarPacote() {
     <PageContainer>
       <PageHeader
         title="Comprar Pacote"
-        description="Cada crédito = 1 chave de licença (qualquer duração). Trials são grátis."
+        description="Cada licença = 1 chave gerada (qualquer duração). Trials são grátis."
       />
 
       <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2">
         <Package className="h-5 w-5 text-primary" />
         <div>
-          <div className="text-[11px] uppercase font-bold tracking-widest text-muted-foreground">Seu saldo</div>
-          <div className="font-mono font-black text-xl text-primary">{packCredits} créditos</div>
+          <div className="text-[11px] uppercase font-bold tracking-widest text-muted-foreground">Licenças restantes</div>
+          <div className="font-mono font-black text-xl text-primary">{packCredits}</div>
         </div>
       </div>
 
@@ -101,9 +101,9 @@ export default function RevendedorComprarPacote() {
               return (
                 <div key={p.id} className="rounded-2xl border border-border bg-card/60 p-5 backdrop-blur-sm flex flex-col">
                   <div className="font-display text-lg font-bold">{p.name}</div>
-                  <div className="text-xs text-muted-foreground">{p.credits} créditos</div>
+                  <div className="text-xs text-muted-foreground">{p.credits} licenças</div>
                   <div className="my-4 font-mono text-3xl font-black text-primary">{brl(p.price_cents)}</div>
-                  <div className="text-[11px] text-muted-foreground mb-4">{brl(perKey)} por chave</div>
+                  <div className="text-[11px] text-muted-foreground mb-4">{brl(perKey)} por licença</div>
                   <Button className="mt-auto" disabled={!!creating} onClick={() => buy(p)}>
                     {creating === p.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                     Comprar
@@ -121,7 +121,7 @@ export default function RevendedorComprarPacote() {
           {pix && (
             <div className="space-y-4">
               <div className="text-center">
-                <Badge className="bg-primary/15 text-primary border-primary/30">{pix.pack_name} · {pix.credits} créditos</Badge>
+                <Badge className="bg-primary/15 text-primary border-primary/30">{pix.pack_name} · {pix.credits} licenças</Badge>
               </div>
               {pix.qr && (
                 <div className="flex justify-center">
@@ -148,7 +148,7 @@ export default function RevendedorComprarPacote() {
               )}
               <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
                 <ShieldCheck className="h-3 w-3 text-emerald-400" />
-                Os créditos serão liberados automaticamente após o pagamento.
+                As licenças serão liberadas automaticamente após o pagamento.
               </div>
             </div>
           )}
