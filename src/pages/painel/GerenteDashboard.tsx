@@ -716,6 +716,7 @@ export default function GerenteDashboard() {
     const det = String(m.detail ?? "");
     if (/refund|estorno|cancel/i.test(k)) return "refund";
     if (k === "mensalista_license") return "sale_mensalista";
+    if (k === "pack_license") return "sale_mensalista";
     if (k === "recharge") return "recharge_pix";
     if (k === "manual_credit" || k === "deposit") return "manual_recharge";
     if (k === "bonus" || k === "activation_credit" || /bonus/i.test(k)) return "bonus";
