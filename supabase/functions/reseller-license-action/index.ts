@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
   const { data: rows } = await q;
   const order = rows?.[0];
   if (!order) return json({ error: "Licença não encontrada" }, 404);
+  const prevStatus = String((order as any).status ?? "").toLowerCase();
   if (order.license_key !== license_key) {
     return json({ error: "Licença não confere com o pedido" }, 400);
   }
@@ -131,6 +132,41 @@ Deno.serve(async (req) => {
     await svc.from("orders").update({ status: "deleted", license_key: null }).eq("id", order.id);
   }
 
+  // Pack: devolve 1 crédito ao revendedor quando a chave é revogada/excluída.
+  // Só refunda se o pedido estava 'completed' (para não refundar 2x se já
+  // estiver revoked/deleted) e se o revendedor é Pack.
+  let packRefunded = false;
+  let packCreditsAfter: number | null = null;
+  try {
+    const { data: rInfoForRefund } = await svc
+      .from("resellers")
+      .select("billing_mode")
+      .eq("id", reseller.id)
+      .maybeSingle();
+    const isPack = (rInfoForRefund as any)?.billing_mode === "pack";
+    if (
+      isPack &&
+      (action === "revoke-license" || action === "delete-license") &&
+      prevStatus === "completed"
+    ) {
+      const { data: refundRes, error: refundErr } = await svc.rpc("pack_refund_credit", {
+        _reseller_id: reseller.id,
+        _order_id: order.id,
+        _description: action === "revoke-license"
+          ? "Estorno: licença revogada"
+          : "Estorno: licença excluída",
+      });
+      if (refundErr) {
+        console.warn("pack_refund_credit failed", refundErr);
+      } else {
+        packRefunded = true;
+        packCreditsAfter = typeof refundRes === "number" ? refundRes : null;
+      }
+    }
+  } catch (e) {
+    console.warn("pack refund block failed", e);
+  }
+
   // Notifica gerente no Telegram (reset/revoke/delete)
   try {
     const { data: rInfo } = await svc
@@ -153,11 +189,22 @@ Deno.serve(async (req) => {
       `${emoji} <b>${prefix}${actionLabel}</b>\n` +
       `👨‍💼 Revendedor: ${resellerName}\n` +
       `🔑 Chave: <code>${license_key}</code>\n` +
-      `🆔 Pedido: <code>${order.id}</code>`;
+      `🆔 Pedido: <code>${order.id}</code>` +
+      (packRefunded
+        ? `\n💳 1 licença devolvida ao saldo` +
+          (packCreditsAfter !== null ? ` (restam ${packCreditsAfter})` : "")
+        : "");
     await svc.rpc("telegram_enqueue", { _text: txt });
   } catch (e) {
     console.warn("telegram_enqueue (license-action) failed", e);
   }
 
-  return json({ success: true, action, license_key, provider: providerData });
+  return json({
+    success: true,
+    action,
+    license_key,
+    provider: providerData,
+    pack_refunded: packRefunded,
+    pack_credits_after: packCreditsAfter,
+  });
 });
