@@ -418,17 +418,9 @@ export function AppSidebar() {
         ];
         if (hiddenForSubscription.includes(item.url)) return false;
       } else if (isPack) {
-        const hiddenForPack = [
-          "/painel/revendedor/carteira",
-          "/painel/revendedor/recargas",
-          "/painel/revendedor/precos",
-          "/painel/revendedor/api-recargas",
-          "/painel/revendedor/loja",
-          "/painel/revendedor/indicacoes",
-          "/painel/revendedor/licencas",
-          "/painel/revendedor/cobrancas",
-        ];
-        if (hiddenForPack.includes(item.url)) return false;
+        // Modo Pack é uma opção ADICIONAL: não esconde nada do fluxo normal.
+        // O revendedor mantém todos os menus (carteira, loja, recargas, etc.)
+        // e ganha os itens do grupo "Pacote" por cima.
       } else {
         // Esconde itens exclusivos de mensalista para revendedores normais
         const subscriptionOnly = [
