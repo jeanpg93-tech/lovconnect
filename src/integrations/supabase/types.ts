@@ -2583,7 +2583,7 @@ export type Database = {
           expires_at: string | null
           id: string
           notes: string | null
-          pack_id: string
+          pack_id: string | null
           pack_name: string
           paid_at: string | null
           pix_copy_paste: string | null
@@ -2602,7 +2602,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           notes?: string | null
-          pack_id: string
+          pack_id?: string | null
           pack_name: string
           paid_at?: string | null
           pix_copy_paste?: string | null
@@ -2621,7 +2621,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           notes?: string | null
-          pack_id?: string
+          pack_id?: string | null
           pack_name?: string
           paid_at?: string | null
           pix_copy_paste?: string | null
