@@ -143,7 +143,7 @@ export default function GerenteRevendedorPacote() {
         <ArrowLeft className="h-4 w-4 mr-1" /> Revendedores
       </Button>
       <PageHeader
-        title={`Pacote — ${reseller.display_name}`}
+        title={`Packs — ${reseller.display_name}`}
         description="Licenças do revendedor, compras e ajustes manuais"
       />
 
