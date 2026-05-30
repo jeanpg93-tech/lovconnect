@@ -1101,9 +1101,10 @@ export default function GerenteDashboard() {
                           const isManualCredit = m.kind === "manual_credit";
                           const isRecharge = m.kind === "recharge";
                           const isMensalista = m.kind === "mensalista_license";
-                          const isSaleLike = isStoreSale || isCreditPurchase || isApiOrder || isLicensePurchase || isMensalista;
+                          const isPack = m.kind === "pack_license";
+                          const isSaleLike = isStoreSale || isCreditPurchase || isApiOrder || isLicensePurchase || isMensalista || isPack;
                           const isLicensePurchaseRefund = String(m.kind) === "license_purchase_refund";
-                          const isLicenseRoute = isLicensePurchase || isApiOrder || (isStoreSale && !isCreditPurchase) || isLicensePurchaseRefund || isMensalista;
+                          const isLicenseRoute = isLicensePurchase || isApiOrder || (isStoreSale && !isCreditPurchase) || isLicensePurchaseRefund || isMensalista || isPack;
                           // Tom: entrada=verde, venda/compra=azul (destaque), outras saídas=vermelho
                           const tone = isRefund
                             ? (isIn
@@ -1111,6 +1112,8 @@ export default function GerenteDashboard() {
                                 : { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/30", ring: "" })
                             : isMensalista
                             ? { bg: "bg-fuchsia-500/15", text: "text-fuchsia-600", border: "border-fuchsia-500/40", ring: "ring-1 ring-fuchsia-500/30 shadow-[0_0_0_3px_hsl(var(--background))]" }
+                            : isPack
+                            ? { bg: "bg-indigo-500/15", text: "text-indigo-500", border: "border-indigo-500/40", ring: "ring-1 ring-indigo-500/30 shadow-[0_0_0_3px_hsl(var(--background))]" }
                             : isIn
                             ? { bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20", ring: "" }
                             : isApiOrder
