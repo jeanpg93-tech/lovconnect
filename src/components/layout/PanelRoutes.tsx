@@ -197,6 +197,15 @@ export function PanelRoutes() {
     );
   }
 
+  const dynPack = matchPath({ path: "/painel/gerente/revendedores/:id/pacote", end: true }, pathname);
+  if (dynPack) {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <RoleRoute allow={["gerente"]}><GerenteRevendedorPacote /></RoleRoute>
+      </Suspense>
+    );
+  }
+
   const integrationRedirect = pathname === "/painel/revendedor/integracoes" || pathname === "/painel/revendedor/integracoes/";
   if (integrationRedirect) {
     return <Navigate to="/painel/revendedor/integracoes/misticpay" replace />;
