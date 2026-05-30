@@ -131,5 +131,33 @@ Deno.serve(async (req) => {
     await svc.from("orders").update({ status: "deleted", license_key: null }).eq("id", order.id);
   }
 
+  // Notifica gerente no Telegram (reset/revoke/delete)
+  try {
+    const { data: rInfo } = await svc
+      .from("resellers")
+      .select("display_name, billing_mode")
+      .eq("id", reseller.id)
+      .maybeSingle();
+    const resellerName = (rInfo as any)?.display_name ?? "—";
+    const isPack = (rInfo as any)?.billing_mode === "pack";
+    const actionLabel =
+      action === "reset-hwid" ? "HWID resetado" :
+      action === "revoke-license" ? "Licença revogada" :
+      "Licença excluída";
+    const emoji =
+      action === "reset-hwid" ? "♻️" :
+      action === "revoke-license" ? "🚫" :
+      "🗑️";
+    const prefix = isPack ? "Pack — " : "";
+    const txt =
+      `${emoji} <b>${prefix}${actionLabel}</b>\n` +
+      `👨‍💼 Revendedor: ${resellerName}\n` +
+      `🔑 Chave: <code>${license_key}</code>\n` +
+      `🆔 Pedido: <code>${order.id}</code>`;
+    await svc.rpc("telegram_enqueue", { _text: txt });
+  } catch (e) {
+    console.warn("telegram_enqueue (license-action) failed", e);
+  }
+
   return json({ success: true, action, license_key, provider: providerData });
 });
