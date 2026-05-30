@@ -167,18 +167,7 @@ export default function RevendedorGerarChave() {
       />
 
       {isPack && (
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-border bg-card/60 p-4 backdrop-blur-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                <Package className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Compradas</div>
-                <div className="font-display text-2xl font-bold">{packStats?.purchased ?? "—"}</div>
-              </div>
-            </div>
-          </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-border bg-card/60 p-4 backdrop-blur-sm">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500">
