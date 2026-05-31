@@ -470,6 +470,19 @@ export default function RevendedorDashboard() {
     <div className="space-y-6 pb-20 md:pb-0">
       <PricingIssuesBannerSlot />
       <PackLowBalanceBanner />
+      {(() => {
+        let variant: "active" | "manager_disabled" | "pack_empty" | "subscription_overdue" | null = null;
+        if (isSubscription) {
+          if (subscriptionSalesDisabled) variant = "manager_disabled";
+          else if (roleSubBlocked) variant = "subscription_overdue";
+          else variant = "active";
+        } else if (isPack) {
+          if (packSalesDisabled) variant = "manager_disabled";
+          else if (packCredits <= 0) variant = "pack_empty";
+          else variant = "active";
+        }
+        return variant ? <SalesStatusBadge variant={variant} /> : null;
+      })()}
       {/* HERO Dashboard Geral */}
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-background">
         {/* grid sutil de fundo */}
