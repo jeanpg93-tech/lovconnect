@@ -6,6 +6,7 @@ import { useActivation } from "@/hooks/useActivation";
 import { useRole } from "@/hooks/useRole";
 import { cn } from "@/lib/utils";
 import { PageHeader, StatCard } from "@/components/painel/PageHeader";
+import { useTranslation } from "react-i18next";
 import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
 import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
@@ -151,6 +152,7 @@ type ActivityItem = {
 };
 
 export default function RevendedorDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { status: activationStatus } = useActivation(user?.id);
   const {
@@ -457,7 +459,7 @@ export default function RevendedorDashboard() {
   if (!resellerId) {
     return (
       <div>
-        <PageHeader title="Painel do Revendedor" description="Sua operação em um só lugar." />
+        <PageHeader title={t("dashboard.title")} description={t("dashboard.welcome")} />
         <div className="rounded-xl border border-border bg-card/60 p-8 text-center text-sm text-muted-foreground">
           Sua conta de revendedor ainda não foi configurada.
         </div>
@@ -542,7 +544,7 @@ export default function RevendedorDashboard() {
 
             <div>
               <h1 className="font-display text-4xl md:text-6xl font-black leading-[0.95] tracking-tighter">
-                Dashboard
+                {t("dashboard.title")}
                 <br />
                 <span className="italic text-primary">Geral.</span>
               </h1>

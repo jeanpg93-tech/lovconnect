@@ -66,6 +66,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import { useProviderCommitments } from "@/hooks/useProviderCommitments";
+import { useTranslation } from "react-i18next";
 
 type Item = { title: string; url: string; icon: any; badge?: "store-status" };
 type Group = { label: string; items: Item[] };
@@ -175,6 +176,9 @@ export function AppSidebar() {
   const { pathname } = useLocation();
   const { primaryRole, loading, hasData, isSubscription, isPack } = useRole();
   const { signOut, user } = useAuth();
+  const { t } = useTranslation();
+  const tItem = (s: string) => t(`sidebar.items.${s}`, { defaultValue: s });
+  const tGroup = (s: string) => t(`sidebar.groups.${s}`, { defaultValue: s });
 
   const [openGroups, setOpenGroups] = useState<string[]>(["Visão geral", "Painel", "Vender", "Operação", "Mensalidade", "Pacote"]);
   
@@ -764,7 +768,7 @@ export function AppSidebar() {
                 className="cursor-pointer hover:text-foreground transition-colors flex items-center justify-between"
                 onClick={() => handleGroupToggle(group.label)}
               >
-                {group.label}
+                {tGroup(group.label)}
                 <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", isOpen ? "rotate-0" : "-rotate-90")} />
               </SidebarGroupLabel>
               <Collapsible open={isOpen}>
@@ -775,7 +779,7 @@ export function AppSidebar() {
                         const active = pathname === item.url;
                         return (
                           <SidebarMenuItem key={item.url}>
-                            <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
+                            <SidebarMenuButton asChild isActive={active} tooltip={tItem(item.title)}>
                               <NavLink
                                 to={item.url}
                                 end
@@ -787,7 +791,7 @@ export function AppSidebar() {
                                   )}
                                 >
                                   <item.icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-primary")} />
-                                {!collapsed && <span className="flex-1 text-xs">{item.title}</span>}
+                                {!collapsed && <span className="flex-1 text-xs">{tItem(item.title)}</span>}
                                 {!collapsed && item.badge === "store-status" && storeEnabled !== null && (
                                   <span
                                     className={cn(
@@ -857,7 +861,7 @@ export function AppSidebar() {
                       )}
                     >
                       <d.icon className={cn("h-3.5 w-3.5 shrink-0", active ? "text-destructive" : "text-destructive")} />
-                      <span>{d.title}</span>
+                      <span>{tItem(d.title)}</span>
                     </NavLink>
                   );
                 })}

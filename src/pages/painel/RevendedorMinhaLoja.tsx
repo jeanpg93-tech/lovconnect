@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/painel/PageHeader";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,6 +72,7 @@ const EMOJI_LICENSES: { value: string; label: string; placeholder: string }[] = 
 ];
 
 export default function RevendedorMinhaLoja() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -518,8 +520,8 @@ export default function RevendedorMinhaLoja() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <PageHeader
-            title="Sua Vitrine"
-            description="Gerencie a apresentação pública da sua loja."
+            title={t("store.title")}
+            description={t("store.subtitle")}
           />
           <div className="flex items-center gap-2">
             <Badge variant={enabled ? "default" : "secondary"} className="h-6 px-3 text-[10px] font-black uppercase tracking-wider">

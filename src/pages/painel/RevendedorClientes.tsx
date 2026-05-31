@@ -10,12 +10,15 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 type Client = { id: string; email: string; display_name: string | null; created_at: string };
 type Extension = { id: string; name: string };
 
 export default function RevendedorClientes() {
   const { user } = useAuth();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.resolvedLanguage?.startsWith("en") ? "en-US" : "pt-BR";
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,28 +63,28 @@ export default function RevendedorClientes() {
     });
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Extensão concedida");
+    toast.success(t("clientes.granted"));
     setOpen(null);
   };
 
   return (
     <div>
       <PageHeader
-        title="Meus Clientes"
-        description="Clientes que se cadastraram vinculados a você."
+        title={t("clientes.title")}
+        description={t("clientes.description")}
       />
       <div className="rounded-xl border border-border bg-card/60 backdrop-blur-sm">
         {loading ? (
           <div className="flex h-32 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
         ) : clients.length === 0 ? (
-          <div className="p-10 text-center text-sm text-muted-foreground">Nenhum cliente vinculado ainda.</div>
+          <div className="p-10 text-center text-sm text-muted-foreground">{t("clientes.empty")}</div>
         ) : (
           <table className="w-full text-sm">
             <thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 text-left">Nome</th>
-                <th className="px-4 py-3 text-left">Email</th>
-                <th className="px-4 py-3 text-left">Desde</th>
+                <th className="px-4 py-3 text-left">{t("clientes.colName")}</th>
+                <th className="px-4 py-3 text-left">{t("clientes.colEmail")}</th>
+                <th className="px-4 py-3 text-left">{t("clientes.colSince")}</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -91,11 +94,11 @@ export default function RevendedorClientes() {
                   <td className="px-4 py-3 font-medium">{c.display_name ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.email}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(c.created_at).toLocaleDateString("pt-BR")}
+                    {new Date(c.created_at).toLocaleDateString(dateLocale)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Button size="sm" variant="ghost" onClick={() => openConcede(c)}>
-                      <Plus className="mr-1 h-3.5 w-3.5" /> Conceder extensão
+                      <Plus className="mr-1 h-3.5 w-3.5" /> {t("clientes.grant")}
                     </Button>
                   </td>
                 </tr>
@@ -108,25 +111,25 @@ export default function RevendedorClientes() {
       <Dialog open={!!open} onOpenChange={(v) => !v && setOpen(null)}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle>Conceder extensão a {open?.display_name ?? open?.email}</DialogTitle>
+            <DialogTitle>{t("clientes.dialogTitle", { name: open?.display_name ?? open?.email ?? "" })}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label>Extensão</Label>
+              <Label>{t("clientes.extension")}</Label>
               <Select value={selectedExt} onValueChange={setSelectedExt}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("clientes.select")} /></SelectTrigger>
                 <SelectContent>
                   {extensions.length === 0
-                    ? <div className="p-2 text-xs text-muted-foreground">Nenhuma extensão liberada para você. Peça ao gerente.</div>
+                    ? <div className="p-2 text-xs text-muted-foreground">{t("clientes.noExtensions")}</div>
                     : extensions.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(null)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setOpen(null)}>{t("common.cancel")}</Button>
             <Button onClick={concede} disabled={saving || !selectedExt} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Conceder"}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("clientes.grant")}
             </Button>
           </DialogFooter>
         </DialogContent>

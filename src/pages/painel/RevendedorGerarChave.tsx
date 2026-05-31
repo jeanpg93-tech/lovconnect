@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
+import { useTranslation } from "react-i18next";
 import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ const TYPES: TypeDef[] = [
 ];
 
 export default function RevendedorGerarChave() {
+  const { t } = useTranslation();
   const { isSubscription, isPack, packCredits } = useRole();
   const [activeMethod, setActiveMethod] = useState<"flow" | "lovax" | null>(null);
   const [genType, setGenType] = useState<TypeDef["key"]>("30d");
@@ -179,8 +181,8 @@ export default function RevendedorGerarChave() {
   return (
     <PageContainer>
       <PageHeader
-        title="Gerar Chave"
-        description="Crie uma chave de extensão na hora — sem custo adicional"
+        title={t("generateKey.title")}
+        description={t("generateKey.subtitle")}
       />
       <PackLowBalanceBanner />
 
