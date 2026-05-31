@@ -206,7 +206,7 @@ export function AppSidebar() {
   const [profile, setProfile] = useState<{ display_name: string | null; avatar_url: string | null; email: string | null }>({ display_name: null, avatar_url: null, email: null });
 
   const isManager = primaryRole === "gerente";
-  const commitments = useProviderCommitments();
+  const commitments = useProviderCommitments(isManager);
 
   useEffect(() => {
     if (!user?.id) return;
