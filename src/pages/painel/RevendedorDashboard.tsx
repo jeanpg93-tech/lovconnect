@@ -6,6 +6,7 @@ import { useActivation } from "@/hooks/useActivation";
 import { useRole } from "@/hooks/useRole";
 import { cn } from "@/lib/utils";
 import { PageHeader, StatCard } from "@/components/painel/PageHeader";
+import { useTranslation } from "react-i18next";
 import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
 import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
