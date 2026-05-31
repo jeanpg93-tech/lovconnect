@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
       attempt_type: "subscription",
       endpoint: `reseller-api/${action}`,
       reason: "sales_disabled",
-      metadata: { ip, via: "api" },
+      metadata: { via: "api" },
     });
     return json({ error: "sales_disabled", message: "Vendas pausadas pelo gerente" }, 403);
   }
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
       attempt_type: "pack",
       endpoint: `reseller-api/${action}`,
       reason: "sales_disabled",
-      metadata: { ip, via: "api" },
+      metadata: { via: "api" },
     });
     return json({ error: "sales_disabled", message: "Vendas pausadas pelo gerente" }, 403);
   }
