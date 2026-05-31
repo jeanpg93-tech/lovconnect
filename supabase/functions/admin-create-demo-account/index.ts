@@ -152,21 +152,7 @@ async function seedDemoData(admin: any, resellerId: string, slug: string) {
     show_products: true,
   });
 
-  // ---- Clientes (profiles vinculados) ----
-  const clientUserIds: string[] = [];
-  for (let i = 0; i < 3; i++) {
-    const cliId = crypto.randomUUID();
-    const { error: cliErr } = await admin.from("profiles").insert({
-      id: cliId,
-      reseller_id: resellerId,
-      display_name: rndName(),
-      email: `cliente-demo-${i + 1}@exemplo.com`,
-      whatsapp: rndWpp(),
-      approval_status: "approved",
-      must_change_password: false,
-    });
-    if (!cliErr) clientUserIds.push(cliId);
-  }
+  // (clientes em profiles exigem auth.users — pulamos no seed; demo pode criar à vontade depois)
 
   // ---- 15 chaves (orders) ----
   const licTypes = ["flow_pro_7d", "flow_pro_15d", "flow_pro_30d", "flow_lifetime", "flow_pro_1d"];
