@@ -676,6 +676,35 @@ export function AppSidebar() {
                 <ExternalLink className="h-3 w-3" />
               </a>
             </NavLink>
+
+            {/* Comprometido em Packs */}
+            <NavLink
+              to="/painel/gerente/pacotes"
+              className={cn(
+                "group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-card p-2.5 transition-all hover:shadow-sm",
+                commitments.committed > 0 && commitments.committed >= commitments.totalRemaining
+                  ? "border-destructive/60 ring-1 ring-destructive/40"
+                  : "border-border hover:border-emerald-500/40"
+              )}
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 transition-transform group-hover:scale-110">
+                <Package className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
+                  Reserva de Packs
+                </div>
+                <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
+                  {commitments.loading ? "—" : `${commitments.committed} comprometidas`}
+                </div>
+                <div className="mt-0.5 text-[9px] text-muted-foreground/80 leading-none">
+                  Disponível real:{" "}
+                  {!Number.isFinite(commitments.realAvailable)
+                    ? "∞"
+                    : commitments.realAvailable}
+                </div>
+              </div>
+            </NavLink>
           </div>
         )}
         {primaryRole === "gerente" && collapsed && (
