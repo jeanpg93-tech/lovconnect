@@ -86,6 +86,13 @@ Deno.serve(async (req) => {
       return json({ error: "Painel bloqueado por cobrança em aberto. Pague para liberar.", reason: "subscription_blocked" }, 403);
     }
     if ((reseller as any).subscription_sales_disabled) {
+      await svc.from("blocked_sale_attempts").insert({
+        reseller_id: reseller.id,
+        attempt_type: "subscription",
+        endpoint: "subscription-generate-key",
+        reason: "sales_disabled",
+        metadata: { pack_id: type, display_name: isTrial ? null : display_name, whatsapp: whatsapp || null },
+      });
       return json({ error: "Vendas pausadas pelo gerente. Entre em contato com o suporte.", reason: "sales_disabled" }, 403);
     }
     const reseller_id = reseller.id as string;
