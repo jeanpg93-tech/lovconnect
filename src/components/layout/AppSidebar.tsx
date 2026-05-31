@@ -65,6 +65,7 @@ import { useRole, AppRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
+import { useProviderCommitments } from "@/hooks/useProviderCommitments";
 
 type Item = { title: string; url: string; icon: any; badge?: "store-status" };
 type Group = { label: string; items: Item[] };
@@ -203,6 +204,9 @@ export function AppSidebar() {
   const [storeEnabled, setStoreEnabled] = useState<boolean | null>(null);
   const [isPartner, setIsPartner] = useState<boolean>(false);
   const [profile, setProfile] = useState<{ display_name: string | null; avatar_url: string | null; email: string | null }>({ display_name: null, avatar_url: null, email: null });
+
+  const isManager = primaryRole === "gerente";
+  const commitments = useProviderCommitments();
 
   useEffect(() => {
     if (!user?.id) return;
