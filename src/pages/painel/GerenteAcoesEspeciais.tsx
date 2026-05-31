@@ -651,8 +651,14 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
 
   async function handleSave(activateNow: boolean) {
     if (!name.trim()) { toast.error("Dê um nome para a promoção"); return; }
-    if (!useExt && !useCred && !useBonus && !useActivation && !useActivationBonus) {
+    if (!useExt && !useCred && !useBonus && !useActivation && !useActivationBonus && !usePromoteTier && !useReferralExtra) {
       toast.error("Selecione pelo menos um desconto/bônus"); return;
+    }
+    if (usePromoteTier && !promoteTierId) {
+      toast.error("Escolha o nível inicial"); return;
+    }
+    if (useReferralExtra && (referralExtraPct <= 0 || referralExtraPct > 100)) {
+      toast.error("Informe um % de indicação válido (1-100)"); return;
     }
 
     const starts_at = startMode === "schedule" ? fromLocalInputValue(startsAt) : null;
@@ -675,6 +681,8 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
       activation_discount_cents:    useActivation && activationMode === "amount" ? Math.round(activationDiscountReais * 100)         : null,
       activation_fixed_price_cents: useActivation && activationMode === "fixed"  ? Math.round(activationFixedReais * 100)            : null,
       activation_bonus_cents:       useActivationBonus                            ? Math.round(activationBonusReais * 100)           : null,
+      activation_promote_to_tier_id: usePromoteTier ? promoteTierId : null,
+      activation_referral_extra_pct: useReferralExtra ? referralExtraPct : null,
       starts_at,
       ends_at,
       status: willActivate ? "active" : "scheduled",
