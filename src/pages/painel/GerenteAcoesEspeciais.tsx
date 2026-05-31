@@ -26,6 +26,7 @@ import {
   Loader2, Save, History, Sparkles, Plus, CalendarIcon, Play, Square, Pencil, Trash2, Zap, Gift, Tag, Copy, ChevronDown,
   Rocket,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Promotion = {
   id: string;
@@ -38,6 +39,8 @@ type Promotion = {
   activation_discount_cents: number | null;
   activation_fixed_price_cents: number | null;
   activation_bonus_cents: number | null;
+  activation_promote_to_tier_id: string | null;
+  activation_referral_extra_pct: number | null;
   starts_at: string | null;
   ends_at: string | null;
   status: "scheduled" | "active" | "paused" | "ended";
@@ -563,11 +566,27 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
   const [activationFixedReais, setActivationFixedReais] = useState(100); // R$
   const [useActivationBonus, setUseActivationBonus] = useState(false);
   const [activationBonusReais, setActivationBonusReais] = useState(50); // R$
+  // Promo de adesão — nível inicial e comissão extra de indicação
+  const [usePromoteTier, setUsePromoteTier] = useState(false);
+  const [promoteTierId, setPromoteTierId] = useState<string>("");
+  const [useReferralExtra, setUseReferralExtra] = useState(false);
+  const [referralExtraPct, setReferralExtraPct] = useState<number>(5);
+  const [tiers, setTiers] = useState<Array<{ id: string; name: string; slug: string; sort_order: number }>>([]);
   const [startMode, setStartMode] = useState<"now" | "schedule">("now");
   const [endMode, setEndMode] = useState<"none" | "schedule">("none");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from("reseller_tiers")
+      .select("id,name,slug,sort_order")
+      .eq("is_active", true)
+      .order("sort_order")
+      .then(({ data }) => setTiers((data ?? []) as any));
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -599,6 +618,12 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
         if (editing.activation_bonus_cents != null) {
           setActivationBonusReais(Number(editing.activation_bonus_cents) / 100);
         }
+        setUsePromoteTier(!!editing.activation_promote_to_tier_id);
+        setPromoteTierId(editing.activation_promote_to_tier_id ?? "");
+        setUseReferralExtra(editing.activation_referral_extra_pct != null);
+        if (editing.activation_referral_extra_pct != null) {
+          setReferralExtraPct(Number(editing.activation_referral_extra_pct));
+        }
         setStartMode(editing.starts_at ? "schedule" : "now");
         setEndMode(editing.ends_at ? "schedule" : "none");
         setStartsAt(toLocalInputValue(editing.starts_at));
@@ -614,6 +639,10 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
         setActivationFixedReais(100);
         setUseActivationBonus(false);
         setActivationBonusReais(50);
+        setUsePromoteTier(false);
+        setPromoteTierId("");
+        setUseReferralExtra(false);
+        setReferralExtraPct(5);
         setStartMode("now"); setEndMode("none");
         setStartsAt(""); setEndsAt("");
       }
@@ -622,8 +651,14 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
 
   async function handleSave(activateNow: boolean) {
     if (!name.trim()) { toast.error("Dê um nome para a promoção"); return; }
-    if (!useExt && !useCred && !useBonus && !useActivation && !useActivationBonus) {
+    if (!useExt && !useCred && !useBonus && !useActivation && !useActivationBonus && !usePromoteTier && !useReferralExtra) {
       toast.error("Selecione pelo menos um desconto/bônus"); return;
+    }
+    if (usePromoteTier && !promoteTierId) {
+      toast.error("Escolha o nível inicial"); return;
+    }
+    if (useReferralExtra && (referralExtraPct <= 0 || referralExtraPct > 100)) {
+      toast.error("Informe um % de indicação válido (1-100)"); return;
     }
 
     const starts_at = startMode === "schedule" ? fromLocalInputValue(startsAt) : null;
@@ -646,6 +681,8 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
       activation_discount_cents:    useActivation && activationMode === "amount" ? Math.round(activationDiscountReais * 100)         : null,
       activation_fixed_price_cents: useActivation && activationMode === "fixed"  ? Math.round(activationFixedReais * 100)            : null,
       activation_bonus_cents:       useActivationBonus                            ? Math.round(activationBonusReais * 100)           : null,
+      activation_promote_to_tier_id: usePromoteTier ? promoteTierId : null,
+      activation_referral_extra_pct: useReferralExtra ? referralExtraPct : null,
       starts_at,
       ends_at,
       status: willActivate ? "active" : "scheduled",
@@ -778,6 +815,40 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
                 <Input type="number" min={0} step="0.01" value={activationBonusReais} disabled={!useActivationBonus} onChange={(e) => setActivationBonusReais(Number(e.target.value))} className="w-24" />
               </div>
             </div>
+
+            <div className="flex items-center gap-3">
+              <Switch checked={usePromoteTier} onCheckedChange={setUsePromoteTier} />
+              <Label className="flex-1 text-sm leading-tight">Nível inicial do novo revendedor (piso mínimo)</Label>
+              <Select value={promoteTierId} onValueChange={setPromoteTierId} disabled={!usePromoteTier}>
+                <SelectTrigger className="w-36 h-9">
+                  <SelectValue placeholder="Escolher" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tiers.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {usePromoteTier && (
+              <p className="text-xs text-muted-foreground -mt-1 ml-12">
+                O revendedor começa neste nível, mas a progressão por gasto continua normal — ele sobe para o próximo nível quando atingir a meta de gastos configurada.
+              </p>
+            )}
+
+            <div className="flex items-center gap-3">
+              <Switch checked={useReferralExtra} onCheckedChange={setUseReferralExtra} />
+              <Label className="flex-1 text-sm leading-tight">Bônus extra de indicação sobre a adesão</Label>
+              <div className="flex items-center gap-1">
+                <Input type="number" min={0} max={100} step="0.5" value={referralExtraPct} disabled={!useReferralExtra} onChange={(e) => setReferralExtraPct(Number(e.target.value))} className="w-20" />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+            </div>
+            {useReferralExtra && (
+              <p className="text-xs text-muted-foreground -mt-1 ml-12">
+                Quem indicou o novo revendedor ganha a comissão normal do nível dele <span className="font-medium text-foreground">+ {referralExtraPct}%</span> extras sobre o valor pago da adesão. Creditado direto no saldo.
+              </p>
+            )}
           </div>
 
           <Separator />

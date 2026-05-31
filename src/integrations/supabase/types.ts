@@ -1498,6 +1498,8 @@ export type Database = {
           activation_discount_cents: number | null
           activation_discount_pct: number | null
           activation_fixed_price_cents: number | null
+          activation_promote_to_tier_id: string | null
+          activation_referral_extra_pct: number | null
           created_at: string
           created_by: string | null
           credit_discount_pct: number | null
@@ -1518,6 +1520,8 @@ export type Database = {
           activation_discount_cents?: number | null
           activation_discount_pct?: number | null
           activation_fixed_price_cents?: number | null
+          activation_promote_to_tier_id?: string | null
+          activation_referral_extra_pct?: number | null
           created_at?: string
           created_by?: string | null
           credit_discount_pct?: number | null
@@ -1538,6 +1542,8 @@ export type Database = {
           activation_discount_cents?: number | null
           activation_discount_pct?: number | null
           activation_fixed_price_cents?: number | null
+          activation_promote_to_tier_id?: string | null
+          activation_referral_extra_pct?: number | null
           created_at?: string
           created_by?: string | null
           credit_discount_pct?: number | null
@@ -1552,7 +1558,15 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "promotions_activation_promote_to_tier_id_fkey"
+            columns: ["activation_promote_to_tier_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       provider_credit_orders: {
         Row: {
@@ -3813,6 +3827,8 @@ export type Database = {
           activation_discount_cents: number | null
           activation_discount_pct: number | null
           activation_fixed_price_cents: number | null
+          activation_promote_to_tier_id: string | null
+          activation_referral_extra_pct: number | null
           created_at: string
           created_by: string | null
           credit_discount_pct: number | null
