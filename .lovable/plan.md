@@ -1,128 +1,85 @@
-# Plano completo — Pagamentos Pack/Mensalista + Reserva de Licenças
+# Toggle manual de vendas (mensalista / pack)
 
-## Fase 1 — Feed e Financeiro (Pack + Mensalista)
-
-### 1.1 Feed do Dashboard do Gerente
-Em `src/pages/painel/GerenteDashboard.tsx`:
-- Adicionar duas queries paralelas:
-  - `reseller_pack_purchases` (todos os status: `paid`, `pending`, `expired`, `failed`, `cancelled`)
-  - `reseller_subscription_charges` (todos os status)
-- Mesclar em `creditMovements` com `kind: "pack_payment"` e `kind: "subscription_payment"`
-- Mostrar valor real, nome do revendedor, e badge colorido por status:
-  - 🟢 Pago / 🟡 Pendente / ⚪ Expirado/Cancelado / 🔴 Falha
-
-### 1.2 Painel Financeiro
-- `useFinancialOverview.ts`: incluir somatórios de Pack e Mensalista (somente status `paid`) na receita.
-- `FinanceiroVisaoGeral.tsx`: exibir as duas novas linhas/cards.
+## Objetivo
+Permitir que o gerente desligue/ligue manualmente as vendas de um revendedor mensalista ou pack, com status visual (bolinha verde/vermelha) tanto para o gerente quanto para o revendedor, e bloqueio com mensagem clara quando desativado.
 
 ---
 
-## Fase 2 — Reserva de Licenças (compromisso de Packs)
+## 1. Backend (1 migration)
 
-### Conceito
-- **Comprometido** = `SUM(reseller_pack_balances.credits)` (créditos comprados ainda não consumidos por nenhum revendedor).
-- **Disponível real (global)** = `SUM(estoque_provedor por método)` − **Comprometido**.
-- Como créditos de pack podem ser usados em qualquer método de geração, usamos o **estoque global** (soma) para validar packs.
+Adicionar 2 colunas em `resellers`:
+- `subscription_sales_disabled boolean not null default false`
+- `pack_sales_disabled boolean not null default false`
 
-### 2.1 Função SQL `get_pack_commitments()`
-- SECURITY DEFINER, retorna `{ committed_credits: int }`.
-- Lê `SELECT COALESCE(SUM(credits),0) FROM reseller_pack_balances`.
+Sem mudança em RLS (a tabela já permite o gerente atualizar via policies existentes).
 
-### 2.2 Hook `useProviderCommitments.ts` (novo)
-- Combina `provider-api?action=usage-all` (estoque por método) + RPC `get_pack_commitments()`.
-- Retorna `{ totalAvailable, committed, realAvailable, perMethod[] }`.
+## 2. Hook `useRole`
 
-### 2.3 UI — Sidebar / Dashboard
-- `AppSidebar.tsx` (gerente): card "Estoque" com:
-  - Disponível total / Comprometido em Packs / Disponível real
-  - Badge vermelho se `comprometido > disponível`
-- Dashboard do gerente: KPI "Comprometidas com Packs" com alerta visual.
+Expor as 2 novas flags no snapshot e no retorno (`subscriptionSalesDisabled`, `packSalesDisabled`), persistir em localStorage como as outras, e derivar:
+- `subscriptionBlocked` final = `subscription_blocked || subscription_sales_disabled`
+- `packBlocked` final = `(billingMode === "pack" && packCredits <= 0) || pack_sales_disabled`
 
-### 2.4 Validação em `pack-create-purchase/index.ts`
-- Antes de criar PIX: checar `disponivel_real >= pack.credits`.
-- Se não: retornar erro genérico `"Pacote temporariamente indisponível"`.
+Adicionar também `salesDisabledByManager: boolean` para que os overlays e o dashboard saibam diferenciar bloqueio automático vs. manual e escolher a mensagem certa.
 
-### 2.5 Aviso na geração manual
-- Em `place-method-license-order` / `pack-generate-key`: se `comprometido > disponível` no método, logar warning (sem bloquear gerente).
+## 3. Telas do gerente
 
----
+### `/painel/gerente/revendedores/:id/mensalidade`
+- Carregar também `subscription_sales_disabled` no `select` de reseller.
+- Novo card no topo (próximo ao seletor de modo de cobrança):
+  - **Status atual** com bolinha + texto:
+    - Verde → "Vendas habilitadas — sistema on-line"
+    - Vermelha → "Vendas suspensas pelo gerente"
+  - Botão `Desativar vendas` / `Ativar vendas` (com confirmação via `AlertDialog` quando for desativar).
+- Salva via `UPDATE resellers SET subscription_sales_disabled = ...`.
 
-## Fase 3 — Auto-desabilitar planos de Pack por estoque (silencioso)
+### `/painel/gerente/revendedores/:id/pacote`
+- Igual ao acima, usando `pack_sales_disabled`.
 
-### Regra
-Para cada plano de `license_packs`:
-- `disponivel_real = estoque_global − comprometido`
-- Se `pack.credits > disponivel_real` → **ocultar** do revendedor (sem mensagem, sem badge "esgotado", simplesmente não aparece).
-- Painel do gerente continua vendo todos os planos com indicador "Indisponível agora" (apenas para o gerente).
+## 4. Tela do revendedor — bloqueio
 
-### 3.1 Função SQL `list_available_packs_for_reseller()`
-- SECURITY DEFINER.
-- Calcula `disponivel_real` (chamando lógica interna ou via parâmetro vindo do edge).
-- Como o estoque do provedor não vive no banco (vem da API externa), a alternativa é:
-  - **Opção A (escolhida):** criar edge function `list-available-packs` que:
-    1. Busca `license_packs` ativos.
-    2. Chama `provider-api?action=usage-all` para obter estoque global.
-    3. Chama RPC `get_pack_commitments()`.
-    4. Filtra/marca cada pack como `available: pack.credits <= (estoque − comprometido)`.
-    5. Retorna só os disponíveis para o revendedor.
+### Mensalista
+- `AppLayout` já mostra `SubscriptionLockOverlay mode="blocked"` quando `subscriptionBlocked` é true. Com a derivação nova, vai disparar também quando o gerente desativar.
+- `SubscriptionLockOverlay` recebe nova prop opcional `reason: "overdue" | "manager"`. Quando `manager`:
+  - Título: "Vendas suspensas"
+  - Texto: "Vendas suspensas pelo gerente. Entre em contato para mais informações."
+  - Esconde a parte de cobranças/PIX (não faz sentido).
+  - Mantém botão "Verificar novamente" e "Sair".
+- `AppLayout` passa `reason="manager"` quando `salesDisabledByManager` for true.
 
-### 3.2 Frontend revendedor — `RevendedorComprarPacote.tsx`
-- Trocar query direta em `license_packs` por chamada à nova edge `list-available-packs`.
-- Se lista vier vazia: manter mensagem atual ("Nenhum pacote disponível no momento.").
-- **Sem nenhuma indicação** de "por que" um pack sumiu.
+### Pack
+- Hoje pack não bloqueia o painel inteiro (comentário explícito no `AppLayout`). Manter esse comportamento para o caso "créditos = 0".
+- Quando `pack_sales_disabled` for true, **também não bloquear o painel** (consistente com o pack atual) — mas bloquear as ações de venda do mesmo jeito que zero créditos já bloqueia (botões "Gerar chave" / fluxos de pack ficam desabilitados ou redirecionam). A mensagem aparece no Dashboard (próximo passo).
 
-### 3.3 Frontend gerente — `GerentePacotes.tsx`
-- Continuar listando todos via `license_packs` direto.
-- Adicionar coluna/badge "Disponível agora" / "Indisponível (estoque)" usando o mesmo hook `useProviderCommitments`.
+## 5. Status visual no Dashboard do revendedor
 
-### 3.4 Validação cruzada em `pack-create-purchase`
-- Mantém a validação de 2.4 como **dupla checagem** (caso o usuário tenha aberto a tela há tempo).
+Novo componente `SalesStatusBadge` exibido no topo do `RevendedorDashboard`:
+- **Mensalista ativo / Pack ativo (com créditos):** bolinha verde pulsante + "Sistema on-line — vendas liberadas".
+- **Mensalista desativado pelo gerente:** bolinha vermelha + "Vendas suspensas pelo gerente. Entre em contato para mais informações."
+- **Pack desativado pelo gerente:** mesma mensagem do mensalista, bolinha vermelha.
+- **Pack com créditos = 0 (automático):** bolinha vermelha + "Suas licenças acabaram. Compre um novo pacote para continuar vendendo." (sem mencionar gerente).
+- **Mensalista com cobrança em aberto (automático):** já tratado pelo overlay, mas mostra também badge vermelha "Cobrança em aberto" para consistência.
 
----
+Componente é renderizado de forma compacta logo abaixo do `PageHeader`.
 
-## Fase 4 — Responsividade Web + Mobile
+## 6. Status visual nas telas do gerente
 
-Garantir em todas as telas tocadas:
-
-### Mobile (< 640px)
-- **GerenteDashboard feed**: cards empilhados, badges em linha abaixo do título, fontes reduzidas.
-- **AppSidebar card "Estoque"**: stack vertical das 3 métricas; em telas pequenas, esconde o card no menu colapsado.
-- **RevendedorComprarPacote**: grid `grid-cols-1` em mobile (já tinha `sm:grid-cols-2 lg:grid-cols-4`, mantém).
-- **GerentePacotes badge "Indisponível"**: usa `truncate` e `flex-wrap`.
-- **FinanceiroVisaoGeral cards Pack/Mensalista**: respeitar grid existente; em mobile, full-width.
-
-### Tablet/Desktop
-- Manter grids existentes; novos KPIs entram como cards adicionais no grid responsivo.
-- Sidebar card "Estoque" só aparece no estado expandido.
-
-### Padrões usados
-- Tokens semânticos (`bg-card`, `text-muted-foreground`, `border-border`) — sem cores hardcoded.
-- Breakpoints Tailwind: `sm:`, `md:`, `lg:` apenas.
-- Testar em 360px, 768px, 1280px.
+Reutilizar o `SalesStatusBadge` (versão sem heurística de pack-zero, já que o gerente já vê o saldo separadamente) nas páginas `mensalidade` e `pacote` do gerente, ao lado do botão ativar/desativar — mostra o estado atual daquele revendedor específico.
 
 ---
 
-## Arquivos afetados
+## Detalhes técnicos
 
-| Arquivo | Ação |
-|---------|------|
-| `src/pages/painel/GerenteDashboard.tsx` | Feed Pack/Mensalista + KPI comprometido |
-| `src/hooks/useFinancialOverview.ts` | Receita Pack/Mensalista |
-| `src/components/painel/financeiro/FinanceiroVisaoGeral.tsx` | UI receita Pack/Mensalista |
-| `src/components/painel/AppSidebar.tsx` | Card estoque/comprometido |
-| `src/hooks/useProviderCommitments.ts` | **Novo** hook |
-| `src/pages/painel/RevendedorComprarPacote.tsx` | Trocar query por edge `list-available-packs` |
-| `src/pages/painel/GerentePacotes.tsx` | Badge "Disponível/Indisponível" |
-| `supabase/functions/pack-create-purchase/index.ts` | Validação estoque vs comprometido |
-| `supabase/functions/list-available-packs/index.ts` | **Nova** edge function |
-| **Migration** | Função SQL `get_pack_commitments()` |
+**Arquivos novos:**
+- `src/components/painel/SalesStatusBadge.tsx`
 
----
+**Arquivos modificados:**
+- `supabase/migrations/<timestamp>_reseller_sales_toggle.sql` (nova migration)
+- `src/hooks/useRole.tsx` — novos campos + derivação
+- `src/components/subscription/SubscriptionLockOverlay.tsx` — prop `reason`
+- `src/components/layout/AppLayout.tsx` — passar `reason` correta
+- `src/pages/painel/GerenteRevendedorMensalidade.tsx` — toggle + badge
+- `src/pages/painel/GerenteRevendedorPacote.tsx` — toggle + badge
+- `src/pages/painel/RevendedorDashboard.tsx` — render do badge no topo
+- `src/integrations/supabase/types.ts` — atualizado automaticamente pela migration
 
-## Ordem de execução
-1. Migration `get_pack_commitments()` (rápido, sem breaking).
-2. Edge `list-available-packs` + validação em `pack-create-purchase`.
-3. Hook + UI sidebar/dashboard (Fase 2).
-4. Trocar tela do revendedor para usar nova edge (Fase 3).
-5. Feed + financeiro (Fase 1) — independente, pode ir junto.
-6. Ajustes finais de responsividade.
+**Realtime:** o `useRole` já refaz fetch quando o user muda; o overlay já escuta `UPDATE` em `resellers` e dá reload. Vamos garantir que o reload também ocorra quando `subscription_sales_disabled` mudar (basta remover o filtro restritivo no payload do overlay — já é um listener genérico em UPDATE, só ajustar condição de reload).

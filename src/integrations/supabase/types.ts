@@ -3044,10 +3044,12 @@ export type Database = {
           id: string
           is_active: boolean
           last_test_key_reset: string | null
+          pack_sales_disabled: boolean
           slug: string
           subscription_blocked: boolean
           subscription_blocked_at: string | null
           subscription_onboarding_completed: boolean
+          subscription_sales_disabled: boolean
           test_keys_per_day_override: number | null
           test_keys_used_today: number | null
           updated_at: string
@@ -3062,10 +3064,12 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_test_key_reset?: string | null
+          pack_sales_disabled?: boolean
           slug: string
           subscription_blocked?: boolean
           subscription_blocked_at?: string | null
           subscription_onboarding_completed?: boolean
+          subscription_sales_disabled?: boolean
           test_keys_per_day_override?: number | null
           test_keys_used_today?: number | null
           updated_at?: string
@@ -3080,10 +3084,12 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_test_key_reset?: string | null
+          pack_sales_disabled?: boolean
           slug?: string
           subscription_blocked?: boolean
           subscription_blocked_at?: string | null
           subscription_onboarding_completed?: boolean
+          subscription_sales_disabled?: boolean
           test_keys_per_day_override?: number | null
           test_keys_used_today?: number | null
           updated_at?: string
