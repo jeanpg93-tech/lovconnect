@@ -26,6 +26,7 @@ import {
   Loader2, Save, History, Sparkles, Plus, CalendarIcon, Play, Square, Pencil, Trash2, Zap, Gift, Tag, Copy, ChevronDown,
   Rocket,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Promotion = {
   id: string;
@@ -38,6 +39,8 @@ type Promotion = {
   activation_discount_cents: number | null;
   activation_fixed_price_cents: number | null;
   activation_bonus_cents: number | null;
+  activation_promote_to_tier_id: string | null;
+  activation_referral_extra_pct: number | null;
   starts_at: string | null;
   ends_at: string | null;
   status: "scheduled" | "active" | "paused" | "ended";
