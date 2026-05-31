@@ -861,7 +861,7 @@ export function AppSidebar() {
                       )}
                     >
                       <d.icon className={cn("h-3.5 w-3.5 shrink-0", active ? "text-destructive" : "text-destructive")} />
-                      <span>{d.title}</span>
+                      <span>{tItem(d.title)}</span>
                     </NavLink>
                   );
                 })}
