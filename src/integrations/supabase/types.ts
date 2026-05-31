@@ -53,11 +53,14 @@ export type Database = {
         Row: {
           activated_at: string | null
           amount_cents: number
+          bonus_cents: number
           copy_paste: string | null
           created_at: string
           expires_at: string | null
           id: string
+          original_amount_cents: number | null
           paid_at: string | null
+          promotion_id: string | null
           proof_note: string | null
           proof_url: string | null
           provider: string
@@ -74,11 +77,14 @@ export type Database = {
         Insert: {
           activated_at?: string | null
           amount_cents?: number
+          bonus_cents?: number
           copy_paste?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
+          original_amount_cents?: number | null
           paid_at?: string | null
+          promotion_id?: string | null
           proof_note?: string | null
           proof_url?: string | null
           provider?: string
@@ -95,11 +101,14 @@ export type Database = {
         Update: {
           activated_at?: string | null
           amount_cents?: number
+          bonus_cents?: number
           copy_paste?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
+          original_amount_cents?: number | null
           paid_at?: string | null
+          promotion_id?: string | null
           proof_note?: string | null
           proof_url?: string | null
           provider?: string
@@ -114,6 +123,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "activation_payments_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "activation_payments_reseller_id_fkey"
             columns: ["reseller_id"]
@@ -1440,6 +1456,10 @@ export type Database = {
       promotions: {
         Row: {
           activated_at: string | null
+          activation_bonus_cents: number | null
+          activation_discount_cents: number | null
+          activation_discount_pct: number | null
+          activation_fixed_price_cents: number | null
           created_at: string
           created_by: string | null
           credit_discount_pct: number | null
@@ -1456,6 +1476,10 @@ export type Database = {
         }
         Insert: {
           activated_at?: string | null
+          activation_bonus_cents?: number | null
+          activation_discount_cents?: number | null
+          activation_discount_pct?: number | null
+          activation_fixed_price_cents?: number | null
           created_at?: string
           created_by?: string | null
           credit_discount_pct?: number | null
@@ -1472,6 +1496,10 @@ export type Database = {
         }
         Update: {
           activated_at?: string | null
+          activation_bonus_cents?: number | null
+          activation_discount_cents?: number | null
+          activation_discount_pct?: number | null
+          activation_fixed_price_cents?: number | null
           created_at?: string
           created_by?: string | null
           credit_discount_pct?: number | null
@@ -3641,6 +3669,15 @@ export type Database = {
         Args: { _days?: number }
         Returns: number
       }
+      compute_activation_pricing: {
+        Args: { _base_cents: number }
+        Returns: {
+          balance_credit_cents: number
+          bonus_cents: number
+          final_price_cents: number
+          promotion_id: string
+        }[]
+      }
       compute_promotion_discount: {
         Args: { _base_cents: number; _kind: string }
         Returns: {
@@ -3725,6 +3762,10 @@ export type Database = {
         Args: never
         Returns: {
           activated_at: string | null
+          activation_bonus_cents: number | null
+          activation_discount_cents: number | null
+          activation_discount_pct: number | null
+          activation_fixed_price_cents: number | null
           created_at: string
           created_by: string | null
           credit_discount_pct: number | null
