@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     // Carrega revendedor
     const { data: reseller } = await svc
       .from("resellers")
-      .select("id,activation_status,billing_mode")
+      .select("id,activation_status,billing_mode,pack_sales_disabled")
       .eq("user_id", userId).maybeSingle();
     if (!reseller) return json({ error: "Revendedor não encontrado" }, 404);
     if ((reseller as any).billing_mode !== "pack") {
@@ -82,6 +82,9 @@ Deno.serve(async (req) => {
     }
     if ((reseller as any).activation_status && (reseller as any).activation_status !== "active") {
       return json({ error: "Painel ainda não ativado." }, 403);
+    }
+    if ((reseller as any).pack_sales_disabled) {
+      return json({ error: "Vendas pausadas pelo gerente. Entre em contato com o suporte.", reason: "sales_disabled" }, 403);
     }
     const reseller_id = reseller.id as string;
 

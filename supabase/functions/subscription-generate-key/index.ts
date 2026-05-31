@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     // Carrega revendedor
     const { data: reseller } = await svc
       .from("resellers")
-      .select("id,activation_status,billing_mode,subscription_blocked")
+      .select("id,activation_status,billing_mode,subscription_blocked,subscription_sales_disabled")
       .eq("user_id", userId).maybeSingle();
     if (!reseller) return json({ error: "Revendedor não encontrado" }, 404);
     if ((reseller as any).billing_mode !== "subscription") {
@@ -84,6 +84,9 @@ Deno.serve(async (req) => {
     }
     if ((reseller as any).subscription_blocked) {
       return json({ error: "Painel bloqueado por cobrança em aberto. Pague para liberar.", reason: "subscription_blocked" }, 403);
+    }
+    if ((reseller as any).subscription_sales_disabled) {
+      return json({ error: "Vendas pausadas pelo gerente. Entre em contato com o suporte.", reason: "sales_disabled" }, 403);
     }
     const reseller_id = reseller.id as string;
 
