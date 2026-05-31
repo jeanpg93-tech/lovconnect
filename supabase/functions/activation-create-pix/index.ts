@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
     const { data: reseller } = await admin
       .from("resellers")
-      .select("id, display_name, activation_status")
+      .select("id, display_name, activation_status, billing_mode")
       .eq("user_id", userId)
       .maybeSingle();
     if (!reseller) return json({ error: "Apenas revendedores podem ativar o painel" }, 403);
@@ -92,7 +92,9 @@ Deno.serve(async (req) => {
     let finalCents = ACTIVATION_BASE_CENTS;
     let bonusCents = 0;
     let promotionId: string | null = null;
-    try {
+    // Promo de adesão só vale para revendedores "normais" (não mensalistas/packs)
+    const eligibleForPromo = (reseller as any).billing_mode === "normal" || !(reseller as any).billing_mode;
+    if (eligibleForPromo) try {
       const { data: pricing } = await admin.rpc("compute_activation_pricing", { _base_cents: ACTIVATION_BASE_CENTS });
       const row: any = Array.isArray(pricing) ? pricing[0] : pricing;
       if (row) {
