@@ -41,10 +41,21 @@ Deno.serve(async (req) => {
 
     // valida revendedor
     const { data: reseller } = await svc.from("resellers")
-      .select("id,is_active,activation_status").eq("user_id", user.id).maybeSingle();
+      .select("id,is_active,activation_status,is_demo").eq("user_id", user.id).maybeSingle();
     if (!reseller || !reseller.is_active) return json({ error: "Apenas revendedores ativos" }, 403);
     if (reseller.activation_status && reseller.activation_status !== "active") {
       return json({ error: "Painel não ativado. Conclua o pagamento de R$ 200 para liberar.", reason: "activation_required" }, 403);
+    }
+
+    // DEMO GUARD — conta demo nunca chama provedor nem debita saldo
+    if ((reseller as any).is_demo) {
+      const demoKey = `DEMO-${crypto.randomUUID().slice(0, 8).toUpperCase()}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`;
+      return json({
+        ok: true,
+        demo: true,
+        license_key: demoKey,
+        message: "Demo: licença simulada (nenhuma chamada real ao provedor).",
+      });
     }
 
     // Bloqueia geração quando houver vendas da loja aguardando saldo
