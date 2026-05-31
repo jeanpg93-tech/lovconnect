@@ -88,7 +88,7 @@ const LOVAX_LICENSE_TYPES: LicenseDef[] = [
   {
     key: "trial",
     label: "Teste",
-    short: "30 minutos",
+    short: "15 minutos",
     icon: Gift,
     badge: "Grátis",
     badgeClass: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
