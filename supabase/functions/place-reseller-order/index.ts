@@ -41,10 +41,24 @@ Deno.serve(async (req) => {
 
     // valida revendedor
     const { data: reseller } = await svc.from("resellers")
-      .select("id,is_active,activation_status,is_demo").eq("user_id", user.id).maybeSingle();
+      .select("id,is_active,activation_status,is_demo,billing_mode,subscription_blocked,subscription_sales_disabled,pack_sales_disabled").eq("user_id", user.id).maybeSingle();
     if (!reseller || !reseller.is_active) return json({ error: "Apenas revendedores ativos" }, 403);
     if (reseller.activation_status && reseller.activation_status !== "active") {
       return json({ error: "Painel não ativado. Conclua o pagamento de R$ 200 para liberar.", reason: "activation_required" }, 403);
+    }
+
+    // Bloqueios de venda (mensalista bloqueado ou vendas pausadas pelo gerente)
+    {
+      const r: any = reseller;
+      if (r.billing_mode === "subscription" && r.subscription_blocked) {
+        return json({ error: "Painel bloqueado por cobrança em aberto. Pague para liberar.", reason: "subscription_blocked" }, 403);
+      }
+      if (r.billing_mode === "subscription" && r.subscription_sales_disabled) {
+        return json({ error: "Vendas pausadas pelo gerente. Entre em contato com o suporte.", reason: "sales_disabled" }, 403);
+      }
+      if (r.billing_mode === "pack" && r.pack_sales_disabled) {
+        return json({ error: "Vendas pausadas pelo gerente. Entre em contato com o suporte.", reason: "sales_disabled" }, 403);
+      }
     }
 
     // DEMO GUARD — conta demo nunca chama provedor nem debita saldo

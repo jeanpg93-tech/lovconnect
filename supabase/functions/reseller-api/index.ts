@@ -137,14 +137,21 @@ Deno.serve(async (req) => {
   if (keyRow.scope && keyRow.scope !== "keys") return json({ error: "API key não autorizada para este endpoint" }, 403);
 
   const { data: reseller } = await svc.from("resellers")
-    .select("id, display_name, slug, is_active, activation_status, billing_mode, subscription_blocked").eq("id", keyRow.reseller_id).maybeSingle();
+    .select("id, display_name, slug, is_active, activation_status, billing_mode, subscription_blocked, subscription_sales_disabled, pack_sales_disabled").eq("id", keyRow.reseller_id).maybeSingle();
   if (!reseller || !reseller.is_active) return json({ error: "Reseller inactive" }, 403);
   if (reseller.activation_status && reseller.activation_status !== "active") {
     return json({ error: "activation_required", message: "Painel pendente de ativação (R$ 200)" }, 403);
   }
   const isSubscription = (reseller as any).billing_mode === "subscription";
+  const isPack = (reseller as any).billing_mode === "pack";
   if (isSubscription && (reseller as any).subscription_blocked) {
     return json({ error: "subscription_blocked", message: "Painel bloqueado por cobrança em aberto" }, 403);
+  }
+  if (isSubscription && (reseller as any).subscription_sales_disabled) {
+    return json({ error: "sales_disabled", message: "Vendas pausadas pelo gerente" }, 403);
+  }
+  if (isPack && (reseller as any).pack_sales_disabled) {
+    return json({ error: "sales_disabled", message: "Vendas pausadas pelo gerente" }, 403);
   }
 
   const ip = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? null;
