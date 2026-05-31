@@ -196,7 +196,11 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       if (o.product_type === "credits" && o.credit_amount > 0) {
         return baseCostMap[Number(o.credit_amount)] ?? 0;
       }
-      // Licenças e outros: mantém cost_cents atual
+      // Licenças de extensão: NÃO é custo do dono. O cost_cents aqui é o que
+      // o revendedor pagou em saldo (= receita do dono já contabilizada na
+      // recarga). Custo upstream real de uma chave de extensão é ~0.
+      if (o.product_type === "extension") return 0;
+      // Outros produtos: mantém cost_cents atual
       return Number(o.cost_cents || 0);
     };
     const ownerCostForRcpItem = (o: any): number => {
