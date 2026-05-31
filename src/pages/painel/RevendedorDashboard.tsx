@@ -544,7 +544,7 @@ export default function RevendedorDashboard() {
 
             <div>
               <h1 className="font-display text-4xl md:text-6xl font-black leading-[0.95] tracking-tighter">
-                Dashboard
+                {t("dashboard.title")}
                 <br />
                 <span className="italic text-primary">Geral.</span>
               </h1>
