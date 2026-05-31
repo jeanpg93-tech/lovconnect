@@ -618,6 +618,12 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
         if (editing.activation_bonus_cents != null) {
           setActivationBonusReais(Number(editing.activation_bonus_cents) / 100);
         }
+        setUsePromoteTier(!!editing.activation_promote_to_tier_id);
+        setPromoteTierId(editing.activation_promote_to_tier_id ?? "");
+        setUseReferralExtra(editing.activation_referral_extra_pct != null);
+        if (editing.activation_referral_extra_pct != null) {
+          setReferralExtraPct(Number(editing.activation_referral_extra_pct));
+        }
         setStartMode(editing.starts_at ? "schedule" : "now");
         setEndMode(editing.ends_at ? "schedule" : "none");
         setStartsAt(toLocalInputValue(editing.starts_at));
@@ -633,6 +639,10 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
         setActivationFixedReais(100);
         setUseActivationBonus(false);
         setActivationBonusReais(50);
+        setUsePromoteTier(false);
+        setPromoteTierId("");
+        setUseReferralExtra(false);
+        setReferralExtraPct(5);
         setStartMode("now"); setEndMode("none");
         setStartsAt(""); setEndsAt("");
       }
