@@ -1,7 +1,7 @@
 {
-  "name": "Revendovable",
-  "short_name": "Revendovable",
-  "description": "Plataforma de revenda de licenças e recargas.",
+  "name": "LovConnect",
+  "short_name": "LovConnect",
+  "description": "LovConnect — Conectando usuários a experiência.",
   "start_url": "/painel",
   "scope": "/",
   "display": "standalone",
