@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     if (!proofPath) return json({ error: "proof_path obrigatório" }, 400);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: reseller } = await admin.from("resellers").select("id, activation_status").eq("user_id", userId).maybeSingle();
+    const { data: reseller } = await admin.from("resellers").select("id, activation_status, billing_mode").eq("user_id", userId).maybeSingle();
     if (!reseller) return json({ error: "Revendedor não encontrado" }, 403);
     if (reseller.activation_status === "active") return json({ error: "Já ativo" }, 400);
 
@@ -40,7 +40,8 @@ Deno.serve(async (req) => {
       let finalCents = 20000;
       let bonusCents = 0;
       let promotionId: string | null = null;
-      try {
+      const eligibleForPromo = (reseller as any).billing_mode === "normal" || !(reseller as any).billing_mode;
+      if (eligibleForPromo) try {
         const { data: pricing } = await admin.rpc("compute_activation_pricing", { _base_cents: 20000 });
         const row: any = Array.isArray(pricing) ? pricing[0] : pricing;
         if (row) {
