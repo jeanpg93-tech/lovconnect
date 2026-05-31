@@ -44,10 +44,10 @@ export default function GerenteContasDemo() {
   const fetchList = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("resellers")
+      const { data, error } = await (supabase
+        .from("resellers") as any)
         .select("id, display_name, slug, created_at, user_id")
-        .eq("is_demo" as any, true)
+        .eq("is_demo", true)
         .order("created_at", { ascending: false });
       if (error) throw error;
       const ids = (data ?? []).map((r: any) => r.user_id);
