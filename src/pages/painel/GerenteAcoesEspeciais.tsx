@@ -815,6 +815,40 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
                 <Input type="number" min={0} step="0.01" value={activationBonusReais} disabled={!useActivationBonus} onChange={(e) => setActivationBonusReais(Number(e.target.value))} className="w-24" />
               </div>
             </div>
+
+            <div className="flex items-center gap-3">
+              <Switch checked={usePromoteTier} onCheckedChange={setUsePromoteTier} />
+              <Label className="flex-1 text-sm leading-tight">Nível inicial do novo revendedor (piso mínimo)</Label>
+              <Select value={promoteTierId} onValueChange={setPromoteTierId} disabled={!usePromoteTier}>
+                <SelectTrigger className="w-36 h-9">
+                  <SelectValue placeholder="Escolher" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tiers.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {usePromoteTier && (
+              <p className="text-xs text-muted-foreground -mt-1 ml-12">
+                O revendedor começa neste nível, mas a progressão por gasto continua normal — ele sobe para o próximo nível quando atingir a meta de gastos configurada.
+              </p>
+            )}
+
+            <div className="flex items-center gap-3">
+              <Switch checked={useReferralExtra} onCheckedChange={setUseReferralExtra} />
+              <Label className="flex-1 text-sm leading-tight">Bônus extra de indicação sobre a adesão</Label>
+              <div className="flex items-center gap-1">
+                <Input type="number" min={0} max={100} step="0.5" value={referralExtraPct} disabled={!useReferralExtra} onChange={(e) => setReferralExtraPct(Number(e.target.value))} className="w-20" />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+            </div>
+            {useReferralExtra && (
+              <p className="text-xs text-muted-foreground -mt-1 ml-12">
+                Quem indicou o novo revendedor ganha a comissão normal do nível dele <span className="font-medium text-foreground">+ {referralExtraPct}%</span> extras sobre o valor pago da adesão. Creditado direto no saldo.
+              </p>
+            )}
           </div>
 
           <Separator />
