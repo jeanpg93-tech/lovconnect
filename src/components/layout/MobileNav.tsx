@@ -16,11 +16,13 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useSidebar } from "@/components/ui/sidebar";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { useTranslation } from "react-i18next";
 export function MobileNav() {
   const { pathname } = useLocation();
   const { primaryRole, isSubscription } = useRole();
   const { user, signOut } = useAuth();
   const { setOpenMobile } = useSidebar();
+  const { t } = useTranslation();
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
@@ -78,26 +80,26 @@ export function MobileNav() {
 
   const navItems = [
     {
-      label: "Início",
+      label: t("mobileNav.home"),
       icon: LayoutDashboard,
       url: getHomeUrl(),
       active: pathname === getHomeUrl(),
     },
     {
-      label: "Recargas",
+      label: t("sidebar.items.Recargas"),
       icon: Zap,
       url: "/painel/revendedor/recargas",
       active: pathname === "/painel/revendedor/recargas",
       hidden: isSubscription,
     },
     {
-      label: "Novo",
+      label: t("mobileNav.generate"),
       icon: Plus,
       onClick: () => setIsCartModalOpen(true),
       isAction: true,
     },
     {
-      label: "Licenças",
+      label: t("sidebar.items.Licenças"),
       icon: KeyRound,
       url: primaryRole === "gerente" ? "/painel/gerente/licencas" : "/painel/revendedor/licencas",
       active: pathname === (primaryRole === "gerente" ? "/painel/gerente/licencas" : "/painel/revendedor/licencas"),
@@ -109,7 +111,7 @@ export function MobileNav() {
       active: pathname === "/painel/revendedor/api" || pathname === "/painel/revendedor/api-recargas",
     }] : []),
     {
-      label: "Saldo",
+      label: t("mobileNav.wallet"),
       icon: Wallet,
       onClick: () => setIsWalletModalOpen(true),
       active: isWalletModalOpen,
