@@ -15,8 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
-import { ArrowLeft, Plus, Loader2, Copy, Ban, CheckCircle2, QrCode, Calendar, Repeat, Pause, Play, Trash2 } from "lucide-react";
-import { ShieldAlert } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Copy, Ban, CheckCircle2, QrCode, Calendar, Repeat, Pause, Play, Trash2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
