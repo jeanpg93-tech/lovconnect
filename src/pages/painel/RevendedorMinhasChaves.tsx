@@ -44,6 +44,7 @@ function parseNotes(s: string | null): { display_name?: string | null; whatsapp?
 
 export default function RevendedorMinhasChaves() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,8 +115,8 @@ export default function RevendedorMinhasChaves() {
   return (
     <PageContainer>
       <PageHeader
-        title="Minhas Chaves"
-        description="Lista das chaves que você gerou — copie, revogue ou resete o device"
+        title={t("keys.title")}
+        description={t("keys.subtitle")}
       />
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
