@@ -71,6 +71,12 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const startIso = start?.toISOString();
     const endIso = end?.toISOString();
 
+    // Buscar IDs de revendedores demo para EXCLUIR de todas as agregações
+    const { data: demoRows } = await supabase.from("resellers").select("id").eq("is_demo", true);
+    const demoIds = ((demoRows ?? []) as any[]).map((r) => r.id);
+    const excludeDemos = (q: any, col = "reseller_id") =>
+      demoIds.length ? q.not(col, "in", `(${demoIds.join(",")})`) : q;
+
     // Receita: recharge_intents paid
     let rQ = supabase
       .from("recharge_intents")
@@ -78,6 +84,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       .eq("status", "paid");
     if (startIso) rQ = rQ.gte("paid_at", startIso);
     if (endIso) rQ = rQ.lte("paid_at", endIso);
+    rQ = excludeDemos(rQ);
     const { data: recharges } = await rQ;
     const rechargesArr = recharges || [];
     const rechargesRevenueCents = rechargesArr.reduce((s, r: any) => s + Number(r.amount_cents || 0), 0);
@@ -103,6 +110,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       .eq("status", "paid");
     if (startIso) scQ = scQ.gte("paid_at", startIso);
     if (endIso) scQ = scQ.lte("paid_at", endIso);
+    scQ = excludeDemos(scQ);
     const { data: subsCharges } = await scQ;
     const subsArr = subsCharges || [];
     const subscriptionRevenueCents = subsArr.reduce((s, a: any) => s + Number(a.amount_cents || 0), 0);
@@ -115,6 +123,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       .eq("status", "paid");
     if (startIso) ppQ = ppQ.gte("paid_at", startIso);
     if (endIso) ppQ = ppQ.lte("paid_at", endIso);
+    ppQ = excludeDemos(ppQ);
     const { data: packPurchases } = await ppQ;
     const packArr = packPurchases || [];
     const packRevenueCents = packArr.reduce((s, a: any) => s + Number(a.price_cents || 0), 0);
@@ -127,6 +136,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       .in("status", ["paid", "completed", "delivered", "manual_concluido", "manual_aceito"]);
     if (startIso) soQ = soQ.gte("paid_at", startIso);
     if (endIso) soQ = soQ.lte("paid_at", endIso);
+    soQ = excludeDemos(soQ);
     const { data: storeOrders } = await soQ;
     const soArr = storeOrders || [];
 
@@ -137,6 +147,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       .in("status", ["sucesso", "manual_aceito", "manual_concluido"]);
     if (startIso) rcpQ = rcpQ.gte("created_at", startIso);
     if (endIso) rcpQ = rcpQ.lte("created_at", endIso);
+    rcpQ = excludeDemos(rcpQ);
     const { data: creditPurchases } = await rcpQ;
     const rcpArr = creditPurchases || [];
 

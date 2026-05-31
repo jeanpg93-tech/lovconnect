@@ -216,7 +216,7 @@ export default function GerenteDashboard() {
 
     const [ext, rev, clients, storefronts, reports, provUsage, ordersAll, balanceRes, providerBalanceRes, todayRechargesRes, creditMovesRes] = await Promise.all([
       supabase.from("extensions").select("*", { count: "exact", head: true }),
-      supabase.from("resellers").select("*", { count: "exact", head: true }).eq("is_active", true),
+      supabase.from("resellers").select("*", { count: "exact", head: true }).eq("is_active", true).eq("is_demo", false),
       supabase.from("profiles").select("*", { count: "exact", head: true }).not("reseller_id", "is", null),
       supabase.from("reseller_storefronts").select("*", { count: "exact", head: true }).eq("is_enabled", true),
       supabase.from("storefront_reports").select("*", { count: "exact", head: true }).eq("status", "pending"),

@@ -99,7 +99,7 @@ export default function GerenteRevendedores() {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const { data: rs } = await supabase.from("resellers").select("*").order("created_at", { ascending: false });
+    const { data: rs } = await supabase.from("resellers").select("*").eq("is_demo", false).order("created_at", { ascending: false });
     const list = rs ?? [];
     setResellers(list);
     
