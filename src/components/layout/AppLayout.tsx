@@ -21,7 +21,7 @@ import { FirstAccessGate } from "@/components/FirstAccessGate";
 
 export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { primaryRole, isBanned, isActive, isGerente, loading: roleLoading, hasData, isSubscription, subscriptionOnboardingCompleted, subscriptionBlocked } = useRole();
+  const { primaryRole, isBanned, isActive, isGerente, loading: roleLoading, hasData, isSubscription, subscriptionOnboardingCompleted, subscriptionBlocked, salesDisabledByManager } = useRole();
   const { pathname } = useLocation();
   const isInitialAuthLoading = authLoading && !user;
   const isInitialRoleLoading = roleLoading && !hasData;
@@ -171,7 +171,9 @@ export default function AppLayout() {
                 </div>
                 {needsActivation && <ActivationLockOverlay status={activationStatus!} />}
                 {!needsActivation && needsSubscriptionOnboarding && <SubscriptionLockOverlay mode="onboarding" />}
-                {!needsActivation && !needsSubscriptionOnboarding && needsSubscriptionUnblock && <SubscriptionLockOverlay mode="blocked" />}
+                {!needsActivation && !needsSubscriptionOnboarding && needsSubscriptionUnblock && (
+                  <SubscriptionLockOverlay mode="blocked" reason={salesDisabledByManager ? "manager" : "overdue"} />
+                )}
               </div>
             </div>
           </main>
