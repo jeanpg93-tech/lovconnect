@@ -26,16 +26,17 @@ type Charge = {
   created_at: string;
 };
 
-type Props = { mode?: "onboarding" | "blocked" };
+type Props = { mode?: "onboarding" | "blocked"; reason?: "overdue" | "manager" };
 
-export function SubscriptionLockOverlay({ mode = "onboarding" }: Props) {
+export function SubscriptionLockOverlay({ mode = "onboarding", reason = "overdue" }: Props) {
+  const isManagerBlock = mode === "blocked" && reason === "manager";
   const { user, signOut } = useAuth();
   const [charges, setCharges] = useState<Charge[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Charge | null>(null);
 
   const load = async () => {
-    if (!user) return;
+    if (!user || isManagerBlock) { setLoading(false); return; }
     setLoading(true);
     const { data: r } = await supabase
       .from("resellers").select("id").eq("user_id", user.id).maybeSingle();
@@ -65,6 +66,7 @@ export function SubscriptionLockOverlay({ mode = "onboarding" }: Props) {
         const n = payload.new;
         if (mode === "onboarding" && n?.subscription_onboarding_completed) window.location.reload();
         if (mode === "blocked" && n?.subscription_blocked === false) window.location.reload();
+        if (isManagerBlock && n?.subscription_sales_disabled === false) window.location.reload();
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -91,23 +93,27 @@ export function SubscriptionLockOverlay({ mode = "onboarding" }: Props) {
               <Badge className={cn("mb-3", mode === "blocked"
                 ? "bg-rose-500/15 text-rose-400 border-rose-500/30"
                 : "bg-violet-500/15 text-violet-400 border-violet-500/30")}>
-                <Sparkles className="h-3 w-3 mr-1" /> {mode === "blocked" ? "Cobrança em aberto" : "Modo Mensalista"}
+                <Sparkles className="h-3 w-3 mr-1" /> {isManagerBlock ? "Vendas suspensas" : mode === "blocked" ? "Cobrança em aberto" : "Modo Mensalista"}
               </Badge>
               <h1 className="font-display text-2xl sm:text-3xl font-black tracking-tighter">
-                {mode === "blocked" ? (
+                {isManagerBlock ? (
+                  <>Vendas <span className="text-rose-400 italic">suspensas</span></>
+                ) : mode === "blocked" ? (
                   <>Painel <span className="text-rose-400 italic">bloqueado</span></>
                 ) : (
                   <>Conclua sua <span className="text-violet-400 italic">ativação</span></>
                 )}
               </h1>
               <p className="mt-3 text-sm text-muted-foreground">
-                {mode === "blocked"
+                {isManagerBlock
+                  ? "Vendas suspensas pelo gerente. Entre em contato para mais informações."
+                  : mode === "blocked"
                   ? "Você tem cobranças vencidas. Regularize o pagamento para liberar o painel."
                   : "Seu painel será liberado automaticamente assim que o pagamento for confirmado."}
               </p>
             </div>
 
-            {loading ? (
+            {isManagerBlock ? null : loading ? (
               <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
             ) : charges.length === 0 ? (
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 text-center">
