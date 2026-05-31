@@ -3043,6 +3043,7 @@ export type Database = {
           display_name: string
           id: string
           is_active: boolean
+          is_demo: boolean
           last_test_key_reset: string | null
           pack_sales_disabled: boolean
           slug: string
@@ -3063,6 +3064,7 @@ export type Database = {
           display_name: string
           id?: string
           is_active?: boolean
+          is_demo?: boolean
           last_test_key_reset?: string | null
           pack_sales_disabled?: boolean
           slug: string
@@ -3083,6 +3085,7 @@ export type Database = {
           display_name?: string
           id?: string
           is_active?: boolean
+          is_demo?: boolean
           last_test_key_reset?: string | null
           pack_sales_disabled?: boolean
           slug?: string
