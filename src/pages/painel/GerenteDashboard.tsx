@@ -407,7 +407,11 @@ export default function GerenteDashboard() {
 
     // Movimentações de recarga (entradas e saídas) do sistema inteiro
     const movesData: any[] = (creditMovesRes as any)?.data ?? [];
-    const moveResIds = [...new Set(movesData.map((m: any) => m.reseller_id).filter(Boolean))];
+    const moveResIds = [...new Set([
+      ...movesData.map((m: any) => m.reseller_id),
+      ...packPays.map((p: any) => p.reseller_id),
+      ...subCharges.map((s: any) => s.reseller_id),
+    ].filter(Boolean))];
     const missingMoveIds = moveResIds.filter((id) => !rMap.has(id));
     let moveNameMap = rMap;
     if (missingMoveIds.length) {
