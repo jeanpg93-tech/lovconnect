@@ -33,6 +33,7 @@ type Reseller = {
   billing_mode: string | null;
   subscription_blocked: boolean | null;
   subscription_onboarding_completed: boolean | null;
+  subscription_sales_disabled: boolean | null;
 };
 
 type Charge = {
@@ -105,7 +106,7 @@ export default function GerenteRevendedorMensalidade() {
     if (!id) return;
     setLoading(true);
     const [{ data: r }, { data: c }, { data: rec }] = await Promise.all([
-      supabase.from("resellers").select("id, display_name, user_id, billing_mode, subscription_blocked, subscription_onboarding_completed").eq("id", id).maybeSingle(),
+      supabase.from("resellers").select("id, display_name, user_id, billing_mode, subscription_blocked, subscription_onboarding_completed, subscription_sales_disabled").eq("id", id).maybeSingle(),
       supabase.from("reseller_subscription_charges").select("*").eq("reseller_id", id).order("created_at", { ascending: false }),
       supabase.from("reseller_subscription_recurrences").select("*").eq("reseller_id", id).order("created_at", { ascending: false }),
     ]);
