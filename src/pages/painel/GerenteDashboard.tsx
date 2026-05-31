@@ -239,6 +239,23 @@ export default function GerenteDashboard() {
       .order("created_at", { ascending: false })
       .limit(50);
 
+    // Pagamentos de Pack (compra de pacote pelo revendedor) e Mensalidade
+    // — todos os status, para aparecer no feed mesmo se ainda pendente.
+    const [packPaysRes, subChargesRes] = await Promise.all([
+      supabase
+        .from("reseller_pack_purchases")
+        .select("id, created_at, paid_at, reseller_id, pack_name, credits, price_cents, status")
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase
+        .from("reseller_subscription_charges")
+        .select("id, created_at, paid_at, reseller_id, amount_cents, status")
+        .order("created_at", { ascending: false })
+        .limit(100),
+    ]);
+    const packPays: any[] = (packPaysRes as any)?.data ?? [];
+    const subCharges: any[] = (subChargesRes as any)?.data ?? [];
+
     const balanceAny: any = balanceRes;
     const provUsageAny: any = provUsage;
     const ordersAllAny: any = ordersAll;
