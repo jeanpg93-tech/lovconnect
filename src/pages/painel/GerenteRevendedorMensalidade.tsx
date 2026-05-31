@@ -515,6 +515,54 @@ export default function GerenteRevendedorMensalidade() {
               </>
             )}
           </div>
+
+          {/* Blocked sale attempts log */}
+          <div className="rounded-2xl border border-border bg-card/60 overflow-hidden">
+            <div className="flex items-center justify-between gap-3 p-4 md:p-6 border-b border-white/5">
+              <div>
+                <h3 className="font-bold text-foreground flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 text-rose-400" /> Tentativas bloqueadas
+                  {blockedAttempts.length > 0 && (
+                    <Badge className="bg-rose-500/15 text-rose-400 border-rose-500/30">{blockedAttempts.length}</Badge>
+                  )}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cada vez que este revendedor tenta gerar uma chave com as vendas pausadas, registramos aqui.
+                </p>
+              </div>
+            </div>
+            {blockedAttempts.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">Nenhuma tentativa bloqueada registrada.</div>
+            ) : (
+              <div className="divide-y divide-white/5 max-h-96 overflow-y-auto">
+                {blockedAttempts.map((a) => {
+                  const meta = a.metadata ?? {};
+                  const parts: string[] = [];
+                  if (meta.method) parts.push(`método: ${meta.method}`);
+                  if (meta.pack_id) parts.push(`pacote: ${meta.pack_id}`);
+                  if (meta.display_name) parts.push(`nome: ${meta.display_name}`);
+                  if (meta.whatsapp) parts.push(`wpp: ${meta.whatsapp}`);
+                  if (meta.via) parts.push(`via: ${meta.via}`);
+                  return (
+                    <div key={a.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className="text-[10px] uppercase">{a.attempt_type}</Badge>
+                          <span className="text-xs font-mono text-muted-foreground/80 truncate">{a.endpoint}</span>
+                        </div>
+                        {parts.length > 0 && (
+                          <p className="text-[11px] text-muted-foreground mt-1 truncate">{parts.join(" · ")}</p>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground shrink-0">
+                        {new Date(a.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
