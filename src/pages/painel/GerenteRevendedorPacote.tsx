@@ -24,7 +24,7 @@ const formatDateTime = (s: string | null) => {
   try { return new Date(s).toLocaleString("pt-BR"); } catch { return s; }
 };
 
-type Reseller = { id: string; display_name: string; user_id: string; billing_mode: string | null };
+type Reseller = { id: string; display_name: string; user_id: string; billing_mode: string | null; pack_sales_disabled: boolean | null };
 type Balance = { credits: number };
 type Purchase = {
   id: string; pack_name: string | null; credits: number; price_cents: number;
