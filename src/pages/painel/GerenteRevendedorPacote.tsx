@@ -64,6 +64,7 @@ export default function GerenteRevendedorPacote() {
   const [debitDesc, setDebitDesc] = useState("");
   const [busy, setBusy] = useState(false);
   const [savingMode, setSavingMode] = useState(false);
+  const [togglingSales, setTogglingSales] = useState(false);
 
   const load = async () => {
     if (!id) return;
