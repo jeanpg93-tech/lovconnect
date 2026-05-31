@@ -1,82 +1,128 @@
-## Visão geral
+# Plano completo — Pagamentos Pack/Mensalista + Reserva de Licenças
 
-Novo modelo de billing **Revendedor Pacote** (3º modelo, junto com prepago e mensalista). Revendedor compra pacotes de N créditos de chave. Cada licença gerada (1d/7d/30d/lifetime/etc) consome **1 crédito**, sem débito em R$ nem promoções. Trial é gratuito (não consome). Créditos não expiram e acumulam entre compras. Quando o saldo zera, painel é bloqueado para geração até comprar novo pacote.
+## Fase 1 — Feed e Financeiro (Pack + Mensalista)
 
-## Regras de negócio
+### 1.1 Feed do Dashboard do Gerente
+Em `src/pages/painel/GerenteDashboard.tsx`:
+- Adicionar duas queries paralelas:
+  - `reseller_pack_purchases` (todos os status: `paid`, `pending`, `expired`, `failed`, `cancelled`)
+  - `reseller_subscription_charges` (todos os status)
+- Mesclar em `creditMovements` com `kind: "pack_payment"` e `kind: "subscription_payment"`
+- Mostrar valor real, nome do revendedor, e badge colorido por status:
+  - 🟢 Pago / 🟡 Pendente / ⚪ Expirado/Cancelado / 🔴 Falha
 
-- **billing_mode = `package`** (novo valor na coluna `resellers.billing_mode`).
-- Revendedor Pacote **não** tem saldo em R$, **não** vê preços de licença, **não** participa de promoções.
-- Toda chave gerada (qualquer tipo, qualquer método) consome **1 crédito** do saldo de pacote.
-- **Trial é grátis** e ilimitado (mesma lógica do mensalista).
-- Saldo zerado → overlay de bloqueio idêntico ao mensalista, CTA "Comprar pacote".
-- Compras são via Pix/MisticPay (mesma infra de recarga). Após `paid`, créditos entram automaticamente.
-- Créditos **acumulam**: comprar novo pacote antes de zerar soma ao saldo atual.
-- Histórico completo de compras e consumo (cada chave gerada loga -1 crédito).
+### 1.2 Painel Financeiro
+- `useFinancialOverview.ts`: incluir somatórios de Pack e Mensalista (somente status `paid`) na receita.
+- `FinanceiroVisaoGeral.tsx`: exibir as duas novas linhas/cards.
 
-## Sugestão de pacotes e preços
+---
 
-Custo médio atual de chave 30d para revendedor: **~R$ 18** (tier intermediário). Como o revendedor pode usar 1 crédito para gerar uma **lifetime** (que custaria muito mais no modelo prepago), precisamos de margem extra. Sugestão inicial (gerente pode ajustar a qualquer momento):
+## Fase 2 — Reserva de Licenças (compromisso de Packs)
 
-| Pacote | Créditos | Preço sugerido | Preço/chave | Desconto |
-|--------|----------|----------------|-------------|----------|
-| Starter | 10 | R$ 250 | R$ 25,00 | — |
-| Plus | 25 | R$ 575 | R$ 23,00 | 8% |
-| Pro | 50 | R$ 1.075 | R$ 21,50 | 14% |
-| Mega | 100 | R$ 1.950 | R$ 19,50 | 22% |
+### Conceito
+- **Comprometido** = `SUM(reseller_pack_balances.credits)` (créditos comprados ainda não consumidos por nenhum revendedor).
+- **Disponível real (global)** = `SUM(estoque_provedor por método)` − **Comprometido**.
+- Como créditos de pack podem ser usados em qualquer método de geração, usamos o **estoque global** (soma) para validar packs.
 
-Preços e quantidades são **100% configuráveis pelo gerente** em `/painel/gerente/pacotes`. Recomendação: começar com esses 4 e ajustar com base no uso real.
+### 2.1 Função SQL `get_pack_commitments()`
+- SECURITY DEFINER, retorna `{ committed_credits: int }`.
+- Lê `SELECT COALESCE(SUM(credits),0) FROM reseller_pack_balances`.
 
-## Páginas e fluxos
+### 2.2 Hook `useProviderCommitments.ts` (novo)
+- Combina `provider-api?action=usage-all` (estoque por método) + RPC `get_pack_commitments()`.
+- Retorna `{ totalAvailable, committed, realAvailable, perMethod[] }`.
 
-**Gerente:**
-- `/painel/gerente/pacotes` — CRUD de pacotes (nome, créditos, preço, ativo).
-- `/painel/gerente/revendedores/:id/pacote` — ver saldo de créditos, histórico de compras e consumo, creditar manualmente.
-- Dashboard ganha notificação Telegram quando revendedor pacote gera chave (já temos infra do mensalista).
-- Listagem de revendedores ganha badge "📦 Pacote" e coluna "Créditos restantes".
+### 2.3 UI — Sidebar / Dashboard
+- `AppSidebar.tsx` (gerente): card "Estoque" com:
+  - Disponível total / Comprometido em Packs / Disponível real
+  - Badge vermelho se `comprometido > disponível`
+- Dashboard do gerente: KPI "Comprometidas com Packs" com alerta visual.
 
-**Revendedor pacote:**
-- `/painel/revendedor/landing` mostra card destacando créditos restantes (em vez de saldo R$).
-- `/painel/revendedor/gerar-chave` decrementa crédito ao gerar, mostra "Restam X créditos".
-- `/painel/revendedor/comprar-pacote` — vitrine de pacotes disponíveis com Pix.
-- `/painel/revendedor/historico-pacote` — extrato de créditos (compras + consumos).
-- Telas de "Preços", "Promoções", "Saldo R$" ficam ocultas.
+### 2.4 Validação em `pack-create-purchase/index.ts`
+- Antes de criar PIX: checar `disponivel_real >= pack.credits`.
+- Se não: retornar erro genérico `"Pacote temporariamente indisponível"`.
 
-## Detalhes técnicos
+### 2.5 Aviso na geração manual
+- Em `place-method-license-order` / `pack-generate-key`: se `comprometido > disponível` no método, logar warning (sem bloquear gerente).
 
-**Tabelas novas:**
-- `license_packages` — catálogo de pacotes (id, name, credits, price_cents, is_active, sort_order).
-- `reseller_package_balances` — saldo de créditos por revendedor (reseller_id, credits, updated_at).
-- `reseller_package_purchases` — compras (reseller_id, package_id, credits, price_cents, status, misticpay_tx_id, paid_at).
-- `reseller_package_ledger` — extrato granular (reseller_id, kind: `purchase|consume|admin_credit|refund`, delta_credits, order_id?, purchase_id?, note).
+---
 
-**Schema:**
-- `resellers.billing_mode` ganha valor `package`.
-- Trigger em `reseller_package_purchases` ao virar `paid`: credita saldo + escreve no ledger.
-- Função RPC `consume_package_credit(reseller_id, order_id)` para débito atômico (com check de saldo > 0).
+## Fase 3 — Auto-desabilitar planos de Pack por estoque (silencioso)
 
-**Edge functions:**
-- `package-generate-key` — irmã da `subscription-generate-key`, valida saldo, chama provedor, decrementa crédito, notifica Telegram.
-- `package-create-purchase` — cria cobrança Pix MisticPay para um pacote.
-- `misticpay-webhook` ganha branch para `package_purchase` (credita após pagamento).
+### Regra
+Para cada plano de `license_packs`:
+- `disponivel_real = estoque_global − comprometido`
+- Se `pack.credits > disponivel_real` → **ocultar** do revendedor (sem mensagem, sem badge "esgotado", simplesmente não aparece).
+- Painel do gerente continua vendo todos os planos com indicador "Indisponível agora" (apenas para o gerente).
 
-**Bloqueio:**
-- Componente `PackageLockOverlay` idêntico ao `SubscriptionLockOverlay`, ativa quando `billing_mode='package'` e `credits=0`.
+### 3.1 Função SQL `list_available_packs_for_reseller()`
+- SECURITY DEFINER.
+- Calcula `disponivel_real` (chamando lógica interna ou via parâmetro vindo do edge).
+- Como o estoque do provedor não vive no banco (vem da API externa), a alternativa é:
+  - **Opção A (escolhida):** criar edge function `list-available-packs` que:
+    1. Busca `license_packs` ativos.
+    2. Chama `provider-api?action=usage-all` para obter estoque global.
+    3. Chama RPC `get_pack_commitments()`.
+    4. Filtra/marca cada pack como `available: pack.credits <= (estoque − comprometido)`.
+    5. Retorna só os disponíveis para o revendedor.
 
-**Realtime:**
-- Subscription no saldo de créditos para atualizar UI sem refresh.
+### 3.2 Frontend revendedor — `RevendedorComprarPacote.tsx`
+- Trocar query direta em `license_packs` por chamada à nova edge `list-available-packs`.
+- Se lista vier vazia: manter mensagem atual ("Nenhum pacote disponível no momento.").
+- **Sem nenhuma indicação** de "por que" um pack sumiu.
 
-## Fora do escopo (para conversar depois)
+### 3.3 Frontend gerente — `GerentePacotes.tsx`
+- Continuar listando todos via `license_packs` direto.
+- Adicionar coluna/badge "Disponível agora" / "Indisponível (estoque)" usando o mesmo hook `useProviderCommitments`.
 
-- Migração de revendedores existentes para o modelo pacote.
-- Pacotes com tipos específicos (ex: "10 chaves de 30d") — fica para v2 se fizer sentido.
-- Auto-recarga / assinatura de pacote mensal.
-- Cashback / promoções específicas de pacote.
+### 3.4 Validação cruzada em `pack-create-purchase`
+- Mantém a validação de 2.4 como **dupla checagem** (caso o usuário tenha aberto a tela há tempo).
 
-## Próximos passos
+---
 
-Me confirma:
-1. Os nomes e preços dos 4 pacotes iniciais (ou ajusta).
-2. Se topa "Revendedor Pacote" como nome interno ou prefere outro (Bundle, Pacotão, Combo, Box).
-3. Se a compra é só via Pix MisticPay ou também aceita aprovação manual (gerente credita).
+## Fase 4 — Responsividade Web + Mobile
 
-Quando alinharmos, eu implemento na ordem: schema → admin (CRUD + listagem) → fluxo de compra → geração com débito → bloqueio.
+Garantir em todas as telas tocadas:
+
+### Mobile (< 640px)
+- **GerenteDashboard feed**: cards empilhados, badges em linha abaixo do título, fontes reduzidas.
+- **AppSidebar card "Estoque"**: stack vertical das 3 métricas; em telas pequenas, esconde o card no menu colapsado.
+- **RevendedorComprarPacote**: grid `grid-cols-1` em mobile (já tinha `sm:grid-cols-2 lg:grid-cols-4`, mantém).
+- **GerentePacotes badge "Indisponível"**: usa `truncate` e `flex-wrap`.
+- **FinanceiroVisaoGeral cards Pack/Mensalista**: respeitar grid existente; em mobile, full-width.
+
+### Tablet/Desktop
+- Manter grids existentes; novos KPIs entram como cards adicionais no grid responsivo.
+- Sidebar card "Estoque" só aparece no estado expandido.
+
+### Padrões usados
+- Tokens semânticos (`bg-card`, `text-muted-foreground`, `border-border`) — sem cores hardcoded.
+- Breakpoints Tailwind: `sm:`, `md:`, `lg:` apenas.
+- Testar em 360px, 768px, 1280px.
+
+---
+
+## Arquivos afetados
+
+| Arquivo | Ação |
+|---------|------|
+| `src/pages/painel/GerenteDashboard.tsx` | Feed Pack/Mensalista + KPI comprometido |
+| `src/hooks/useFinancialOverview.ts` | Receita Pack/Mensalista |
+| `src/components/painel/financeiro/FinanceiroVisaoGeral.tsx` | UI receita Pack/Mensalista |
+| `src/components/painel/AppSidebar.tsx` | Card estoque/comprometido |
+| `src/hooks/useProviderCommitments.ts` | **Novo** hook |
+| `src/pages/painel/RevendedorComprarPacote.tsx` | Trocar query por edge `list-available-packs` |
+| `src/pages/painel/GerentePacotes.tsx` | Badge "Disponível/Indisponível" |
+| `supabase/functions/pack-create-purchase/index.ts` | Validação estoque vs comprometido |
+| `supabase/functions/list-available-packs/index.ts` | **Nova** edge function |
+| **Migration** | Função SQL `get_pack_commitments()` |
+
+---
+
+## Ordem de execução
+1. Migration `get_pack_commitments()` (rápido, sem breaking).
+2. Edge `list-available-packs` + validação em `pack-create-purchase`.
+3. Hook + UI sidebar/dashboard (Fase 2).
+4. Trocar tela do revendedor para usar nova edge (Fase 3).
+5. Feed + financeiro (Fase 1) — independente, pode ir junto.
+6. Ajustes finais de responsividade.
