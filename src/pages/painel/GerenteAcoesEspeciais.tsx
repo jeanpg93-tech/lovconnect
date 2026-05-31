@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Loader2, Save, History, Sparkles, Plus, CalendarIcon, Play, Square, Pencil, Trash2, Zap, Gift, Tag, Copy, ChevronDown,
+  Rocket,
 } from "lucide-react";
 
 type Promotion = {
@@ -33,6 +34,10 @@ type Promotion = {
   extension_discount_pct: number | null;
   credit_discount_pct: number | null;
   recharge_bonus_pct: number | null;
+  activation_discount_pct: number | null;
+  activation_discount_cents: number | null;
+  activation_fixed_price_cents: number | null;
+  activation_bonus_cents: number | null;
   starts_at: string | null;
   ends_at: string | null;
   status: "scheduled" | "active" | "paused" | "ended";
@@ -40,6 +45,9 @@ type Promotion = {
   deactivated_at: string | null;
   created_at: string;
 };
+
+const fmtBRL = (cents: number) =>
+  (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 type PromotionLog = {
   id: string;
@@ -482,6 +490,10 @@ function PromoValues({ p, compact, big }: { p: Promotion; compact?: boolean; big
   if (p.extension_discount_pct != null) items.push({ icon: <Tag className={sz} />, label: "Extensões", value: `-${p.extension_discount_pct}%` });
   if (p.credit_discount_pct != null) items.push({ icon: <Zap className={sz} />, label: "Recargas de Créditos", value: `-${p.credit_discount_pct}%` });
   if (p.recharge_bonus_pct != null) items.push({ icon: <Gift className={sz} />, label: "Bônus de Saldo", value: `+${p.recharge_bonus_pct}%` });
+  if (p.activation_discount_pct != null) items.push({ icon: <Rocket className={sz} />, label: "Adesão", value: `-${p.activation_discount_pct}%` });
+  if (p.activation_discount_cents != null) items.push({ icon: <Rocket className={sz} />, label: "Adesão", value: `-${fmtBRL(p.activation_discount_cents)}` });
+  if (p.activation_fixed_price_cents != null) items.push({ icon: <Rocket className={sz} />, label: "Adesão por", value: fmtBRL(p.activation_fixed_price_cents) });
+  if (p.activation_bonus_cents != null && p.activation_bonus_cents > 0) items.push({ icon: <Gift className={sz} />, label: "Bônus na adesão", value: `+${fmtBRL(p.activation_bonus_cents)}` });
   if (items.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2">
@@ -543,6 +555,14 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
   const [extPct, setExtPct] = useState(10);
   const [credPct, setCredPct] = useState(10);
   const [bonusPct, setBonusPct] = useState(10);
+  // Promo de adesão
+  const [useActivation, setUseActivation] = useState(false);
+  const [activationMode, setActivationMode] = useState<"pct" | "amount" | "fixed">("pct");
+  const [activationPct, setActivationPct] = useState(50);
+  const [activationDiscountReais, setActivationDiscountReais] = useState(100); // R$
+  const [activationFixedReais, setActivationFixedReais] = useState(100); // R$
+  const [useActivationBonus, setUseActivationBonus] = useState(false);
+  const [activationBonusReais, setActivationBonusReais] = useState(50); // R$
   const [startMode, setStartMode] = useState<"now" | "schedule">("now");
   const [endMode, setEndMode] = useState<"none" | "schedule">("none");
   const [startsAt, setStartsAt] = useState("");
@@ -560,6 +580,25 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
         if (editing.extension_discount_pct != null) setExtPct(Number(editing.extension_discount_pct));
         if (editing.credit_discount_pct != null) setCredPct(Number(editing.credit_discount_pct));
         if (editing.recharge_bonus_pct != null) setBonusPct(Number(editing.recharge_bonus_pct));
+        const hasActivation =
+          editing.activation_discount_pct != null ||
+          editing.activation_discount_cents != null ||
+          editing.activation_fixed_price_cents != null;
+        setUseActivation(hasActivation);
+        if (editing.activation_discount_pct != null) {
+          setActivationMode("pct");
+          setActivationPct(Number(editing.activation_discount_pct));
+        } else if (editing.activation_discount_cents != null) {
+          setActivationMode("amount");
+          setActivationDiscountReais(Number(editing.activation_discount_cents) / 100);
+        } else if (editing.activation_fixed_price_cents != null) {
+          setActivationMode("fixed");
+          setActivationFixedReais(Number(editing.activation_fixed_price_cents) / 100);
+        }
+        setUseActivationBonus(editing.activation_bonus_cents != null && editing.activation_bonus_cents > 0);
+        if (editing.activation_bonus_cents != null) {
+          setActivationBonusReais(Number(editing.activation_bonus_cents) / 100);
+        }
         setStartMode(editing.starts_at ? "schedule" : "now");
         setEndMode(editing.ends_at ? "schedule" : "none");
         setStartsAt(toLocalInputValue(editing.starts_at));
@@ -568,6 +607,13 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
         setName(""); setDescription("");
         setUseExt(false); setUseCred(false); setUseBonus(false);
         setExtPct(10); setCredPct(10); setBonusPct(10);
+        setUseActivation(false);
+        setActivationMode("pct");
+        setActivationPct(50);
+        setActivationDiscountReais(100);
+        setActivationFixedReais(100);
+        setUseActivationBonus(false);
+        setActivationBonusReais(50);
         setStartMode("now"); setEndMode("none");
         setStartsAt(""); setEndsAt("");
       }
@@ -576,7 +622,9 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
 
   async function handleSave(activateNow: boolean) {
     if (!name.trim()) { toast.error("Dê um nome para a promoção"); return; }
-    if (!useExt && !useCred && !useBonus) { toast.error("Selecione pelo menos um desconto/bônus"); return; }
+    if (!useExt && !useCred && !useBonus && !useActivation && !useActivationBonus) {
+      toast.error("Selecione pelo menos um desconto/bônus"); return;
+    }
 
     const starts_at = startMode === "schedule" ? fromLocalInputValue(startsAt) : null;
     const ends_at = endMode === "schedule" ? fromLocalInputValue(endsAt) : null;
@@ -594,6 +642,10 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
       extension_discount_pct: useExt ? extPct : null,
       credit_discount_pct: useCred ? credPct : null,
       recharge_bonus_pct: useBonus ? bonusPct : null,
+      activation_discount_pct:      useActivation && activationMode === "pct"    ? activationPct                                     : null,
+      activation_discount_cents:    useActivation && activationMode === "amount" ? Math.round(activationDiscountReais * 100)         : null,
+      activation_fixed_price_cents: useActivation && activationMode === "fixed"  ? Math.round(activationFixedReais * 100)            : null,
+      activation_bonus_cents:       useActivationBonus                            ? Math.round(activationBonusReais * 100)           : null,
       starts_at,
       ends_at,
       status: willActivate ? "active" : "scheduled",
@@ -656,6 +708,76 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
             <PctRow enabled={useExt} setEnabled={setUseExt} label="Desconto em extensões" value={extPct} setValue={setExtPct} max={100} suffix="%" />
             <PctRow enabled={useCred} setEnabled={setUseCred} label="Desconto em recargas de créditos" value={credPct} setValue={setCredPct} max={100} suffix="%" />
             <PctRow enabled={useBonus} setEnabled={setUseBonus} label="Bônus de recargas de saldo no painel" value={bonusPct} setValue={setBonusPct} max={500} suffix="%" />
+          </div>
+
+          <Separator />
+          <div className="space-y-3">
+            <div>
+              <Label className="flex items-center gap-2">
+                <Rocket className="h-4 w-4 text-primary" /> Promoção de adesão (novos revendedores)
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Preço normal da adesão ao painel: <span className="font-medium text-foreground">R$ 200,00</span>.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Switch checked={useActivation} onCheckedChange={setUseActivation} />
+              <Label className="flex-1 text-sm leading-tight">Aplicar desconto na adesão</Label>
+            </div>
+
+            {useActivation && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
+                <div className="flex flex-wrap gap-1.5">
+                  <Button type="button" size="sm" variant={activationMode === "pct" ? "default" : "outline"} onClick={() => setActivationMode("pct")}>Percentual</Button>
+                  <Button type="button" size="sm" variant={activationMode === "amount" ? "default" : "outline"} onClick={() => setActivationMode("amount")}>Desconto em R$</Button>
+                  <Button type="button" size="sm" variant={activationMode === "fixed" ? "default" : "outline"} onClick={() => setActivationMode("fixed")}>Preço fixo</Button>
+                </div>
+
+                {activationMode === "pct" && (
+                  <div className="flex items-center gap-2">
+                    <Label className="flex-1 text-sm">Desconto sobre R$ 200,00</Label>
+                    <Input type="number" min={0} max={100} value={activationPct} onChange={(e) => setActivationPct(Number(e.target.value))} className="w-24" />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                )}
+                {activationMode === "amount" && (
+                  <div className="flex items-center gap-2">
+                    <Label className="flex-1 text-sm">Desconto fixo</Label>
+                    <span className="text-sm text-muted-foreground">R$</span>
+                    <Input type="number" min={0} step="0.01" value={activationDiscountReais} onChange={(e) => setActivationDiscountReais(Number(e.target.value))} className="w-28" />
+                  </div>
+                )}
+                {activationMode === "fixed" && (
+                  <div className="flex items-center gap-2">
+                    <Label className="flex-1 text-sm">Preço promocional</Label>
+                    <span className="text-sm text-muted-foreground">R$</span>
+                    <Input type="number" min={0} step="0.01" value={activationFixedReais} onChange={(e) => setActivationFixedReais(Number(e.target.value))} className="w-28" />
+                  </div>
+                )}
+
+                <div className="text-xs text-muted-foreground pt-1 border-t border-border/50">
+                  Revendedor pagará: <span className="font-semibold text-foreground">
+                    {fmtBRL(
+                      activationMode === "fixed"
+                        ? Math.round(activationFixedReais * 100)
+                        : activationMode === "pct"
+                          ? Math.max(0, 20000 - Math.round(20000 * activationPct / 100))
+                          : Math.max(0, 20000 - Math.round(activationDiscountReais * 100))
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3">
+              <Switch checked={useActivationBonus} onCheckedChange={setUseActivationBonus} />
+              <Label className="flex-1 text-sm leading-tight">Bônus de saldo extra na carteira (além do que ele pagar)</Label>
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground">R$</span>
+                <Input type="number" min={0} step="0.01" value={activationBonusReais} disabled={!useActivationBonus} onChange={(e) => setActivationBonusReais(Number(e.target.value))} className="w-24" />
+              </div>
+            </div>
           </div>
 
           <Separator />

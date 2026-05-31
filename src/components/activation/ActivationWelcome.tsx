@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Copy, Check, Sparkles, ShieldCheck, KeyRound, Award, Users, Store, RefreshCcw, Upload, Clock, LogOut, MessageCircle } from "lucide-react";
 import { LovMainLogo } from "@/components/LovMainLogo";
 import { toast } from "sonner";
+import { useActivationPricing, formatBRL } from "@/hooks/useActivationPricing";
 
 const BENEFITS = [
   { icon: KeyRound, title: "Painel completo de revendedor", desc: "gere suas próprias chaves de licença" },
@@ -36,6 +37,7 @@ interface ActivationWelcomeProps {
 export function ActivationWelcome({ embedded = false }: ActivationWelcomeProps = {}) {
   const { user, signOut } = useAuth();
   const { loading, status, payment, refresh } = useActivation(user?.id);
+  const pricing = useActivationPricing();
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [tick, setTick] = useState(0);
@@ -90,6 +92,12 @@ export function ActivationWelcome({ embedded = false }: ActivationWelcomeProps =
     return <div className={`flex ${embedded ? "min-h-[300px]" : "min-h-screen"} items-center justify-center bg-background`}><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
 
+  const baseLabel = pricing ? formatBRL(pricing.basePriceCents) : "R$ 200,00";
+  const finalLabel = pricing ? formatBRL(pricing.finalPriceCents) : "R$ 200,00";
+  const bonusLabel = pricing && pricing.hasBonus ? formatBRL(pricing.bonusCents) : null;
+  const balanceLabel = pricing ? formatBRL(pricing.balanceCreditCents) : "R$ 200,00";
+  const isPromo = !!pricing?.hasDiscount || !!pricing?.hasBonus;
+
   return (
     <div className={`relative ${embedded ? "" : "min-h-screen"} overflow-hidden bg-background ${embedded ? "rounded-2xl p-3 sm:p-4" : "p-4 py-8 sm:p-6"}`}>
       <div className="pointer-events-none absolute inset-0 bg-grid bg-grid-fade opacity-30" />
@@ -104,9 +112,31 @@ export function ActivationWelcome({ embedded = false }: ActivationWelcomeProps =
 
         <div className={`rounded-2xl border border-border/60 bg-card/60 shadow-2xl backdrop-blur-sm ${embedded ? "p-4 sm:p-5" : "p-6 sm:p-8"}`}>
           <div className="flex flex-col gap-1.5 text-center">
-            <span className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary"><Sparkles className="h-3 w-3" /> ative seu painel</span>
-            <h1 className={`font-display font-bold uppercase tracking-tight ${embedded ? "text-lg sm:text-xl" : "text-2xl sm:text-3xl"}`}>Painel de Revendedor — <span className="text-primary">R$ 200,00</span></h1>
+            <span className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
+              <Sparkles className="h-3 w-3" /> {isPromo ? "promoção ativa" : "ative seu painel"}
+            </span>
+            <h1 className={`font-display font-bold uppercase tracking-tight ${embedded ? "text-lg sm:text-xl" : "text-2xl sm:text-3xl"}`}>
+              Painel de Revendedor —{" "}
+              {isPromo && pricing!.hasDiscount ? (
+                <>
+                  <span className="text-muted-foreground/70 line-through text-base sm:text-xl mr-2 font-normal">{baseLabel}</span>
+                  <span className="text-primary">{finalLabel}</span>
+                </>
+              ) : (
+                <span className="text-primary">{finalLabel}</span>
+              )}
+            </h1>
             <p className="text-xs text-muted-foreground sm:text-sm">Pagamento único. Sem mensalidade. Acesso imediato.</p>
+            {isPromo && (
+              <div className="mx-auto mt-1 inline-flex flex-wrap items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-[11px]">
+                <Sparkles className="h-3 w-3 text-primary" />
+                <span>
+                  Você paga <span className="font-bold text-primary">{finalLabel}</span>
+                  {bonusLabel && <> + <span className="font-bold text-primary">{bonusLabel}</span> de bônus</>}
+                  {" "}= <span className="font-bold text-foreground">{balanceLabel}</span> de saldo no painel
+                </span>
+              </div>
+            )}
           </div>
 
           {!embedded && (
@@ -168,10 +198,10 @@ export function ActivationWelcome({ embedded = false }: ActivationWelcomeProps =
                   </div>
                 ) : (
                   <div className="rounded-xl border border-border/50 bg-background/40 p-6 text-center">
-                    <p className="text-sm text-muted-foreground">{expiredOrNone && payment ? "O PIX anterior expirou ou foi cancelado." : "Clique abaixo para gerar seu PIX de R$ 200."}</p>
+                    <p className="text-sm text-muted-foreground">{expiredOrNone && payment ? "O PIX anterior expirou ou foi cancelado." : `Clique abaixo para gerar seu PIX de ${finalLabel}.`}</p>
                     <Button onClick={() => generatePix(false)} disabled={creating} className="mt-4">
                       {creating ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1.5 h-3.5 w-3.5" />}
-                      gerar PIX de R$ 200
+                      gerar PIX de {finalLabel}
                     </Button>
                   </div>
                 )}

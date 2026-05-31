@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Clock, ShieldAlert } from "lucide-react";
 import { ActivationWelcome } from "./ActivationWelcome";
 import type { ActivationStatus } from "@/hooks/useActivation";
+import { useActivationPricing, formatBRL } from "@/hooks/useActivationPricing";
 
 interface Props {
   status: ActivationStatus;
@@ -11,6 +12,12 @@ interface Props {
 
 export function ActivationBanner({ status }: Props) {
   const [open, setOpen] = useState(false);
+  const pricing = useActivationPricing();
+  const finalLabel = pricing ? formatBRL(pricing.finalPriceCents) : "R$ 200";
+  const baseLabel = pricing ? formatBRL(pricing.basePriceCents) : "R$ 200";
+  const promoTitle = pricing?.hasDiscount
+    ? `Promo: ative por ${finalLabel} (de ${baseLabel})`
+    : `Ative seu painel de revendedor — ${finalLabel}`;
 
   const config =
     status === "payment_under_review"
@@ -35,7 +42,7 @@ export function ActivationBanner({ status }: Props) {
             icon: Sparkles,
             tone: "border-primary/40 bg-primary/10 text-primary-foreground",
             dot: "bg-primary",
-            title: "Ative seu painel de revendedor — R$ 200",
+            title: promoTitle,
             desc: "Você está em modo prévia. Conclua o pagamento para liberar 100% das funcionalidades.",
             cta: "ativar agora",
           };

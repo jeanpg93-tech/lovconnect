@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const MISTIC_BASE = "https://api.misticpay.com/api";
-const ACTIVATION_AMOUNT_CENTS = 20000;
+const ACTIVATION_BASE_CENTS = 20000;
 const PIX_TTL_MINUTES = 30;
 
 function json(body: unknown, status = 200) {
@@ -88,11 +88,31 @@ Deno.serve(async (req) => {
 
     const expiresAt = new Date(Date.now() + PIX_TTL_MINUTES * 60 * 1000).toISOString();
 
+    // Pricing dinâmico com promoção de adesão ativa (se houver)
+    let finalCents = ACTIVATION_BASE_CENTS;
+    let bonusCents = 0;
+    let promotionId: string | null = null;
+    try {
+      const { data: pricing } = await admin.rpc("compute_activation_pricing", { _base_cents: ACTIVATION_BASE_CENTS });
+      const row: any = Array.isArray(pricing) ? pricing[0] : pricing;
+      if (row) {
+        finalCents = Number(row.final_price_cents ?? ACTIVATION_BASE_CENTS);
+        bonusCents = Number(row.bonus_cents ?? 0);
+        promotionId = row.promotion_id ?? null;
+      }
+    } catch (e) {
+      console.warn("compute_activation_pricing fallback:", e);
+    }
+    if (!Number.isFinite(finalCents) || finalCents < 100) finalCents = ACTIVATION_BASE_CENTS;
+
     const { data: intent, error: intentErr } = await admin
       .from("activation_payments")
       .insert({
         reseller_id: reseller.id,
-        amount_cents: ACTIVATION_AMOUNT_CENTS,
+        amount_cents: finalCents,
+        original_amount_cents: ACTIVATION_BASE_CENTS,
+        bonus_cents: bonusCents,
+        promotion_id: promotionId,
         status: "pending",
         provider: "misticpay",
         expires_at: expiresAt,
@@ -114,7 +134,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "Content-Type": "application/json", ci, cs },
       body: JSON.stringify({
-        amount: ACTIVATION_AMOUNT_CENTS / 100,
+        amount: finalCents / 100,
         payerName,
         payerDocument: payerDoc,
         transactionId: intent.id,
@@ -149,7 +169,10 @@ Deno.serve(async (req) => {
       payment_id: intent.id,
       qr_code_base64: d.qrCodeBase64,
       copy_paste: d.copyPaste,
-      amount_cents: ACTIVATION_AMOUNT_CENTS,
+      amount_cents: finalCents,
+      original_amount_cents: ACTIVATION_BASE_CENTS,
+      bonus_cents: bonusCents,
+      promotion_id: promotionId,
       expires_at: expiresAt,
     });
   } catch (e) {
