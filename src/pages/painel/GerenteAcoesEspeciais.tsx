@@ -490,6 +490,10 @@ function PromoValues({ p, compact, big }: { p: Promotion; compact?: boolean; big
   if (p.extension_discount_pct != null) items.push({ icon: <Tag className={sz} />, label: "Extensões", value: `-${p.extension_discount_pct}%` });
   if (p.credit_discount_pct != null) items.push({ icon: <Zap className={sz} />, label: "Recargas de Créditos", value: `-${p.credit_discount_pct}%` });
   if (p.recharge_bonus_pct != null) items.push({ icon: <Gift className={sz} />, label: "Bônus de Saldo", value: `+${p.recharge_bonus_pct}%` });
+  if (p.activation_discount_pct != null) items.push({ icon: <Rocket className={sz} />, label: "Adesão", value: `-${p.activation_discount_pct}%` });
+  if (p.activation_discount_cents != null) items.push({ icon: <Rocket className={sz} />, label: "Adesão", value: `-${fmtBRL(p.activation_discount_cents)}` });
+  if (p.activation_fixed_price_cents != null) items.push({ icon: <Rocket className={sz} />, label: "Adesão por", value: fmtBRL(p.activation_fixed_price_cents) });
+  if (p.activation_bonus_cents != null && p.activation_bonus_cents > 0) items.push({ icon: <Gift className={sz} />, label: "Bônus na adesão", value: `+${fmtBRL(p.activation_bonus_cents)}` });
   if (items.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2">
