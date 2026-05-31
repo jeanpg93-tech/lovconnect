@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type ProviderCommitments = {
@@ -17,6 +17,7 @@ export type ProviderCommitments = {
  * comprometidos em packs (créditos comprados mas ainda não usados).
  */
 export function useProviderCommitments(enabled: boolean = true): ProviderCommitments {
+  const channelIdRef = useRef(Math.random().toString(36).slice(2));
   const [committed, setCommitted] = useState(0);
   const [flowRemaining, setFlowRemaining] = useState<number>(0);
   const [lovaxRemaining, setLovaxRemaining] = useState<number>(0);
@@ -64,12 +65,15 @@ export function useProviderCommitments(enabled: boolean = true): ProviderCommitm
   };
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     (async () => { if (!cancelled) await load(); })();
     const id = setInterval(() => { if (!cancelled) load(); }, 60_000);
     const ch = supabase
-      .channel("pack-commitments")
+      .channel(`pack-commitments-${channelIdRef.current}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "reseller_pack_balances" }, () => load())
       .subscribe();
     return () => { cancelled = true; clearInterval(id); supabase.removeChannel(ch); };
