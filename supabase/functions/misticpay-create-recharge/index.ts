@@ -39,12 +39,26 @@ Deno.serve(async (req) => {
 
     const { data: reseller } = await admin
       .from("resellers")
-      .select("id, display_name, activation_status")
+      .select("id, display_name, activation_status, is_demo")
       .eq("user_id", userId)
       .maybeSingle();
     if (!reseller) return json({ error: "Apenas revendedores podem recarregar" }, 403);
     if ((reseller as any).activation_status && (reseller as any).activation_status !== "active") {
       return json({ error: "Painel não ativado. Conclua o pagamento de R$ 200 para liberar.", reason: "activation_required" }, 403);
+    }
+
+    // DEMO GUARD — conta demo recebe PIX falso (não cria intent real nem chama MisticPay)
+    if ((reseller as any).is_demo) {
+      const fakeTxId = `DEMO-${crypto.randomUUID()}`;
+      return json({
+        intent_id: fakeTxId,
+        provider_transaction_id: fakeTxId,
+        qr_code_base64: null,
+        copy_paste: "DEMO-PIX-NAO-PAGUE-CONTA-DE-DEMONSTRACAO",
+        amount_cents: amountCents,
+        bonus_cents: 0,
+        demo: true,
+      });
     }
 
     // Observação: o modo manutenção das "recargas" refere-se à COMPRA DE CRÉDITOS
