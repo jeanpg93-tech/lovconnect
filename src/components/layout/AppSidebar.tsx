@@ -66,6 +66,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import { useProviderCommitments } from "@/hooks/useProviderCommitments";
+import { useTranslation } from "react-i18next";
 
 type Item = { title: string; url: string; icon: any; badge?: "store-status" };
 type Group = { label: string; items: Item[] };
@@ -175,6 +176,9 @@ export function AppSidebar() {
   const { pathname } = useLocation();
   const { primaryRole, loading, hasData, isSubscription, isPack } = useRole();
   const { signOut, user } = useAuth();
+  const { t } = useTranslation();
+  const tItem = (s: string) => t(`sidebar.items.${s}`, { defaultValue: s });
+  const tGroup = (s: string) => t(`sidebar.groups.${s}`, { defaultValue: s });
 
   const [openGroups, setOpenGroups] = useState<string[]>(["Visão geral", "Painel", "Vender", "Operação", "Mensalidade", "Pacote"]);
   
