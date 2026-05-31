@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
+import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
 import { ArrowLeft, Plus, Loader2, Copy, Ban, CheckCircle2, QrCode, Calendar, Repeat, Pause, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ type Reseller = {
   billing_mode: string | null;
   subscription_blocked: boolean | null;
   subscription_onboarding_completed: boolean | null;
+  subscription_sales_disabled: boolean | null;
 };
 
 type Charge = {
@@ -105,7 +107,7 @@ export default function GerenteRevendedorMensalidade() {
     if (!id) return;
     setLoading(true);
     const [{ data: r }, { data: c }, { data: rec }] = await Promise.all([
-      supabase.from("resellers").select("id, display_name, user_id, billing_mode, subscription_blocked, subscription_onboarding_completed").eq("id", id).maybeSingle(),
+      supabase.from("resellers").select("id, display_name, user_id, billing_mode, subscription_blocked, subscription_onboarding_completed, subscription_sales_disabled").eq("id", id).maybeSingle(),
       supabase.from("reseller_subscription_charges").select("*").eq("reseller_id", id).order("created_at", { ascending: false }),
       supabase.from("reseller_subscription_recurrences").select("*").eq("reseller_id", id).order("created_at", { ascending: false }),
     ]);
@@ -189,6 +191,21 @@ export default function GerenteRevendedorMensalidade() {
       setReseller({ ...reseller, ...patch });
     }
     setSavingMode(false);
+  };
+
+  const [togglingSales, setTogglingSales] = useState(false);
+  const toggleSalesDisabled = async () => {
+    if (!reseller) return;
+    const next = !reseller.subscription_sales_disabled;
+    if (next && !confirm("Desativar as vendas deste mensalista? Ele verá um aviso de vendas suspensas.")) return;
+    setTogglingSales(true);
+    const { error } = await supabase.from("resellers")
+      .update({ subscription_sales_disabled: next })
+      .eq("id", reseller.id);
+    setTogglingSales(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "Vendas desativadas" : "Vendas reativadas");
+    setReseller({ ...reseller, subscription_sales_disabled: next });
   };
 
   const submitCharge = async () => {
@@ -297,6 +314,33 @@ export default function GerenteRevendedorMensalidade() {
               <Switch checked={isSubscription} onCheckedChange={toggleBillingMode} disabled={savingMode} />
             </div>
           </div>
+
+          {/* Toggle de vendas (status on/off) */}
+          {isSubscription && (
+            <div className="rounded-2xl border border-border bg-card/60 p-4 md:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex-1 min-w-0 space-y-2">
+                <SalesStatusBadge
+                  variant={reseller.subscription_sales_disabled ? "manager_disabled" : "active"}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Use este botão para suspender ou liberar as vendas deste revendedor. Quando desativado, ele verá um aviso no painel e não conseguirá gerar chaves.
+                </p>
+              </div>
+              <Button
+                variant={reseller.subscription_sales_disabled ? "default" : "destructive"}
+                onClick={toggleSalesDisabled}
+                disabled={togglingSales}
+                className="gap-2 shrink-0"
+              >
+                {togglingSales && <Loader2 className="h-4 w-4 animate-spin" />}
+                {reseller.subscription_sales_disabled ? (
+                  <><Play className="h-4 w-4" /> Ativar vendas</>
+                ) : (
+                  <><Ban className="h-4 w-4" /> Desativar vendas</>
+                )}
+              </Button>
+            </div>
+          )}
 
           {/* KPIs */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

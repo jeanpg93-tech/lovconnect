@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
+import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ArrowLeft, Plus, Minus, Package, TrendingDown, ShoppingBag } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Minus, Package, TrendingDown, ShoppingBag, Ban, Play } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +24,7 @@ const formatDateTime = (s: string | null) => {
   try { return new Date(s).toLocaleString("pt-BR"); } catch { return s; }
 };
 
-type Reseller = { id: string; display_name: string; user_id: string; billing_mode: string | null };
+type Reseller = { id: string; display_name: string; user_id: string; billing_mode: string | null; pack_sales_disabled: boolean | null };
 type Balance = { credits: number };
 type Purchase = {
   id: string; pack_name: string | null; credits: number; price_cents: number;
@@ -63,12 +64,13 @@ export default function GerenteRevendedorPacote() {
   const [debitDesc, setDebitDesc] = useState("");
   const [busy, setBusy] = useState(false);
   const [savingMode, setSavingMode] = useState(false);
+  const [togglingSales, setTogglingSales] = useState(false);
 
   const load = async () => {
     if (!id) return;
     setLoading(true);
     const [r, b, p, l] = await Promise.all([
-      supabase.from("resellers").select("id, display_name, user_id, billing_mode").eq("id", id).maybeSingle(),
+      supabase.from("resellers").select("id, display_name, user_id, billing_mode, pack_sales_disabled").eq("id", id).maybeSingle(),
       supabase.from("reseller_pack_balances" as any).select("credits").eq("reseller_id", id).maybeSingle(),
       supabase.from("reseller_pack_purchases" as any).select("*").eq("reseller_id", id).order("created_at", { ascending: false }).limit(50),
       supabase.from("reseller_pack_ledger" as any).select("*").eq("reseller_id", id).order("created_at", { ascending: false }).limit(100),
@@ -121,6 +123,20 @@ export default function GerenteRevendedorPacote() {
     toast.success(`-${debitQty} licenças`);
     setDebitDesc("");
     load();
+  };
+
+  const toggleSalesDisabled = async () => {
+    if (!reseller) return;
+    const next = !reseller.pack_sales_disabled;
+    if (next && !confirm("Desativar as vendas deste revendedor Pack? Ele verá um aviso no Dashboard.")) return;
+    setTogglingSales(true);
+    const { error } = await supabase.from("resellers")
+      .update({ pack_sales_disabled: next })
+      .eq("id", reseller.id);
+    setTogglingSales(false);
+    if (error) { toast.error((error as any).message ?? "Falha"); return; }
+    toast.success(next ? "Vendas desativadas" : "Vendas reativadas");
+    setReseller({ ...reseller, pack_sales_disabled: next });
   };
 
   if (loading) {
@@ -176,6 +192,32 @@ export default function GerenteRevendedorPacote() {
           </div>
         );
       })()}
+
+      {reseller.billing_mode === "pack" && (
+        <div className="mt-6 rounded-2xl border border-border bg-card/60 p-4 md:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex-1 min-w-0 space-y-2">
+            <SalesStatusBadge
+              variant={reseller.pack_sales_disabled ? "manager_disabled" : "active"}
+            />
+            <p className="text-xs text-muted-foreground">
+              Suspenda ou libere as vendas Pack deste revendedor. Quando desativado, ele verá um aviso no Dashboard.
+            </p>
+          </div>
+          <Button
+            variant={reseller.pack_sales_disabled ? "default" : "destructive"}
+            onClick={toggleSalesDisabled}
+            disabled={togglingSales}
+            className="gap-2 shrink-0"
+          >
+            {togglingSales && <Loader2 className="h-4 w-4 animate-spin" />}
+            {reseller.pack_sales_disabled ? (
+              <><Play className="h-4 w-4" /> Ativar vendas</>
+            ) : (
+              <><Ban className="h-4 w-4" /> Desativar vendas</>
+            )}
+          </Button>
+        </div>
+      )}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr,1fr]">
         {/* Modo */}
