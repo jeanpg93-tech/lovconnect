@@ -34,6 +34,7 @@ const TYPES: TypeDef[] = [
 ];
 
 export default function RevendedorGerarChave() {
+  const { t } = useTranslation();
   const { isSubscription, isPack, packCredits } = useRole();
   const [activeMethod, setActiveMethod] = useState<"flow" | "lovax" | null>(null);
   const [genType, setGenType] = useState<TypeDef["key"]>("30d");
@@ -180,8 +181,8 @@ export default function RevendedorGerarChave() {
   return (
     <PageContainer>
       <PageHeader
-        title="Gerar Chave"
-        description="Crie uma chave de extensão na hora — sem custo adicional"
+        title={t("generateKey.title")}
+        description={t("generateKey.subtitle")}
       />
       <PackLowBalanceBanner />
 
