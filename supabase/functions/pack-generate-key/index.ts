@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
           return json({ error: "MétodoLovax não configurado pelo gerente" }, 500);
         }
         const payload: Record<string, unknown> = isTrial
-          ? { days: 0, hours: 0, minutes: 30, max_devices: 1 }
+          ? { days: 0, hours: 0, minutes: 15, max_devices: 1 }
           : { customer_name: display_name, days: packToDays(type), hours: 0, minutes: 0, max_devices: 1 };
         const r = await fetch(bs, {
           method: "POST",

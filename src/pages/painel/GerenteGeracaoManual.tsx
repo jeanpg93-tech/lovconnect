@@ -197,7 +197,7 @@ export default function GerenteGeracaoManual() {
       if (method === "lovax") {
         // lovax-api expects days/minutes, not type
         if (isTrial) {
-          body.minutes = 30;
+          body.minutes = 15;
         } else {
           body.days = LOVAX_DAYS[genType] ?? 30;
         }
