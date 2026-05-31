@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
+import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
 import { ArrowLeft, Plus, Loader2, Copy, Ban, CheckCircle2, QrCode, Calendar, Repeat, Pause, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -190,6 +191,21 @@ export default function GerenteRevendedorMensalidade() {
       setReseller({ ...reseller, ...patch });
     }
     setSavingMode(false);
+  };
+
+  const [togglingSales, setTogglingSales] = useState(false);
+  const toggleSalesDisabled = async () => {
+    if (!reseller) return;
+    const next = !reseller.subscription_sales_disabled;
+    if (next && !confirm("Desativar as vendas deste mensalista? Ele verá um aviso de vendas suspensas.")) return;
+    setTogglingSales(true);
+    const { error } = await supabase.from("resellers")
+      .update({ subscription_sales_disabled: next })
+      .eq("id", reseller.id);
+    setTogglingSales(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "Vendas desativadas" : "Vendas reativadas");
+    setReseller({ ...reseller, subscription_sales_disabled: next });
   };
 
   const submitCharge = async () => {
