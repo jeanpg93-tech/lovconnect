@@ -873,6 +873,30 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
               <DateTimeField value={endsAt} onChange={setEndsAt} />
             )}
           </div>
+
+          <Separator />
+          <PromotionSummary
+            name={name}
+            useExt={useExt} extPct={extPct}
+            useCred={useCred} credPct={credPct}
+            useBonus={useBonus} bonusPct={bonusPct}
+            useActivation={useActivation}
+            activationMode={activationMode}
+            activationPct={activationPct}
+            activationDiscountReais={activationDiscountReais}
+            activationFixedReais={activationFixedReais}
+            useActivationBonus={useActivationBonus}
+            activationBonusReais={activationBonusReais}
+            usePromoteTier={usePromoteTier}
+            promoteTierId={promoteTierId}
+            tiers={tiers}
+            useReferralExtra={useReferralExtra}
+            referralExtraPct={referralExtraPct}
+            startMode={startMode}
+            startsAt={startsAt}
+            endMode={endMode}
+            endsAt={endsAt}
+          />
         </div>
 
         <DialogFooter className="gap-2 flex-wrap">
