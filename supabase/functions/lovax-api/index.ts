@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
       const body = await req.json().catch(() => ({}));
       const r = await callTs("generate_trial", {
         customer_name: body.display_name || body.customer_name || "Cliente Trial",
-        email: body.email ?? null, minutes: body.minutes ?? 30, max_devices: body.max_devices ?? 1,
+        email: body.email ?? null, minutes: body.minutes ?? 15, max_devices: body.max_devices ?? 1,
       });
       if (!r.ok || !r.data?.success) return json({ error: r.data?.error ?? `HTTP ${r.status}` }, 502);
       return json(r.data, 200);
