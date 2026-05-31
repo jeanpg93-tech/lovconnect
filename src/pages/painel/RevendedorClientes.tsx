@@ -17,7 +17,8 @@ type Extension = { id: string; name: string };
 
 export default function RevendedorClientes() {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.resolvedLanguage?.startsWith("en") ? "en-US" : "pt-BR";
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +94,7 @@ export default function RevendedorClientes() {
                   <td className="px-4 py-3 font-medium">{c.display_name ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.email}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(c.created_at).toLocaleDateString(t("common.loading") === "Loading…" ? "en-US" : "pt-BR")}
+                    {new Date(c.created_at).toLocaleDateString(dateLocale)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Button size="sm" variant="ghost" onClick={() => openConcede(c)}>
