@@ -43,12 +43,14 @@ export default function GerenteAprovacoes() {
       .select("id,email,display_name,affiliate_code_used,approval_status,created_at")
       .order("created_at", { ascending: false });
     if (filter !== "all") q = q.eq("approval_status", filter);
-    const [{ data, error }, allCounts] = await Promise.all([
+    const [{ data, error }, allCounts, demoRows] = await Promise.all([
       q,
       supabase.from("profiles").select("approval_status"),
+      supabase.from("resellers").select("user_id").eq("is_demo", true),
     ]);
     if (error) toast.error(error.message);
-    const list = (data ?? []) as Pending[];
+    const demoIds = new Set(((demoRows.data ?? []) as any[]).map((r) => r.user_id));
+    const list = ((data ?? []) as Pending[]).filter((p) => !demoIds.has(p.id));
     setRows(list);
 
     // Carrega informações de quem indicou
@@ -89,12 +91,17 @@ export default function GerenteAprovacoes() {
       setReferrers({});
     }
 
-    const all = allCounts.data ?? [];
+    const all = (allCounts.data ?? []).filter((_: any, i: number) => true);
+    // Recount excluding demo accounts
+    const { data: allProfiles } = await supabase
+      .from("profiles")
+      .select("id,approval_status");
+    const allFiltered = (allProfiles ?? []).filter((p: any) => !demoIds.has(p.id));
     setCounts({
-      total: all.length,
-      pending: all.filter((p: any) => p.approval_status === "pending").length,
-      approved: all.filter((p: any) => p.approval_status === "approved").length,
-      rejected: all.filter((p: any) => p.approval_status === "rejected").length,
+      total: allFiltered.length,
+      pending: allFiltered.filter((p: any) => p.approval_status === "pending").length,
+      approved: allFiltered.filter((p: any) => p.approval_status === "approved").length,
+      rejected: allFiltered.filter((p: any) => p.approval_status === "rejected").length,
     });
     setLoading(false);
   };
