@@ -555,6 +555,14 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
   const [extPct, setExtPct] = useState(10);
   const [credPct, setCredPct] = useState(10);
   const [bonusPct, setBonusPct] = useState(10);
+  // Promo de adesão
+  const [useActivation, setUseActivation] = useState(false);
+  const [activationMode, setActivationMode] = useState<"pct" | "amount" | "fixed">("pct");
+  const [activationPct, setActivationPct] = useState(50);
+  const [activationDiscountReais, setActivationDiscountReais] = useState(100); // R$
+  const [activationFixedReais, setActivationFixedReais] = useState(100); // R$
+  const [useActivationBonus, setUseActivationBonus] = useState(false);
+  const [activationBonusReais, setActivationBonusReais] = useState(50); // R$
   const [startMode, setStartMode] = useState<"now" | "schedule">("now");
   const [endMode, setEndMode] = useState<"none" | "schedule">("none");
   const [startsAt, setStartsAt] = useState("");
@@ -572,6 +580,25 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
         if (editing.extension_discount_pct != null) setExtPct(Number(editing.extension_discount_pct));
         if (editing.credit_discount_pct != null) setCredPct(Number(editing.credit_discount_pct));
         if (editing.recharge_bonus_pct != null) setBonusPct(Number(editing.recharge_bonus_pct));
+        const hasActivation =
+          editing.activation_discount_pct != null ||
+          editing.activation_discount_cents != null ||
+          editing.activation_fixed_price_cents != null;
+        setUseActivation(hasActivation);
+        if (editing.activation_discount_pct != null) {
+          setActivationMode("pct");
+          setActivationPct(Number(editing.activation_discount_pct));
+        } else if (editing.activation_discount_cents != null) {
+          setActivationMode("amount");
+          setActivationDiscountReais(Number(editing.activation_discount_cents) / 100);
+        } else if (editing.activation_fixed_price_cents != null) {
+          setActivationMode("fixed");
+          setActivationFixedReais(Number(editing.activation_fixed_price_cents) / 100);
+        }
+        setUseActivationBonus(editing.activation_bonus_cents != null && editing.activation_bonus_cents > 0);
+        if (editing.activation_bonus_cents != null) {
+          setActivationBonusReais(Number(editing.activation_bonus_cents) / 100);
+        }
         setStartMode(editing.starts_at ? "schedule" : "now");
         setEndMode(editing.ends_at ? "schedule" : "none");
         setStartsAt(toLocalInputValue(editing.starts_at));
@@ -580,6 +607,13 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
         setName(""); setDescription("");
         setUseExt(false); setUseCred(false); setUseBonus(false);
         setExtPct(10); setCredPct(10); setBonusPct(10);
+        setUseActivation(false);
+        setActivationMode("pct");
+        setActivationPct(50);
+        setActivationDiscountReais(100);
+        setActivationFixedReais(100);
+        setUseActivationBonus(false);
+        setActivationBonusReais(50);
         setStartMode("now"); setEndMode("none");
         setStartsAt(""); setEndsAt("");
       }
@@ -588,7 +622,9 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
 
   async function handleSave(activateNow: boolean) {
     if (!name.trim()) { toast.error("Dê um nome para a promoção"); return; }
-    if (!useExt && !useCred && !useBonus) { toast.error("Selecione pelo menos um desconto/bônus"); return; }
+    if (!useExt && !useCred && !useBonus && !useActivation && !useActivationBonus) {
+      toast.error("Selecione pelo menos um desconto/bônus"); return;
+    }
 
     const starts_at = startMode === "schedule" ? fromLocalInputValue(startsAt) : null;
     const ends_at = endMode === "schedule" ? fromLocalInputValue(endsAt) : null;
@@ -606,6 +642,10 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
       extension_discount_pct: useExt ? extPct : null,
       credit_discount_pct: useCred ? credPct : null,
       recharge_bonus_pct: useBonus ? bonusPct : null,
+      activation_discount_pct:      useActivation && activationMode === "pct"    ? activationPct                                     : null,
+      activation_discount_cents:    useActivation && activationMode === "amount" ? Math.round(activationDiscountReais * 100)         : null,
+      activation_fixed_price_cents: useActivation && activationMode === "fixed"  ? Math.round(activationFixedReais * 100)            : null,
+      activation_bonus_cents:       useActivationBonus                            ? Math.round(activationBonusReais * 100)           : null,
       starts_at,
       ends_at,
       status: willActivate ? "active" : "scheduled",
