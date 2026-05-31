@@ -69,7 +69,7 @@ export default function GerenteRevendedorPacote() {
     if (!id) return;
     setLoading(true);
     const [r, b, p, l] = await Promise.all([
-      supabase.from("resellers").select("id, display_name, user_id, billing_mode").eq("id", id).maybeSingle(),
+      supabase.from("resellers").select("id, display_name, user_id, billing_mode, pack_sales_disabled").eq("id", id).maybeSingle(),
       supabase.from("reseller_pack_balances" as any).select("credits").eq("reseller_id", id).maybeSingle(),
       supabase.from("reseller_pack_purchases" as any).select("*").eq("reseller_id", id).order("created_at", { ascending: false }).limit(50),
       supabase.from("reseller_pack_ledger" as any).select("*").eq("reseller_id", id).order("created_at", { ascending: false }).limit(100),
