@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
+import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ArrowLeft, Plus, Minus, Package, TrendingDown, ShoppingBag } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Minus, Package, TrendingDown, ShoppingBag, Ban, Play } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
