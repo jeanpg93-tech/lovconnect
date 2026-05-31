@@ -16,6 +16,7 @@ import {
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
 import { ArrowLeft, Plus, Loader2, Copy, Ban, CheckCircle2, QrCode, Calendar, Repeat, Pause, Play, Trash2 } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +53,15 @@ type Recurrence = {
   is_active: boolean; next_generation_date: string | null;
 };
 
+type BlockedAttempt = {
+  id: string;
+  attempt_type: string;
+  endpoint: string;
+  reason: string;
+  metadata: any;
+  created_at: string;
+};
+
 const statusBadge = (status: string) => {
   const map: Record<string, { label: string; cls: string }> = {
     pending: { label: "Pendente", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
@@ -77,6 +87,7 @@ export default function GerenteRevendedorMensalidade() {
   const [reseller, setReseller] = useState<Reseller | null>(null);
   const [charges, setCharges] = useState<Charge[]>([]);
   const [recurrences, setRecurrences] = useState<Recurrence[]>([]);
+  const [blockedAttempts, setBlockedAttempts] = useState<BlockedAttempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingMode, setSavingMode] = useState(false);
 
@@ -106,14 +117,16 @@ export default function GerenteRevendedorMensalidade() {
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [{ data: r }, { data: c }, { data: rec }] = await Promise.all([
+    const [{ data: r }, { data: c }, { data: rec }, { data: blocked }] = await Promise.all([
       supabase.from("resellers").select("id, display_name, user_id, billing_mode, subscription_blocked, subscription_onboarding_completed, subscription_sales_disabled").eq("id", id).maybeSingle(),
       supabase.from("reseller_subscription_charges").select("*").eq("reseller_id", id).order("created_at", { ascending: false }),
       supabase.from("reseller_subscription_recurrences").select("*").eq("reseller_id", id).order("created_at", { ascending: false }),
+      supabase.from("blocked_sale_attempts").select("*").eq("reseller_id", id).order("created_at", { ascending: false }).limit(200),
     ]);
     setReseller(r as any);
     setCharges((c ?? []) as any);
     setRecurrences((rec ?? []) as any);
+    setBlockedAttempts((blocked ?? []) as any);
     setLoading(false);
   };
 
@@ -126,6 +139,7 @@ export default function GerenteRevendedorMensalidade() {
       .channel(`sub-charges-${id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "reseller_subscription_charges", filter: `reseller_id=eq.${id}` }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "reseller_subscription_recurrences", filter: `reseller_id=eq.${id}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "blocked_sale_attempts", filter: `reseller_id=eq.${id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
