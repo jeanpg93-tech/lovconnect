@@ -58,7 +58,7 @@ type Pack = { license_type: string; price_cents: number; extension_id?: string |
 type Recharge = { id: string; credits_amount: number; price_cents: number };
 
 const FALLBACK_LABEL: Record<string, string> = {
-  trial: "Chave Teste (30min)",
+  trial: "Chave Teste (15min)",
   "1d": "1 dia",
   "7d": "7 dias",
   "30d": "30 dias",
@@ -654,7 +654,7 @@ export default function PublicStorefront() {
                       ? `${order.credit_amount ?? ""} recargas foram registradas. Acesse o link abaixo para acompanhar a entrega.`
                       : order.amount_cents > 0
                       ? "Sua chave foi gerada e enviada no seu WhatsApp."
-                      : "Copie sua chave abaixo. Ela tem validade de 30 minutos."}
+                      : "Copie sua chave abaixo. Ela tem validade de 15 minutos."}
                   </p>
                   {order.product_type === "credits" && inviteLink && (
                     <div className="space-y-2">

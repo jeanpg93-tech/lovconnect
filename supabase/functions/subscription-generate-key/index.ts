@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
           return json({ error: "MétodoLovax não configurado pelo gerente" }, 500);
         }
         const payload: Record<string, unknown> = isTrial
-          ? { days: 0, hours: 0, minutes: 30, max_devices: 1 }
+          ? { days: 0, hours: 0, minutes: 15, max_devices: 1 }
           : { customer_name: display_name, days: packToDays(type), hours: 0, minutes: 0, max_devices: 1 };
         const r = await fetch(bs, {
           method: "POST",
@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
         }
         const path = isTrial ? "/generate-trial" : "/generate-license";
         const bodyOut: Record<string, unknown> = isTrial
-          ? {}
+          ? { display_name, minutes: 15, seconds: 0 }
           : { display_name, ...(type === "lifetime" ? { lifetime: true } : { days: packToDays(type) }) };
         const r = await fetch(`${base}${path}`, {
           method: "POST",

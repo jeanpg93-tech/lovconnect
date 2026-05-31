@@ -385,7 +385,7 @@ Deno.serve(async (req) => {
     try {
       const endpoint = is_test ? `${base}/generate-trial` : `${base}/generate-license`;
       const payload: Record<string, unknown> = is_test
-        ? { display_name: final_display_name, minutes: 30, seconds: 0, ...(method ? { method, extension: method } : {}) }
+        ? { display_name: final_display_name, minutes: 15, seconds: 0, ...(method ? { method, extension: method } : {}) }
         : { ...mapTypeToProviderBody(license_type), display_name: final_display_name };
       const r = await fetch(endpoint, {
         method: "POST",

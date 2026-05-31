@@ -50,7 +50,7 @@ type Usage = {
 };
 
 const TYPE_LABEL: Record<string, string> = {
-  trial: "Teste 30min (grátis)",
+  trial: "Teste 15min (grátis)",
   active: "Licença normal",
   lifetime: "Vitalícia",
   pro_1d: "1 Dia",
@@ -305,8 +305,8 @@ export default function GerenteApiProvedor() {
             />
 
             <DocBlock
-              title="POST /generate-trial — licença teste (máx. 30 min, não consome)"
-              body={`curl -X POST https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api/generate-trial \\\n  -H "x-api-token: rsl_seu_token_aqui" \\\n  -H "Content-Type: application/json" \\\n  -d '{"display_name":"Cliente Teste","minutes":30,"seconds":0}'`}
+              title="POST /generate-trial — licença teste (15 min, não consome)"
+              body={`curl -X POST https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api/generate-trial \\\n  -H "x-api-token: rsl_seu_token_aqui" \\\n  -H "Content-Type: application/json" \\\n  -d '{"display_name":"Cliente Teste","minutes":15,"seconds":0}'`}
             />
 
             <DocBlock
