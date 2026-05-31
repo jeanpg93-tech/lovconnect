@@ -125,6 +125,20 @@ export default function GerenteRevendedorPacote() {
     load();
   };
 
+  const toggleSalesDisabled = async () => {
+    if (!reseller) return;
+    const next = !reseller.pack_sales_disabled;
+    if (next && !confirm("Desativar as vendas deste revendedor Pack? Ele verá um aviso no Dashboard.")) return;
+    setTogglingSales(true);
+    const { error } = await supabase.from("resellers")
+      .update({ pack_sales_disabled: next })
+      .eq("id", reseller.id);
+    setTogglingSales(false);
+    if (error) { toast.error((error as any).message ?? "Falha"); return; }
+    toast.success(next ? "Vendas desativadas" : "Vendas reativadas");
+    setReseller({ ...reseller, pack_sales_disabled: next });
+  };
+
   if (loading) {
     return (
       <PageContainer><div className="flex justify-center py-20"><Loader2 className="h-5 w-5 animate-spin" /></div></PageContainer>
