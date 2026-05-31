@@ -712,6 +712,76 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
 
           <Separator />
           <div className="space-y-3">
+            <div>
+              <Label className="flex items-center gap-2">
+                <Rocket className="h-4 w-4 text-primary" /> Promoção de adesão (novos revendedores)
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Preço normal da adesão ao painel: <span className="font-medium text-foreground">R$ 200,00</span>.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Switch checked={useActivation} onCheckedChange={setUseActivation} />
+              <Label className="flex-1 text-sm leading-tight">Aplicar desconto na adesão</Label>
+            </div>
+
+            {useActivation && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
+                <div className="flex flex-wrap gap-1.5">
+                  <Button type="button" size="sm" variant={activationMode === "pct" ? "default" : "outline"} onClick={() => setActivationMode("pct")}>Percentual</Button>
+                  <Button type="button" size="sm" variant={activationMode === "amount" ? "default" : "outline"} onClick={() => setActivationMode("amount")}>Desconto em R$</Button>
+                  <Button type="button" size="sm" variant={activationMode === "fixed" ? "default" : "outline"} onClick={() => setActivationMode("fixed")}>Preço fixo</Button>
+                </div>
+
+                {activationMode === "pct" && (
+                  <div className="flex items-center gap-2">
+                    <Label className="flex-1 text-sm">Desconto sobre R$ 200,00</Label>
+                    <Input type="number" min={0} max={100} value={activationPct} onChange={(e) => setActivationPct(Number(e.target.value))} className="w-24" />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                )}
+                {activationMode === "amount" && (
+                  <div className="flex items-center gap-2">
+                    <Label className="flex-1 text-sm">Desconto fixo</Label>
+                    <span className="text-sm text-muted-foreground">R$</span>
+                    <Input type="number" min={0} step="0.01" value={activationDiscountReais} onChange={(e) => setActivationDiscountReais(Number(e.target.value))} className="w-28" />
+                  </div>
+                )}
+                {activationMode === "fixed" && (
+                  <div className="flex items-center gap-2">
+                    <Label className="flex-1 text-sm">Preço promocional</Label>
+                    <span className="text-sm text-muted-foreground">R$</span>
+                    <Input type="number" min={0} step="0.01" value={activationFixedReais} onChange={(e) => setActivationFixedReais(Number(e.target.value))} className="w-28" />
+                  </div>
+                )}
+
+                <div className="text-xs text-muted-foreground pt-1 border-t border-border/50">
+                  Revendedor pagará: <span className="font-semibold text-foreground">
+                    {fmtBRL(
+                      activationMode === "fixed"
+                        ? Math.round(activationFixedReais * 100)
+                        : activationMode === "pct"
+                          ? Math.max(0, 20000 - Math.round(20000 * activationPct / 100))
+                          : Math.max(0, 20000 - Math.round(activationDiscountReais * 100))
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3">
+              <Switch checked={useActivationBonus} onCheckedChange={setUseActivationBonus} />
+              <Label className="flex-1 text-sm leading-tight">Bônus de saldo extra na carteira (além do que ele pagar)</Label>
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground">R$</span>
+                <Input type="number" min={0} step="0.01" value={activationBonusReais} disabled={!useActivationBonus} onChange={(e) => setActivationBonusReais(Number(e.target.value))} className="w-24" />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+          <div className="space-y-3">
             <Label>Quando iniciar?</Label>
             <div className="flex gap-2">
               <Button type="button" size="sm" variant={startMode === "now" ? "default" : "outline"} onClick={() => setStartMode("now")}>Agora</Button>
