@@ -5,19 +5,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import RevendedorAdicionarSaldo from "./RevendedorAdicionarSaldo";
 import RevendedorNiveis from "./RevendedorNiveis";
 import RevendedorRanking from "./RevendedorRanking";
+import { useTranslation } from "react-i18next";
 
 const TAB_KEYS = ["saldo", "niveis", "ranking"] as const;
 type TabKey = typeof TAB_KEYS[number];
 
-const TABS: { key: TabKey; label: string; icon: any }[] = [
-  { key: "saldo", label: "Adicionar saldo", icon: Wallet },
-  { key: "niveis", label: "Sequência & Níveis", icon: Crown },
-  { key: "ranking", label: "Ranking", icon: Award },
-];
+const TAB_ICONS: Record<TabKey, any> = { saldo: Wallet, niveis: Crown, ranking: Award };
 
 export default function RevendedorCarteira() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const TABS: { key: TabKey; label: string; short: string; icon: any }[] = [
+    { key: "saldo", label: t("carteira.tabs.balance"), short: t("carteira.tabs.balanceShort"), icon: TAB_ICONS.saldo },
+    { key: "niveis", label: t("carteira.tabs.levels"), short: t("carteira.tabs.levelsShort"), icon: TAB_ICONS.niveis },
+    { key: "ranking", label: t("carteira.tabs.ranking"), short: t("carteira.tabs.rankingShort"), icon: TAB_ICONS.ranking },
+  ];
 
   const initialTab: TabKey = (() => {
     const hash = location.hash.replace("#", "") as TabKey;
@@ -64,14 +67,14 @@ export default function RevendedorCarteira() {
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
               </span>
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
-                Centro Financeiro
+                {t("carteira.badge")}
               </span>
             </div>
             <h1 className="font-display text-3xl md:text-5xl font-bold tracking-tighter leading-[1.05]">
-              Sua <span className="italic text-primary">Carteira</span>
+              {t("carteira.titleA")} <span className="italic text-primary">{t("carteira.titleB")}</span>
             </h1>
             <p className="text-sm md:text-base text-muted-foreground max-w-xl leading-relaxed">
-              Gerencie seu saldo, acompanhe seu nível e veja sua posição no ranking — tudo em um único lugar.
+              {t("carteira.subtitle")}
             </p>
           </div>
         </div>
@@ -91,9 +94,7 @@ export default function RevendedorCarteira() {
                   >
                     <t.icon className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">{t.label}</span>
-                    <span className="sm:hidden">
-                      {t.key === "saldo" ? "Saldo" : t.key === "niveis" ? "Níveis" : "Ranking"}
-                    </span>
+                    <span className="sm:hidden">{t.short}</span>
                   </TabsTrigger>
                 ))}
               </TabsList>
