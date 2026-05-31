@@ -153,6 +153,14 @@ type ActivityItem = {
 export default function RevendedorDashboard() {
   const { user } = useAuth();
   const { status: activationStatus } = useActivation(user?.id);
+  const {
+    isSubscription,
+    isPack,
+    subscriptionSalesDisabled,
+    packSalesDisabled,
+    subscriptionBlocked: roleSubBlocked,
+    packCredits,
+  } = useRole();
   const [loading, setLoading] = useState(true);
   const [resellerId, setResellerId] = useState<string | null>(null);
 
