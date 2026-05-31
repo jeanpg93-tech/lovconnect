@@ -60,6 +60,13 @@ Deno.serve(async (req) => {
 
     const svc = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+    // DEMO GUARD — não envia mensagem real para clientes de conta demo
+    const { data: demoCheck } = await svc
+      .from("resellers").select("is_demo").eq("id", reseller_id).maybeSingle();
+    if ((demoCheck as any)?.is_demo) {
+      return json({ ok: true, demo: true, skipped: "demo_account" });
+    }
+
     const { data: integ } = await svc
       .from("reseller_integrations")
       .select("evolution_enabled, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, connection_status")
