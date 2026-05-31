@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
 
     const { data: reseller } = await svc
       .from("resellers")
-      .select("id,activation_status,billing_mode,subscription_blocked")
+      .select("id,activation_status,billing_mode,subscription_blocked,is_demo")
       .eq("user_id", userId).maybeSingle();
     if (!reseller) return json({ error: "Revendedor não encontrado" }, 404);
     if ((reseller as any).activation_status && (reseller as any).activation_status !== "active") {
@@ -111,6 +111,19 @@ Deno.serve(async (req) => {
       return json({ error: "Painel bloqueado por cobrança em aberto. Pague para liberar.", reason: "subscription_blocked" }, 403);
     }
     const reseller_id = reseller.id as string;
+
+    // DEMO GUARD — conta demo não chama provedor nem debita saldo
+    if ((reseller as any).is_demo) {
+      const demoKey = `DEMO-${method.toUpperCase()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      return json({
+        ok: true,
+        demo: true,
+        method,
+        pack_id,
+        license_key: demoKey,
+        message: "Demo: licença simulada (nenhuma chamada real ao provedor).",
+      });
+    }
 
     const { data: tierData } = await svc.rpc("get_reseller_tier", { _reseller_id: reseller_id });
     const tier = Array.isArray(tierData) ? tierData[0] : tierData;
