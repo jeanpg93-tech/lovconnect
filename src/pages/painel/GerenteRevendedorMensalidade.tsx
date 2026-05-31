@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
-import { ArrowLeft, Plus, Loader2, Copy, Ban, CheckCircle2, QrCode, Calendar, Repeat, Pause, Play, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Copy, Ban, CheckCircle2, QrCode, Calendar, Repeat, Pause, Play, Trash2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +52,15 @@ type Recurrence = {
   is_active: boolean; next_generation_date: string | null;
 };
 
+type BlockedAttempt = {
+  id: string;
+  attempt_type: string;
+  endpoint: string;
+  reason: string;
+  metadata: any;
+  created_at: string;
+};
+
 const statusBadge = (status: string) => {
   const map: Record<string, { label: string; cls: string }> = {
     pending: { label: "Pendente", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
@@ -77,6 +86,7 @@ export default function GerenteRevendedorMensalidade() {
   const [reseller, setReseller] = useState<Reseller | null>(null);
   const [charges, setCharges] = useState<Charge[]>([]);
   const [recurrences, setRecurrences] = useState<Recurrence[]>([]);
+  const [blockedAttempts, setBlockedAttempts] = useState<BlockedAttempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingMode, setSavingMode] = useState(false);
 
@@ -106,14 +116,16 @@ export default function GerenteRevendedorMensalidade() {
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [{ data: r }, { data: c }, { data: rec }] = await Promise.all([
+    const [{ data: r }, { data: c }, { data: rec }, { data: blocked }] = await Promise.all([
       supabase.from("resellers").select("id, display_name, user_id, billing_mode, subscription_blocked, subscription_onboarding_completed, subscription_sales_disabled").eq("id", id).maybeSingle(),
       supabase.from("reseller_subscription_charges").select("*").eq("reseller_id", id).order("created_at", { ascending: false }),
       supabase.from("reseller_subscription_recurrences").select("*").eq("reseller_id", id).order("created_at", { ascending: false }),
+      supabase.from("blocked_sale_attempts").select("*").eq("reseller_id", id).order("created_at", { ascending: false }).limit(200),
     ]);
     setReseller(r as any);
     setCharges((c ?? []) as any);
     setRecurrences((rec ?? []) as any);
+    setBlockedAttempts((blocked ?? []) as any);
     setLoading(false);
   };
 
@@ -126,6 +138,7 @@ export default function GerenteRevendedorMensalidade() {
       .channel(`sub-charges-${id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "reseller_subscription_charges", filter: `reseller_id=eq.${id}` }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "reseller_subscription_recurrences", filter: `reseller_id=eq.${id}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "blocked_sale_attempts", filter: `reseller_id=eq.${id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
@@ -499,6 +512,54 @@ export default function GerenteRevendedorMensalidade() {
                   ))}
                 </div>
               </>
+            )}
+          </div>
+
+          {/* Blocked sale attempts log */}
+          <div className="rounded-2xl border border-border bg-card/60 overflow-hidden">
+            <div className="flex items-center justify-between gap-3 p-4 md:p-6 border-b border-white/5">
+              <div>
+                <h3 className="font-bold text-foreground flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 text-rose-400" /> Tentativas bloqueadas
+                  {blockedAttempts.length > 0 && (
+                    <Badge className="bg-rose-500/15 text-rose-400 border-rose-500/30">{blockedAttempts.length}</Badge>
+                  )}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cada vez que este revendedor tenta gerar uma chave com as vendas pausadas, registramos aqui.
+                </p>
+              </div>
+            </div>
+            {blockedAttempts.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">Nenhuma tentativa bloqueada registrada.</div>
+            ) : (
+              <div className="divide-y divide-white/5 max-h-96 overflow-y-auto">
+                {blockedAttempts.map((a) => {
+                  const meta = a.metadata ?? {};
+                  const parts: string[] = [];
+                  if (meta.method) parts.push(`método: ${meta.method}`);
+                  if (meta.pack_id) parts.push(`pacote: ${meta.pack_id}`);
+                  if (meta.display_name) parts.push(`nome: ${meta.display_name}`);
+                  if (meta.whatsapp) parts.push(`wpp: ${meta.whatsapp}`);
+                  if (meta.via) parts.push(`via: ${meta.via}`);
+                  return (
+                    <div key={a.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className="text-[10px] uppercase">{a.attempt_type}</Badge>
+                          <span className="text-xs font-mono text-muted-foreground/80 truncate">{a.endpoint}</span>
+                        </div>
+                        {parts.length > 0 && (
+                          <p className="text-[11px] text-muted-foreground mt-1 truncate">{parts.join(" · ")}</p>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground shrink-0">
+                        {new Date(a.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>

@@ -84,6 +84,13 @@ Deno.serve(async (req) => {
       return json({ error: "Painel ainda não ativado." }, 403);
     }
     if ((reseller as any).pack_sales_disabled) {
+      await svc.from("blocked_sale_attempts").insert({
+        reseller_id: reseller.id,
+        attempt_type: "pack",
+        endpoint: "pack-generate-key",
+        reason: "sales_disabled",
+        metadata: { pack_id: type, display_name: isTrial ? null : display_name, whatsapp: whatsapp || null },
+      });
       return json({ error: "Vendas pausadas pelo gerente. Entre em contato com o suporte.", reason: "sales_disabled" }, 403);
     }
     const reseller_id = reseller.id as string;

@@ -54,9 +54,23 @@ Deno.serve(async (req) => {
         return json({ error: "Painel bloqueado por cobrança em aberto. Pague para liberar.", reason: "subscription_blocked" }, 403);
       }
       if (r.billing_mode === "subscription" && r.subscription_sales_disabled) {
+        await svc.from("blocked_sale_attempts").insert({
+          reseller_id: reseller.id,
+          attempt_type: "subscription",
+          endpoint: "place-reseller-order",
+          reason: "sales_disabled",
+          metadata: {},
+        });
         return json({ error: "Vendas pausadas pelo gerente. Entre em contato com o suporte.", reason: "sales_disabled" }, 403);
       }
       if (r.billing_mode === "pack" && r.pack_sales_disabled) {
+        await svc.from("blocked_sale_attempts").insert({
+          reseller_id: reseller.id,
+          attempt_type: "pack",
+          endpoint: "place-reseller-order",
+          reason: "sales_disabled",
+          metadata: {},
+        });
         return json({ error: "Vendas pausadas pelo gerente. Entre em contato com o suporte.", reason: "sales_disabled" }, 403);
       }
     }
