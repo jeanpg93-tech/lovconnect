@@ -16,7 +16,7 @@ export type ProviderCommitments = {
  * Calcula no client (gerente): estoque restante por método + créditos
  * comprometidos em packs (créditos comprados mas ainda não usados).
  */
-export function useProviderCommitments(): ProviderCommitments {
+export function useProviderCommitments(enabled: boolean = true): ProviderCommitments {
   const [committed, setCommitted] = useState(0);
   const [flowRemaining, setFlowRemaining] = useState<number>(0);
   const [lovaxRemaining, setLovaxRemaining] = useState<number>(0);
@@ -64,6 +64,7 @@ export function useProviderCommitments(): ProviderCommitments {
   };
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     (async () => { if (!cancelled) await load(); })();
     const id = setInterval(() => { if (!cancelled) load(); }, 60_000);
@@ -73,7 +74,7 @@ export function useProviderCommitments(): ProviderCommitments {
       .subscribe();
     return () => { cancelled = true; clearInterval(id); supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [enabled]);
 
   const totalRemaining = flowRemaining + lovaxRemaining;
   const realAvailable = Number.isFinite(totalRemaining)
