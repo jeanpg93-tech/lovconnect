@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
 
     // DEMO GUARD — gera cobrança fake sem chamar MisticPay
     if ((reseller as any).is_demo) {
-      const fakePayload = `00020126360014BR.GOV.BCB.PIX0114DEMO${charge?.id ?? "DEMO"}5204000053039865802BR5913DEMO RESELLER6009SAO PAULO62070503***6304ABCD`;
+      const fakePayload = `00020126360014BR.GOV.BCB.PIX0114DEMO${crypto.randomUUID().slice(0, 8)}5204000053039865802BR5913DEMO RESELLER6009SAO PAULO62070503***6304ABCD`;
       const { data: demoCharge, error: demoErr } = await admin
         .from("reseller_subscription_charges")
         .insert({
