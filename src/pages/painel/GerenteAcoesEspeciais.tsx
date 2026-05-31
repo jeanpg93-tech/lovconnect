@@ -873,6 +873,30 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
               <DateTimeField value={endsAt} onChange={setEndsAt} />
             )}
           </div>
+
+          <Separator />
+          <PromotionSummary
+            name={name}
+            useExt={useExt} extPct={extPct}
+            useCred={useCred} credPct={credPct}
+            useBonus={useBonus} bonusPct={bonusPct}
+            useActivation={useActivation}
+            activationMode={activationMode}
+            activationPct={activationPct}
+            activationDiscountReais={activationDiscountReais}
+            activationFixedReais={activationFixedReais}
+            useActivationBonus={useActivationBonus}
+            activationBonusReais={activationBonusReais}
+            usePromoteTier={usePromoteTier}
+            promoteTierId={promoteTierId}
+            tiers={tiers}
+            useReferralExtra={useReferralExtra}
+            referralExtraPct={referralExtraPct}
+            startMode={startMode}
+            startsAt={startsAt}
+            endMode={endMode}
+            endsAt={endsAt}
+          />
         </div>
 
         <DialogFooter className="gap-2 flex-wrap">
@@ -968,6 +992,126 @@ function DateTimeField({ value, onChange }: { value: string; onChange: (v: strin
         onChange={(e) => setTime(e.target.value)}
         className="w-28"
       />
+    </div>
+  );
+}
+
+function PromotionSummary(props: {
+  name: string;
+  useExt: boolean; extPct: number;
+  useCred: boolean; credPct: number;
+  useBonus: boolean; bonusPct: number;
+  useActivation: boolean;
+  activationMode: "pct" | "amount" | "fixed";
+  activationPct: number;
+  activationDiscountReais: number;
+  activationFixedReais: number;
+  useActivationBonus: boolean;
+  activationBonusReais: number;
+  usePromoteTier: boolean;
+  promoteTierId: string;
+  tiers: Array<{ id: string; name: string; slug: string; sort_order: number }>;
+  useReferralExtra: boolean;
+  referralExtraPct: number;
+  startMode: "now" | "schedule";
+  startsAt: string;
+  endMode: "none" | "schedule";
+  endsAt: string;
+}) {
+  const items: Array<{ icon: JSX.Element; title: string; desc: string }> = [];
+
+  if (props.useExt) items.push({
+    icon: <Tag className="h-4 w-4 text-fuchsia-500" />,
+    title: `${props.extPct}% OFF em extensões`,
+    desc: "Aplicado automaticamente nas compras de extensões.",
+  });
+  if (props.useCred) items.push({
+    icon: <Zap className="h-4 w-4 text-amber-500" />,
+    title: `${props.credPct}% OFF em recargas de créditos`,
+    desc: "Desconto no valor de cada recarga de créditos.",
+  });
+  if (props.useBonus) items.push({
+    icon: <Gift className="h-4 w-4 text-emerald-500" />,
+    title: `+${props.bonusPct}% de bônus em recargas de saldo`,
+    desc: "Saldo extra creditado no painel a cada recarga.",
+  });
+
+  if (props.useActivation) {
+    const finalCents =
+      props.activationMode === "fixed"
+        ? Math.round(props.activationFixedReais * 100)
+        : props.activationMode === "pct"
+          ? Math.max(0, 20000 - Math.round(20000 * props.activationPct / 100))
+          : Math.max(0, 20000 - Math.round(props.activationDiscountReais * 100));
+    const modeLabel =
+      props.activationMode === "pct" ? `${props.activationPct}% OFF` :
+      props.activationMode === "amount" ? `R$ ${props.activationDiscountReais.toFixed(2)} OFF` :
+      `Preço fixo`;
+    items.push({
+      icon: <Rocket className="h-4 w-4 text-primary" />,
+      title: `Adesão por ${fmtBRL(finalCents)} (${modeLabel})`,
+      desc: "Novos revendedores pagam esse valor para ativar o painel.",
+    });
+  }
+  if (props.useActivationBonus) items.push({
+    icon: <Gift className="h-4 w-4 text-emerald-500" />,
+    title: `+${fmtBRL(Math.round(props.activationBonusReais * 100))} de saldo extra`,
+    desc: "Creditado na carteira do novo revendedor além do valor que ele pagou.",
+  });
+  if (props.usePromoteTier) {
+    const tier = props.tiers.find((t) => t.id === props.promoteTierId);
+    items.push({
+      icon: <Sparkles className="h-4 w-4 text-violet-500" />,
+      title: `Começa no nível ${tier?.name ?? "—"}`,
+      desc: "Piso mínimo. A progressão por gasto continua normal a partir daí.",
+    });
+  }
+  if (props.useReferralExtra) items.push({
+    icon: <Gift className="h-4 w-4 text-emerald-500" />,
+    title: `+${props.referralExtraPct}% extras para o indicador`,
+    desc: "Quem indicou ganha a comissão do nível dele + esses % sobre o valor da adesão.",
+  });
+
+  const startLabel =
+    props.startMode === "now" ? "Inicia: agora ao salvar" :
+    props.startsAt ? `Inicia: ${fmtBR(fromLocalInputValue(props.startsAt))}` : "Inicia: defina a data";
+  const endLabel =
+    props.endMode === "none" ? "Sem data de término" :
+    props.endsAt ? `Termina: ${fmtBR(fromLocalInputValue(props.endsAt))}` : "Termina: defina a data";
+
+  return (
+    <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-primary" />
+        <Label className="text-sm font-semibold">Resumo da promoção</Label>
+      </div>
+      {props.name.trim() && (
+        <div className="text-sm">
+          <span className="text-muted-foreground">Nome: </span>
+          <span className="font-medium">{props.name.trim()}</span>
+        </div>
+      )}
+      {items.length === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          Nenhum benefício selecionado ainda. Ative ao menos um desconto ou bônus acima.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {items.map((it, i) => (
+            <li key={i} className="flex items-start gap-2.5">
+              <div className="mt-0.5 shrink-0">{it.icon}</div>
+              <div className="min-w-0">
+                <div className="text-sm font-medium leading-tight">{it.title}</div>
+                <div className="text-xs text-muted-foreground leading-snug">{it.desc}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="pt-2 border-t border-border/50 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1"><CalendarIcon className="h-3 w-3" />{startLabel}</span>
+        <span className="inline-flex items-center gap-1"><CalendarIcon className="h-3 w-3" />{endLabel}</span>
+      </div>
     </div>
   );
 }
