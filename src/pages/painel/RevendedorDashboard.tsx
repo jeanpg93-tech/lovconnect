@@ -152,6 +152,7 @@ type ActivityItem = {
 };
 
 export default function RevendedorDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { status: activationStatus } = useActivation(user?.id);
   const {
@@ -458,7 +459,7 @@ export default function RevendedorDashboard() {
   if (!resellerId) {
     return (
       <div>
-        <PageHeader title="Painel do Revendedor" description="Sua operação em um só lugar." />
+        <PageHeader title={t("dashboard.title")} description={t("dashboard.welcome")} />
         <div className="rounded-xl border border-border bg-card/60 p-8 text-center text-sm text-muted-foreground">
           Sua conta de revendedor ainda não foi configurada.
         </div>
