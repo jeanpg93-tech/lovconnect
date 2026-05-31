@@ -315,6 +315,33 @@ export default function GerenteRevendedorMensalidade() {
             </div>
           </div>
 
+          {/* Toggle de vendas (status on/off) */}
+          {isSubscription && (
+            <div className="rounded-2xl border border-border bg-card/60 p-4 md:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex-1 min-w-0 space-y-2">
+                <SalesStatusBadge
+                  variant={reseller.subscription_sales_disabled ? "manager_disabled" : "active"}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Use este botão para suspender ou liberar as vendas deste revendedor. Quando desativado, ele verá um aviso no painel e não conseguirá gerar chaves.
+                </p>
+              </div>
+              <Button
+                variant={reseller.subscription_sales_disabled ? "default" : "destructive"}
+                onClick={toggleSalesDisabled}
+                disabled={togglingSales}
+                className="gap-2 shrink-0"
+              >
+                {togglingSales && <Loader2 className="h-4 w-4 animate-spin" />}
+                {reseller.subscription_sales_disabled ? (
+                  <><Play className="h-4 w-4" /> Ativar vendas</>
+                ) : (
+                  <><Ban className="h-4 w-4" /> Desativar vendas</>
+                )}
+              </Button>
+            </div>
+          )}
+
           {/* KPIs */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
