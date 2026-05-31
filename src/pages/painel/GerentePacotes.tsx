@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Plus, Pencil, Package, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useProviderCommitments } from "@/hooks/useProviderCommitments";
 
 type Pack = {
   id: string; name: string; credits: number; price_cents: number;
@@ -25,6 +26,7 @@ export default function GerentePacotes() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Pack> | null>(null);
   const [saving, setSaving] = useState(false);
+  const commitments = useProviderCommitments();
 
   const load = async () => {
     setLoading(true);
@@ -91,6 +93,29 @@ export default function GerentePacotes() {
         }
       />
 
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div className="rounded-lg border border-border bg-card/60 p-3">
+          <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Estoque Flow</div>
+          <div className="font-mono text-lg font-black text-foreground">
+            {!Number.isFinite(commitments.flowRemaining) ? "∞" : commitments.flowRemaining}
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-card/60 p-3">
+          <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Estoque Lovax</div>
+          <div className="font-mono text-lg font-black text-foreground">{commitments.lovaxRemaining}</div>
+        </div>
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+          <div className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">Comprometido em Packs</div>
+          <div className="font-mono text-lg font-black text-amber-600 dark:text-amber-400">{commitments.committed}</div>
+        </div>
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+          <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">Disponível Real</div>
+          <div className="font-mono text-lg font-black text-emerald-600 dark:text-emerald-400">
+            {!Number.isFinite(commitments.realAvailable) ? "∞" : commitments.realAvailable}
+          </div>
+        </div>
+      </div>
+
       <div className="mt-6">
         {loading ? (
           <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div>
@@ -103,6 +128,9 @@ export default function GerentePacotes() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {packs.map((p) => {
               const perKey = p.credits > 0 ? p.price_cents / p.credits : 0;
+              const stockAvail = !Number.isFinite(commitments.realAvailable) || commitments.loading
+                ? true
+                : Number(p.credits) <= commitments.realAvailable;
               return (
                 <div key={p.id} className="rounded-xl border border-border bg-card/60 p-4 backdrop-blur-sm">
                   <div className="flex items-start justify-between gap-2">
@@ -110,12 +138,24 @@ export default function GerentePacotes() {
                       <div className="font-display text-lg font-bold">{p.name}</div>
                       <div className="text-xs text-muted-foreground">{p.credits} licenças</div>
                     </div>
-                    <Badge variant={p.is_active ? "default" : "secondary"}>
-                      {p.is_active ? "Ativo" : "Inativo"}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant={p.is_active ? "default" : "secondary"}>
+                        {p.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+                      {p.is_active && !stockAvail && (
+                        <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400 text-[10px]">
+                          Sem estoque
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="mt-3 font-mono text-2xl font-black text-primary">{brl(p.price_cents)}</div>
                   <div className="text-[11px] text-muted-foreground">{brl(perKey)} por licença</div>
+                  {p.is_active && !stockAvail && (
+                    <div className="mt-2 text-[11px] text-amber-600 dark:text-amber-400">
+                      Oculto do revendedor: estoque insuficiente
+                    </div>
+                  )}
                   <div className="mt-4 flex items-center gap-2">
                     <Button size="sm" variant="outline" onClick={() => setEditing(p)}>
                       <Pencil className="h-3.5 w-3.5 mr-1" /> Editar

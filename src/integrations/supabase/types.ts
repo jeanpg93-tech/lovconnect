@@ -3754,6 +3754,12 @@ export type Database = {
         Args: { _duration_code: string; _reseller_id: string }
         Returns: number
       }
+      get_pack_commitments: {
+        Args: never
+        Returns: {
+          committed_credits: number
+        }[]
+      }
       get_primary_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]

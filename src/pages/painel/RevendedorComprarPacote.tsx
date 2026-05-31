@@ -31,13 +31,8 @@ export default function RevendedorComprarPacote() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("license_packs" as any)
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true })
-        .order("credits", { ascending: true });
-      setPacks(((data ?? []) as any) as Pack[]);
+      const { data } = await invokeAuthenticatedFunction<any>("list-available-packs", { method: "GET" });
+      setPacks(((data?.packs ?? []) as any) as Pack[]);
       setLoading(false);
     })();
   }, []);

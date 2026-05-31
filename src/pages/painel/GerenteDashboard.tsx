@@ -168,6 +168,7 @@ export default function GerenteDashboard() {
     promotion_discount_cents?: number | null;
     recharge_base_cents?: number | null;
     recharge_bonus_cents?: number | null;
+    payment_status?: string | null;
   }[]>([]);
   const [apiLogs, setApiLogs] = useState<{ id: string; created_at: string; endpoint: string; reseller_name?: string; status_code: number }[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -238,6 +239,23 @@ export default function GerenteDashboard() {
       )
       .order("created_at", { ascending: false })
       .limit(50);
+
+    // Pagamentos de Pack (compra de pacote pelo revendedor) e Mensalidade
+    // — todos os status, para aparecer no feed mesmo se ainda pendente.
+    const [packPaysRes, subChargesRes] = await Promise.all([
+      supabase
+        .from("reseller_pack_purchases")
+        .select("id, created_at, paid_at, reseller_id, pack_name, credits, price_cents, status")
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase
+        .from("reseller_subscription_charges")
+        .select("id, created_at, paid_at, reseller_id, amount_cents, status")
+        .order("created_at", { ascending: false })
+        .limit(100),
+    ]);
+    const packPays: any[] = (packPaysRes as any)?.data ?? [];
+    const subCharges: any[] = (subChargesRes as any)?.data ?? [];
 
     const balanceAny: any = balanceRes;
     const provUsageAny: any = provUsage;
@@ -390,7 +408,11 @@ export default function GerenteDashboard() {
 
     // Movimentações de recarga (entradas e saídas) do sistema inteiro
     const movesData: any[] = (creditMovesRes as any)?.data ?? [];
-    const moveResIds = [...new Set(movesData.map((m: any) => m.reseller_id).filter(Boolean))];
+    const moveResIds = [...new Set([
+      ...movesData.map((m: any) => m.reseller_id),
+      ...packPays.map((p: any) => p.reseller_id),
+      ...subCharges.map((s: any) => s.reseller_id),
+    ].filter(Boolean))];
     const missingMoveIds = moveResIds.filter((id) => !rMap.has(id));
     let moveNameMap = rMap;
     if (missingMoveIds.length) {
@@ -576,6 +598,52 @@ export default function GerenteDashboard() {
           recharge_bonus_cents: rb?.bonus_cents ?? null,
         };
       }),
+      // Pagamentos de Pack (compra de pacote)
+      ...packPays.map((p: any) => ({
+        id: `pack_pay:${p.id}`,
+        created_at: p.paid_at ?? p.created_at,
+        amount_cents: Number(p.price_cents ?? 0),
+        kind: "pack_payment",
+        description: `Pack ${p.pack_name ?? ""} • ${p.credits ?? 0} licenças • ${p.status}`,
+        reseller_name: moveNameMap.get(p.reseller_id) ?? "—",
+        customer_name: null,
+        customer_whatsapp: null,
+        detail: `Pacote: ${p.pack_name ?? ""} (${p.credits ?? 0} licenças)`,
+        ref_short: p.id ? String(p.id).slice(0, 8).toUpperCase() : null,
+        ref_full: p.id ?? null,
+        ref_created_at: p.created_at ?? null,
+        ref_kind: null,
+        license_type: null,
+        credits: p.credits ?? null,
+        promotion_id: null,
+        promotion_discount_cents: null,
+        recharge_base_cents: null,
+        recharge_bonus_cents: null,
+        payment_status: p.status,
+      })),
+      // Cobranças de mensalidade
+      ...subCharges.map((s: any) => ({
+        id: `sub_pay:${s.id}`,
+        created_at: s.paid_at ?? s.created_at,
+        amount_cents: Number(s.amount_cents ?? 0),
+        kind: "subscription_payment",
+        description: `Mensalidade • ${s.status}`,
+        reseller_name: moveNameMap.get(s.reseller_id) ?? "—",
+        customer_name: null,
+        customer_whatsapp: null,
+        detail: "Cobrança mensal do revendedor",
+        ref_short: s.id ? String(s.id).slice(0, 8).toUpperCase() : null,
+        ref_full: s.id ?? null,
+        ref_created_at: s.created_at ?? null,
+        ref_kind: null,
+        license_type: null,
+        credits: null,
+        promotion_id: null,
+        promotion_discount_cents: null,
+        recharge_base_cents: null,
+        recharge_bonus_cents: null,
+        payment_status: s.status,
+      })),
       // Vendas/licenças geradas por revendedores mensalistas (sem débito de saldo)
       ...((subOrdersData ?? []) as any[]).map((o: any) => {
         let parsedNotes: any = {};
