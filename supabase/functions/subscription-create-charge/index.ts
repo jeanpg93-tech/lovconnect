@@ -77,9 +77,33 @@ Deno.serve(async (req) => {
     if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return json({ error: "due_date inválido" }, 400);
 
     const { data: reseller } = await admin
-      .from("resellers").select("id, display_name, user_id")
+      .from("resellers").select("id, display_name, user_id, is_demo")
       .eq("id", resellerId).maybeSingle();
     if (!reseller) return json({ error: "Revendedor não encontrado" }, 404);
+
+    // DEMO GUARD — gera cobrança fake sem chamar MisticPay
+    if ((reseller as any).is_demo) {
+      const fakePayload = `00020126360014BR.GOV.BCB.PIX0114DEMO${charge?.id ?? "DEMO"}5204000053039865802BR5913DEMO RESELLER6009SAO PAULO62070503***6304ABCD`;
+      const { data: demoCharge, error: demoErr } = await admin
+        .from("reseller_subscription_charges")
+        .insert({
+          reseller_id: resellerId,
+          kind, description, amount_cents: amountCents, due_date: dueDate,
+          status: "pending", provider: "demo",
+          is_onboarding: isOnboarding, created_by: userId,
+          recurrence_id: recurrenceId,
+          pix_payload: fakePayload,
+          provider_charge_id: `DEMO-${crypto.randomUUID().slice(0, 8)}`,
+        }).select().single();
+      if (demoErr || !demoCharge) return json({ error: demoErr?.message ?? "demo insert error" }, 500);
+      return json({
+        demo: true,
+        charge_id: demoCharge.id,
+        provider_transaction_id: demoCharge.provider_charge_id,
+        copy_paste: fakePayload,
+        amount_cents: amountCents,
+      });
+    }
 
     const { data: prof } = await admin
       .from("profiles").select("display_name, email")
