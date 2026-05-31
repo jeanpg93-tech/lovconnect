@@ -566,11 +566,27 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
   const [activationFixedReais, setActivationFixedReais] = useState(100); // R$
   const [useActivationBonus, setUseActivationBonus] = useState(false);
   const [activationBonusReais, setActivationBonusReais] = useState(50); // R$
+  // Promo de adesão — nível inicial e comissão extra de indicação
+  const [usePromoteTier, setUsePromoteTier] = useState(false);
+  const [promoteTierId, setPromoteTierId] = useState<string>("");
+  const [useReferralExtra, setUseReferralExtra] = useState(false);
+  const [referralExtraPct, setReferralExtraPct] = useState<number>(5);
+  const [tiers, setTiers] = useState<Array<{ id: string; name: string; slug: string; sort_order: number }>>([]);
   const [startMode, setStartMode] = useState<"now" | "schedule">("now");
   const [endMode, setEndMode] = useState<"none" | "schedule">("none");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from("reseller_tiers")
+      .select("id,name,slug,sort_order")
+      .eq("is_active", true)
+      .order("sort_order")
+      .then(({ data }) => setTiers((data ?? []) as any));
+  }, [open]);
 
   useEffect(() => {
     if (open) {
