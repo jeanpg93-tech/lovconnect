@@ -342,6 +342,44 @@ export type Database = {
           },
         ]
       }
+      blocked_sale_attempts: {
+        Row: {
+          attempt_type: string
+          created_at: string
+          endpoint: string
+          id: string
+          metadata: Json
+          reason: string
+          reseller_id: string
+        }
+        Insert: {
+          attempt_type: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          metadata?: Json
+          reason?: string
+          reseller_id: string
+        }
+        Update: {
+          attempt_type?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          metadata?: Json
+          reason?: string
+          reseller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocked_sale_attempts_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_extensions: {
         Row: {
           client_id: string
