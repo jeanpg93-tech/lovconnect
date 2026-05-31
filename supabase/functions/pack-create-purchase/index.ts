@@ -11,6 +11,65 @@ const corsHeaders = {
 
 const MISTIC_BASE = "https://api.misticpay.com/api";
 
+const PROVIDER_DEFAULT_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+const LOVAX_DEFAULT_BASE = "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
+
+const safeJson = async (r: Response) => { try { return await r.json(); } catch { return null; } };
+
+async function getFlowRemaining(admin: any): Promise<number> {
+  try {
+    const { data: cfg } = await admin
+      .from("provider_settings").select("api_key, base_url")
+      .order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
+    const base = cfg?.base_url ?? PROVIDER_DEFAULT_BASE;
+    if (!apiKey) return 0;
+    const r = await fetch(`${base}/status`, {
+      method: "POST",
+      headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
+    });
+    if (!r.ok) return 0;
+    const data: any = await safeJson(r);
+    const used = Number(data?.used ?? 0);
+    const max = Number(data?.max ?? data?.limit ?? 0);
+    if (!max || max <= 0) return Number.POSITIVE_INFINITY;
+    return Math.max(0, max - used);
+  } catch { return 0; }
+}
+
+async function getLovaxRemaining(admin: any): Promise<number> {
+  try {
+    const { data } = await admin.from("app_settings").select("key, value").in("key", ["lovax_api_token", "lovax_base_url"]);
+    const apiKey = (data?.find((r: any) => r.key === "lovax_api_token") as any)?.value;
+    const base = ((data?.find((r: any) => r.key === "lovax_base_url") as any)?.value) || LOVAX_DEFAULT_BASE;
+    if (!apiKey) return 0;
+    const r = await fetch(base, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${apiKey}`, "x-api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "balance", payload: {} }),
+    });
+    if (!r.ok) return 0;
+    const d: any = await safeJson(r);
+    if (!d?.success) return 0;
+    const b = d.balance;
+    if (b && typeof b === "object") return Math.max(0, Number(b.keys_available ?? 0));
+    if (typeof b === "number") return Math.max(0, b);
+    return 0;
+  } catch { return 0; }
+}
+
+async function computeRealAvailable(admin: any): Promise<number> {
+  const [flow, lovax, commitRes] = await Promise.all([
+    getFlowRemaining(admin),
+    getLovaxRemaining(admin),
+    admin.rpc("get_pack_commitments"),
+  ]);
+  const committedRow = Array.isArray(commitRes?.data) ? commitRes.data[0] : commitRes?.data;
+  const committed = Number(committedRow?.committed_credits ?? 0);
+  const total = flow + lovax;
+  return Number.isFinite(total) ? Math.max(0, total - committed) : Number.POSITIVE_INFINITY;
+}
+
 function json(b: unknown, status = 200) {
   return new Response(JSON.stringify(b), {
     status,
@@ -77,6 +136,12 @@ Deno.serve(async (req) => {
       .eq("id", pack_id)
       .maybeSingle();
     if (!pack || !(pack as any).is_active) return json({ error: "Pacote indisponível" }, 404);
+
+    // Valida estoque real (estoque dos provedores − créditos já comprometidos em packs)
+    const realAvailable = await computeRealAvailable(admin);
+    if (Number((pack as any).credits ?? 0) > realAvailable) {
+      return json({ error: "Pacote temporariamente indisponível" }, 409);
+    }
 
     const { data: prof } = await admin
       .from("profiles").select("display_name, email")
