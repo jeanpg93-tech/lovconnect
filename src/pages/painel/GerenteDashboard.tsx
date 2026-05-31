@@ -168,6 +168,7 @@ export default function GerenteDashboard() {
     promotion_discount_cents?: number | null;
     recharge_base_cents?: number | null;
     recharge_bonus_cents?: number | null;
+    payment_status?: string | null;
   }[]>([]);
   const [apiLogs, setApiLogs] = useState<{ id: string; created_at: string; endpoint: string; reseller_name?: string; status_code: number }[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
