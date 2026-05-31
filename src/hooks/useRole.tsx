@@ -23,6 +23,7 @@ type RoleSnapshot = {
   packCredits: number;
   subscriptionSalesDisabled: boolean;
   packSalesDisabled: boolean;
+  isDemo: boolean;
 };
 
 // ---- Singleton store shared by every useRole() consumer ----
@@ -37,6 +38,7 @@ const initialFromCache = (): RoleSnapshot => {
   let packCredits = 0;
   let subscriptionSalesDisabled = false;
   let packSalesDisabled = false;
+  let isDemo = false;
   try {
     const cached = localStorage.getItem("app_roles_cache");
     if (cached) {
@@ -53,10 +55,11 @@ const initialFromCache = (): RoleSnapshot => {
     if (!Number.isNaN(cachedCredits)) packCredits = cachedCredits;
     if (localStorage.getItem("user_subscription_sales_disabled") === "true") subscriptionSalesDisabled = true;
     if (localStorage.getItem("user_pack_sales_disabled") === "true") packSalesDisabled = true;
+    if (localStorage.getItem("user_is_demo") === "true") isDemo = true;
   } catch {
     /* noop */
   }
-  return { roles, isBanned, isActive, hasData, loading: false, userId: null, billingMode, subscriptionBlocked, subscriptionOnboardingCompleted, packCredits, subscriptionSalesDisabled, packSalesDisabled };
+  return { roles, isBanned, isActive, hasData, loading: false, userId: null, billingMode, subscriptionBlocked, subscriptionOnboardingCompleted, packCredits, subscriptionSalesDisabled, packSalesDisabled, isDemo };
 };
 
 let snapshot: RoleSnapshot = initialFromCache();
@@ -78,7 +81,7 @@ const fetchRoles = async (userId: string) => {
       const [rolesRes, profileRes, resellerRes] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.from("profiles").select("id, is_banned").eq("id", userId).maybeSingle(),
-        supabase.from("resellers").select("id, is_active, billing_mode, subscription_blocked, subscription_onboarding_completed, subscription_sales_disabled, pack_sales_disabled").eq("user_id", userId).maybeSingle(),
+        supabase.from("resellers").select("id, is_active, billing_mode, subscription_blocked, subscription_onboarding_completed, subscription_sales_disabled, pack_sales_disabled, is_demo").eq("user_id", userId).maybeSingle(),
       ]);
 
       const next: Partial<RoleSnapshot> = { loading: false, userId, hasData: true };
@@ -101,6 +104,8 @@ const fetchRoles = async (userId: string) => {
         localStorage.setItem("user_subscription_sales_disabled", next.subscriptionSalesDisabled ? "true" : "false");
         next.packSalesDisabled = !!r.pack_sales_disabled;
         localStorage.setItem("user_pack_sales_disabled", next.packSalesDisabled ? "true" : "false");
+        next.isDemo = !!r.is_demo;
+        localStorage.setItem("user_is_demo", next.isDemo ? "true" : "false");
         if (next.billingMode === "pack") {
           try {
             const rid = (r as any).id ?? null;
@@ -131,6 +136,8 @@ const fetchRoles = async (userId: string) => {
         next.packCredits = 0;
         next.subscriptionSalesDisabled = false;
         next.packSalesDisabled = false;
+        next.isDemo = false;
+        localStorage.setItem("user_is_demo", "false");
       }
 
       if (!rolesRes.error) {
@@ -158,7 +165,8 @@ const resetRoles = () => {
   localStorage.removeItem("user_pack_credits");
   localStorage.removeItem("user_subscription_sales_disabled");
   localStorage.removeItem("user_pack_sales_disabled");
-  setSnapshot({ roles: [], isBanned: false, isActive: true, hasData: false, loading: false, userId: null, billingMode: "normal", subscriptionBlocked: false, subscriptionOnboardingCompleted: true, packCredits: 0, subscriptionSalesDisabled: false, packSalesDisabled: false });
+  localStorage.removeItem("user_is_demo");
+  setSnapshot({ roles: [], isBanned: false, isActive: true, hasData: false, loading: false, userId: null, billingMode: "normal", subscriptionBlocked: false, subscriptionOnboardingCompleted: true, packCredits: 0, subscriptionSalesDisabled: false, packSalesDisabled: false, isDemo: false });
 };
 
 export const useRole = () => {
@@ -227,5 +235,6 @@ export const useRole = () => {
     salesDisabledByManager:
       (snapshot.billingMode === "subscription" && snapshot.subscriptionSalesDisabled) ||
       (snapshot.billingMode === "pack" && snapshot.packSalesDisabled),
+    isDemo: snapshot.isDemo,
   };
 };

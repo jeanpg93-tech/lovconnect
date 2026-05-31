@@ -18,6 +18,7 @@ import { ActivationLockOverlay } from "@/components/activation/ActivationLockOve
 import { useActivation } from "@/hooks/useActivation";
 import { SubscriptionLockOverlay } from "@/components/subscription/SubscriptionLockOverlay";
 import { FirstAccessGate } from "@/components/FirstAccessGate";
+import { DemoBanner } from "@/components/DemoBanner";
 
 export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -160,6 +161,7 @@ export default function AppLayout() {
             <div className="pointer-events-none absolute inset-0 bg-grid bg-grid-fade opacity-40" />
             <div className="relative">
               {needsActivation && <ActivationBanner status={activationStatus!} />}
+              <DemoBanner />
               {primaryRole === "revendedor" && <PendingBalanceBanner />}
               <div className="relative">
                 <div
