@@ -21,11 +21,27 @@ type Pack = {
 const brl = (c: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(c / 100);
 
+// Parse "1.234,56" or "1234.56" -> cents (integer)
+const parseBRLToCents = (s: string): number => {
+  if (!s) return NaN;
+  const cleaned = String(s).replace(/\s|R\$/g, "").replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(cleaned);
+  if (!Number.isFinite(n)) return NaN;
+  return Math.round(n * 100);
+};
+
+const centsToInput = (c: number | undefined | null): string => {
+  if (c === undefined || c === null || !Number.isFinite(Number(c))) return "";
+  return (Number(c) / 100).toFixed(2).replace(".", ",");
+};
+
 export default function GerentePacotes() {
   const [packs, setPacks] = useState<Pack[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Pack> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [totalStr, setTotalStr] = useState<string>("");
+  const [perStr, setPerStr] = useState<string>("");
   const commitments = useProviderCommitments();
 
   const load = async () => {
@@ -41,11 +57,24 @@ export default function GerentePacotes() {
 
   useEffect(() => { load(); }, []);
 
+  // sync local input strings when opening dialog
+  useEffect(() => {
+    if (editing) {
+      const totalCents = Number(editing.price_cents ?? 0);
+      const credits = Number(editing.credits ?? 0);
+      setTotalStr(editing.price_cents !== undefined ? centsToInput(totalCents) : "");
+      setPerStr(credits > 0 && totalCents > 0 ? centsToInput(totalCents / credits) : "");
+    } else {
+      setTotalStr("");
+      setPerStr("");
+    }
+  }, [editing?.id, editing == null]);
+
   const save = async () => {
     if (!editing) return;
     const name = (editing.name ?? "").trim();
     const credits = Number(editing.credits);
-    const price_cents = Math.round(Number(editing.price_cents));
+    const price_cents = parseBRLToCents(totalStr);
     if (!name) return toast.error("Nome obrigatório");
     if (!Number.isInteger(credits) || credits <= 0) return toast.error("Quantidade de licenças inválida");
     if (!Number.isFinite(price_cents) || price_cents < 0) return toast.error("Preço inválido");
@@ -64,6 +93,39 @@ export default function GerentePacotes() {
     toast.success("Pacote salvo");
     setEditing(null);
     load();
+  };
+
+  const onTotalChange = (v: string) => {
+    setTotalStr(v);
+    const cents = parseBRLToCents(v);
+    const credits = Number(editing?.credits);
+    if (Number.isFinite(cents) && Number.isInteger(credits) && credits > 0) {
+      setPerStr(centsToInput(cents / credits));
+      setEditing((e) => e ? { ...e, price_cents: cents } : e);
+    } else {
+      setEditing((e) => e ? { ...e, price_cents: Number.isFinite(cents) ? cents : undefined as any } : e);
+    }
+  };
+
+  const onPerChange = (v: string) => {
+    setPerStr(v);
+    const perCents = parseBRLToCents(v);
+    const credits = Number(editing?.credits);
+    if (Number.isFinite(perCents) && Number.isInteger(credits) && credits > 0) {
+      const total = Math.round(perCents * credits);
+      setTotalStr(centsToInput(total));
+      setEditing((e) => e ? { ...e, price_cents: total } : e);
+    }
+  };
+
+  const onCreditsChange = (v: string) => {
+    const credits = Number(v);
+    setEditing((e) => e ? { ...e, credits } : e);
+    // recompute per-license from total when possible
+    const totalCents = parseBRLToCents(totalStr);
+    if (Number.isFinite(totalCents) && Number.isInteger(credits) && credits > 0) {
+      setPerStr(centsToInput(totalCents / credits));
+    }
   };
 
   const toggle = async (p: Pack) => {
@@ -185,14 +247,35 @@ export default function GerentePacotes() {
                 <Label>Nome</Label>
                 <Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Quantidade de licenças</Label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={editing.credits ?? ""}
+                  onChange={(e) => onCreditsChange(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <Label>Licenças</Label>
-                  <Input type="number" value={editing.credits ?? ""} onChange={(e) => setEditing({ ...editing, credits: Number(e.target.value) })} />
+                  <Label>Preço total (R$)</Label>
+                  <Input
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    value={totalStr}
+                    onChange={(e) => onTotalChange(e.target.value)}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">Valor cobrado pelo pacote inteiro</p>
                 </div>
                 <div>
-                  <Label>Preço (centavos)</Label>
-                  <Input type="number" value={editing.price_cents ?? ""} onChange={(e) => setEditing({ ...editing, price_cents: Number(e.target.value) })} />
+                  <Label>Preço por licença (R$)</Label>
+                  <Input
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    value={perStr}
+                    onChange={(e) => onPerChange(e.target.value)}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">Atualiza o total automaticamente</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 items-center">
