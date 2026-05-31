@@ -188,7 +188,7 @@ export const useRole = () => {
   useEffect(() => {
     if (!user?.id) return;
     const channel = supabase
-      .channel(`role-reseller-${user.id}`)
+      .channel(`role-reseller-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "resellers", filter: `user_id=eq.${user.id}` },
