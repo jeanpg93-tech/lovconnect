@@ -1,0 +1,115 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "cancel": "Cancel",
+    "save": "Save",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "search": "Search",
+    "empty": "Nothing here yet.",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "demoBanner": {
+    "label": "Demo account",
+    "descFull": "— you are on a test account. Data may be fictitious and actions like purchases, top-ups and dispatches do not affect real systems.",
+    "descShort": "— fake data, simulated actions.",
+    "reset": "Reset demo",
+    "dialogTitle": "Reset demo account?",
+    "dialogDesc": "We will clear all generated keys, sales, wallet transactions, customers and charges created in this demo account. The account itself remains active so you can keep testing.",
+    "confirmReset": "Yes, reset",
+    "resetSuccess": "Demo reset! Reloading…",
+    "resetFail": "Failed to reset demo"
+  },
+  "language": {
+    "switch": "Language",
+    "pt": "Portuguese",
+    "en": "English"
+  },
+  "sidebar": {
+    "groups": {
+      "Painel": "Panel",
+      "Mensalidade": "Subscription",
+      "Pacote": "Package",
+      "Minhas vendas": "My sales",
+      "Configurar": "Settings"
+    },
+    "items": {
+      "Dashboard": "Dashboard",
+      "Carteira": "Wallet",
+      "Indique e ganhe": "Refer & earn",
+      "Gerar Chave": "Generate Key",
+      "Minhas Chaves": "My Keys",
+      "Minhas Cobranças": "My Charges",
+      "Comprar Pacote": "Buy Package",
+      "Histórico": "History",
+      "Recargas": "Top-ups",
+      "Licenças": "Licenses",
+      "Minha Loja": "My Store",
+      "Precificação": "Pricing",
+      "Baixar Extensão": "Download Extension",
+      "API Licenças": "Licenses API",
+      "API Recargas": "Top-ups API",
+      "Resetar chave": "Reset key",
+      "Ajustes da conta": "Account settings",
+      "MisticPay API": "MisticPay API",
+      "WhatsApp API": "WhatsApp API",
+      "Meus Clientes": "My Customers"
+    }
+  },
+  "mobileNav": {
+    "home": "Home",
+    "wallet": "Wallet",
+    "keys": "Keys",
+    "store": "Store",
+    "more": "More",
+    "generate": "Generate",
+    "logout": "Log out"
+  },
+  "carteira": {
+    "badge": "Financial Center",
+    "titleA": "Your",
+    "titleB": "Wallet",
+    "subtitle": "Manage your balance, track your level and see your ranking position — all in one place.",
+    "tabs": {
+      "balance": "Add balance",
+      "levels": "Streak & Levels",
+      "ranking": "Ranking",
+      "balanceShort": "Balance",
+      "levelsShort": "Levels",
+      "rankingShort": "Ranking"
+    }
+  },
+  "clientes": {
+    "title": "My Customers",
+    "description": "Customers who signed up linked to you.",
+    "empty": "No customers linked yet.",
+    "colName": "Name",
+    "colEmail": "Email",
+    "colSince": "Since",
+    "grant": "Grant extension",
+    "dialogTitle": "Grant extension to {{name}}",
+    "extension": "Extension",
+    "select": "Select",
+    "noExtensions": "No extensions enabled for you. Ask your manager.",
+    "granted": "Extension granted"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back"
+  },
+  "keys": {
+    "title": "My Keys",
+    "subtitle": "Complete history of the keys you generated."
+  },
+  "generateKey": {
+    "title": "Generate Key",
+    "subtitle": "Generate a new license key for your customer."
+  },
+  "store": {
+    "title": "My Store",
+    "subtitle": "Configure and manage your public sales storefront."
+  }
+}
