@@ -1,0 +1,115 @@
+{
+  "common": {
+    "loading": "Carregando…",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "confirm": "Confirmar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "back": "Voltar",
+    "search": "Buscar",
+    "empty": "Nada por aqui ainda.",
+    "yes": "Sim",
+    "no": "Não"
+  },
+  "demoBanner": {
+    "label": "Conta de demonstração",
+    "descFull": "— você está em uma conta de testes. Dados podem ser fictícios e ações como compras, recargas e envios não afetam sistemas reais.",
+    "descShort": "— dados fictícios, ações simuladas.",
+    "reset": "Resetar demo",
+    "dialogTitle": "Resetar conta demo?",
+    "dialogDesc": "Vamos limpar todas as chaves geradas, vendas, transações da carteira, clientes e cobranças criadas nesta conta de demonstração. A conta em si permanece ativa para você continuar testando.",
+    "confirmReset": "Sim, resetar",
+    "resetSuccess": "Demo resetada! Recarregando…",
+    "resetFail": "Falha ao resetar demo"
+  },
+  "language": {
+    "switch": "Idioma",
+    "pt": "Português",
+    "en": "Inglês"
+  },
+  "sidebar": {
+    "groups": {
+      "Painel": "Painel",
+      "Mensalidade": "Mensalidade",
+      "Pacote": "Pacote",
+      "Minhas vendas": "Minhas vendas",
+      "Configurar": "Configurar"
+    },
+    "items": {
+      "Dashboard": "Dashboard",
+      "Carteira": "Carteira",
+      "Indique e ganhe": "Indique e ganhe",
+      "Gerar Chave": "Gerar Chave",
+      "Minhas Chaves": "Minhas Chaves",
+      "Minhas Cobranças": "Minhas Cobranças",
+      "Comprar Pacote": "Comprar Pacote",
+      "Histórico": "Histórico",
+      "Recargas": "Recargas",
+      "Licenças": "Licenças",
+      "Minha Loja": "Minha Loja",
+      "Precificação": "Precificação",
+      "Baixar Extensão": "Baixar Extensão",
+      "API Licenças": "API Licenças",
+      "API Recargas": "API Recargas",
+      "Resetar chave": "Resetar chave",
+      "Ajustes da conta": "Ajustes da conta",
+      "MisticPay API": "MisticPay API",
+      "WhatsApp API": "WhatsApp API",
+      "Meus Clientes": "Meus Clientes"
+    }
+  },
+  "mobileNav": {
+    "home": "Início",
+    "wallet": "Carteira",
+    "keys": "Chaves",
+    "store": "Loja",
+    "more": "Mais",
+    "generate": "Gerar",
+    "logout": "Sair"
+  },
+  "carteira": {
+    "badge": "Centro Financeiro",
+    "titleA": "Sua",
+    "titleB": "Carteira",
+    "subtitle": "Gerencie seu saldo, acompanhe seu nível e veja sua posição no ranking — tudo em um único lugar.",
+    "tabs": {
+      "balance": "Adicionar saldo",
+      "levels": "Sequência & Níveis",
+      "ranking": "Ranking",
+      "balanceShort": "Saldo",
+      "levelsShort": "Níveis",
+      "rankingShort": "Ranking"
+    }
+  },
+  "clientes": {
+    "title": "Meus Clientes",
+    "description": "Clientes que se cadastraram vinculados a você.",
+    "empty": "Nenhum cliente vinculado ainda.",
+    "colName": "Nome",
+    "colEmail": "Email",
+    "colSince": "Desde",
+    "grant": "Conceder extensão",
+    "dialogTitle": "Conceder extensão a {{name}}",
+    "extension": "Extensão",
+    "select": "Selecione",
+    "noExtensions": "Nenhuma extensão liberada para você. Peça ao gerente.",
+    "granted": "Extensão concedida"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Bem-vindo de volta"
+  },
+  "keys": {
+    "title": "Minhas Chaves",
+    "subtitle": "Histórico completo das chaves que você gerou."
+  },
+  "generateKey": {
+    "title": "Gerar Chave",
+    "subtitle": "Gere uma nova chave de licença para seu cliente."
+  },
+  "store": {
+    "title": "Minha Loja",
+    "subtitle": "Configure e gerencie a sua loja pública de vendas."
+  }
+}
