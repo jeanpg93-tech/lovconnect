@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Loader2, Save, History, Sparkles, Plus, CalendarIcon, Play, Square, Pencil, Trash2, Zap, Gift, Tag, Copy, ChevronDown,
+  Rocket,
 } from "lucide-react";
 
 type Promotion = {
@@ -33,6 +34,10 @@ type Promotion = {
   extension_discount_pct: number | null;
   credit_discount_pct: number | null;
   recharge_bonus_pct: number | null;
+  activation_discount_pct: number | null;
+  activation_discount_cents: number | null;
+  activation_fixed_price_cents: number | null;
+  activation_bonus_cents: number | null;
   starts_at: string | null;
   ends_at: string | null;
   status: "scheduled" | "active" | "paused" | "ended";
@@ -40,6 +45,9 @@ type Promotion = {
   deactivated_at: string | null;
   created_at: string;
 };
+
+const fmtBRL = (cents: number) =>
+  (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 type PromotionLog = {
   id: string;
