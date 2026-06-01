@@ -39,6 +39,22 @@ function render(tpl: string, vars: Record<string, string>) {
   return tpl.replace(/\{(\w+)\}/g, (_m, k) => vars[k] ?? "");
 }
 
+async function instanceTokenFor(resellerId: string) {
+  const hash = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`lovconnect:evolution-go:${resellerId}`),
+  );
+  const chars = Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 32)
+    .split("");
+  chars[12] = "4";
+  chars[16] = ((parseInt(chars[16], 16) & 0x3) | 0x8).toString(16);
+  const hex = chars.join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -113,9 +129,11 @@ Deno.serve(async (req) => {
 
     const text = render(template, enrichedVars);
 
-    const r = await fetch(`${EVO_BASE}/message/sendText/${encodeURIComponent(integ.evolution_instance)}`, {
+    // Evolution GO: usa /send/text com o token derivado da instância (mesmo padrão do connect/send_test).
+    const instanceToken = await instanceTokenFor(reseller_id);
+    const r = await fetch(`${EVO_BASE}/send/text`, {
       method: "POST",
-      headers: { apikey: EVO_KEY, "Content-Type": "application/json" },
+      headers: { apikey: instanceToken, "Content-Type": "application/json" },
       body: JSON.stringify({ number: to, text }),
     });
     const txt = await r.text();
@@ -124,11 +142,25 @@ Deno.serve(async (req) => {
 
     if (!r.ok) {
       console.warn("[evolution-send-sale] send failed", r.status, data);
-      return json({ ok: false, error: "send_failed", status: r.status, details: data });
+      // Fallback: tenta endpoint antigo da Evolution API v2 caso o servidor seja a versão clássica.
+      const r2 = await fetch(`${EVO_BASE}/message/sendText/${encodeURIComponent(integ.evolution_instance)}`, {
+        method: "POST",
+        headers: { apikey: EVO_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ number: to, text }),
+      });
+      const txt2 = await r2.text();
+      let data2: any = null;
+      try { data2 = JSON.parse(txt2); } catch { data2 = { raw: txt2 }; }
+      if (!r2.ok) {
+        console.warn("[evolution-send-sale] fallback send failed", r2.status, data2);
+        return json({ ok: false, error: "send_failed", status: r2.status, details: data2 });
+      }
+      await svc.rpc("increment_evolution_messages_sent", { _reseller_id: reseller_id });
+      return json({ ok: true, via: "legacy" });
     }
 
     await svc.rpc("increment_evolution_messages_sent", { _reseller_id: reseller_id });
-    return json({ ok: true });
+    return json({ ok: true, via: "evolution-go" });
   } catch (e) {
     console.error("[evolution-send-sale]", e);
     return json({ ok: false, error: e instanceof Error ? e.message : "erro" });
