@@ -101,8 +101,8 @@ export function MobileNav() {
     {
       label: t("sidebar.items.Licenças"),
       icon: KeyRound,
-      url: primaryRole === "gerente" ? "/painel/gerente/licencas" : "/painel/revendedor/licencas",
-      active: pathname === (primaryRole === "gerente" ? "/painel/gerente/licencas" : "/painel/revendedor/licencas"),
+      url: primaryRole === "gerente" ? "/painel/gerente/todas-licencas" : "/painel/revendedor/licencas",
+      active: pathname === (primaryRole === "gerente" ? "/painel/gerente/todas-licencas" : "/painel/revendedor/licencas"),
     },
     ...(primaryRole === "revendedor" ? [{
       label: "APIs",
