@@ -27,6 +27,28 @@ export default function GerenteFinanceiroGeral() {
       : format(customRange.from, "dd/MM/yy", { locale: ptBR })
     : "Personalizado";
 
+  const periodLabel = (() => {
+    const now = new Date();
+    const fmt = (d: Date) => format(d, "dd/MM/yyyy", { locale: ptBR });
+    if (dateFilter === "today") {
+      const s = new Date(now); s.setHours(0, 0, 0, 0);
+      return `${fmt(s)} — ${fmt(now)} (hoje)`;
+    }
+    if (dateFilter === "week") {
+      const s = new Date(now); s.setDate(s.getDate() - 7);
+      return `${fmt(s)} — ${fmt(now)} (últimos 7 dias)`;
+    }
+    if (dateFilter === "month") {
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      return `${fmt(s)} — ${fmt(now)} (mês atual)`;
+    }
+    if (dateFilter === "custom" && customRange?.from) {
+      const e = customRange.to ?? customRange.from;
+      return `${fmt(customRange.from)} — ${fmt(e)}`;
+    }
+    return `Desde o início — ${fmt(now)} (todo o período)`;
+  })();
+
   return (
     <PageContainer>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-center sm:text-left">
@@ -130,6 +152,11 @@ export default function GerenteFinanceiroGeral() {
             </PopoverContent>
           </Popover>
         </div>
+      </div>
+
+      <div className="flex items-center justify-center sm:justify-start gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <CalendarIcon className="h-3.5 w-3.5 text-primary" />
+        <span>Período: <span className="text-foreground">{periodLabel}</span></span>
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-6">
