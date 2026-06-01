@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageContainer } from "@/components/painel/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart3, Receipt, PencilLine, CalendarIcon, X, Repeat } from "lucide-react";
@@ -20,6 +20,32 @@ export default function GerenteFinanceiroGeral() {
   const [customRange, setCustomRange] = useState<CustomRange | undefined>();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [tab, setTab] = useState("overview");
+  const [earliestDate, setEarliestDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const queries = await Promise.all([
+        supabase.from("recharge_intents").select("paid_at").eq("status", "paid").order("paid_at", { ascending: true }).limit(1).maybeSingle(),
+        supabase.from("activation_payments").select("paid_at").in("status", ["paid", "approved"]).order("paid_at", { ascending: true }).limit(1).maybeSingle(),
+        supabase.from("reseller_subscription_charges").select("paid_at").eq("status", "paid").order("paid_at", { ascending: true }).limit(1).maybeSingle(),
+        supabase.from("reseller_pack_purchases").select("paid_at").eq("status", "paid").order("paid_at", { ascending: true }).limit(1).maybeSingle(),
+        supabase.from("storefront_orders").select("paid_at").in("status", ["paid", "completed", "delivered", "manual_concluido", "manual_aceito"]).order("paid_at", { ascending: true }).limit(1).maybeSingle(),
+        supabase.from("reseller_credit_purchases").select("created_at").in("status", ["sucesso", "manual_aceito", "manual_concluido"]).order("created_at", { ascending: true }).limit(1).maybeSingle(),
+        supabase.from("manual_financial_entries").select("entry_date").order("entry_date", { ascending: true }).limit(1).maybeSingle(),
+      ]);
+      const dates = queries
+        .map((q: any) => q?.data?.paid_at ?? q?.data?.created_at ?? q?.data?.entry_date)
+        .filter(Boolean)
+        .map((s: string) => new Date(s));
+      if (!cancel && dates.length) {
+        const min = dates.reduce((a, b) => (a < b ? a : b));
+        setEarliestDate(min);
+      }
+    })();
+    return () => { cancel = true; };
+  }, []);
 
   const customLabel = customRange
     ? customRange.to && customRange.to.getTime() !== customRange.from.getTime()
@@ -46,7 +72,8 @@ export default function GerenteFinanceiroGeral() {
       const e = customRange.to ?? customRange.from;
       return `${fmt(customRange.from)} — ${fmt(e)}`;
     }
-    return `Desde o início — ${fmt(now)} (todo o período)`;
+    const startLabel = earliestDate ? fmt(earliestDate) : "início";
+    return `${startLabel} — ${fmt(now)} (todo o período)`;
   })();
 
   return (
