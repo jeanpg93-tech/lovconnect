@@ -119,7 +119,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     // Receita: pacotes pagos por revendedores Pack (reseller_pack_purchases)
     let ppQ = supabase
       .from("reseller_pack_purchases")
-      .select("price_cents, paid_at")
+      .select("price_cents, paid_at, reseller_id")
       .eq("status", "paid");
     if (startIso) ppQ = ppQ.gte("paid_at", startIso);
     if (endIso) ppQ = ppQ.lte("paid_at", endIso);
@@ -310,6 +310,13 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       perReseller[id] = perReseller[id] || { revenue: 0, cost: 0, sales: 0 };
       perReseller[id].revenue += Number(r.amount_cents || 0);
       perReseller[id].cost += GATEWAY_FEE_CENTS_PER_RECHARGE;
+    });
+    packArr.forEach((p: any) => {
+      const id = p.reseller_id;
+      if (!id) return;
+      perReseller[id] = perReseller[id] || { revenue: 0, cost: 0, sales: 0 };
+      perReseller[id].revenue += Number(p.price_cents || 0);
+      perReseller[id].sales += 1;
     });
     soArr.forEach((o: any) => {
       const id = o.reseller_id;
