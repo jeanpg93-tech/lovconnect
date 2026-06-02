@@ -23,6 +23,22 @@ export function readOriginFromNotes(notes: string | null | undefined): OrderOrig
   }
 }
 
+/**
+ * Deriva a origem a partir das colunas delivery_source/fallback_from_pack
+ * presentes em storefront_orders (após a migration de Phase 3).
+ */
+export function readOriginFromRow(row: {
+  delivery_source?: string | null;
+  fallback_from_pack?: boolean | null;
+}): OrderOrigin {
+  const ds = row?.delivery_source;
+  if (ds === "pack") return "pack";
+  if (ds === "wallet_fallback") return "wallet_fallback";
+  if (ds === "wallet") return "wallet";
+  if (row?.fallback_from_pack === true) return "wallet_fallback";
+  return "unknown";
+}
+
 const CONFIG: Record<Exclude<OrderOrigin, "unknown">, { label: string; short: string; Icon: typeof Package; cls: string; title: string }> = {
   pack: {
     label: "Pacote",
