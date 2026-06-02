@@ -21,6 +21,7 @@ type RoleSnapshot = {
   subscriptionBlocked: boolean;
   subscriptionOnboardingCompleted: boolean;
   packCredits: number;
+  packLifetimePurchased: number;
   subscriptionSalesDisabled: boolean;
   packSalesDisabled: boolean;
   isDemo: boolean;
@@ -37,6 +38,7 @@ const initialFromCache = (): RoleSnapshot => {
   let subscriptionBlocked = false;
   let subscriptionOnboardingCompleted = true;
   let packCredits = 0;
+  let packLifetimePurchased = 0;
   let subscriptionSalesDisabled = false;
   let packSalesDisabled = false;
   let isDemo = false;
@@ -55,6 +57,8 @@ const initialFromCache = (): RoleSnapshot => {
     if (localStorage.getItem("user_subscription_onboarding") === "false") subscriptionOnboardingCompleted = false;
     const cachedCredits = Number(localStorage.getItem("user_pack_credits") ?? "0");
     if (!Number.isNaN(cachedCredits)) packCredits = cachedCredits;
+    const cachedLP = Number(localStorage.getItem("user_pack_lifetime_purchased") ?? "0");
+    if (!Number.isNaN(cachedLP)) packLifetimePurchased = cachedLP;
     if (localStorage.getItem("user_subscription_sales_disabled") === "true") subscriptionSalesDisabled = true;
     if (localStorage.getItem("user_pack_sales_disabled") === "true") packSalesDisabled = true;
     if (localStorage.getItem("user_is_demo") === "true") isDemo = true;
@@ -63,7 +67,7 @@ const initialFromCache = (): RoleSnapshot => {
   } catch {
     /* noop */
   }
-  return { roles, isBanned, isActive, hasData, loading: false, userId: null, billingMode, subscriptionBlocked, subscriptionOnboardingCompleted, packCredits, subscriptionSalesDisabled, packSalesDisabled, isDemo, deliverySource };
+  return { roles, isBanned, isActive, hasData, loading: false, userId: null, billingMode, subscriptionBlocked, subscriptionOnboardingCompleted, packCredits, packLifetimePurchased, subscriptionSalesDisabled, packSalesDisabled, isDemo, deliverySource };
 };
 
 let snapshot: RoleSnapshot = initialFromCache();
@@ -116,22 +120,29 @@ const fetchRoles = async (userId: string) => {
           try {
             const rid = (r as any).id ?? null;
             let credits = 0;
+            let lifetime = 0;
             if (rid) {
               const { data: bal } = await supabase
                 .from("reseller_pack_balances" as any)
-                .select("credits")
+                .select("credits, lifetime_purchased")
                 .eq("reseller_id", rid)
                 .maybeSingle();
               credits = Number((bal as any)?.credits ?? 0);
+              lifetime = Number((bal as any)?.lifetime_purchased ?? 0);
             }
             next.packCredits = credits;
             localStorage.setItem("user_pack_credits", String(next.packCredits));
+            next.packLifetimePurchased = lifetime;
+            localStorage.setItem("user_pack_lifetime_purchased", String(lifetime));
           } catch {
             next.packCredits = 0;
+            next.packLifetimePurchased = 0;
           }
         } else {
           next.packCredits = 0;
           localStorage.setItem("user_pack_credits", "0");
+          next.packLifetimePurchased = 0;
+          localStorage.setItem("user_pack_lifetime_purchased", "0");
         }
       } else if (!resellerRes.error) {
         next.isActive = true;
@@ -140,6 +151,7 @@ const fetchRoles = async (userId: string) => {
         next.subscriptionBlocked = false;
         next.subscriptionOnboardingCompleted = true;
         next.packCredits = 0;
+        next.packLifetimePurchased = 0;
         next.subscriptionSalesDisabled = false;
         next.packSalesDisabled = false;
         next.isDemo = false;
@@ -171,11 +183,12 @@ const resetRoles = () => {
   localStorage.removeItem("user_subscription_blocked");
   localStorage.removeItem("user_subscription_onboarding");
   localStorage.removeItem("user_pack_credits");
+  localStorage.removeItem("user_pack_lifetime_purchased");
   localStorage.removeItem("user_subscription_sales_disabled");
   localStorage.removeItem("user_pack_sales_disabled");
   localStorage.removeItem("user_is_demo");
   localStorage.removeItem("user_delivery_source");
-  setSnapshot({ roles: [], isBanned: false, isActive: true, hasData: false, loading: false, userId: null, billingMode: "normal", subscriptionBlocked: false, subscriptionOnboardingCompleted: true, packCredits: 0, subscriptionSalesDisabled: false, packSalesDisabled: false, isDemo: false, deliverySource: "wallet" });
+  setSnapshot({ roles: [], isBanned: false, isActive: true, hasData: false, loading: false, userId: null, billingMode: "normal", subscriptionBlocked: false, subscriptionOnboardingCompleted: true, packCredits: 0, packLifetimePurchased: 0, subscriptionSalesDisabled: false, packSalesDisabled: false, isDemo: false, deliverySource: "wallet" });
 };
 
 export const refetchRole = async () => {
@@ -245,6 +258,7 @@ export const useRole = () => {
     isSubscription: snapshot.billingMode === "subscription",
     isPack: snapshot.billingMode === "pack",
     packCredits: snapshot.packCredits,
+    packLifetimePurchased: snapshot.packLifetimePurchased,
     packBlocked: (snapshot.billingMode === "pack" && snapshot.packCredits <= 0) || snapshot.packSalesDisabled,
     subscriptionBlocked: snapshot.subscriptionBlocked || snapshot.subscriptionSalesDisabled,
     subscriptionOnboardingCompleted: snapshot.subscriptionOnboardingCompleted,
