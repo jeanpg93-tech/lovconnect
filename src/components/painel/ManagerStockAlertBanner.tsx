@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/popover";
 import { useProviderCommitments } from "@/hooks/useProviderCommitments";
 import { notify, ensureNotificationPermission } from "@/lib/notify";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 type Severity = "ok" | "info" | "warn" | "critical" | "overcommit";
@@ -58,6 +59,31 @@ export default function ManagerStockAlertBanner() {
     return v && ["info", "warn", "critical", "overcommit"].includes(v) ? v : null;
   });
   const firedRef = useRef<string>("");
+  const [activeMethod, setActiveMethod] = useState<"flow" | "lovax">("flow");
+
+  // Lê e escuta o método de entrega ativo (mesmo app_settings usado no Sidebar)
+  useEffect(() => {
+    let cancelled = false;
+    const fetchActive = async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "licencas.delivery.method")
+        .maybeSingle();
+      const v = (data?.value as any)?.method;
+      if (!cancelled && (v === "flow" || v === "lovax")) setActiveMethod(v);
+    };
+    fetchActive();
+    const ch = supabase
+      .channel(`stock-alert-active-method-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "app_settings", filter: "key=eq.licencas.delivery.method" },
+        fetchActive,
+      )
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, []);
 
   // Persist settings
   useEffect(() => {
@@ -66,10 +92,15 @@ export default function ManagerStockAlertBanner() {
 
   if (c.loading && !c.committed && !c.flowRemaining && !c.lovaxRemaining) return null;
 
-  const total = c.totalRemaining;
-  const available = c.realAvailable;
+  // Considera apenas o estoque do método atualmente ativo
+  const methodRemaining = activeMethod === "flow" ? c.flowRemaining : c.lovaxRemaining;
+  const total = methodRemaining;
+  const available = Number.isFinite(methodRemaining)
+    ? Math.max(0, methodRemaining - c.committed)
+    : Number.POSITIVE_INFINITY;
   const committed = c.committed;
   const overcommitted = Number.isFinite(total) && committed > total;
+  const methodLabel = activeMethod === "flow" ? "MétodoFlow" : "MétodoLovax";
 
   let sev: Severity = "ok";
   if (overcommitted) sev = "overcommit";
@@ -84,29 +115,30 @@ export default function ManagerStockAlertBanner() {
       try { localStorage.removeItem(LAST_SEV_KEY); } catch {}
       return;
     }
-    const last = (typeof window !== "undefined" && localStorage.getItem(LAST_SEV_KEY)) || "ok";
+    const lastKey = `${LAST_SEV_KEY}:${activeMethod}`;
+    const last = (typeof window !== "undefined" && localStorage.getItem(lastKey)) || "ok";
     if (severityRank(sev) > severityRank(last as Severity)) {
       const title =
-        sev === "overcommit" ? "🚨 Estoque sobrecomprometido"
-        : sev === "critical" ? "🚨 Estoque crítico de licenças"
-        : sev === "warn" ? "⚠️ Estoque de licenças baixo"
+        sev === "overcommit" ? `🚨 ${methodLabel} sobrecomprometido`
+        : sev === "critical" ? `🚨 ${methodLabel}: estoque crítico`
+        : sev === "warn" ? `⚠️ ${methodLabel}: estoque baixo`
         : "Estoque de licenças";
       const body =
         sev === "overcommit"
           ? `Comprometido em packs (${committed}) excede o estoque (${Number.isFinite(total) ? total : "∞"}).`
           : `Disponível real: ${Number.isFinite(available) ? available : "∞"} licenças.`;
       notify(title, body, { tag: `stock-${sev}`, silent: !settings.soundEnabled });
-      try { localStorage.setItem(LAST_SEV_KEY, sev); } catch {}
+      try { localStorage.setItem(lastKey, sev); } catch {}
       // Reset dismiss when severity escalates
       if (dismissedSev && severityRank(sev) > severityRank(dismissedSev)) {
         setDismissedSev(null);
         try { localStorage.removeItem(DISMISS_KEY); } catch {}
       }
     } else {
-      try { localStorage.setItem(LAST_SEV_KEY, sev); } catch {}
+      try { localStorage.setItem(lastKey, sev); } catch {}
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sev, committed, total, available]);
+  }, [sev, committed, total, available, activeMethod]);
 
   // Request permission once mounted
   useEffect(() => {
@@ -141,17 +173,17 @@ export default function ManagerStockAlertBanner() {
 
   const headline =
     sev === "overcommit"
-      ? `Chaves comprometidas (${committed}) excedem o estoque disponível (${Number.isFinite(total) ? total : "∞"})`
+      ? `${methodLabel}: chaves comprometidas (${committed}) excedem o estoque (${Number.isFinite(total) ? total : "∞"})`
       : sev === "critical"
-        ? `Estoque crítico: ${Number.isFinite(available) ? available : "∞"} licenças disponíveis`
-        : `Estoque baixo: ${Number.isFinite(available) ? available : "∞"} licenças disponíveis`;
+        ? `${methodLabel}: estoque crítico (${Number.isFinite(available) ? available : "∞"} disponíveis)`
+        : `${methodLabel}: estoque baixo (${Number.isFinite(available) ? available : "∞"} disponíveis)`;
 
   const description =
     sev === "overcommit"
-      ? "Revendedores Pack podem não conseguir gerar todas as chaves prometidas. Recarregue as APIs do provedor com urgência."
+      ? `Revendedores Pack podem não conseguir gerar todas as chaves prometidas pelo ${methodLabel}. Recarregue a API com urgência.`
       : sev === "critical"
-        ? "Suas APIs de provedor estão quase sem estoque. Recarregue agora para não bloquear gerações."
-        : `Você definiu alerta para abaixo de ${settings.warnThreshold} licenças. Considere recarregar em breve.`;
+        ? `O ${methodLabel} está quase sem estoque. Recarregue agora para não bloquear gerações.`
+        : `Alerta configurado para abaixo de ${settings.warnThreshold} licenças no ${methodLabel}. Considere recarregar em breve.`;
 
   return (
     <div className={cn("relative overflow-hidden rounded-xl border p-4", palette.border, palette.bg)} role="alert">
@@ -165,9 +197,8 @@ export default function ManagerStockAlertBanner() {
           <div className={cn("font-display font-semibold", palette.title)}>{headline}</div>
           <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
 
-          <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            <Metric label="Flow" value={!Number.isFinite(c.flowRemaining) ? "∞" : String(c.flowRemaining)} />
-            <Metric label="Lovax" value={String(c.lovaxRemaining)} />
+          <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+            <Metric label={`Estoque ${methodLabel}`} value={!Number.isFinite(methodRemaining) ? "∞" : String(methodRemaining)} />
             <Metric label="Comprometido" value={String(committed)} accent="amber" />
             <Metric label="Disponível real" value={!Number.isFinite(available) ? "∞" : String(available)} accent={sev === "overcommit" || sev === "critical" ? "rose" : "emerald"} />
           </div>

@@ -138,6 +138,7 @@ const statusBadge = (status: string) => {
 export default function GerenteDashboard() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [period, setPeriod] = useState<string>("all");
   const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
   const [stats, setStats] = useState<Stats & { totalOrders: number; totalApiLogs: number }>({
@@ -191,7 +192,7 @@ export default function GerenteDashboard() {
 
   const fetchStats = async () => {
     try {
-    setLoading(true);
+    if (!hasLoadedOnce) setLoading(true);
     let startDate: string | null = null;
     let endDate: string | null = null;
 
@@ -763,9 +764,11 @@ export default function GerenteDashboard() {
     }
 
     setLoading(false);
+    setHasLoadedOnce(true);
     } catch (e) {
       console.error("[GerenteDashboard] fetchStats failed", e);
       setLoading(false);
+      setHasLoadedOnce(true);
     }
   };
 
