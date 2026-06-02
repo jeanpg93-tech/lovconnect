@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type Notif = {
   id: string;
@@ -186,7 +187,13 @@ export function NotificationCenter({ variant = "floating" }: { variant?: "floati
 
   if (variant === "floating") {
     return (
-      <div className="fixed right-4 top-4 z-40 hidden md:block" style={{ top: "calc(env(safe-area-inset-top) + 1rem)" }}>
+      <div
+        className="fixed right-4 top-4 z-40 hidden md:flex items-center gap-2"
+        style={{ top: "calc(env(safe-area-inset-top) + 1rem)" }}
+      >
+        <div className="rounded-full border border-border bg-background/80 shadow-lg backdrop-blur">
+          <ThemeToggle />
+        </div>
         {popover}
       </div>
     );
