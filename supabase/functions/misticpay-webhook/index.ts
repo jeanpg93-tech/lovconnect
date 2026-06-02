@@ -1078,6 +1078,10 @@ Deno.serve(async (req) => {
       cost_cents,
       promotion_id: lic_promo_id,
       promotion_discount_cents: lic_promo_discount,
+      delivery_source: deliveryFromPack
+        ? (usedPack ? "pack" : "wallet_fallback")
+        : "wallet",
+      fallback_from_pack: fallbackFromPack,
     }).eq("id", storeOrder.id);
 
     // upsert customer for the reseller
