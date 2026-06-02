@@ -21,6 +21,7 @@ type RoleSnapshot = {
   subscriptionBlocked: boolean;
   subscriptionOnboardingCompleted: boolean;
   packCredits: number;
+  packLifetimePurchased: number;
   subscriptionSalesDisabled: boolean;
   packSalesDisabled: boolean;
   isDemo: boolean;
