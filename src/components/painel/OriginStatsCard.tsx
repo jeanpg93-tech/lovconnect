@@ -1,28 +1,55 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
-import { Package, Wallet, AlertTriangle, Loader2 } from "lucide-react";
+import { Package, Wallet, AlertTriangle, Loader2, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { format, startOfDay, startOfMonth, subDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { readOriginFromNotes } from "./OriginBadge";
 
-type Row = {
-  delivery_source: string | null;
-  fallback_from_pack: boolean | null;
+type FilterKey = "today" | "7d" | "30d" | "month" | "custom";
+
+const FILTER_LABELS: Record<FilterKey, string> = {
+  today: "Hoje",
+  "7d": "Últimos 7 dias",
+  "30d": "Últimos 30 dias",
+  month: "Este mês",
+  custom: "Período personalizado",
 };
 
-/**
- * Card que exibe a divisão das últimas vendas do revendedor entre
- * Pacote, Saldo e Fallback (pacote esgotado). Aparece no dashboard
- * do revendedor para dar visibilidade dos modos de entrega ativos.
- */
-export default function OriginStatsCard({ days = 7 }: { days?: number }) {
+export default function OriginStatsCard() {
   const { user } = useAuth();
   const { billingMode } = useRole();
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<FilterKey>("7d");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
   const [stats, setStats] = useState({ pack: 0, wallet: 0, fallback: 0, total: 0 });
 
+  const range = useMemo<{ from: Date; to: Date; label: string } | null>(() => {
+    const now = new Date();
+    if (filter === "today") return { from: startOfDay(now), to: now, label: "Hoje" };
+    if (filter === "7d") return { from: subDays(now, 7), to: now, label: "Últimos 7 dias" };
+    if (filter === "30d") return { from: subDays(now, 30), to: now, label: "Últimos 30 dias" };
+    if (filter === "month") return { from: startOfMonth(now), to: now, label: "Este mês" };
+    if (filter === "custom" && customFrom && customTo) {
+      const to = new Date(customTo); to.setHours(23, 59, 59, 999);
+      return {
+        from: startOfDay(customFrom),
+        to,
+        label: `${format(customFrom, "dd/MM", { locale: ptBR })} – ${format(customTo, "dd/MM", { locale: ptBR })}`,
+      };
+    }
+    return null;
+  }, [filter, customFrom, customTo]);
+
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !range) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -34,30 +61,33 @@ export default function OriginStatsCard({ days = 7 }: { days?: number }) {
           .maybeSingle();
         const resellerId = (rsl as any)?.id;
         if (!resellerId) { setStats({ pack: 0, wallet: 0, fallback: 0, total: 0 }); return; }
-        const since = new Date();
-        since.setDate(since.getDate() - days);
         const { data } = await supabase
-          .from("storefront_orders")
-          .select("delivery_source,fallback_from_pack")
+          .from("orders")
+          .select("notes,status,is_test")
           .eq("reseller_id", resellerId)
-          .in("status", ["paid", "completed"])
-          .gte("created_at", since.toISOString())
-          .limit(1000);
+          .eq("is_test", false)
+          .in("status", ["completed", "sucesso", "manual_concluido", "manual_entregue"])
+          .gte("created_at", range.from.toISOString())
+          .lte("created_at", range.to.toISOString())
+          .limit(2000);
         if (cancelled) return;
-        const rows = (data ?? []) as Row[];
+        const rows = (data ?? []) as { notes: string | null }[];
         let pack = 0, wallet = 0, fallback = 0;
         for (const r of rows) {
-          if (r.delivery_source === "pack") pack++;
-          else if (r.delivery_source === "wallet_fallback" || r.fallback_from_pack) fallback++;
-          else wallet++;
+          const o = readOriginFromNotes(r.notes);
+          if (o === "pack") pack++;
+          else if (o === "wallet_fallback") fallback++;
+          else if (o === "wallet") wallet++;
+          // unknown -> ignora
         }
-        setStats({ pack, wallet, fallback, total: rows.length });
+        const total = pack + wallet + fallback;
+        setStats({ pack, wallet, fallback, total });
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [user?.id, days]);
+  }, [user?.id, range?.from?.getTime(), range?.to?.getTime()]);
 
   if (billingMode !== "pack") return null;
 
@@ -72,17 +102,53 @@ export default function OriginStatsCard({ days = 7 }: { days?: number }) {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <div>
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
+        <div className="min-w-0">
           <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
             ▸ Origem das vendas
           </div>
-          <div className="text-sm font-bold mt-0.5">Últimos {days} dias</div>
+          <div className="text-sm font-bold mt-0.5">{range?.label ?? "Selecione um período"}</div>
         </div>
-        <div className="text-right">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</div>
-          <div className="text-lg font-mono font-black">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin inline" /> : stats.total}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={filter} onValueChange={(v) => setFilter(v as FilterKey)}>
+            <SelectTrigger className="h-8 w-[170px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(FILTER_LABELS) as FilterKey[]).map((k) => (
+                <SelectItem key={k} value={k} className="text-xs">{FILTER_LABELS[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {filter === "custom" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {customFrom && customTo
+                    ? `${format(customFrom, "dd/MM", { locale: ptBR })} – ${format(customTo, "dd/MM", { locale: ptBR })}`
+                    : "Escolher datas"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="range"
+                  selected={{ from: customFrom, to: customTo }}
+                  onSelect={(r: any) => {
+                    setCustomFrom(r?.from);
+                    setCustomTo(r?.to);
+                  }}
+                  numberOfMonths={2}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+          <div className="text-right pl-2 border-l border-border ml-1">
+            <div className="text-[9px] uppercase tracking-widest text-muted-foreground">Total</div>
+            <div className="text-base font-mono font-black leading-tight">
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin inline" /> : stats.total}
+            </div>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
 import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import DeliveryModeCard from "@/components/painel/DeliveryModeCard";
 import OriginStatsCard from "@/components/painel/OriginStatsCard";
+import OriginBadge, { readOriginFromNotes } from "@/components/painel/OriginBadge";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
 import { usePricingIssues } from "@/hooks/usePricingIssues";
 import { Button } from "@/components/ui/button";
@@ -267,6 +268,7 @@ export default function RevendedorDashboard() {
             is_test: o.is_test,
             customer_name: o.customer?.display_name ?? null,
             customer_whatsapp: o.customer?.whatsapp ?? null,
+            notes: o.notes ?? null,
           }
         })),
         ...recharges.map((rc: any) => ({
@@ -475,7 +477,6 @@ export default function RevendedorDashboard() {
       <PricingIssuesBannerSlot />
       <PackLowBalanceBanner />
       <DeliveryModeCard />
-      <OriginStatsCard />
       {(() => {
         let variant: "active" | "manager_disabled" | "pack_empty" | "subscription_overdue" | null = null;
         if (isSubscription) {
@@ -611,6 +612,9 @@ export default function RevendedorDashboard() {
           </div>
         </div>
       </div>
+
+      {/* ORIGEM DAS VENDAS (logo após o Dashboard Geral) */}
+      <OriginStatsCard />
 
       {avisos.length > 0 && (
         <div className="grid gap-3 mb-6">
@@ -773,6 +777,14 @@ export default function RevendedorDashboard() {
                         {activity.type === 'sale' && extMap[activity.metadata?.extension_id || ""] ? (
                           <span className="ml-1 text-muted-foreground font-normal">· {extMap[activity.metadata.extension_id]}</span>
                         ) : null}
+                        {activity.type === 'sale' && (() => {
+                          const o = readOriginFromNotes(activity.metadata?.notes);
+                          return o !== "unknown" ? (
+                            <span className="ml-2 align-middle inline-flex">
+                              <OriginBadge origin={o} size="xs" />
+                            </span>
+                          ) : null;
+                        })()}
                       </div>
                       <div className="text-[9px] md:text-[10px] text-muted-foreground">{format(new Date(activity.created_at), "dd MMM, HH:mm", { locale: ptBR })}</div>
                       {(activity.metadata?.customer_name || activity.metadata?.customer_whatsapp) && (
