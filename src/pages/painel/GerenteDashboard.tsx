@@ -764,9 +764,11 @@ export default function GerenteDashboard() {
     }
 
     setLoading(false);
+    setHasLoadedOnce(true);
     } catch (e) {
       console.error("[GerenteDashboard] fetchStats failed", e);
       setLoading(false);
+      setHasLoadedOnce(true);
     }
   };
 
