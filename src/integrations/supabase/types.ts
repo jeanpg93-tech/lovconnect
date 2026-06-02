@@ -3183,10 +3183,12 @@ export type Database = {
           cost_cents: number | null
           created_at: string
           credit_amount: number | null
+          delivery_source: string | null
           delivery_type: string | null
           error_message: string | null
           expires_at: string | null
           extension_id: string | null
+          fallback_from_pack: boolean
           id: string
           invite_link: string | null
           is_legacy: boolean
@@ -3224,10 +3226,12 @@ export type Database = {
           cost_cents?: number | null
           created_at?: string
           credit_amount?: number | null
+          delivery_source?: string | null
           delivery_type?: string | null
           error_message?: string | null
           expires_at?: string | null
           extension_id?: string | null
+          fallback_from_pack?: boolean
           id?: string
           invite_link?: string | null
           is_legacy?: boolean
@@ -3265,10 +3269,12 @@ export type Database = {
           cost_cents?: number | null
           created_at?: string
           credit_amount?: number | null
+          delivery_source?: string | null
           delivery_type?: string | null
           error_message?: string | null
           expires_at?: string | null
           extension_id?: string | null
+          fallback_from_pack?: boolean
           id?: string
           invite_link?: string | null
           is_legacy?: boolean
