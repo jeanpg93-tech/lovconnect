@@ -1006,6 +1006,7 @@ export default function GerenteDashboard() {
             icon={ShoppingCart}
             accent="sky"
           />
+          <FallbackMetricCard days={30} />
         </div>
       </div>
 
