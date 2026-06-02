@@ -7,15 +7,16 @@ export default function PackLowBalanceBanner() {
   const { isPack, packCredits } = useRole();
 
   if (!isPack) return null;
-  if (packCredits > 3) return null;
+  if (packCredits >= 10) return null;
 
+  const isCritical = packCredits < 5; // 0–4 → vermelho
   const isZero = packCredits === 0;
 
   return (
     <div
       className={cn(
         "relative overflow-hidden rounded-xl border p-4",
-        isZero
+        isCritical
           ? "border-destructive/50 bg-destructive/10"
           : "border-amber-500/50 bg-amber-500/10"
       )}
@@ -25,12 +26,12 @@ export default function PackLowBalanceBanner() {
         <div
           className={cn(
             "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-            isZero
+            isCritical
               ? "bg-destructive/20 text-destructive"
               : "bg-amber-500/20 text-amber-600 dark:text-amber-400"
           )}
         >
-          {isZero ? (
+          {isCritical ? (
             <AlertCircle className="h-4.5 w-4.5" />
           ) : (
             <AlertTriangle className="h-4.5 w-4.5" />
@@ -40,7 +41,7 @@ export default function PackLowBalanceBanner() {
           <div
             className={cn(
               "font-display font-semibold",
-              isZero
+              isCritical
                 ? "text-destructive"
                 : "text-amber-700 dark:text-amber-300"
             )}
@@ -52,13 +53,15 @@ export default function PackLowBalanceBanner() {
           <p className="mt-0.5 text-sm text-muted-foreground">
             {isZero
               ? "Compre um novo pacote para continuar gerando chaves."
-              : "Suas licenças estão acabando. Compre um novo pacote antes que elas terminem."}
+              : isCritical
+                ? "Suas licenças estão críticas. Compre um novo pacote antes que terminem."
+                : "Suas licenças estão acabando. Recomendamos comprar um novo pacote em breve."}
           </p>
           <Link
             to="/painel/revendedor/comprar-pacote"
             className={cn(
               "mt-3 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
-              isZero
+              isCritical
                 ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 : "bg-amber-500 text-white hover:bg-amber-600"
             )}

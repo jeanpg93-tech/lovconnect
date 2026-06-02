@@ -500,6 +500,12 @@ Deno.serve(async (req) => {
     const license_key = providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
     await svc.from("orders").update({
       status: "completed", license_key, provider_response: providerData,
+      notes: JSON.stringify({
+        source: "api",
+        billing_mode: (reseller as any).billing_mode ?? "normal",
+        delivery_source: deliveryFromPack ? (usedPack ? "pack" : "wallet_fallback") : "wallet",
+        fallback_from_pack: fallbackFromPack,
+      }),
     }).eq("id", order.id);
     await svc.rpc("add_reseller_spent", { _reseller_id: reseller.id, _amount_cents: price_cents });
     await logUsage(200, { cost_cents: price_cents, license_type, license_key: license_key ?? undefined });
@@ -878,6 +884,16 @@ Deno.serve(async (req) => {
       status: "completed",
       license_key,
       provider_response: providerData,
+      notes: JSON.stringify({
+        method: metodo,
+        pack_id: pacote,
+        display_name,
+        whatsapp: whatsapp || null,
+        source: "unified_api",
+        billing_mode: isSubscription ? "subscription" : (isPack ? "pack" : "normal"),
+        delivery_source: deliveryFromPack ? (usedPack2 ? "pack" : "wallet_fallback") : "wallet",
+        fallback_from_pack: fallbackFromPack2,
+      }),
     }).eq("id", order.id);
     await svc.rpc("add_reseller_spent", { _reseller_id: reseller.id, _amount_cents: price_cents });
     await logUsage(200, { cost_cents: price_cents, license_type, license_key });
