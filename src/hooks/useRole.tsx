@@ -120,22 +120,29 @@ const fetchRoles = async (userId: string) => {
           try {
             const rid = (r as any).id ?? null;
             let credits = 0;
+            let lifetime = 0;
             if (rid) {
               const { data: bal } = await supabase
                 .from("reseller_pack_balances" as any)
-                .select("credits")
+                .select("credits, lifetime_purchased")
                 .eq("reseller_id", rid)
                 .maybeSingle();
               credits = Number((bal as any)?.credits ?? 0);
+              lifetime = Number((bal as any)?.lifetime_purchased ?? 0);
             }
             next.packCredits = credits;
             localStorage.setItem("user_pack_credits", String(next.packCredits));
+            next.packLifetimePurchased = lifetime;
+            localStorage.setItem("user_pack_lifetime_purchased", String(lifetime));
           } catch {
             next.packCredits = 0;
+            next.packLifetimePurchased = 0;
           }
         } else {
           next.packCredits = 0;
           localStorage.setItem("user_pack_credits", "0");
+          next.packLifetimePurchased = 0;
+          localStorage.setItem("user_pack_lifetime_purchased", "0");
         }
       } else if (!resellerRes.error) {
         next.isActive = true;
@@ -144,6 +151,7 @@ const fetchRoles = async (userId: string) => {
         next.subscriptionBlocked = false;
         next.subscriptionOnboardingCompleted = true;
         next.packCredits = 0;
+        next.packLifetimePurchased = 0;
         next.subscriptionSalesDisabled = false;
         next.packSalesDisabled = false;
         next.isDemo = false;
