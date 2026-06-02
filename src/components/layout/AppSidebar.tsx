@@ -131,6 +131,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "API Licenças", url: "/painel/revendedor/api", icon: KeyRound },
       { title: "API Recargas", url: "/painel/revendedor/api-recargas", icon: Coins },
       { title: "Resetar chave", url: "/painel/revendedor/resetar-chave", icon: RotateCcw },
+      { title: "Editar perfil", url: "/painel/conta", icon: UserCog },
     ]},
   ],
   cliente: [
@@ -174,7 +175,7 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
-  const { primaryRole, loading, hasData, isSubscription, isPack } = useRole();
+  const { primaryRole, loading, hasData, isSubscription, isPack, packCredits } = useRole();
   const { signOut, user } = useAuth();
   const { t } = useTranslation();
   const tItem = (s: string) => t(`sidebar.items.${s}`, { defaultValue: s });
