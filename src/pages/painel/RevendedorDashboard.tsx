@@ -611,6 +611,9 @@ export default function RevendedorDashboard() {
         </div>
       </div>
 
+      {/* ORIGEM DAS VENDAS (logo após o Dashboard Geral) */}
+      <OriginStatsCard />
+
       {avisos.length > 0 && (
         <div className="grid gap-3 mb-6">
           {avisos.map((aviso) => (
