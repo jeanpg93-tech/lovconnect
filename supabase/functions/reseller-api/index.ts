@@ -884,6 +884,16 @@ Deno.serve(async (req) => {
       status: "completed",
       license_key,
       provider_response: providerData,
+      notes: JSON.stringify({
+        method: metodo,
+        pack_id: pacote,
+        display_name,
+        whatsapp: whatsapp || null,
+        source: "unified_api",
+        billing_mode: isSubscription ? "subscription" : (isPack ? "pack" : "normal"),
+        delivery_source: deliveryFromPack ? (usedPack2 ? "pack" : "wallet_fallback") : "wallet",
+        fallback_from_pack: fallbackFromPack2,
+      }),
     }).eq("id", order.id);
     await svc.rpc("add_reseller_spent", { _reseller_id: reseller.id, _amount_cents: price_cents });
     await logUsage(200, { cost_cents: price_cents, license_type, license_key });
