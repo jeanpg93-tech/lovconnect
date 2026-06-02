@@ -175,7 +175,7 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
-  const { primaryRole, loading, hasData, isSubscription, isPack, packCredits } = useRole();
+  const { primaryRole, loading, hasData, isSubscription, isPack, packCredits, packLifetimePurchased } = useRole();
   const { signOut, user } = useAuth();
   const { t } = useTranslation();
   const tItem = (s: string) => t(`sidebar.items.${s}`, { defaultValue: s });
@@ -544,23 +544,24 @@ export function AppSidebar() {
               </NavLink>
             </div>
             {isPack && (
-              <div className="mt-2 rounded-md border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 px-2 py-1.5">
+              <div className="mt-2 rounded-md border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 px-2.5 py-2">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <Package className="h-3 w-3 shrink-0 text-primary" />
-                    <span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Package className="h-4 w-4 shrink-0 text-primary" />
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                       Packs
                     </span>
                     <span className={cn(
-                      "font-display text-sm font-bold tabular-nums",
+                      "font-display text-base font-bold tabular-nums leading-none",
                       packCredits >= 10 ? "text-emerald-500" : packCredits >= 5 ? "text-amber-500" : "text-destructive",
                     )}>
                       {packCredits}
+                      <span className="text-muted-foreground font-normal">/{packLifetimePurchased}</span>
                     </span>
                   </div>
                   <NavLink
                     to="/painel/revendedor/comprar-pacote"
-                    className="rounded border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary transition-colors hover:bg-primary/20"
+                    className="rounded border border-primary/40 bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary transition-colors hover:bg-primary/20"
                   >
                     Comprar
                   </NavLink>
