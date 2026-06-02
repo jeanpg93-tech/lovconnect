@@ -608,6 +608,12 @@ export default function GerenteRevendedores() {
                             <div className="flex justify-center gap-2">
                               <Tooltip>
                                 <TooltipTrigger asChild>
+                                  <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Editar nome e WhatsApp</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
                                   <Button size="sm" variant="ghost" onClick={() => openBalance(r)}><Wallet className="h-4 w-4" /></Button>
                                 </TooltipTrigger>
                                 <TooltipContent>Ajustar saldo do revendedor</TooltipContent>
