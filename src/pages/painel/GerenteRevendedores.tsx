@@ -596,6 +596,8 @@ export default function GerenteRevendedores() {
                 const balance = balancesByReseller[r.id] ?? 0;
                 const tier = tierFor(r.id);
                 const progress = tierProgressFor(r.id);
+                const presence = presenceByUser[r.user_id];
+                const online = isOnline(presence?.last_seen_at);
                 return (
                   <div key={r.id} className="p-4 space-y-4 border-b border-white/5 bg-white/5 rounded-xl mb-4">
                     <div className="flex justify-between items-start">
@@ -620,6 +622,21 @@ export default function GerenteRevendedores() {
                            <Switch className="scale-75 origin-right" checked={r.is_active} onCheckedChange={() => toggleActive(r)} />
                         </div>
                       </div>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/40 p-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="relative flex h-2 w-2">
+                            {online && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+                            <span className={cn("relative inline-flex h-2 w-2 rounded-full", online ? "bg-emerald-500" : "bg-slate-500")} />
+                          </span>
+                          <span className={cn("text-[10px] font-bold uppercase tracking-widest", online ? "text-emerald-500" : "text-muted-foreground")}>
+                            {online ? "Online" : "Offline"}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">{presence ? formatLastSeenBR(presence.last_seen_at) : "—"}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-foreground truncate">{presence ? labelForPath(presence.current_path) : "Sem registro de atividade"}</p>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
