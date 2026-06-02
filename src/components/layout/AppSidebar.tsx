@@ -411,6 +411,7 @@ export function AppSidebar() {
 
   const groups = (groupsByRole[primaryRole] ?? []).map(group => ({
     ...group,
+    label: isPack && group.label === "Minhas vendas" ? "Vendas - Saldo" : group.label,
     items: group.items.filter(item => {
       if (isPartner && item.url === "/painel/revendedor/niveis") return false;
       // Filtra grupos por modo
