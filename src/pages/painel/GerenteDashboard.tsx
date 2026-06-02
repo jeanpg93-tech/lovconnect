@@ -835,17 +835,9 @@ export default function GerenteDashboard() {
   // Reseta paginação quando filtros mudam
   useEffect(() => { setOrderPage(1); }, [movSearch, movType, movDirection]);
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-3">
-        <div className="relative h-12 w-12">
-          <div className="absolute inset-0 rounded-full border-2 border-primary/10" />
-          <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        </div>
-        <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-muted-foreground">carregando ecossistema</p>
-      </div>
-    );
-  }
+  // Não bloqueamos a tela inteira durante o primeiro load nem em refreshes.
+  // Os cards/seções já lidam com valores iniciais (zerados) sem flicker.
+  // Isso evita a sensação de "página recarregando sozinha".
 
   const periodLabels: Record<string, string> = {
     all: "Histórico completo",
