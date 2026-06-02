@@ -3791,6 +3791,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      debit_reseller_balance_pack_fallback: {
+        Args: {
+          _amount_cents: number
+          _description: string
+          _kind: string
+          _promotion_id: string
+          _reference_id: string
+          _reseller_id: string
+        }
+        Returns: boolean
+      }
       debit_reseller_balance_promo: {
         Args: {
           _amount_cents: number
