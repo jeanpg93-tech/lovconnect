@@ -38,6 +38,7 @@ const initialFromCache = (): RoleSnapshot => {
   let subscriptionBlocked = false;
   let subscriptionOnboardingCompleted = true;
   let packCredits = 0;
+  let packLifetimePurchased = 0;
   let subscriptionSalesDisabled = false;
   let packSalesDisabled = false;
   let isDemo = false;
@@ -56,6 +57,8 @@ const initialFromCache = (): RoleSnapshot => {
     if (localStorage.getItem("user_subscription_onboarding") === "false") subscriptionOnboardingCompleted = false;
     const cachedCredits = Number(localStorage.getItem("user_pack_credits") ?? "0");
     if (!Number.isNaN(cachedCredits)) packCredits = cachedCredits;
+    const cachedLP = Number(localStorage.getItem("user_pack_lifetime_purchased") ?? "0");
+    if (!Number.isNaN(cachedLP)) packLifetimePurchased = cachedLP;
     if (localStorage.getItem("user_subscription_sales_disabled") === "true") subscriptionSalesDisabled = true;
     if (localStorage.getItem("user_pack_sales_disabled") === "true") packSalesDisabled = true;
     if (localStorage.getItem("user_is_demo") === "true") isDemo = true;
@@ -64,7 +67,7 @@ const initialFromCache = (): RoleSnapshot => {
   } catch {
     /* noop */
   }
-  return { roles, isBanned, isActive, hasData, loading: false, userId: null, billingMode, subscriptionBlocked, subscriptionOnboardingCompleted, packCredits, subscriptionSalesDisabled, packSalesDisabled, isDemo, deliverySource };
+  return { roles, isBanned, isActive, hasData, loading: false, userId: null, billingMode, subscriptionBlocked, subscriptionOnboardingCompleted, packCredits, packLifetimePurchased, subscriptionSalesDisabled, packSalesDisabled, isDemo, deliverySource };
 };
 
 let snapshot: RoleSnapshot = initialFromCache();
