@@ -123,11 +123,11 @@ const groupsByRole: Record<AppRole, Group[]> = {
     { label: "Minhas vendas", items: [
       { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
       { title: "Licenças", url: "/painel/revendedor/licencas", icon: Puzzle },
+    ]},
+    { label: "Configurar", items: [
       { title: "Minha Loja", url: "/painel/revendedor/loja", icon: Store, badge: "store-status" },
       { title: "Precificação", url: "/painel/revendedor/precos", icon: Tag },
       { title: "Baixar Extensão", url: "/painel/revendedor/baixar-extensao", icon: Package },
-    ]},
-    { label: "Configurar", items: [
       { title: "API Licenças", url: "/painel/revendedor/api", icon: KeyRound },
       { title: "API Recargas", url: "/painel/revendedor/api-recargas", icon: Coins },
       { title: "Resetar chave", url: "/painel/revendedor/resetar-chave", icon: RotateCcw },
