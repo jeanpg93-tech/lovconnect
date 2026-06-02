@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import OriginBadge, { readOriginFromNotes } from "@/components/painel/OriginBadge";
 
 type Order = {
   id: string;
@@ -179,7 +180,12 @@ export default function RevendedorMinhasChaves() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-xs">{TYPE_LABEL[o.license_type] ?? o.license_type}</td>
-                      <td className="px-4 py-3">{statusBadge(o.status)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {statusBadge(o.status)}
+                          <OriginBadge origin={readOriginFromNotes(o.notes)} size="xs" />
+                        </div>
+                      </td>
                       <td className="px-4 py-3">
                         {o.license_key ? (
                           <div className="flex items-center gap-1.5">
@@ -241,6 +247,7 @@ export default function RevendedorMinhasChaves() {
                           {TYPE_LABEL[o.license_type] ?? o.license_type}
                         </span>
                         {statusBadge(o.status)}
+                        <OriginBadge origin={readOriginFromNotes(o.notes)} size="xs" />
                       </div>
                     </div>
                     {o.license_key && o.status === "completed" && (
