@@ -430,6 +430,7 @@ export default function GerenteRevendedores() {
                   <tr>
                     <th className="px-6 py-4 text-left font-semibold">Nome</th>
                     <th className="px-6 py-4 text-left font-semibold">Usuário</th>
+                    <th className="px-6 py-4 text-left font-semibold">Atividade</th>
                     <th className="px-6 py-4 text-left font-semibold">Pagamento</th>
                     <th className="px-6 py-4 text-left font-semibold">Email</th>
                     <th className="px-6 py-4 text-left font-semibold">WhatsApp</th>
@@ -447,6 +448,8 @@ export default function GerenteRevendedores() {
                     const balance = balancesByReseller[r.id] ?? 0;
                     const tier = tierFor(r.id);
                     const progress = tierProgressFor(r.id);
+                    const presence = presenceByUser[r.user_id];
+                    const online = isOnline(presence?.last_seen_at);
                     return (
                       <tr key={r.id} className="group transition-all duration-300 hover:bg-white/5">
                         <td className="px-6 py-4 font-medium text-foreground">
@@ -461,6 +464,31 @@ export default function GerenteRevendedores() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-muted-foreground/80">{r.display_name}</td>
+                        <td className="px-6 py-4 min-w-[180px]">
+                          {presence ? (
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className={cn("relative flex h-2 w-2", online ? "" : "opacity-60")}>
+                                  {online && (
+                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                  )}
+                                  <span className={cn("relative inline-flex h-2 w-2 rounded-full", online ? "bg-emerald-500" : "bg-slate-500")} />
+                                </span>
+                                <span className={cn("text-[10px] font-bold uppercase tracking-widest", online ? "text-emerald-500" : "text-muted-foreground")}>
+                                  {online ? "Online" : "Offline"}
+                                </span>
+                              </div>
+                              <span className="text-xs text-foreground truncate max-w-[200px]" title={presence.current_path ?? ""}>
+                                {labelForPath(presence.current_path)}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground" title={new Date(presence.last_seen_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}>
+                                {formatLastSeenBR(presence.last_seen_at)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Sem registro</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4"><ActivationBadge status={r.activation_status} /></td>
                         <td className="px-6 py-4 text-muted-foreground/80">{prof?.email ?? "—"}</td>
                         <td className="px-6 py-4 text-muted-foreground/80 font-mono text-xs whitespace-nowrap">{formatPhoneBR(prof?.phone)}</td>
