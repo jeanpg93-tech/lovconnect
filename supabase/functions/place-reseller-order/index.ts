@@ -467,6 +467,13 @@ Deno.serve(async (req) => {
       status: "completed",
       license_key,
       provider_response: providerData,
+      notes: JSON.stringify({
+        billing_mode: (reseller as any).billing_mode ?? "normal",
+        delivery_source: deliveryFromPack
+          ? (usedPack ? "pack" : "wallet_fallback")
+          : "wallet",
+        fallback_from_pack: fallbackFromPack,
+      }),
     }).eq("id", order.id);
 
     // soma gasto para o sistema de níveis (apenas pedidos pagos)
