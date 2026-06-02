@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, Repeat, Package } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { labelForPath, isOnline, formatLastSeenBR } from "@/lib/path-labels";
 
 type Reseller = {
   id: string; user_id: string; display_name: string; slug: string; is_active: boolean; test_keys_used_today: number; test_keys_per_day_override: number | null; activation_status?: string | null; billing_mode?: string | null;
@@ -22,6 +23,7 @@ type Reseller = {
 type Profile = { id: string; email: string; display_name: string | null; phone: string | null; is_banned: boolean | null };
 type Tier = { id: string; name: string; color: string; min_spent_cents: number; is_active: boolean; is_hidden: boolean; test_keys_per_day: number; sort_order: number };
 type State = { reseller_id: string; total_spent_cents: number; forced_tier_id: string | null };
+type Presence = { user_id: string; current_path: string | null; last_seen_at: string };
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -72,6 +74,8 @@ export default function GerenteRevendedores() {
   const [balancesByReseller, setBalancesByReseller] = useState<Record<string, number>>({});
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [states, setStates] = useState<Record<string, State>>({});
+  const [presenceByUser, setPresenceByUser] = useState<Record<string, Presence>>({});
+  const [presenceTick, setPresenceTick] = useState(0);
   const [monthlyRanking, setMonthlyRanking] = useState<{ reseller_id: string; total_spent_cents: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [mobileExpandedRow, setMobileExpandedRow] = useState<string | null>(null);
@@ -118,9 +122,10 @@ export default function GerenteRevendedores() {
     if (list.length) {
       const userIds = list.map((r) => r.user_id);
       const resellerIds = list.map((r) => r.id);
-      const [{ data: profs }, { data: bals }] = await Promise.all([
+      const [{ data: profs }, { data: bals }, { data: pres }] = await Promise.all([
         supabase.from("profiles").select("id,email,display_name,phone,is_banned").in("id", userIds),
         supabase.from("reseller_balances").select("reseller_id,balance_cents").in("reseller_id", resellerIds),
+        supabase.from("user_presence").select("user_id,current_path,last_seen_at").in("user_id", userIds),
       ]);
       const pmap: Record<string, Profile> = {};
       (profs ?? []).forEach((p: any) => { pmap[p.id] = p as Profile; });
@@ -128,11 +133,33 @@ export default function GerenteRevendedores() {
       const bmap: Record<string, number> = {};
       (bals ?? []).forEach((b: any) => { bmap[b.reseller_id] = Number(b.balance_cents) || 0; });
       setBalancesByReseller(bmap);
+      const prMap: Record<string, Presence> = {};
+      (pres ?? []).forEach((p: any) => { prMap[p.user_id] = p as Presence; });
+      setPresenceByUser(prMap);
     }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  // Atualiza presença a cada 30s e refaz o "tick" para recalcular os rótulos de tempo.
+  useEffect(() => {
+    const reload = async () => {
+      if (resellers.length === 0) return;
+      const userIds = resellers.map((r) => r.user_id);
+      const { data: pres } = await supabase
+        .from("user_presence")
+        .select("user_id,current_path,last_seen_at")
+        .in("user_id", userIds);
+      const prMap: Record<string, Presence> = {};
+      (pres ?? []).forEach((p: any) => { prMap[p.user_id] = p as Presence; });
+      setPresenceByUser(prMap);
+      setPresenceTick((t) => t + 1);
+    };
+    const id = window.setInterval(reload, 30_000);
+    const tickId = window.setInterval(() => setPresenceTick((t) => t + 1), 60_000);
+    return () => { window.clearInterval(id); window.clearInterval(tickId); };
+  }, [resellers]);
 
   const create = async () => {
     if (!email.trim() || !displayName.trim()) return toast.error("Preencha email e nome");
