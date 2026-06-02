@@ -544,32 +544,27 @@ export function AppSidebar() {
               </NavLink>
             </div>
             {isPack && (
-              <div className="mt-2 block rounded-lg border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/15 text-primary">
-                    <Package className="h-3.5 w-3.5 text-primary" />
+              <div className="mt-2 rounded-md border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 px-2 py-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <Package className="h-3 w-3 shrink-0 text-primary" />
+                    <span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">
+                      Packs
+                    </span>
+                    <span className={cn(
+                      "font-display text-sm font-bold tabular-nums",
+                      packCredits >= 10 ? "text-emerald-500" : packCredits >= 5 ? "text-amber-500" : "text-destructive",
+                    )}>
+                      {packCredits}
+                    </span>
                   </div>
-                  <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                    Licenças em Packs
-                  </div>
+                  <NavLink
+                    to="/painel/revendedor/comprar-pacote"
+                    className="rounded border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary transition-colors hover:bg-primary/20"
+                  >
+                    Comprar
+                  </NavLink>
                 </div>
-                <div className="mt-2 flex items-baseline gap-1.5">
-                  <span className={cn(
-                    "font-display text-lg font-bold tabular-nums",
-                    packCredits >= 10 ? "text-emerald-500" : packCredits >= 5 ? "text-amber-500" : "text-destructive",
-                  )}>
-                    {packCredits}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    restante{packCredits === 1 ? "" : "s"}
-                  </span>
-                </div>
-                <NavLink
-                  to="/painel/revendedor/comprar-pacote"
-                  className="mt-2 flex w-full items-center justify-center rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
-                >
-                  Comprar packs
-                </NavLink>
               </div>
             )}
           </div>
