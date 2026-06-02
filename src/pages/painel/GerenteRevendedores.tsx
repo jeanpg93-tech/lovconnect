@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, Repeat, Package } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { labelForPath, isOnline, formatLastSeenBR } from "@/lib/path-labels";
 
 type Reseller = {
   id: string; user_id: string; display_name: string; slug: string; is_active: boolean; test_keys_used_today: number; test_keys_per_day_override: number | null; activation_status?: string | null; billing_mode?: string | null;
@@ -22,6 +23,7 @@ type Reseller = {
 type Profile = { id: string; email: string; display_name: string | null; phone: string | null; is_banned: boolean | null };
 type Tier = { id: string; name: string; color: string; min_spent_cents: number; is_active: boolean; is_hidden: boolean; test_keys_per_day: number; sort_order: number };
 type State = { reseller_id: string; total_spent_cents: number; forced_tier_id: string | null };
+type Presence = { user_id: string; current_path: string | null; last_seen_at: string };
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -72,6 +74,8 @@ export default function GerenteRevendedores() {
   const [balancesByReseller, setBalancesByReseller] = useState<Record<string, number>>({});
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [states, setStates] = useState<Record<string, State>>({});
+  const [presenceByUser, setPresenceByUser] = useState<Record<string, Presence>>({});
+  const [presenceTick, setPresenceTick] = useState(0);
   const [monthlyRanking, setMonthlyRanking] = useState<{ reseller_id: string; total_spent_cents: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [mobileExpandedRow, setMobileExpandedRow] = useState<string | null>(null);
@@ -118,9 +122,10 @@ export default function GerenteRevendedores() {
     if (list.length) {
       const userIds = list.map((r) => r.user_id);
       const resellerIds = list.map((r) => r.id);
-      const [{ data: profs }, { data: bals }] = await Promise.all([
+      const [{ data: profs }, { data: bals }, { data: pres }] = await Promise.all([
         supabase.from("profiles").select("id,email,display_name,phone,is_banned").in("id", userIds),
         supabase.from("reseller_balances").select("reseller_id,balance_cents").in("reseller_id", resellerIds),
+        supabase.from("user_presence").select("user_id,current_path,last_seen_at").in("user_id", userIds),
       ]);
       const pmap: Record<string, Profile> = {};
       (profs ?? []).forEach((p: any) => { pmap[p.id] = p as Profile; });
@@ -128,11 +133,33 @@ export default function GerenteRevendedores() {
       const bmap: Record<string, number> = {};
       (bals ?? []).forEach((b: any) => { bmap[b.reseller_id] = Number(b.balance_cents) || 0; });
       setBalancesByReseller(bmap);
+      const prMap: Record<string, Presence> = {};
+      (pres ?? []).forEach((p: any) => { prMap[p.user_id] = p as Presence; });
+      setPresenceByUser(prMap);
     }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  // Atualiza presença a cada 30s e refaz o "tick" para recalcular os rótulos de tempo.
+  useEffect(() => {
+    const reload = async () => {
+      if (resellers.length === 0) return;
+      const userIds = resellers.map((r) => r.user_id);
+      const { data: pres } = await supabase
+        .from("user_presence")
+        .select("user_id,current_path,last_seen_at")
+        .in("user_id", userIds);
+      const prMap: Record<string, Presence> = {};
+      (pres ?? []).forEach((p: any) => { prMap[p.user_id] = p as Presence; });
+      setPresenceByUser(prMap);
+      setPresenceTick((t) => t + 1);
+    };
+    const id = window.setInterval(reload, 30_000);
+    const tickId = window.setInterval(() => setPresenceTick((t) => t + 1), 60_000);
+    return () => { window.clearInterval(id); window.clearInterval(tickId); };
+  }, [resellers]);
 
   const create = async () => {
     if (!email.trim() || !displayName.trim()) return toast.error("Preencha email e nome");
@@ -403,6 +430,7 @@ export default function GerenteRevendedores() {
                   <tr>
                     <th className="px-6 py-4 text-left font-semibold">Nome</th>
                     <th className="px-6 py-4 text-left font-semibold">Usuário</th>
+                    <th className="px-6 py-4 text-left font-semibold">Atividade</th>
                     <th className="px-6 py-4 text-left font-semibold">Pagamento</th>
                     <th className="px-6 py-4 text-left font-semibold">Email</th>
                     <th className="px-6 py-4 text-left font-semibold">WhatsApp</th>
@@ -420,6 +448,8 @@ export default function GerenteRevendedores() {
                     const balance = balancesByReseller[r.id] ?? 0;
                     const tier = tierFor(r.id);
                     const progress = tierProgressFor(r.id);
+                    const presence = presenceByUser[r.user_id];
+                    const online = isOnline(presence?.last_seen_at);
                     return (
                       <tr key={r.id} className="group transition-all duration-300 hover:bg-white/5">
                         <td className="px-6 py-4 font-medium text-foreground">
@@ -434,6 +464,31 @@ export default function GerenteRevendedores() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-muted-foreground/80">{r.display_name}</td>
+                        <td className="px-6 py-4 min-w-[180px]">
+                          {presence ? (
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className={cn("relative flex h-2 w-2", online ? "" : "opacity-60")}>
+                                  {online && (
+                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                  )}
+                                  <span className={cn("relative inline-flex h-2 w-2 rounded-full", online ? "bg-emerald-500" : "bg-slate-500")} />
+                                </span>
+                                <span className={cn("text-[10px] font-bold uppercase tracking-widest", online ? "text-emerald-500" : "text-muted-foreground")}>
+                                  {online ? "Online" : "Offline"}
+                                </span>
+                              </div>
+                              <span className="text-xs text-foreground truncate max-w-[200px]" title={presence.current_path ?? ""}>
+                                {labelForPath(presence.current_path)}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground" title={new Date(presence.last_seen_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}>
+                                {formatLastSeenBR(presence.last_seen_at)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Sem registro</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4"><ActivationBadge status={r.activation_status} /></td>
                         <td className="px-6 py-4 text-muted-foreground/80">{prof?.email ?? "—"}</td>
                         <td className="px-6 py-4 text-muted-foreground/80 font-mono text-xs whitespace-nowrap">{formatPhoneBR(prof?.phone)}</td>
@@ -541,6 +596,8 @@ export default function GerenteRevendedores() {
                 const balance = balancesByReseller[r.id] ?? 0;
                 const tier = tierFor(r.id);
                 const progress = tierProgressFor(r.id);
+                const presence = presenceByUser[r.user_id];
+                const online = isOnline(presence?.last_seen_at);
                 return (
                   <div key={r.id} className="p-4 space-y-4 border-b border-white/5 bg-white/5 rounded-xl mb-4">
                     <div className="flex justify-between items-start">
@@ -565,6 +622,21 @@ export default function GerenteRevendedores() {
                            <Switch className="scale-75 origin-right" checked={r.is_active} onCheckedChange={() => toggleActive(r)} />
                         </div>
                       </div>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/40 p-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="relative flex h-2 w-2">
+                            {online && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+                            <span className={cn("relative inline-flex h-2 w-2 rounded-full", online ? "bg-emerald-500" : "bg-slate-500")} />
+                          </span>
+                          <span className={cn("text-[10px] font-bold uppercase tracking-widest", online ? "text-emerald-500" : "text-muted-foreground")}>
+                            {online ? "Online" : "Offline"}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">{presence ? formatLastSeenBR(presence.last_seen_at) : "—"}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-foreground truncate">{presence ? labelForPath(presence.current_path) : "Sem registro de atividade"}</p>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">

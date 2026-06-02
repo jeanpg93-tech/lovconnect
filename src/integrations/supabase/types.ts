@@ -3694,6 +3694,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_presence: {
+        Row: {
+          current_path: string | null
+          last_seen_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_path?: string | null
+          last_seen_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_path?: string | null
+          last_seen_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_by: string | null

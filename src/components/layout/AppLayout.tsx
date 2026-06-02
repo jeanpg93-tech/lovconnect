@@ -6,6 +6,7 @@ import { useRole } from "@/hooks/useRole";
 import { Loader2 } from "lucide-react";
 import { PanelRoutes } from "./PanelRoutes";
 import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
+import { usePresenceTracker } from "@/hooks/usePresenceTracker";
 import { MobileNav } from "./MobileNav";
 import { PendingBalanceBanner } from "@/components/painel/PendingBalanceBanner";
 import { LovMainLogo } from "@/components/LovMainLogo";
@@ -27,6 +28,7 @@ export default function AppLayout() {
   const isInitialAuthLoading = authLoading && !user;
   const isInitialRoleLoading = roleLoading && !hasData;
   useRealtimeNotifications();
+  usePresenceTracker();
   const { status: activationStatus, loading: activationLoading } = useActivation(
     user && primaryRole === "revendedor" ? user.id : undefined,
   );
