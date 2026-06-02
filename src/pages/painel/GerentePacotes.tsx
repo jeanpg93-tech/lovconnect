@@ -43,6 +43,79 @@ const centsToInput = (c: number | undefined | null): string => {
   return (Number(c) / 100).toFixed(2).replace(".", ",");
 };
 
+function SortablePackCard({
+  pack: p, commitments, onEdit, onToggle, onRemove,
+}: {
+  pack: Pack;
+  commitments: ReturnType<typeof useProviderCommitments>;
+  onEdit: () => void;
+  onToggle: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  const perKey = p.credits > 0 ? p.price_cents / p.credits : 0;
+  const stockAvail = !Number.isFinite(commitments.realAvailable) || commitments.loading
+    ? true
+    : Number(p.credits) <= commitments.realAvailable;
+  return (
+    <div ref={setNodeRef} style={style} className="rounded-xl border border-border bg-card/60 p-4 backdrop-blur-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 min-w-0">
+          <button
+            type="button"
+            className="mt-0.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+            {...attributes}
+            {...listeners}
+            aria-label="Arrastar para reordenar"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <div className="rounded-lg bg-primary/10 p-2 text-primary">
+            <PackIcon name={p.icon} className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="font-display text-lg font-bold truncate">{p.name}</div>
+            <div className="text-xs text-muted-foreground">{p.credits} licenças</div>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <Badge variant={p.is_active ? "default" : "secondary"}>
+            {p.is_active ? "Ativo" : "Inativo"}
+          </Badge>
+          {p.is_active && !stockAvail && (
+            <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400 text-[10px]">
+              Sem estoque
+            </Badge>
+          )}
+        </div>
+      </div>
+      <div className="mt-3 font-mono text-2xl font-black text-primary">{brl(p.price_cents)}</div>
+      <div className="text-[11px] text-muted-foreground">{brl(perKey)} por licença</div>
+      {p.is_active && !stockAvail && (
+        <div className="mt-2 text-[11px] text-amber-600 dark:text-amber-400">
+          Oculto do revendedor: estoque insuficiente
+        </div>
+      )}
+      <div className="mt-4 flex items-center gap-2">
+        <Button size="sm" variant="outline" onClick={onEdit}>
+          <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onToggle}>
+          {p.is_active ? "Desativar" : "Ativar"}
+        </Button>
+        <Button size="sm" variant="ghost" className="text-rose-400 ml-auto" onClick={onRemove}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function GerentePacotes() {
   const [packs, setPacks] = useState<Pack[]>([]);
   const [loading, setLoading] = useState(true);
