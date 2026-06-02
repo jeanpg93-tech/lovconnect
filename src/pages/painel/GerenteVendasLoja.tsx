@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { PromotionAppliedBadge } from "@/components/PromotionAppliedBadge";
+import OriginBadge, { readOriginFromRow, type OrderOrigin } from "@/components/painel/OriginBadge";
 
 type Row = {
   id: string;
@@ -31,6 +32,8 @@ type Row = {
   raw_response: any;
   promotion_id?: string | null;
   promotion_discount_cents?: number | null;
+  delivery_source?: string | null;
+  fallback_from_pack?: boolean | null;
 };
 
 const statusMap: Record<string, { label: string; color: string; icon: any }> = {
@@ -59,6 +62,7 @@ export default function GerenteVendasLoja() {
   const [extensions, setExtensions] = useState<Record<string, string>>({});
   const [period, setPeriod] = useState<Period>("all");
   const [statusF, setStatusF] = useState<string>("all");
+  const [originF, setOriginF] = useState<"all" | OrderOrigin>("all");
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -115,23 +119,31 @@ export default function GerenteVendasLoja() {
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return rows;
-    return rows.filter((r) =>
+    let list = rows;
+    if (originF !== "all") {
+      list = list.filter((r) => readOriginFromRow(r) === originF);
+    }
+    if (!term) return list;
+    return list.filter((r) =>
       [r.buyer_name, r.buyer_whatsapp, r.license_type, r.license_key, r.provider_transaction_id,
        resellers[r.reseller_id], r.extension_id ? extensions[r.extension_id] : ""]
         .filter(Boolean).join(" ").toLowerCase().includes(term)
     );
-  }, [rows, q, resellers, extensions]);
+  }, [rows, q, resellers, extensions, originF]);
 
   const stats = useMemo(() => {
     const paid = filtered.filter(r => r.status === "paid" || r.status === "completed");
     const totalCents = paid.reduce((s, r) => s + Number(r.price_cents || 0), 0);
+    const fromPack = filtered.filter(r => readOriginFromRow(r) === "pack").length;
+    const fallback = filtered.filter(r => readOriginFromRow(r) === "wallet_fallback").length;
     return {
       total: filtered.length,
       paidCount: paid.length,
       totalCents,
       pending: filtered.filter(r => r.status === "pending").length,
       failed: filtered.filter(r => r.status === "failed").length,
+      fromPack,
+      fallback,
     };
   }, [filtered]);
 
@@ -179,11 +191,13 @@ export default function GerenteVendasLoja() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
         <StatCard label="Vendas" value={stats.total} icon={ShoppingBag} hint="No período" />
         <StatCard label="Pagas" value={stats.paidCount} icon={CheckCircle2} hint={`${stats.pending} pendentes`} />
         <StatCard label="Falharam" value={stats.failed} icon={XCircle} hint="Provedor / pagamento" />
         <StatCard label="Receita" value={fmtBRL(stats.totalCents)} icon={Banknote} hint="Apenas vendas pagas" />
+        <StatCard label="Do Pacote" value={stats.fromPack} icon={TrendingUp} hint="Entregues via pacote" />
+        <StatCard label="Fallback p/ Saldo" value={stats.fallback} icon={Clock} hint="Pacote esgotado" />
       </div>
 
       {/* Status filter */}
@@ -197,6 +211,27 @@ export default function GerenteVendasLoja() {
             className="h-8 text-[9px] font-bold uppercase tracking-widest"
           >
             {s === "all" ? "Todos" : statusMap[s]?.label ?? s}
+          </Button>
+        ))}
+      </div>
+
+      {/* Origin filter */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Origem:</span>
+        {([
+          { id: "all", label: "Todas" },
+          { id: "pack", label: "Pacote" },
+          { id: "wallet", label: "Saldo" },
+          { id: "wallet_fallback", label: "Fallback" },
+        ] as const).map((o) => (
+          <Button
+            key={o.id}
+            variant={originF === o.id ? "default" : "outline"}
+            size="sm"
+            onClick={() => setOriginF(o.id as any)}
+            className="h-8 text-[9px] font-bold uppercase tracking-widest"
+          >
+            {o.label}
           </Button>
         ))}
       </div>
@@ -231,6 +266,7 @@ export default function GerenteVendasLoja() {
                             <st.icon className="h-3 w-3" />{st.label}
                           </span>
                           <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{r.license_type}</span>
+                          <OriginBadge origin={readOriginFromRow(r)} size="xs" />
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                           <span>📞 {r.buyer_whatsapp}</span>
