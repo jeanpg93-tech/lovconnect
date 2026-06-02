@@ -41,11 +41,11 @@ export function readOriginFromRow(row: {
 
 const CONFIG: Record<Exclude<OrderOrigin, "unknown">, { label: string; short: string; Icon: typeof Package; cls: string; title: string }> = {
   pack: {
-    label: "Pacote",
-    short: "Pacote",
+    label: "Vendas - Packs",
+    short: "Packs",
     Icon: Package,
     cls: "border-primary/30 bg-primary/10 text-primary",
-    title: "Licença debitada do seu pacote",
+    title: "Licença debitada dos seus Packs",
   },
   wallet: {
     label: "Saldo",
@@ -59,7 +59,7 @@ const CONFIG: Record<Exclude<OrderOrigin, "unknown">, { label: string; short: st
     short: "Fallback",
     Icon: AlertTriangle,
     cls: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    title: "Pacote esgotado: licença foi paga com saldo da carteira automaticamente",
+    title: "Packs esgotados: licença foi paga com saldo da carteira automaticamente",
   },
 };
 

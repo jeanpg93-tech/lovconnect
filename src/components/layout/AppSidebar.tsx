@@ -114,10 +114,10 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Minhas Chaves", url: "/painel/revendedor/minhas-chaves", icon: KeyRound },
       { title: "Minhas Cobranças", url: "/painel/revendedor/cobrancas", icon: Wallet },
     ]},
-    { label: "Pacote", items: [
+    { label: "Vendas - Packs", items: [
       { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles },
       { title: "Minhas Chaves", url: "/painel/revendedor/minhas-chaves", icon: KeyRound },
-      { title: "Comprar Pacote", url: "/painel/revendedor/comprar-pacote", icon: ShoppingCart },
+      { title: "Comprar Packs", url: "/painel/revendedor/comprar-pacote", icon: ShoppingCart },
       { title: "Histórico", url: "/painel/revendedor/historico-pacote", icon: HistoryIcon },
     ]},
     { label: "Minhas vendas", items: [
@@ -181,7 +181,7 @@ export function AppSidebar() {
   const tItem = (s: string) => t(`sidebar.items.${s}`, { defaultValue: s });
   const tGroup = (s: string) => t(`sidebar.groups.${s}`, { defaultValue: s });
 
-  const [openGroups, setOpenGroups] = useState<string[]>(["Visão geral", "Painel", "Vender", "Operação", "Mensalidade", "Pacote"]);
+  const [openGroups, setOpenGroups] = useState<string[]>(["Visão geral", "Painel", "Vender", "Operação", "Mensalidade", "Vendas - Packs"]);
   
   // Sincroniza abertura com a rota atual se necessário
   useEffect(() => {
@@ -414,7 +414,7 @@ export function AppSidebar() {
     items: group.items.filter(item => {
       if (isPartner && item.url === "/painel/revendedor/niveis") return false;
       // Filtra grupos por modo
-      if (group.label === "Pacote" && !isPack) return false;
+      if (group.label === "Vendas - Packs" && !isPack) return false;
       if (group.label === "Mensalidade" && !isSubscription) return false;
       if (isSubscription) {
         const hiddenForSubscription = [
@@ -430,7 +430,7 @@ export function AppSidebar() {
       } else if (isPack) {
         // Modo Pack é uma opção ADICIONAL: não esconde nada do fluxo normal.
         // O revendedor mantém todos os menus (carteira, loja, recargas, etc.)
-        // e ganha os itens do grupo "Pacote" por cima.
+        // e ganha os itens do grupo "Vendas - Packs" por cima.
       } else {
         // Esconde itens exclusivos de mensalista para revendedores normais
         const subscriptionOnly = [
@@ -549,7 +549,7 @@ export function AppSidebar() {
                     <Package className="h-3.5 w-3.5 text-primary" />
                   </div>
                   <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                    Licenças do Pacote
+                    Licenças em Packs
                   </div>
                 </div>
                 <div className="mt-2 flex items-baseline gap-1.5">
@@ -567,7 +567,7 @@ export function AppSidebar() {
                   to="/painel/revendedor/comprar-pacote"
                   className="mt-2 flex w-full items-center justify-center rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
                 >
-                  Comprar pacote
+                  Comprar packs
                 </NavLink>
               </div>
             )}
