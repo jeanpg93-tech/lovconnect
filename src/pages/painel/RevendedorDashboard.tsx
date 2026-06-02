@@ -194,6 +194,20 @@ export default function RevendedorDashboard() {
     misticpay_enabled: boolean;
   }>({ misticpay_enabled: false });
 
+  // === Filtro de período para os gráficos (Receita + Mix de Planos) ===
+  const [chartFilter, setChartFilter] = useState<PeriodKey>("30d");
+  const [chartCustomFrom, setChartCustomFrom] = useState<Date | undefined>();
+  const [chartCustomTo, setChartCustomTo] = useState<Date | undefined>();
+  const chartRange = useMemo(
+    () => computeRange(chartFilter, chartCustomFrom, chartCustomTo),
+    [chartFilter, chartCustomFrom, chartCustomTo],
+  );
+  type ChartSale = { created_at: string; price_cents: number; license_type: string | null; notes: string | null };
+  type ChartRecharge = { created_at: string; price_cents: number };
+  const [chartLoading, setChartLoading] = useState(false);
+  const [chartSales, setChartSales] = useState<ChartSale[]>([]);
+  const [chartRecharges, setChartRecharges] = useState<ChartRecharge[]>([]);
+
   const reload = useCallback(async (opts: { silent?: boolean } = {}) => {
     if (!user) return;
     if (!opts.silent) setLoading(true);
