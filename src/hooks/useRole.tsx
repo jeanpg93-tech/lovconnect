@@ -178,6 +178,15 @@ const resetRoles = () => {
   setSnapshot({ roles: [], isBanned: false, isActive: true, hasData: false, loading: false, userId: null, billingMode: "normal", subscriptionBlocked: false, subscriptionOnboardingCompleted: true, packCredits: 0, subscriptionSalesDisabled: false, packSalesDisabled: false, isDemo: false, deliverySource: "wallet" });
 };
 
+export const refetchRole = async () => {
+  const uid = lastFetchedUserId;
+  if (!uid) return;
+  // bypass dedupe
+  inflight = null;
+  lastFetchedUserId = null;
+  await fetchRoles(uid);
+};
+
 export const useRole = () => {
   const { user, loading: authLoading } = useAuth();
   useSyncExternalStore(

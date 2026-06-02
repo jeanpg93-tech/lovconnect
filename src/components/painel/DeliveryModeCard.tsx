@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Loader2, Package, Wallet, ArrowRight, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/hooks/useRole";
+import { refetchRole } from "@/hooks/useRole";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -32,11 +33,13 @@ export default function DeliveryModeCard() {
     const target = next ? "pack" : "wallet";
     setSaving(true);
     const { error } = await supabase.rpc("set_reseller_delivery_source" as any, { _source: target });
-    setSaving(false);
     if (error) {
+      setSaving(false);
       toast.error(error.message ?? "Falha ao atualizar modo de venda");
       return;
     }
+    await refetchRole();
+    setSaving(false);
     toast.success(
       target === "pack"
         ? "Modo Pacote ativado — vendas consomem licenças do pacote"
