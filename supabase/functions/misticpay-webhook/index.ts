@@ -747,6 +747,16 @@ Deno.serve(async (req) => {
     const method: "flow" | "lovax" =
       (storeCfg as any)?.extension_method === "lovax" ? "lovax" : "flow";
 
+    // Modo de venda do revendedor (pack/saldo) — Loja Integrada
+    const { data: resellerCfg } = await admin
+      .from("resellers")
+      .select("billing_mode, delivery_source")
+      .eq("id", storeOrder.reseller_id)
+      .maybeSingle();
+    const deliveryFromPack =
+      (resellerCfg as any)?.billing_mode === "pack" &&
+      (resellerCfg as any)?.delivery_source === "pack";
+
     // CUSTO DO REVENDEDOR — mesma lógica do place-reseller-order:
     // 1) reseller_extension_price_overrides (Partners) — prioridade máxima
     // 2) tier_extension_prices (preço fixo do nível) — ignora desconto% e piso global
@@ -858,24 +868,50 @@ Deno.serve(async (req) => {
       lic_promo_discount = promo.discountCents;
     }
 
-    if (cost_cents > 0) {
-      const { data: debitOk, error: debitErr } = await admin.rpc("debit_reseller_balance_promo", {
+    // Cobrança: tenta pacote primeiro quando aplicável; fallback automático para saldo.
+    let usedPack = false;
+    let fallbackFromPack = false;
+    if (deliveryFromPack) {
+      const { data: consumed, error: consumeErr } = await admin.rpc(
+        "pack_try_consume_sale_credit",
+        {
+          _reseller_id: storeOrder.reseller_id,
+          _order_id: storeOrder.id,
+          _description: `Venda Loja: ${storeOrder.license_type}`,
+        },
+      );
+      if (consumeErr) {
+        console.error("[webhook] pack_try_consume_sale_credit error", consumeErr);
+        return json({ ok: false, error: "pack_rpc_failed", detail: consumeErr.message }, 500);
+      }
+      if (typeof consumed === "number" && consumed >= 0) {
+        usedPack = true;
+      } else {
+        fallbackFromPack = true;
+      }
+    }
+
+    if (!usedPack && cost_cents > 0) {
+      const debitRpc = fallbackFromPack
+        ? "debit_reseller_balance_pack_fallback"
+        : "debit_reseller_balance_promo";
+      const { data: debitOk, error: debitErr } = await admin.rpc(debitRpc, {
         _reseller_id: storeOrder.reseller_id,
         _amount_cents: cost_cents,
         _kind: "order_debit",
-        _description: `Venda Loja: ${storeOrder.license_type}`,
+        _description: fallbackFromPack
+          ? `Venda Loja: ${storeOrder.license_type} (fallback pacote esgotado)`
+          : `Venda Loja: ${storeOrder.license_type}`,
         _reference_id: storeOrder.id,
         _promotion_id: lic_promo_id,
       });
 
       if (debitErr) {
-        // Erro técnico no RPC — NÃO trata como "sem saldo".
         console.error("[webhook] debit_reseller_balance RPC error (license)", debitErr);
         return json({ ok: false, error: "debit_rpc_failed", detail: debitErr.message }, 500);
       }
 
       if (debitOk === false) {
-        // Sem saldo → coloca em espera, não chama provedor
         await admin.from("storefront_orders").update({
           status: "awaiting_balance",
           cost_cents,

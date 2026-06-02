@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
 
     const { data: reseller } = await svc
       .from("resellers")
-      .select("id,activation_status,billing_mode,subscription_blocked,subscription_sales_disabled,pack_sales_disabled,is_demo")
+      .select("id,activation_status,billing_mode,subscription_blocked,subscription_sales_disabled,pack_sales_disabled,is_demo,delivery_source")
       .eq("user_id", userId).maybeSingle();
     if (!reseller) return json({ error: "Revendedor não encontrado" }, 404);
     if ((reseller as any).activation_status && (reseller as any).activation_status !== "active") {
@@ -108,6 +108,7 @@ Deno.serve(async (req) => {
     }
     const isSubscription = (reseller as any).billing_mode === "subscription";
     const isPack = (reseller as any).billing_mode === "pack";
+    const deliveryFromPack = isPack && (reseller as any).delivery_source === "pack";
     if (isSubscription && (reseller as any).subscription_blocked) {
       return json({ error: "Painel bloqueado por cobrança em aberto. Pague para liberar.", reason: "subscription_blocked" }, 403);
     }
@@ -193,21 +194,62 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Cobrança: Pacote (modo pack + delivery_source=pack) com fallback para Saldo.
+    // Em demais casos, débito normal da carteira (comportamento existente).
+    let usedPack = false;
+    let fallbackFromPack = false;
     if (!isSubscription) {
-      const { data: debitOk, error: debitErr } = await svc.rpc("debit_reseller_balance_promo", {
-        _reseller_id: reseller_id,
-        _amount_cents: price_cents,
-        _kind: "license_purchase",
-        _description: `Licença ${method.toUpperCase()} ${pack_id}`,
-        _reference_id: null,
-        _promotion_id: promotion_id,
-      });
-      if (debitErr) return json({ error: debitErr.message }, 500);
-      if (debitOk === false) return json({ error: "Saldo insuficiente" }, 402);
+      if (deliveryFromPack) {
+        const { data: consumed, error: consumeErr } = await svc.rpc(
+          "pack_try_consume_sale_credit",
+          {
+            _reseller_id: reseller_id,
+            _order_id: null,
+            _description: `Venda ${method.toUpperCase()} ${pack_id}`,
+          },
+        );
+        if (consumeErr) return json({ error: consumeErr.message }, 500);
+        if (typeof consumed === "number" && consumed >= 0) {
+          usedPack = true;
+        } else {
+          fallbackFromPack = true;
+        }
+      }
+      if (!usedPack) {
+        const debitRpc = fallbackFromPack
+          ? "debit_reseller_balance_pack_fallback"
+          : "debit_reseller_balance_promo";
+        const { data: debitOk, error: debitErr } = await svc.rpc(debitRpc, {
+          _reseller_id: reseller_id,
+          _amount_cents: price_cents,
+          _kind: "license_purchase",
+          _description: fallbackFromPack
+            ? `Licença ${method.toUpperCase()} ${pack_id} (fallback pacote esgotado)`
+            : `Licença ${method.toUpperCase()} ${pack_id}`,
+          _reference_id: null,
+          _promotion_id: promotion_id,
+        });
+        if (debitErr) return json({ error: debitErr.message }, 500);
+        if (debitOk === false) {
+          return json({
+            error: fallbackFromPack
+              ? "Pacote esgotado e saldo insuficiente para o fallback."
+              : "Saldo insuficiente",
+          }, 402);
+        }
+      }
     }
 
     const license_type = `${method}_${pack_id}`;
-    const notesObj = { method, pack_id, display_name, whatsapp: whatsapp || null, billing_mode: isSubscription ? "subscription" : "normal" };
+    const notesObj = {
+      method,
+      pack_id,
+      display_name,
+      whatsapp: whatsapp || null,
+      billing_mode: isSubscription ? "subscription" : isPack ? "pack" : "normal",
+      delivery_source: isPack ? (usedPack ? "pack" : (fallbackFromPack ? "wallet_fallback" : "wallet")) : null,
+      fallback_from_pack: fallbackFromPack,
+    };
 
     // cria pedido pendente
     const { data: order, error: orderErr } = await svc
@@ -227,7 +269,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (orderErr || !order) {
-      if (!isSubscription) {
+      if (!isSubscription && !usedPack) {
         await svc.rpc("credit_reseller_balance", {
           _reseller_id: reseller_id,
           _amount_cents: price_cents,
@@ -236,11 +278,30 @@ Deno.serve(async (req) => {
           _reference_id: null,
         });
       }
+      if (usedPack) {
+        await svc.rpc("pack_refund_credit", {
+          _reseller_id: reseller_id,
+          _order_id: null,
+          _description: `Estorno falha criar pedido ${method}/${pack_id}`,
+        }).then((r: any) => r.error && console.warn("pack_refund_credit failed", r.error));
+      }
       return json({ error: orderErr?.message ?? "Falha ao criar pedido" }, 500);
     }
 
+    // Linka o consumo de pacote (ledger) ao pedido recém-criado.
+    if (usedPack) {
+      await svc
+        .from("reseller_pack_ledger")
+        .update({ order_id: order.id })
+        .eq("reseller_id", reseller_id)
+        .is("order_id", null)
+        .eq("kind", "sale_consume")
+        .order("created_at", { ascending: false })
+        .limit(1);
+    }
+
     const refund = async (reason: string, providerResp?: unknown) => {
-      if (!isSubscription) {
+      if (!isSubscription && !usedPack) {
         await svc.rpc("credit_reseller_balance", {
           _reseller_id: reseller_id,
           _amount_cents: price_cents,
@@ -248,6 +309,13 @@ Deno.serve(async (req) => {
           _description: `Estorno ${method}/${pack_id}: ${reason}`,
           _reference_id: order.id,
         });
+      }
+      if (usedPack) {
+        await svc.rpc("pack_refund_credit", {
+          _reseller_id: reseller_id,
+          _order_id: order.id,
+          _description: `Estorno ${method}/${pack_id}: ${reason}`,
+        }).then((r: any) => r.error && console.warn("pack_refund_credit failed", r.error));
       }
       await svc.from("orders").update({
         status: "refunded",

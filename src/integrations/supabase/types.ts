@@ -299,6 +299,7 @@ export type Database = {
           amount_cents: number
           created_at: string
           description: string | null
+          fallback_from_pack: boolean
           id: string
           kind: string
           promotion_id: string | null
@@ -309,6 +310,7 @@ export type Database = {
           amount_cents: number
           created_at?: string
           description?: string | null
+          fallback_from_pack?: boolean
           id?: string
           kind: string
           promotion_id?: string | null
@@ -319,6 +321,7 @@ export type Database = {
           amount_cents?: number
           created_at?: string
           description?: string | null
+          fallback_from_pack?: boolean
           id?: string
           kind?: string
           promotion_id?: string | null
@@ -3092,6 +3095,7 @@ export type Database = {
           billing_mode: string
           bonus_min_tier_id: string | null
           created_at: string
+          delivery_source: string
           display_name: string
           id: string
           is_active: boolean
@@ -3113,6 +3117,7 @@ export type Database = {
           billing_mode?: string
           bonus_min_tier_id?: string | null
           created_at?: string
+          delivery_source?: string
           display_name: string
           id?: string
           is_active?: boolean
@@ -3134,6 +3139,7 @@ export type Database = {
           billing_mode?: string
           bonus_min_tier_id?: string | null
           created_at?: string
+          delivery_source?: string
           display_name?: string
           id?: string
           is_active?: boolean
@@ -3785,6 +3791,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      debit_reseller_balance_pack_fallback: {
+        Args: {
+          _amount_cents: number
+          _description: string
+          _kind: string
+          _promotion_id: string
+          _reference_id: string
+          _reseller_id: string
+        }
+        Returns: boolean
+      }
       debit_reseller_balance_promo: {
         Args: {
           _amount_cents: number
@@ -3959,9 +3976,17 @@ export type Database = {
         Args: { _description: string; _order_id: string; _reseller_id: string }
         Returns: number
       }
+      pack_try_consume_sale_credit: {
+        Args: { _description: string; _order_id: string; _reseller_id: string }
+        Returns: number
+      }
       reject_user: { Args: { _user_id: string }; Returns: undefined }
       reset_daily_test_keys: { Args: never; Returns: undefined }
       scan_stuck_configurando_purchases: { Args: never; Returns: undefined }
+      set_reseller_delivery_source: {
+        Args: { _source: string }
+        Returns: string
+      }
       telegram_enqueue: { Args: { _text: string }; Returns: undefined }
       telegram_enqueue_edit: {
         Args: { _kind: string; _ref_id: string; _text: string }

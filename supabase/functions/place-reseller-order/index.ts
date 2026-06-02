@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
     // valida revendedor
     const { data: reseller } = await svc.from("resellers")
-      .select("id,is_active,activation_status,is_demo,billing_mode,subscription_blocked,subscription_sales_disabled,pack_sales_disabled").eq("user_id", user.id).maybeSingle();
+      .select("id,is_active,activation_status,is_demo,billing_mode,subscription_blocked,subscription_sales_disabled,pack_sales_disabled,delivery_source").eq("user_id", user.id).maybeSingle();
     if (!reseller || !reseller.is_active) return json({ error: "Apenas revendedores ativos" }, 403);
     if (reseller.activation_status && reseller.activation_status !== "active") {
       return json({ error: "Painel não ativado. Conclua o pagamento de R$ 200 para liberar.", reason: "activation_required" }, 403);
@@ -334,22 +334,62 @@ Deno.serve(async (req) => {
     if (ordErr || !order) return json({ error: "Falha ao criar pedido" }, 500);
 
     // debita saldo (apenas se não for teste)
+    const deliveryFromPack =
+      (reseller as any).billing_mode === "pack" &&
+      (reseller as any).delivery_source === "pack";
+    let usedPack = false;
+    let fallbackFromPack = false;
     if (!is_test) {
-      const { data: ok, error: debErr } = await svc.rpc("debit_reseller_balance_promo", {
-        _reseller_id: reseller.id,
-        _amount_cents: price_cents,
-        _kind: "order_debit",
-        _description: `Pedido ${license_type}`,
-        _reference_id: order.id,
-        _promotion_id: promotion_id,
-      });
-      if (debErr) {
-        await svc.from("orders").update({ status: "failed", error_message: debErr.message }).eq("id", order.id);
-        return json({ error: debErr.message }, 500);
+      if (deliveryFromPack) {
+        const { data: consumed, error: consumeErr } = await svc.rpc(
+          "pack_try_consume_sale_credit",
+          {
+            _reseller_id: reseller.id,
+            _order_id: order.id,
+            _description: `Pedido ${license_type}`,
+          },
+        );
+        if (consumeErr) {
+          await svc.from("orders").update({ status: "failed", error_message: consumeErr.message }).eq("id", order.id);
+          return json({ error: consumeErr.message }, 500);
+        }
+        if (typeof consumed === "number" && consumed >= 0) {
+          usedPack = true;
+        } else {
+          fallbackFromPack = true;
+        }
       }
-      if (!ok) {
-        await svc.from("orders").update({ status: "failed", error_message: "Saldo insuficiente" }).eq("id", order.id);
-        return json({ error: "Saldo insuficiente. Adicione saldo na plataforma." }, 402);
+      if (!usedPack) {
+        const debitRpc = fallbackFromPack
+          ? "debit_reseller_balance_pack_fallback"
+          : "debit_reseller_balance_promo";
+        const { data: ok, error: debErr } = await svc.rpc(debitRpc, {
+          _reseller_id: reseller.id,
+          _amount_cents: price_cents,
+          _kind: "order_debit",
+          _description: fallbackFromPack
+            ? `Pedido ${license_type} (fallback pacote esgotado)`
+            : `Pedido ${license_type}`,
+          _reference_id: order.id,
+          _promotion_id: promotion_id,
+        });
+        if (debErr) {
+          await svc.from("orders").update({ status: "failed", error_message: debErr.message }).eq("id", order.id);
+          return json({ error: debErr.message }, 500);
+        }
+        if (!ok) {
+          await svc.from("orders").update({
+            status: "failed",
+            error_message: fallbackFromPack
+              ? "Pacote esgotado e saldo insuficiente para o fallback."
+              : "Saldo insuficiente",
+          }).eq("id", order.id);
+          return json({
+            error: fallbackFromPack
+              ? "Pacote esgotado e saldo insuficiente para o fallback."
+              : "Saldo insuficiente. Adicione saldo na plataforma.",
+          }, 402);
+        }
       }
     }
 
@@ -360,7 +400,7 @@ Deno.serve(async (req) => {
     const base = cfg?.base_url ?? DEFAULT_BASE;
 
     const refund = async (reason: string, providerResp?: unknown) => {
-      if (!is_test && price_cents > 0) {
+      if (!is_test && !usedPack && price_cents > 0) {
         await svc.rpc("credit_reseller_balance", {
           _reseller_id: reseller.id,
           _amount_cents: price_cents,
@@ -368,6 +408,13 @@ Deno.serve(async (req) => {
           _description: `Reembolso pedido ${order.id}`,
           _reference_id: order.id,
         });
+      }
+      if (!is_test && usedPack) {
+        await svc.rpc("pack_refund_credit", {
+          _reseller_id: reseller.id,
+          _order_id: order.id,
+          _description: `Reembolso pedido ${order.id}: ${reason}`,
+        }).then((r: any) => r.error && console.warn("pack_refund_credit failed", r.error));
       }
       await svc.from("orders").update({
         status: is_test ? "failed" : "refunded",
