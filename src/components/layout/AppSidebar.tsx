@@ -544,20 +544,30 @@ export function AppSidebar() {
               </NavLink>
             </div>
             {isPack && (
-              <div className="mt-2 rounded-md border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 px-2.5 py-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <Package className="h-4 w-4 shrink-0 text-primary" />
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                      Packs
-                    </span>
-                    <span className={cn(
-                      "font-display text-base font-bold tabular-nums leading-none",
-                      packCredits >= 10 ? "text-emerald-500" : packCredits >= 5 ? "text-amber-500" : "text-destructive",
-                    )}>
-                      {packCredits}
-                      <span className="text-muted-foreground font-normal">/{packLifetimePurchased}</span>
-                    </span>
+              <div className="mt-2 rounded-md border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 px-3 py-2.5">
+                <div className="flex items-center gap-1.5">
+                  <Package className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    Licenças
+                  </span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <div className="flex gap-3">
+                    <div>
+                      <div className="text-[9px] text-muted-foreground/80 leading-none">Disponíveis</div>
+                      <div className={cn(
+                        "mt-0.5 font-display text-sm font-bold tabular-nums leading-none",
+                        packCredits >= 10 ? "text-emerald-500" : packCredits >= 5 ? "text-amber-500" : "text-destructive",
+                      )}>
+                        {packCredits}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] text-muted-foreground/80 leading-none">Total</div>
+                      <div className="mt-0.5 font-display text-sm font-bold tabular-nums leading-none text-foreground">
+                        {packLifetimePurchased}
+                      </div>
+                    </div>
                   </div>
                   <NavLink
                     to="/painel/revendedor/comprar-pacote"
