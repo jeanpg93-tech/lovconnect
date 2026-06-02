@@ -12,6 +12,7 @@ import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import DeliveryModeCard from "@/components/painel/DeliveryModeCard";
 import OriginStatsCard from "@/components/painel/OriginStatsCard";
 import OriginBadge, { readOriginFromNotes } from "@/components/painel/OriginBadge";
+import PeriodFilter, { PeriodKey, computeRange } from "@/components/painel/PeriodFilter";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
 import { usePricingIssues } from "@/hooks/usePricingIssues";
 import { Button } from "@/components/ui/button";
@@ -67,7 +68,7 @@ import {
   Bar,
   Label,
 } from "recharts";
-import { format, subDays, startOfDay, isAfter } from "date-fns";
+import { format, subDays, startOfDay, isAfter, differenceInCalendarDays, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const fmtBRL = (cents: number) =>
