@@ -1118,7 +1118,17 @@ Deno.serve(async (req) => {
         provider_response: providerData,
         promotion_id: lic_promo_id,
         promotion_discount_cents: lic_promo_discount,
-        notes: `Venda da Loja • ${storeOrder.buyer_name} • Recebido R$ ${(Number(storeOrder.price_cents) / 100).toFixed(2)}`,
+        notes: JSON.stringify({
+          source: "storefront",
+          display_name: storeOrder.buyer_name,
+          whatsapp: storeOrder.buyer_whatsapp ?? null,
+          received_cents: Number(storeOrder.price_cents) || 0,
+          billing_mode: (resellerCfg as any)?.billing_mode ?? "normal",
+          delivery_source: deliveryFromPack
+            ? (usedPack ? "pack" : "wallet_fallback")
+            : "wallet",
+          fallback_from_pack: fallbackFromPack,
+        }),
       });
     } catch (e) {
       console.warn("orders insert (storefront) failed", e);
