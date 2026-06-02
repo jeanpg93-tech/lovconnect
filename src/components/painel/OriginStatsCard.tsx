@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { Package, Wallet, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,16 +16,24 @@ type Row = {
  * do revendedor para dar visibilidade dos modos de entrega ativos.
  */
 export default function OriginStatsCard({ days = 7 }: { days?: number }) {
-  const { resellerId, billingMode } = useRole();
+  const { user } = useAuth();
+  const { billingMode } = useRole();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ pack: 0, wallet: 0, fallback: 0, total: 0 });
 
   useEffect(() => {
-    if (!resellerId) return;
+    if (!user?.id) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
+        const { data: rsl } = await supabase
+          .from("resellers")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        const resellerId = (rsl as any)?.id;
+        if (!resellerId) { setStats({ pack: 0, wallet: 0, fallback: 0, total: 0 }); return; }
         const since = new Date();
         since.setDate(since.getDate() - days);
         const { data } = await supabase
@@ -48,7 +57,7 @@ export default function OriginStatsCard({ days = 7 }: { days?: number }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [resellerId, days]);
+  }, [user?.id, days]);
 
   if (billingMode !== "pack") return null;
 
