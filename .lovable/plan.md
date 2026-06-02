@@ -1,131 +1,96 @@
 
-# Plano: Conta Demo + Tradução PT/EN
+# Modo de venda para revendedores Pack
 
-Entrega em **4 fases independentes** — cada fase fica funcional ao final, dá pra testar e validar antes da próxima. Tudo 100% responsivo (mobile-first, testado nos breakpoints já usados no projeto).
-
----
-
-## Fase 1 — Infra de conta demo (backend)
-
-**Objetivo:** marcar contas como "demo" e ter como criar/excluir sob demanda.
-
-- Migration: adicionar `is_demo boolean default false` em `resellers` + índice
-- Edge function `admin-create-demo-account` (só gerente):
-  - Recebe: `email`, `password`, `display_name`, `company_name`
-  - Cria user no Auth (email já confirmado) + profile + reseller com `is_demo=true` + role `revendedor`
-  - Marca `is_active=true`, `subscription_onboarding_completed=true`, `activation` como `active` (pula todos os gates)
-  - Retorna credenciais pra você copiar e enviar ao cliente
-- Edge function `admin-delete-demo-account` (só gerente):
-  - Recebe `reseller_id`, valida que `is_demo=true` (proteção: nunca apaga conta real)
-  - Apaga em cascata: chaves, vendas, transações, profile, auth user
-- Página nova em `/painel/gerente/contas-demo`:
-  - Card com formulário (email, senha, nome do cliente, empresa) + botão "Criar"
-  - Lista das demos ativas com botão "Excluir" e botão "Copiar credenciais"
-  - Item no menu lateral do gerente (seção "Ações especiais")
-
-**Critério de pronto:** você cria uma demo pelo painel, faz login com ela, navega normalmente, depois exclui.
+Objetivo: revendedor Pack escolhe se Loja Integrada e API entregam licenças consumindo do **Pacote** ou do **Saldo da carteira**. Geração manual continua exatamente como hoje. Mensalistas não são afetados.
 
 ---
 
-## Fase 2 — Guards e isolamento de métricas
+## Decisões confirmadas
 
-**Objetivo:** demo navega à vontade sem afetar nada real nem gastar dinheiro.
-
-- **Filtros nas queries do gerente** (`is_demo=false`):
-  - `GerenteDashboard`, `GerenteRevendedores`, `GerenteFinanceiroGeral`, `GerenteVendasLoja`, `GerenteRanking*`, `GerenteAcompanharRecargas`, `GerenteTodasLicencas`, `GerenteAtivacoes`
-- **Guards em edge functions sensíveis** (se `reseller.is_demo` → retorna sucesso fake, não toca em provedor/gateway):
-  - `place-reseller-order`, `place-method-license-order` → gera chave fake local
-  - `misticpay-create-recharge`, `subscription-create-charge` → retorna PIX fake
-  - `evolution-send-sale`, `telegram-dispatch` → no-op
-  - `provider-api` (qualquer chamada externa) → mock
-- **Banner fixo no topo da demo**: "🎭 Você está em uma conta de demonstração. Dados fictícios, ações simuladas."
-- Botão "🔄 Resetar demo" no banner (limpa chaves/vendas/transações geradas pelo visitante, mantém dados-seed)
-
-**Critério de pronto:** logar na demo, gerar uma chave, fazer uma "venda", recarregar saldo — nada aparece no painel real do gerente, nada chama provedor de verdade.
+- **A — Geração manual sem créditos:** mantém o comportamento atual. Confirmado no código (`pack-generate-key` retorna `402 "Sem licenças disponíveis. Compre um pacote."` quando `credits < 1`). Nenhuma venda é realizada. **Não muda nada.**
+- **B — Toggle único:** uma só chave (`delivery_source = 'pack' | 'wallet'`) vale simultaneamente para Loja Integrada e API.
+- **C — Cores do alerta de licenças:**
+  - Verde: ≥ 10 licenças
+  - **Amarelo: 5 a 9 licenças**
+  - **Vermelho: < 5 licenças** (inclui zero)
+- **D — Mensalistas:** toggle não aparece. Fluxo deles segue 100% inalterado.
+- **E — Fallback Pack → Saldo:** quando estiver em modo Pack e `pack_credits = 0` no momento da entrega de uma venda (Loja ou API), o sistema debita do **Saldo da carteira** automaticamente e entrega a licença. Aparece como transação normal de venda, **com tag visível** `Fallback automático: pacote esgotado`, e cai tanto no dashboard do revendedor quanto no dashboard do gerente.
 
 ---
 
-## Fase 3 — Dados-seed fictícios
+## O que muda
 
-**Objetivo:** demo já abre "cheia" de exemplos pro cliente ver o produto funcionando.
+### 1. Banco de dados
 
-Quando `admin-create-demo-account` rodar, popular automaticamente:
-- ~15 chaves geradas (status variados: ativa, expirada, revogada)
-- ~10 vendas na loja (clientes fictícios brasileiros, valores variados, últimas 30 dias)
-- ~5 transações de carteira (recargas + descontos)
-- Saldo inicial de R$ 250,00
-- 1 loja configurada com slug `demo-<id>`, produtos de exemplo
-- 2-3 clientes cadastrados
+- `resellers.delivery_source text default 'wallet'` — só lido quando `billing_mode = 'pack'`.
+- `reseller_pack_ledger.kind` ganha valor `sale_consume` (consumo via Loja/API). Mantém `manual_consume` para geração manual.
+- `wallet_transactions` (ou tabela equivalente já usada nas vendas): novo flag opcional `fallback_from_pack boolean default false` para marcar transações que aconteceram por esgotamento de pacote.
+- Default para revendedores Pack já existentes: `delivery_source = 'wallet'` (mantém comportamento atual; cada revendedor ativa quando quiser).
 
-Tudo com nomes claramente fictícios (`João Demo`, `Maria Exemplo`) pra ninguém confundir.
+### 2. Backend (edge functions)
 
-**Critério de pronto:** abrir uma demo recém-criada e ver dashboard com gráficos populados, vendas, chaves — não vazio.
+Pontos exatos de alteração — sempre dentro do bloco `if (billing_mode === 'pack')`:
 
----
+- **`storefront-create-order` / `place-method-license-order` / `place-reseller-order` / `reseller-api`:**
+  1. Lê `delivery_source` do revendedor.
+  2. Se `pack`: tenta debitar 1 crédito do `reseller_pack_balances` via RPC atômico.
+     - Sucesso → entrega licença, registra em `reseller_pack_ledger` (`kind = 'sale_consume'`), **não toca na carteira**.
+     - Falha por `no_credits` → **fallback automático**: debita do saldo da carteira pelo custo da tabela de preços (lógica idêntica à do modo `wallet` hoje), entrega licença, registra transação com `fallback_from_pack = true`.
+  3. Se `wallet`: fluxo atual de débito da carteira (sem mudança).
+- Cliente final **nunca** vê referência a pacote. Mensagens visíveis seguem as atuais ("Sua licença está sendo gerada…").
 
-## Fase 4 — Internacionalização PT/EN
+### 3. Frontend revendedor
 
-**Objetivo:** toggle 🇧🇷/🇺🇸 funcional, com escopo controlado.
+- **`RevendedorDashboard`** (só revendedores Pack):
+  - Card grande e bem visível: **"Modo de venda ativo"** com pill `🟢 Saldo da Carteira` ou `📦 Pacote de Licenças`.
+  - Toggle inline para alternar (chama RPC `set_delivery_source`).
+  - Indicador de licenças restantes com cor dinâmica (verde/amarelo/vermelho conforme regra C).
+  - Bloco "Últimas vendas" mostra duas colunas: vendas via **Pacote** e vendas via **Saldo**, com badge de fallback quando aplicável.
+- **`PackLowBalanceBanner`** — ajustar thresholds: amarelo 5–9, vermelho 0–4.
+- **`RevendedorMinhasChaves` / `RevendedorPedidos`** — adicionar coluna/badge "Origem" (`Pacote` | `Saldo` | `Saldo (fallback)`).
+- **`RevendedorAdicionarSaldo` (carteira)** — transações de fallback aparecem com tag amarela "Fallback automático: pacote esgotado".
 
-**Setup técnico:**
-- Instalar `react-i18next` + `i18next` + `i18next-browser-languagedetector`
-- Estrutura:
-  ```text
-  src/i18n/
-    index.ts
-    locales/
-      pt/{common,demo,dashboard,keys,store,wallet}.json
-      en/{common,demo,dashboard,keys,store,wallet}.json
-  ```
-- Hook `useTranslation()` disponível globalmente
-- Persistência da escolha em `localStorage` (`i18n_lang`)
-- Detecção inicial: idioma do browser → fallback PT
+### 4. Frontend gerente
 
-**Toggle visual:**
-- Componente `<LanguageSwitcher />` (bandeira + sigla, compacto)
-- Posição desktop: header/sidebar (próximo ao notification center)
-- Posição mobile: dentro do menu mobile, item dedicado
-- **Visível só na conta demo nesta fase** (flag `isDemo` do `useRole`)
+- **`GerenteDashboard`** — nova métrica "Vendas com fallback (últimos 30d)" e filtro por origem nas listagens já existentes.
+- **`GerenteRevendedorPacote`** — mostra `delivery_source` atual de cada revendedor Pack (read-only para o gerente).
+- **`GerenteVendasLoja`** — coluna "Origem" igual à do revendedor.
 
-**Páginas traduzidas nesta fase (as que a demo acessa):**
-1. `RevendedorDashboard`
-2. `RevendedorMinhasChaves`
-3. `RevendedorGerarChave`
-4. `RevendedorMinhaLoja`
-5. `RevendedorCarteira`
-6. `RevendedorClientes`
-7. Sidebar + MobileNav (labels do menu)
-8. Banner da demo + componentes de layout compartilhados
+### 5. Geração manual (`RevendedorGerarChave`)
 
-Demais páginas continuam em PT — quando você quiser expandir, é só pedir "traduz a página X" e eu sigo o padrão já estabelecido.
-
-**Critério de pronto:** logar na demo, clicar no toggle 🇺🇸, todas as 6 páginas + menu trocam pra inglês instantaneamente, recarregar mantém o idioma.
+- Inalterada. Continua consumindo só de pacote, e quando `credits = 0` mostra o erro atual "Sem licenças disponíveis. Compre um pacote."
+- Texto auxiliar atualizado: "A geração manual sempre consome do seu pacote, independente do modo de venda."
 
 ---
 
-## Responsividade (regra geral, vale pras 4 fases)
+## Responsividade (mobile-first)
 
-- Todo componente novo testado em 3 breakpoints: **375px (mobile)**, **768px (tablet)**, **1280px+ (desktop)**
-- Formulário de criar demo: stack vertical no mobile, 2 colunas no desktop
-- Lista de demos: cards empilhados no mobile, tabela no desktop (padrão já usado em `GerenteRevendedores`)
-- Banner da demo: texto reduzido + ícone no mobile, completo no desktop
-- Toggle de idioma: ícone-only no mobile (40x40), ícone+label no desktop
-- Modal "Resetar demo": full-screen no mobile, dialog centralizado no desktop
-
----
-
-## Detalhes técnicos (resumo)
-
-- **Auth da demo:** conta normal do Supabase Auth com email confirmado, sem nenhuma flag especial no `auth.users`. Diferenciação 100% via `resellers.is_demo`.
-- **Segurança das edge functions admin:** validar `has_role(auth.uid(), 'gerente')` no início de cada uma, retornar 403 se falhar.
-- **i18n bundle:** lazy-load por namespace (só carrega `keys.json` quando entra na página de chaves) → impacto mínimo no bundle inicial.
-- **Tipagem:** declaração `declare module 'react-i18next'` com recursos tipados → autocomplete das chaves de tradução, evita typo.
-- **Rollback fácil:** se algo der errado em qualquer fase, é só excluir a demo afetada — zero impacto em prod.
+- **Card "Modo de venda ativo"** no dashboard:
+  - Mobile (<640px): stack vertical — título, pill grande centralizada, toggle full-width abaixo, contador de licenças em linha separada.
+  - Tablet (≥768px): pill + toggle lado a lado, contador à direita.
+  - Desktop (≥1280px): card horizontal compacto ocupando coluna do grid existente.
+- **Badges de origem (Pacote/Saldo/Fallback)**: ícone-only no mobile com tooltip, ícone+label no desktop.
+- **Toggle**: alvo de toque ≥ 44px no mobile (Switch do shadcn já atende).
+- **Banner de licenças baixas**: já é responsivo, só troca cores conforme nova regra.
+- Testar nos breakpoints já usados no projeto: 375 / 768 / 1280.
 
 ---
 
-## Ordem sugerida de execução
+## O que NÃO muda (garantia de não-regressão)
 
-Faço **Fase 1 → você testa → Fase 2 → testa → Fase 3 → testa → Fase 4 → testa**. Cada fase é uma entrega isolada, dá pra pausar entre elas se você quiser priorizar outra coisa.
+- Mensalistas: zero alterações.
+- Geração manual de chave: zero alterações.
+- Compra de pacote: zero alterações.
+- Carteira, recargas, MisticPay: zero alterações fora do ponto de débito da venda.
+- API pública: mesmos endpoints, mesmos contratos. Só muda internamente de onde sai a licença.
+
+---
+
+## Ordem de entrega (fases testáveis)
+
+1. **Fase 1 — Schema + backend:** migration + ajuste das 4 edge functions de venda com a lógica `pack → fallback → wallet`. Testar via API e Loja com revendedor de teste.
+2. **Fase 2 — Toggle e dashboard do revendedor:** card "Modo de venda ativo", banner com novas cores, badge de origem.
+3. **Fase 3 — Visibilidade no gerente:** coluna origem em Vendas Loja, métrica de fallback no dashboard do gerente.
+4. **Fase 4 — Polimento:** tooltips, copy final, QA mobile nos 3 breakpoints.
 
 Posso começar pela Fase 1?
