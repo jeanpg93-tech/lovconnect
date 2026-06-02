@@ -219,52 +219,27 @@ export default function GerentePacotes() {
             Nenhum pacote cadastrado ainda.
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {packs.map((p) => {
-              const perKey = p.credits > 0 ? p.price_cents / p.credits : 0;
-              const stockAvail = !Number.isFinite(commitments.realAvailable) || commitments.loading
-                ? true
-                : Number(p.credits) <= commitments.realAvailable;
-              return (
-                <div key={p.id} className="rounded-xl border border-border bg-card/60 p-4 backdrop-blur-sm">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-display text-lg font-bold">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">{p.credits} licenças</div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge variant={p.is_active ? "default" : "secondary"}>
-                        {p.is_active ? "Ativo" : "Inativo"}
-                      </Badge>
-                      {p.is_active && !stockAvail && (
-                        <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400 text-[10px]">
-                          Sem estoque
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-3 font-mono text-2xl font-black text-primary">{brl(p.price_cents)}</div>
-                  <div className="text-[11px] text-muted-foreground">{brl(perKey)} por licença</div>
-                  {p.is_active && !stockAvail && (
-                    <div className="mt-2 text-[11px] text-amber-600 dark:text-amber-400">
-                      Oculto do revendedor: estoque insuficiente
-                    </div>
-                  )}
-                  <div className="mt-4 flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setEditing(p)}>
-                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => toggle(p)}>
-                      {p.is_active ? "Desativar" : "Ativar"}
-                    </Button>
-                    <Button size="sm" variant="ghost" className="text-rose-400 ml-auto" onClick={() => remove(p)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+          <>
+            <p className="text-xs text-muted-foreground mb-3">
+              Arraste pelo <GripVertical className="inline h-3 w-3" /> para reordenar. A ordem aqui é exatamente a que aparece para os revendedores.
+            </p>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={packs.map((p) => p.id)} strategy={rectSortingStrategy}>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {packs.map((p) => (
+                    <SortablePackCard
+                      key={p.id}
+                      pack={p}
+                      commitments={commitments}
+                      onEdit={() => setEditing(p)}
+                      onToggle={() => toggle(p)}
+                      onRemove={() => remove(p)}
+                    />
+                  ))}
                 </div>
-              );
-            })}
-          </div>
+              </SortableContext>
+            </DndContext>
+          </>
         )}
       </div>
 
