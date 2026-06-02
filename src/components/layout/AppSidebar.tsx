@@ -549,7 +549,7 @@ export function AppSidebar() {
                     <Package className="h-3.5 w-3.5 text-primary" />
                   </div>
                   <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                    Licenças do Pacote
+                    Licenças em Packs
                   </div>
                 </div>
                 <div className="mt-2 flex items-baseline gap-1.5">
@@ -567,7 +567,7 @@ export function AppSidebar() {
                   to="/painel/revendedor/comprar-pacote"
                   className="mt-2 flex w-full items-center justify-center rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
                 >
-                  Comprar pacote
+                  Comprar packs
                 </NavLink>
               </div>
             )}
