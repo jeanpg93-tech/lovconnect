@@ -24,7 +24,7 @@ const formatDateTime = (s: string | null) => {
   try { return new Date(s).toLocaleString("pt-BR"); } catch { return s; }
 };
 
-type Reseller = { id: string; display_name: string; user_id: string; billing_mode: string | null; pack_sales_disabled: boolean | null };
+type Reseller = { id: string; display_name: string; user_id: string; billing_mode: string | null; pack_sales_disabled: boolean | null; delivery_source: string | null };
 type Balance = { credits: number };
 type Purchase = {
   id: string; pack_name: string | null; credits: number; price_cents: number;
@@ -70,7 +70,7 @@ export default function GerenteRevendedorPacote() {
     if (!id) return;
     setLoading(true);
     const [r, b, p, l] = await Promise.all([
-      supabase.from("resellers").select("id, display_name, user_id, billing_mode, pack_sales_disabled").eq("id", id).maybeSingle(),
+      supabase.from("resellers").select("id, display_name, user_id, billing_mode, pack_sales_disabled, delivery_source").eq("id", id).maybeSingle(),
       supabase.from("reseller_pack_balances" as any).select("credits").eq("reseller_id", id).maybeSingle(),
       supabase.from("reseller_pack_purchases" as any).select("*").eq("reseller_id", id).order("created_at", { ascending: false }).limit(50),
       supabase.from("reseller_pack_ledger" as any).select("*").eq("reseller_id", id).order("created_at", { ascending: false }).limit(100),
