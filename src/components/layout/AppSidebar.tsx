@@ -548,7 +548,7 @@ export function AppSidebar() {
                 <div className="flex items-center gap-1.5">
                   <Package className="h-3.5 w-3.5 shrink-0 text-primary" />
                   <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                    Licenças
+                    Packs
                   </span>
                 </div>
                 <div className="mt-1.5 flex items-center justify-between gap-2">
