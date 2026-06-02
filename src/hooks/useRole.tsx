@@ -183,11 +183,12 @@ const resetRoles = () => {
   localStorage.removeItem("user_subscription_blocked");
   localStorage.removeItem("user_subscription_onboarding");
   localStorage.removeItem("user_pack_credits");
+  localStorage.removeItem("user_pack_lifetime_purchased");
   localStorage.removeItem("user_subscription_sales_disabled");
   localStorage.removeItem("user_pack_sales_disabled");
   localStorage.removeItem("user_is_demo");
   localStorage.removeItem("user_delivery_source");
-  setSnapshot({ roles: [], isBanned: false, isActive: true, hasData: false, loading: false, userId: null, billingMode: "normal", subscriptionBlocked: false, subscriptionOnboardingCompleted: true, packCredits: 0, subscriptionSalesDisabled: false, packSalesDisabled: false, isDemo: false, deliverySource: "wallet" });
+  setSnapshot({ roles: [], isBanned: false, isActive: true, hasData: false, loading: false, userId: null, billingMode: "normal", subscriptionBlocked: false, subscriptionOnboardingCompleted: true, packCredits: 0, packLifetimePurchased: 0, subscriptionSalesDisabled: false, packSalesDisabled: false, isDemo: false, deliverySource: "wallet" });
 };
 
 export const refetchRole = async () => {
@@ -257,6 +258,7 @@ export const useRole = () => {
     isSubscription: snapshot.billingMode === "subscription",
     isPack: snapshot.billingMode === "pack",
     packCredits: snapshot.packCredits,
+    packLifetimePurchased: snapshot.packLifetimePurchased,
     packBlocked: (snapshot.billingMode === "pack" && snapshot.packCredits <= 0) || snapshot.packSalesDisabled,
     subscriptionBlocked: snapshot.subscriptionBlocked || snapshot.subscriptionSalesDisabled,
     subscriptionOnboardingCompleted: snapshot.subscriptionOnboardingCompleted,
