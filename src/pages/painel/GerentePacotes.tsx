@@ -328,6 +328,30 @@ export default function GerentePacotes() {
                 <Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
               </div>
               <div>
+                <Label>Ícone</Label>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {PACK_ICON_NAMES.map((n) => {
+                    const selected = (editing.icon ?? "") === n;
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setEditing({ ...editing, icon: selected ? null : n })}
+                        className={`rounded-lg border p-2 transition ${
+                          selected
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-card/40 text-muted-foreground hover:text-foreground hover:border-primary/50"
+                        }`}
+                        title={n}
+                        aria-label={n}
+                      >
+                        <PackIcon name={n} className="h-4 w-4" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
                 <Label>Quantidade de licenças</Label>
                 <Input
                   type="number"
