@@ -124,7 +124,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
       { title: "Licenças", url: "/painel/revendedor/licencas", icon: Puzzle },
     ]},
-    { label: "Configurar", items: [
+    { label: "Configurarações", items: [
       { title: "Minha Loja", url: "/painel/revendedor/loja", icon: Store, badge: "store-status" },
       { title: "Precificação", url: "/painel/revendedor/precos", icon: Tag },
       { title: "Baixar Extensão", url: "/painel/revendedor/baixar-extensao", icon: Package },
@@ -187,7 +187,7 @@ export function AppSidebar() {
   useEffect(() => {
     if (primaryRole === "revendedor") {
       if (pathname.includes("/revendedor/resetar-chave") || pathname.includes("/revendedor/api") || pathname.includes("/revendedor/baixar-extensao") || pathname.includes("/revendedor/instalar-app")) {
-        setOpenGroups((prev) => (prev.includes("Configurar") ? prev : [...prev, "Configurar"]));
+        setOpenGroups((prev) => (prev.includes("Configurarações") ? prev : [...prev, "Configurarações"]));
       }
     }
   }, [pathname, primaryRole]);
