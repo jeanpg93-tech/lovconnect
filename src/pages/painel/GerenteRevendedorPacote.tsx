@@ -219,6 +219,28 @@ export default function GerenteRevendedorPacote() {
         </div>
       )}
 
+      {reseller.billing_mode === "pack" && (
+        <div className="mt-4 rounded-2xl border border-border bg-card/60 p-4 md:p-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold">Origem da entrega de vendas (Loja & API)</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Modo escolhido pelo revendedor. Define se as vendas online consomem do pacote ou do saldo da carteira.
+              Geração manual sempre consome do pacote.
+            </p>
+          </div>
+          <Badge
+            variant="outline"
+            className={
+              reseller.delivery_source === "pack"
+                ? "border-primary/40 bg-primary/10 text-primary"
+                : "border-emerald-500/40 bg-emerald-500/10 text-emerald-500"
+            }
+          >
+            {reseller.delivery_source === "pack" ? "📦 Pacote" : "💰 Saldo da carteira"}
+          </Badge>
+        </div>
+      )}
+
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr,1fr]">
         {/* Modo */}
         <div className="rounded-2xl border border-border bg-card/60 p-5 space-y-4">
