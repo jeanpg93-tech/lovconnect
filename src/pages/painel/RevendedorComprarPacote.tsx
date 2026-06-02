@@ -13,10 +13,11 @@ import {
 import { Loader2, Package, Copy, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/useRole";
+import { PackIcon } from "@/lib/pack-icons";
 
 type Pack = {
   id: string; name: string; credits: number; price_cents: number;
-  is_active: boolean; sort_order: number;
+  is_active: boolean; sort_order: number; icon?: string | null;
 };
 
 const brl = (c: number) =>
@@ -97,8 +98,15 @@ export default function RevendedorComprarPacote() {
               const perKey = p.credits > 0 ? p.price_cents / p.credits : 0;
               return (
                 <div key={p.id} className="rounded-2xl border border-border bg-card/60 p-5 backdrop-blur-sm flex flex-col">
-                  <div className="font-display text-lg font-bold">{p.name}</div>
-                  <div className="text-xs text-muted-foreground">{p.credits} licenças</div>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                      <PackIcon name={p.icon} className="h-6 w-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-display text-lg font-bold truncate">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">{p.credits} licenças</div>
+                    </div>
+                  </div>
                   <div className="my-4 font-mono text-3xl font-black text-primary">{brl(p.price_cents)}</div>
                   <div className="text-[11px] text-muted-foreground mb-4">{brl(perKey)} por licença</div>
                   <Button className="mt-auto" disabled={!!creating} onClick={() => buy(p)}>
