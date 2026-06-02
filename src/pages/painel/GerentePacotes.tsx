@@ -92,6 +92,7 @@ export default function GerentePacotes() {
       name, credits, price_cents,
       is_active: editing.is_active ?? true,
       sort_order: Number(editing.sort_order ?? 0),
+      icon: editing.icon ?? null,
     };
     const { error } = editing.id
       ? await supabase.from("license_packs" as any).update(payload).eq("id", editing.id)
