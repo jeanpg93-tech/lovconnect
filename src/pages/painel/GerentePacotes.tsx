@@ -152,6 +152,29 @@ export default function GerentePacotes() {
     load();
   };
 
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const handleDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = packs.findIndex((p) => p.id === active.id);
+    const newIdx = packs.findIndex((p) => p.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(packs, oldIdx, newIdx).map((p, i) => ({ ...p, sort_order: (i + 1) * 10 }));
+    setPacks(reordered); // optimistic
+    const updates = reordered.map((p) =>
+      supabase.from("license_packs" as any).update({ sort_order: p.sort_order }).eq("id", p.id)
+    );
+    const results = await Promise.all(updates);
+    const err = results.find((r) => r.error)?.error;
+    if (err) {
+      toast.error("Falha ao salvar nova ordem");
+      load();
+    } else {
+      toast.success("Ordem atualizada");
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader
