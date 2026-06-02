@@ -725,6 +725,9 @@ export default function GerenteRevendedores() {
                     )}
 
                     <div className="flex gap-2">
+                      <Button className="flex-1 h-9 rounded-lg" size="sm" variant="secondary" onClick={() => openEdit(r)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Editar
+                      </Button>
                       <Button className="flex-1 h-9 rounded-lg" size="sm" variant="secondary" onClick={() => openBalance(r)}>
                         <Wallet className="mr-2 h-4 w-4" /> Saldo
                       </Button>
