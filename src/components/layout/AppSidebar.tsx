@@ -919,19 +919,6 @@ export function AppSidebar() {
           </div>
         )}
         <SidebarMenuButton
-          onClick={() => {
-            const root = document.documentElement;
-            const isDark = root.classList.toggle("dark");
-            try { localStorage.setItem("lov-theme", isDark ? "dark" : "light"); } catch {}
-          }}
-          tooltip="Alternar tema"
-          className="text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
-        >
-          <Moon className="h-4 w-4 text-primary dark:hidden" />
-          <Sun className="hidden h-4 w-4 text-primary dark:inline" />
-          {!collapsed && <span>Alternar tema</span>}
-        </SidebarMenuButton>
-        <SidebarMenuButton
           onClick={signOut}
           tooltip="Sair"
           className="text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
