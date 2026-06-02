@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, StatCard } from "@/components/painel/PageHeader";
+import FallbackMetricCard from "@/components/painel/FallbackMetricCard";
 import {
   Package,
   Store,
