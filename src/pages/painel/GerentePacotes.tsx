@@ -13,6 +13,7 @@ import { Loader2, Plus, Pencil, Package, Trash2, GripVertical } from "lucide-rea
 import { toast } from "sonner";
 import { useProviderCommitments } from "@/hooks/useProviderCommitments";
 import { PackIcon, PACK_ICON_NAMES } from "@/lib/pack-icons";
+import ManagerStockAlertBanner from "@/components/painel/ManagerStockAlertBanner";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
@@ -259,6 +260,10 @@ export default function GerentePacotes() {
           </Button>
         }
       />
+
+      <div className="mt-4">
+        <ManagerStockAlertBanner />
+      </div>
 
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <div className="rounded-lg border border-border bg-card/60 p-3">

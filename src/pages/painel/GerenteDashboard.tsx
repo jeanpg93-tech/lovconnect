@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, StatCard } from "@/components/painel/PageHeader";
 import FallbackMetricCard from "@/components/painel/FallbackMetricCard";
 import OnlineUsersCard from "@/components/painel/OnlineUsersCard";
+import ManagerStockAlertBanner from "@/components/painel/ManagerStockAlertBanner";
 import {
   Package,
   Store,
@@ -855,6 +856,7 @@ export default function GerenteDashboard() {
   return (
     <div className="space-y-6 sm:space-y-10 animate-in fade-in duration-700 max-w-7xl mx-auto px-1 sm:px-0">
       <PricingIssuesAlert />
+      <ManagerStockAlertBanner />
       {/* HERO */}
       <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card">
         <div className="pointer-events-none absolute inset-0 opacity-[0.04]"
