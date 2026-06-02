@@ -9,13 +9,21 @@ import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, Plus, Pencil, Package, Trash2 } from "lucide-react";
+import { Loader2, Plus, Pencil, Package, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { useProviderCommitments } from "@/hooks/useProviderCommitments";
+import { PackIcon, PACK_ICON_NAMES } from "@/lib/pack-icons";
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, useSortable, rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Pack = {
   id: string; name: string; credits: number; price_cents: number;
-  is_active: boolean; sort_order: number;
+  is_active: boolean; sort_order: number; icon?: string | null;
 };
 
 const brl = (c: number) =>
