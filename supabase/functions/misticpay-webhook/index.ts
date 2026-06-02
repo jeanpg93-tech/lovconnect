@@ -747,6 +747,16 @@ Deno.serve(async (req) => {
     const method: "flow" | "lovax" =
       (storeCfg as any)?.extension_method === "lovax" ? "lovax" : "flow";
 
+    // Modo de venda do revendedor (pack/saldo) — Loja Integrada
+    const { data: resellerCfg } = await admin
+      .from("resellers")
+      .select("billing_mode, delivery_source")
+      .eq("id", storeOrder.reseller_id)
+      .maybeSingle();
+    const deliveryFromPack =
+      (resellerCfg as any)?.billing_mode === "pack" &&
+      (resellerCfg as any)?.delivery_source === "pack";
+
     // CUSTO DO REVENDEDOR — mesma lógica do place-reseller-order:
     // 1) reseller_extension_price_overrides (Partners) — prioridade máxima
     // 2) tier_extension_prices (preço fixo do nível) — ignora desconto% e piso global
