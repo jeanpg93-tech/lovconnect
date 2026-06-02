@@ -9,6 +9,7 @@ import { PageHeader, StatCard } from "@/components/painel/PageHeader";
 import { useTranslation } from "react-i18next";
 import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
 import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
+import DeliveryModeCard from "@/components/painel/DeliveryModeCard";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
 import { usePricingIssues } from "@/hooks/usePricingIssues";
 import { Button } from "@/components/ui/button";
@@ -472,6 +473,7 @@ export default function RevendedorDashboard() {
     <div className="space-y-6 pb-20 md:pb-0">
       <PricingIssuesBannerSlot />
       <PackLowBalanceBanner />
+      <DeliveryModeCard />
       {(() => {
         let variant: "active" | "manager_disabled" | "pack_empty" | "subscription_overdue" | null = null;
         if (isSubscription) {
