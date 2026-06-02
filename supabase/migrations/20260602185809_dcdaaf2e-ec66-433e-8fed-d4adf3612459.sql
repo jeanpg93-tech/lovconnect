@@ -1,0 +1,1 @@
+ALTER TABLE public.license_packs ADD COLUMN IF NOT EXISTS icon TEXT;
