@@ -279,12 +279,11 @@ Deno.serve(async (req) => {
         });
       }
       if (usedPack) {
-        // devolve crédito de pacote consumido (ledger ainda sem order_id)
-        await svc.rpc("pack_admin_credit", {
+        await svc.rpc("pack_refund_credit", {
           _reseller_id: reseller_id,
-          _delta: 1,
+          _order_id: null,
           _description: `Estorno falha criar pedido ${method}/${pack_id}`,
-        }).catch((e: unknown) => console.warn("pack_admin_credit failed", e));
+        }).then((r: any) => r.error && console.warn("pack_refund_credit failed", r.error));
       }
       return json({ error: orderErr?.message ?? "Falha ao criar pedido" }, 500);
     }
@@ -312,12 +311,11 @@ Deno.serve(async (req) => {
         });
       }
       if (usedPack) {
-        await svc.rpc("pack_admin_credit", {
+        await svc.rpc("pack_refund_credit", {
           _reseller_id: reseller_id,
-          _delta: 1,
-          _description: `Estorno ${method}/${pack_id}: ${reason}`,
           _order_id: order.id,
-        }).catch((e: unknown) => console.warn("pack_admin_credit failed", e));
+          _description: `Estorno ${method}/${pack_id}: ${reason}`,
+        }).then((r: any) => r.error && console.warn("pack_refund_credit failed", r.error));
       }
       await svc.from("orders").update({
         status: "refunded",
