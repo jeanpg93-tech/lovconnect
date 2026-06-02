@@ -117,7 +117,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
     { label: "Vendas - Packs", items: [
       { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles },
       { title: "Minhas Chaves", url: "/painel/revendedor/minhas-chaves", icon: KeyRound },
-      { title: "Comprar Pacote", url: "/painel/revendedor/comprar-pacote", icon: ShoppingCart },
+      { title: "Comprar Packs", url: "/painel/revendedor/comprar-pacote", icon: ShoppingCart },
       { title: "Histórico", url: "/painel/revendedor/historico-pacote", icon: HistoryIcon },
     ]},
     { label: "Minhas vendas", items: [
