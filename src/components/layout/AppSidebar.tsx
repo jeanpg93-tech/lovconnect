@@ -491,14 +491,32 @@ export function AppSidebar() {
                       {roleLabel[primaryRole]}
                     </span>
                   </div>
+                  {primaryRole === "revendedor" && (tier || isSubscription || isPack) && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                      {tier && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+                          style={{ borderColor: tier.color, color: tier.color, backgroundColor: `${tier.color}15` }}
+                          title={`Nível: ${tier.name}`}
+                        >
+                          <Crown className="h-2.5 w-2.5" />
+                          {tier.name}
+                        </span>
+                      )}
+                      {isSubscription && (
+                        <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-500">
+                          Mensalista
+                        </span>
+                      )}
+                      {isPack && (
+                        <span className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-primary">
+                          Pack
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-              <NavLink
-                to="/painel/conta"
-                className="block w-full text-center text-[11px] text-muted-foreground hover:text-foreground transition-colors py-1 rounded-md border border-border hover:bg-sidebar-accent/50 hover:border-primary/40"
-              >
-                Editar perfil
-              </NavLink>
             </div>
           );
         })()}
@@ -517,15 +535,6 @@ export function AppSidebar() {
                 </div>
               </div>
               <div className="mt-2 font-display text-lg font-bold">{formatBRL(resellerBalance)}</div>
-              {tier && (
-                <div
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ borderColor: tier.color, color: tier.color, backgroundColor: `${tier.color}15` }}
-                >
-                  <Crown className="h-3 w-3 text-primary" />
-                  {tier.name}
-                </div>
-              )}
               <NavLink
                 to="/painel/revendedor/carteira#saldo"
                 className="mt-2 flex w-full items-center justify-center rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
@@ -533,6 +542,35 @@ export function AppSidebar() {
                 Adicionar saldo
               </NavLink>
             </div>
+            {isPack && (
+              <div className="mt-2 block rounded-lg border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/15 text-primary">
+                    <Package className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    Licenças do Pacote
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-1.5">
+                  <span className={cn(
+                    "font-display text-lg font-bold tabular-nums",
+                    packCredits >= 10 ? "text-emerald-500" : packCredits >= 5 ? "text-amber-500" : "text-destructive",
+                  )}>
+                    {packCredits}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    restante{packCredits === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <NavLink
+                  to="/painel/revendedor/comprar-pacote"
+                  className="mt-2 flex w-full items-center justify-center rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                >
+                  Comprar pacote
+                </NavLink>
+              </div>
+            )}
           </div>
         )}
         {primaryRole === "revendedor" && collapsed && (
