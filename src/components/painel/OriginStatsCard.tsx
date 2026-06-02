@@ -62,7 +62,7 @@ export default function OriginStatsCard() {
   if (billingMode !== "pack") return null;
 
   const items = [
-    { key: "pack", label: "Pacote", value: stats.pack, Icon: Package,
+    { key: "pack", label: "Vendas - Packs", value: stats.pack, Icon: Package,
       cls: "border-primary/30 bg-primary/5 text-primary" },
     { key: "wallet", label: "Saldo", value: stats.wallet, Icon: Wallet,
       cls: "border-emerald-500/30 bg-emerald-500/5 text-emerald-500" },

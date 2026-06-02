@@ -848,7 +848,7 @@ export default function RevendedorDashboard() {
                 <div className="rounded-lg border border-primary/30 bg-primary/5 text-primary p-2">
                   <div className="flex items-center gap-1">
                     <Package className="h-3 w-3" />
-                    <span className="text-[8px] uppercase tracking-widest font-bold">Pacote</span>
+                    <span className="text-[8px] uppercase tracking-widest font-bold">Vendas - Packs</span>
                   </div>
                   <div className="text-base font-mono font-black">{chartOriginBreakdown.pack}</div>
                 </div>

@@ -41,8 +41,8 @@ export function readOriginFromRow(row: {
 
 const CONFIG: Record<Exclude<OrderOrigin, "unknown">, { label: string; short: string; Icon: typeof Package; cls: string; title: string }> = {
   pack: {
-    label: "Pacote",
-    short: "Pacote",
+    label: "Vendas - Packs",
+    short: "Packs",
     Icon: Package,
     cls: "border-primary/30 bg-primary/10 text-primary",
     title: "Licença debitada do seu pacote",
