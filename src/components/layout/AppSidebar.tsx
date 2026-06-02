@@ -639,16 +639,18 @@ export function AppSidebar() {
                     : "—"}
                 </div>
               </div>
-              <a
-                href="https://misticpay.com/dashboard"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  window.open("https://misticpay.com/dashboard", "_blank", "noopener,noreferrer");
+                }}
                 className="text-muted-foreground/60 transition-colors hover:text-purple-500"
                 title="Ir para o gateway"
               >
                 <ExternalLink className="h-3 w-3" />
-              </a>
+              </button>
             </NavLink>
 
             <NavLink
@@ -670,16 +672,18 @@ export function AppSidebar() {
                     : "—"}
                 </div>
               </div>
-              <a
-                href="https://lojinhalovable.com/revenda/saldo"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  window.open("https://lojinhalovable.com/revenda/saldo", "_blank", "noopener,noreferrer");
+                }}
                 className="text-muted-foreground/60 transition-colors hover:text-amber-500"
                 title="Abrir painel do provedor"
               >
                 <ExternalLink className="h-3 w-3" />
-              </a>
+              </button>
             </NavLink>
 
             {/* Comprometido em Packs (somente método ativo) */}
