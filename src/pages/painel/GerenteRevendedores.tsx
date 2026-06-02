@@ -814,6 +814,49 @@ export default function GerenteRevendedores() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!editDialog} onOpenChange={(v) => !v && setEditDialog(null)}>
+        <DialogContent className="bg-card border-white/10 shadow-glow-lg rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl font-black uppercase tracking-tighter flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              Editar cadastro de {editDialog?.display_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Nome</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Nome completo"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>WhatsApp</Label>
+              <Input
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="Ex.: 11999999999 (com DDD)"
+                inputMode="tel"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Apenas números. Inclua o DDD; aceita também o código do país (ex.: 5511...).
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setEditDialog(null)} className="uppercase text-[10px] font-bold tracking-widest">Cancelar</Button>
+            <Button
+              onClick={saveEdit}
+              disabled={editSaving}
+              className="bg-primary text-primary-foreground font-black uppercase tracking-widest shadow-glow-sm hover:scale-[1.02] transition-all"
+            >
+              {editSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!testKeysDialog} onOpenChange={(v) => !v && setTestKeysDialog(null)}>
         <DialogContent className="bg-card border-white/10 shadow-glow-lg rounded-2xl">
           <DialogHeader>
