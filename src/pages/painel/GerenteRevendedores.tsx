@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, Repeat, Package } from "lucide-react";
+import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, Repeat, Package, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { labelForPath, isOnline, formatLastSeenBR } from "@/lib/path-labels";
@@ -76,6 +76,7 @@ export default function GerenteRevendedores() {
   const [states, setStates] = useState<Record<string, State>>({});
   const [presenceByUser, setPresenceByUser] = useState<Record<string, Presence>>({});
   const [presenceTick, setPresenceTick] = useState(0);
+  const [lifetimeSpentByReseller, setLifetimeSpentByReseller] = useState<Record<string, number>>({});
   const [monthlyRanking, setMonthlyRanking] = useState<{ reseller_id: string; total_spent_cents: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [mobileExpandedRow, setMobileExpandedRow] = useState<string | null>(null);
@@ -97,6 +98,11 @@ export default function GerenteRevendedores() {
   const [testKeysOverride, setTestKeysOverride] = useState("");
   const [testKeysSaving, setTestKeysSaving] = useState(false);
 
+  const [editDialog, setEditDialog] = useState<Reseller | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
   const load = async () => {
     setLoading(true);
     const startOfMonth = new Date();
@@ -107,10 +113,12 @@ export default function GerenteRevendedores() {
     const list = rs ?? [];
     setResellers(list);
     
-    const [{ data: t }, { data: s }, { data: rankingData }] = await Promise.all([
+    const epoch = new Date("1970-01-01T00:00:00Z").toISOString();
+    const [{ data: t }, { data: s }, { data: rankingData }, { data: lifetimeData }] = await Promise.all([
       supabase.from("reseller_tiers").select("*").order("sort_order"),
       supabase.from("reseller_tier_state").select("*"),
       supabase.rpc("get_reseller_ranking_v2", { start_date: startOfMonth.toISOString() }),
+      supabase.rpc("get_reseller_ranking_v2", { start_date: epoch }),
     ]);
     
     setTiers((t ?? []) as Tier[]);
@@ -118,6 +126,11 @@ export default function GerenteRevendedores() {
     (s ?? []).forEach((row: any) => { smap[row.reseller_id] = row; });
     setStates(smap);
     setMonthlyRanking((rankingData ?? []) as { reseller_id: string; total_spent_cents: number }[]);
+    const lmap: Record<string, number> = {};
+    (lifetimeData ?? []).forEach((row: any) => {
+      lmap[row.reseller_id] = Number(row.total_spent_cents) || 0;
+    });
+    setLifetimeSpentByReseller(lmap);
 
     if (list.length) {
       const userIds = list.map((r) => r.user_id);
@@ -278,9 +291,50 @@ export default function GerenteRevendedores() {
     setTestKeysDialog(null);
   };
 
+  const openEdit = (r: Reseller) => {
+    const prof = profilesByUser[r.user_id];
+    setEditDialog(r);
+    setEditName(prof?.display_name ?? "");
+    setEditPhone(prof?.phone ?? "");
+  };
+
+  const onlyDigits = (v: string) => v.replace(/\D/g, "");
+
+  const saveEdit = async () => {
+    if (!editDialog) return;
+    const name = editName.trim();
+    if (!name) { toast.error("Informe o nome"); return; }
+    const phoneDigits = onlyDigits(editPhone);
+    if (phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 13)) {
+      toast.error("WhatsApp inválido. Use DDD + número (ex.: 11999999999).");
+      return;
+    }
+    setEditSaving(true);
+    const phoneToSave = phoneDigits || null;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: name, phone: phoneToSave })
+      .eq("id", editDialog.user_id);
+    setEditSaving(false);
+    if (error) return toast.error(error.message);
+    setProfilesByUser((prev) => ({
+      ...prev,
+      [editDialog.user_id]: {
+        ...(prev[editDialog.user_id] ?? { id: editDialog.user_id, email: "", display_name: null, phone: null, is_banned: false }),
+        display_name: name,
+        phone: phoneToSave,
+      } as Profile,
+    }));
+    toast.success("Cadastro atualizado");
+    setEditDialog(null);
+  };
+
   const tierFor = (resellerId: string): Tier | null => {
     const st = states[resellerId];
-    const spent = st?.total_spent_cents || 0;
+    // Usa o gasto vitalício real (depósitos pagos + balance_transactions kind=deposit),
+    // caindo no state apenas como fallback. Isso evita progresso zerado quando a tabela
+    // reseller_tier_state ainda não tem registro para o revendedor.
+    const spent = lifetimeSpentByReseller[resellerId] ?? (st?.total_spent_cents || 0);
     if (st?.forced_tier_id) {
       return tiers.find((t) => t.id === st.forced_tier_id) ?? null;
     }
@@ -301,7 +355,7 @@ export default function GerenteRevendedores() {
   const tierProgressFor = (resellerId: string) => {
     const st = states[resellerId];
     if (st?.forced_tier_id) return null;
-    const spent = st?.total_spent_cents || 0;
+    const spent = lifetimeSpentByReseller[resellerId] ?? (st?.total_spent_cents || 0);
     const currentTier = tierFor(resellerId);
     
     const next = tiers
@@ -554,6 +608,12 @@ export default function GerenteRevendedores() {
                             <div className="flex justify-center gap-2">
                               <Tooltip>
                                 <TooltipTrigger asChild>
+                                  <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Editar nome e WhatsApp</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
                                   <Button size="sm" variant="ghost" onClick={() => openBalance(r)}><Wallet className="h-4 w-4" /></Button>
                                 </TooltipTrigger>
                                 <TooltipContent>Ajustar saldo do revendedor</TooltipContent>
@@ -665,6 +725,9 @@ export default function GerenteRevendedores() {
                     )}
 
                     <div className="flex gap-2">
+                      <Button className="flex-1 h-9 rounded-lg" size="sm" variant="secondary" onClick={() => openEdit(r)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Editar
+                      </Button>
                       <Button className="flex-1 h-9 rounded-lg" size="sm" variant="secondary" onClick={() => openBalance(r)}>
                         <Wallet className="mr-2 h-4 w-4" /> Saldo
                       </Button>
@@ -746,6 +809,49 @@ export default function GerenteRevendedores() {
               className="bg-primary text-primary-foreground font-black uppercase tracking-widest shadow-glow-sm hover:scale-[1.02] transition-all"
             >
               {balanceSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editDialog} onOpenChange={(v) => !v && setEditDialog(null)}>
+        <DialogContent className="bg-card border-white/10 shadow-glow-lg rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl font-black uppercase tracking-tighter flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              Editar cadastro de {editDialog?.display_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Nome</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Nome completo"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>WhatsApp</Label>
+              <Input
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="Ex.: 11999999999 (com DDD)"
+                inputMode="tel"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Apenas números. Inclua o DDD; aceita também o código do país (ex.: 5511...).
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setEditDialog(null)} className="uppercase text-[10px] font-bold tracking-widest">Cancelar</Button>
+            <Button
+              onClick={saveEdit}
+              disabled={editSaving}
+              className="bg-primary text-primary-foreground font-black uppercase tracking-widest shadow-glow-sm hover:scale-[1.02] transition-all"
+            >
+              {editSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>
