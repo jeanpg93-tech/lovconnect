@@ -777,6 +777,14 @@ export default function RevendedorDashboard() {
                         {activity.type === 'sale' && extMap[activity.metadata?.extension_id || ""] ? (
                           <span className="ml-1 text-muted-foreground font-normal">· {extMap[activity.metadata.extension_id]}</span>
                         ) : null}
+                        {activity.type === 'sale' && (() => {
+                          const o = readOriginFromNotes(activity.metadata?.notes);
+                          return o !== "unknown" ? (
+                            <span className="ml-2 align-middle inline-flex">
+                              <OriginBadge origin={o} size="xs" />
+                            </span>
+                          ) : null;
+                        })()}
                       </div>
                       <div className="text-[9px] md:text-[10px] text-muted-foreground">{format(new Date(activity.created_at), "dd MMM, HH:mm", { locale: ptBR })}</div>
                       {(activity.metadata?.customer_name || activity.metadata?.customer_whatsapp) && (
