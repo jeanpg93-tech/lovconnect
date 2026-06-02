@@ -291,6 +291,44 @@ export default function GerenteRevendedores() {
     setTestKeysDialog(null);
   };
 
+  const openEdit = (r: Reseller) => {
+    const prof = profilesByUser[r.user_id];
+    setEditDialog(r);
+    setEditName(prof?.display_name ?? "");
+    setEditPhone(prof?.phone ?? "");
+  };
+
+  const onlyDigits = (v: string) => v.replace(/\D/g, "");
+
+  const saveEdit = async () => {
+    if (!editDialog) return;
+    const name = editName.trim();
+    if (!name) { toast.error("Informe o nome"); return; }
+    const phoneDigits = onlyDigits(editPhone);
+    if (phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 13)) {
+      toast.error("WhatsApp inválido. Use DDD + número (ex.: 11999999999).");
+      return;
+    }
+    setEditSaving(true);
+    const phoneToSave = phoneDigits || null;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: name, phone: phoneToSave })
+      .eq("id", editDialog.user_id);
+    setEditSaving(false);
+    if (error) return toast.error(error.message);
+    setProfilesByUser((prev) => ({
+      ...prev,
+      [editDialog.user_id]: {
+        ...(prev[editDialog.user_id] ?? { id: editDialog.user_id, email: "", display_name: null, phone: null, is_banned: false }),
+        display_name: name,
+        phone: phoneToSave,
+      } as Profile,
+    }));
+    toast.success("Cadastro atualizado");
+    setEditDialog(null);
+  };
+
   const tierFor = (resellerId: string): Tier | null => {
     const st = states[resellerId];
     // Usa o gasto vitalício real (depósitos pagos + balance_transactions kind=deposit),
