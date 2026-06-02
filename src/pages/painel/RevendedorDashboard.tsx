@@ -11,6 +11,7 @@ import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
 import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import DeliveryModeCard from "@/components/painel/DeliveryModeCard";
 import OriginStatsCard from "@/components/painel/OriginStatsCard";
+import OriginBadge, { readOriginFromNotes } from "@/components/painel/OriginBadge";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
 import { usePricingIssues } from "@/hooks/usePricingIssues";
 import { Button } from "@/components/ui/button";
@@ -267,6 +268,7 @@ export default function RevendedorDashboard() {
             is_test: o.is_test,
             customer_name: o.customer?.display_name ?? null,
             customer_whatsapp: o.customer?.whatsapp ?? null,
+            notes: o.notes ?? null,
           }
         })),
         ...recharges.map((rc: any) => ({
