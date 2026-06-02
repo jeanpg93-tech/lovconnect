@@ -9,13 +9,21 @@ import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, Plus, Pencil, Package, Trash2 } from "lucide-react";
+import { Loader2, Plus, Pencil, Package, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { useProviderCommitments } from "@/hooks/useProviderCommitments";
+import { PackIcon, PACK_ICON_NAMES } from "@/lib/pack-icons";
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, useSortable, rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Pack = {
   id: string; name: string; credits: number; price_cents: number;
-  is_active: boolean; sort_order: number;
+  is_active: boolean; sort_order: number; icon?: string | null;
 };
 
 const brl = (c: number) =>
@@ -34,6 +42,79 @@ const centsToInput = (c: number | undefined | null): string => {
   if (c === undefined || c === null || !Number.isFinite(Number(c))) return "";
   return (Number(c) / 100).toFixed(2).replace(".", ",");
 };
+
+function SortablePackCard({
+  pack: p, commitments, onEdit, onToggle, onRemove,
+}: {
+  pack: Pack;
+  commitments: ReturnType<typeof useProviderCommitments>;
+  onEdit: () => void;
+  onToggle: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  const perKey = p.credits > 0 ? p.price_cents / p.credits : 0;
+  const stockAvail = !Number.isFinite(commitments.realAvailable) || commitments.loading
+    ? true
+    : Number(p.credits) <= commitments.realAvailable;
+  return (
+    <div ref={setNodeRef} style={style} className="rounded-xl border border-border bg-card/60 p-4 backdrop-blur-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 min-w-0">
+          <button
+            type="button"
+            className="mt-0.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+            {...attributes}
+            {...listeners}
+            aria-label="Arrastar para reordenar"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <div className="rounded-lg bg-primary/10 p-2 text-primary">
+            <PackIcon name={p.icon} className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="font-display text-lg font-bold truncate">{p.name}</div>
+            <div className="text-xs text-muted-foreground">{p.credits} licenças</div>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <Badge variant={p.is_active ? "default" : "secondary"}>
+            {p.is_active ? "Ativo" : "Inativo"}
+          </Badge>
+          {p.is_active && !stockAvail && (
+            <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400 text-[10px]">
+              Sem estoque
+            </Badge>
+          )}
+        </div>
+      </div>
+      <div className="mt-3 font-mono text-2xl font-black text-primary">{brl(p.price_cents)}</div>
+      <div className="text-[11px] text-muted-foreground">{brl(perKey)} por licença</div>
+      {p.is_active && !stockAvail && (
+        <div className="mt-2 text-[11px] text-amber-600 dark:text-amber-400">
+          Oculto do revendedor: estoque insuficiente
+        </div>
+      )}
+      <div className="mt-4 flex items-center gap-2">
+        <Button size="sm" variant="outline" onClick={onEdit}>
+          <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onToggle}>
+          {p.is_active ? "Desativar" : "Ativar"}
+        </Button>
+        <Button size="sm" variant="ghost" className="text-rose-400 ml-auto" onClick={onRemove}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function GerentePacotes() {
   const [packs, setPacks] = useState<Pack[]>([]);
@@ -84,6 +165,7 @@ export default function GerentePacotes() {
       name, credits, price_cents,
       is_active: editing.is_active ?? true,
       sort_order: Number(editing.sort_order ?? 0),
+      icon: editing.icon ?? null,
     };
     const { error } = editing.id
       ? await supabase.from("license_packs" as any).update(payload).eq("id", editing.id)
@@ -143,6 +225,29 @@ export default function GerentePacotes() {
     load();
   };
 
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const handleDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = packs.findIndex((p) => p.id === active.id);
+    const newIdx = packs.findIndex((p) => p.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(packs, oldIdx, newIdx).map((p, i) => ({ ...p, sort_order: (i + 1) * 10 }));
+    setPacks(reordered); // optimistic
+    const updates = reordered.map((p) =>
+      supabase.from("license_packs" as any).update({ sort_order: p.sort_order }).eq("id", p.id)
+    );
+    const results = await Promise.all(updates);
+    const err = results.find((r) => r.error)?.error;
+    if (err) {
+      toast.error("Falha ao salvar nova ordem");
+      load();
+    } else {
+      toast.success("Ordem atualizada");
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader
@@ -187,52 +292,27 @@ export default function GerentePacotes() {
             Nenhum pacote cadastrado ainda.
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {packs.map((p) => {
-              const perKey = p.credits > 0 ? p.price_cents / p.credits : 0;
-              const stockAvail = !Number.isFinite(commitments.realAvailable) || commitments.loading
-                ? true
-                : Number(p.credits) <= commitments.realAvailable;
-              return (
-                <div key={p.id} className="rounded-xl border border-border bg-card/60 p-4 backdrop-blur-sm">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-display text-lg font-bold">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">{p.credits} licenças</div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge variant={p.is_active ? "default" : "secondary"}>
-                        {p.is_active ? "Ativo" : "Inativo"}
-                      </Badge>
-                      {p.is_active && !stockAvail && (
-                        <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400 text-[10px]">
-                          Sem estoque
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-3 font-mono text-2xl font-black text-primary">{brl(p.price_cents)}</div>
-                  <div className="text-[11px] text-muted-foreground">{brl(perKey)} por licença</div>
-                  {p.is_active && !stockAvail && (
-                    <div className="mt-2 text-[11px] text-amber-600 dark:text-amber-400">
-                      Oculto do revendedor: estoque insuficiente
-                    </div>
-                  )}
-                  <div className="mt-4 flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setEditing(p)}>
-                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => toggle(p)}>
-                      {p.is_active ? "Desativar" : "Ativar"}
-                    </Button>
-                    <Button size="sm" variant="ghost" className="text-rose-400 ml-auto" onClick={() => remove(p)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+          <>
+            <p className="text-xs text-muted-foreground mb-3">
+              Arraste pelo <GripVertical className="inline h-3 w-3" /> para reordenar. A ordem aqui é exatamente a que aparece para os revendedores.
+            </p>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={packs.map((p) => p.id)} strategy={rectSortingStrategy}>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {packs.map((p) => (
+                    <SortablePackCard
+                      key={p.id}
+                      pack={p}
+                      commitments={commitments}
+                      onEdit={() => setEditing(p)}
+                      onToggle={() => toggle(p)}
+                      onRemove={() => remove(p)}
+                    />
+                  ))}
                 </div>
-              );
-            })}
-          </div>
+              </SortableContext>
+            </DndContext>
+          </>
         )}
       </div>
 
@@ -246,6 +326,30 @@ export default function GerentePacotes() {
               <div>
                 <Label>Nome</Label>
                 <Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
+              </div>
+              <div>
+                <Label>Ícone</Label>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {PACK_ICON_NAMES.map((n) => {
+                    const selected = (editing.icon ?? "") === n;
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setEditing({ ...editing, icon: selected ? null : n })}
+                        className={`rounded-lg border p-2 transition ${
+                          selected
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-card/40 text-muted-foreground hover:text-foreground hover:border-primary/50"
+                        }`}
+                        title={n}
+                        aria-label={n}
+                      >
+                        <PackIcon name={n} className="h-4 w-4" />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div>
                 <Label>Quantidade de licenças</Label>

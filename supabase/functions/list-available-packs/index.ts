@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
 
     const { data: packsRaw } = await admin
       .from("license_packs")
-      .select("id, name, credits, price_cents, is_active, sort_order, description")
+      .select("id, name, credits, price_cents, is_active, sort_order, description, icon")
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .order("credits", { ascending: true });
