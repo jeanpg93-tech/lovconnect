@@ -11,6 +11,7 @@ import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
 import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import DeliveryModeCard from "@/components/painel/DeliveryModeCard";
 import OriginStatsCard from "@/components/painel/OriginStatsCard";
+import ChannelStatsCard from "@/components/painel/ChannelStatsCard";
 import OriginBadge, { readOriginFromNotes } from "@/components/painel/OriginBadge";
 import PeriodFilter, { PeriodKey, computeRange } from "@/components/painel/PeriodFilter";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
@@ -690,6 +691,11 @@ export default function RevendedorDashboard() {
 
       {/* ORIGEM DAS VENDAS (logo após o Dashboard Geral) */}
       <OriginStatsCard />
+
+      {/* CANAIS DE VENDA: Manual × API × Loja Pública */}
+      <div className="mb-3">
+        <ChannelStatsCard />
+      </div>
 
       {avisos.length > 0 && (
         <div className="grid gap-3 mb-6">
