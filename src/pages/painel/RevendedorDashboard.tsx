@@ -374,6 +374,44 @@ export default function RevendedorDashboard() {
     return () => { supabase.removeChannel(ch); };
   }, [user, resellerId, reload]);
 
+  // Fetch dos dados dos gráficos quando o período muda (independente da carga principal)
+  useEffect(() => {
+    if (!resellerId || !chartRange) return;
+    let cancelled = false;
+    (async () => {
+      setChartLoading(true);
+      try {
+        const fromIso = chartRange.from.toISOString();
+        const toIso = chartRange.to.toISOString();
+        const [salesRes, rcRes] = await Promise.all([
+          supabase
+            .from("orders")
+            .select("created_at,price_cents,license_type,notes")
+            .eq("reseller_id", resellerId)
+            .eq("is_test", false)
+            .in("status", ["completed", "sucesso", "manual_concluido", "manual_entregue"])
+            .gte("created_at", fromIso)
+            .lte("created_at", toIso)
+            .limit(5000),
+          supabase
+            .from("reseller_credit_purchases")
+            .select("created_at,price_cents,status")
+            .eq("reseller_id", resellerId)
+            .in("status", ["completed", "sucesso", "manual_concluido", "manual_entregue"])
+            .gte("created_at", fromIso)
+            .lte("created_at", toIso)
+            .limit(5000),
+        ]);
+        if (cancelled) return;
+        setChartSales((salesRes.data ?? []) as ChartSale[]);
+        setChartRecharges((rcRes.data ?? []) as ChartRecharge[]);
+      } finally {
+        if (!cancelled) setChartLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [resellerId, chartRange?.from?.getTime(), chartRange?.to?.getTime()]);
+
   // Agregações
   const completed = useMemo(
     () => activities.filter((a) => SUCCESS_STATUSES.has(a.status) && !(a.type === "sale" && a.metadata?.is_test)),
@@ -397,45 +435,67 @@ export default function RevendedorDashboard() {
   const last7 = useMemo(() => salesWindow(7), [completed]); // eslint-disable-line react-hooks/exhaustive-deps
   const last30 = useMemo(() => salesWindow(30), [completed]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // === Gráficos baseados no período selecionado ===
+  const chartRevenueCents = useMemo(
+    () =>
+      chartSales.reduce((s, x) => s + (x.price_cents ?? 0), 0) +
+      chartRecharges.reduce((s, x) => s + (x.price_cents ?? 0), 0),
+    [chartSales, chartRecharges],
+  );
+
   const dailySales = useMemo(() => {
-    const days: { date: string; label: string; receita: number; vendas: number }[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = startOfDay(subDays(new Date(), i));
-      days.push({
-        date: d.toISOString(),
-        label: format(d, "dd/MM", { locale: ptBR }),
-        receita: 0,
-        vendas: 0,
-      });
-    }
-    completed.forEach((a) => {
-      const d = startOfDay(new Date(a.created_at)).toISOString();
+    if (!chartRange) return [];
+    const fromDay = startOfDay(chartRange.from);
+    const toDay = startOfDay(chartRange.to);
+    const allDays = eachDayOfInterval({ start: fromDay, end: toDay });
+    // Se a janela for muito grande, diminui o detalhe (label fica a cada N dias)
+    const span = differenceInCalendarDays(toDay, fromDay) + 1;
+    const stride = span > 60 ? Math.ceil(span / 30) : 1;
+    const days = allDays.map((d, i) => ({
+      date: d.toISOString(),
+      label: i % stride === 0 ? format(d, "dd/MM", { locale: ptBR }) : "",
+      receita: 0,
+      vendas: 0,
+    }));
+    const bump = (iso: string, cents: number) => {
+      const d = startOfDay(new Date(iso)).toISOString();
       const slot = days.find((x) => x.date === d);
-      if (slot) {
-        slot.receita += a.amount_cents / 100;
-        slot.vendas += 1;
-      }
-    });
+      if (slot) { slot.receita += cents / 100; slot.vendas += 1; }
+    };
+    chartSales.forEach((s) => bump(s.created_at, s.price_cents ?? 0));
+    chartRecharges.forEach((r) => bump(r.created_at, r.price_cents ?? 0));
     return days;
-  }, [completed]);
+  }, [chartRange?.from?.getTime(), chartRange?.to?.getTime(), chartSales, chartRecharges]);
 
   const byType = useMemo(() => {
     const map: Record<string, number> = {};
-    completed.forEach((a) => {
-      if (a.type === "sale" && a.metadata?.license_type) {
-        const type = a.metadata.license_type;
-        map[type] = (map[type] ?? 0) + 1;
-      } else if (a.type === "recharge") {
-        map["recharge"] = (map["recharge"] ?? 0) + 1;
-      }
+    chartSales.forEach((s) => {
+      const type = s.license_type ?? "outros";
+      if (/credit|recarga/i.test(type)) return;
+      map[type] = (map[type] ?? 0) + 1;
     });
+    if (chartRecharges.length > 0) {
+      map["recharge"] = (map["recharge"] ?? 0) + chartRecharges.length;
+    }
     return Object.entries(map)
-      .map(([k, v]) => ({ 
-        name: k === "recharge" ? "Recargas de Recargas" : (LICENSE_LABELS[k] ?? k), 
-        value: v 
+      .map(([k, v]) => ({
+        name: k === "recharge" ? "Recargas de Créditos" : (LICENSE_LABELS[k] ?? k),
+        value: v,
       }))
       .sort((a, b) => b.value - a.value);
-  }, [completed]);
+  }, [chartSales, chartRecharges]);
+
+  // Breakdown por origem (Pack / Saldo / Fallback) dentro do mesmo período
+  const chartOriginBreakdown = useMemo(() => {
+    let pack = 0, wallet = 0, fallback = 0;
+    for (const s of chartSales) {
+      const o = readOriginFromNotes(s.notes);
+      if (o === "pack") pack++;
+      else if (o === "wallet_fallback") fallback++;
+      else if (o === "wallet") wallet++;
+    }
+    return { pack, wallet, fallback, tracked: pack + wallet + fallback };
+  }, [chartSales]);
 
   const topExtensions = useMemo(() => {
     const map: Record<string, number> = {};
