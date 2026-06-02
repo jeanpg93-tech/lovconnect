@@ -475,7 +475,6 @@ export default function RevendedorDashboard() {
       <PricingIssuesBannerSlot />
       <PackLowBalanceBanner />
       <DeliveryModeCard />
-      <OriginStatsCard />
       {(() => {
         let variant: "active" | "manager_disabled" | "pack_empty" | "subscription_overdue" | null = null;
         if (isSubscription) {
