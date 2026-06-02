@@ -12,6 +12,7 @@ import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import DeliveryModeCard from "@/components/painel/DeliveryModeCard";
 import OriginStatsCard from "@/components/painel/OriginStatsCard";
 import OriginBadge, { readOriginFromNotes } from "@/components/painel/OriginBadge";
+import PeriodFilter, { PeriodKey, computeRange } from "@/components/painel/PeriodFilter";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
 import { usePricingIssues } from "@/hooks/usePricingIssues";
 import { Button } from "@/components/ui/button";
@@ -67,7 +68,7 @@ import {
   Bar,
   Label,
 } from "recharts";
-import { format, subDays, startOfDay, isAfter } from "date-fns";
+import { format, subDays, startOfDay, isAfter, differenceInCalendarDays, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const fmtBRL = (cents: number) =>
@@ -192,6 +193,20 @@ export default function RevendedorDashboard() {
   const [integrations, setIntegrations] = useState<{
     misticpay_enabled: boolean;
   }>({ misticpay_enabled: false });
+
+  // === Filtro de período para os gráficos (Receita + Mix de Planos) ===
+  const [chartFilter, setChartFilter] = useState<PeriodKey>("30d");
+  const [chartCustomFrom, setChartCustomFrom] = useState<Date | undefined>();
+  const [chartCustomTo, setChartCustomTo] = useState<Date | undefined>();
+  const chartRange = useMemo(
+    () => computeRange(chartFilter, chartCustomFrom, chartCustomTo),
+    [chartFilter, chartCustomFrom, chartCustomTo],
+  );
+  type ChartSale = { created_at: string; price_cents: number; license_type: string | null; notes: string | null };
+  type ChartRecharge = { created_at: string; price_cents: number };
+  const [chartLoading, setChartLoading] = useState(false);
+  const [chartSales, setChartSales] = useState<ChartSale[]>([]);
+  const [chartRecharges, setChartRecharges] = useState<ChartRecharge[]>([]);
 
   const reload = useCallback(async (opts: { silent?: boolean } = {}) => {
     if (!user) return;
@@ -359,6 +374,44 @@ export default function RevendedorDashboard() {
     return () => { supabase.removeChannel(ch); };
   }, [user, resellerId, reload]);
 
+  // Fetch dos dados dos gráficos quando o período muda (independente da carga principal)
+  useEffect(() => {
+    if (!resellerId || !chartRange) return;
+    let cancelled = false;
+    (async () => {
+      setChartLoading(true);
+      try {
+        const fromIso = chartRange.from.toISOString();
+        const toIso = chartRange.to.toISOString();
+        const [salesRes, rcRes] = await Promise.all([
+          supabase
+            .from("orders")
+            .select("created_at,price_cents,license_type,notes")
+            .eq("reseller_id", resellerId)
+            .eq("is_test", false)
+            .in("status", ["completed", "sucesso", "manual_concluido", "manual_entregue"])
+            .gte("created_at", fromIso)
+            .lte("created_at", toIso)
+            .limit(5000),
+          supabase
+            .from("reseller_credit_purchases")
+            .select("created_at,price_cents,status")
+            .eq("reseller_id", resellerId)
+            .in("status", ["completed", "sucesso", "manual_concluido", "manual_entregue"])
+            .gte("created_at", fromIso)
+            .lte("created_at", toIso)
+            .limit(5000),
+        ]);
+        if (cancelled) return;
+        setChartSales((salesRes.data ?? []) as ChartSale[]);
+        setChartRecharges((rcRes.data ?? []) as ChartRecharge[]);
+      } finally {
+        if (!cancelled) setChartLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [resellerId, chartRange?.from?.getTime(), chartRange?.to?.getTime()]);
+
   // Agregações
   const completed = useMemo(
     () => activities.filter((a) => SUCCESS_STATUSES.has(a.status) && !(a.type === "sale" && a.metadata?.is_test)),
@@ -382,45 +435,67 @@ export default function RevendedorDashboard() {
   const last7 = useMemo(() => salesWindow(7), [completed]); // eslint-disable-line react-hooks/exhaustive-deps
   const last30 = useMemo(() => salesWindow(30), [completed]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // === Gráficos baseados no período selecionado ===
+  const chartRevenueCents = useMemo(
+    () =>
+      chartSales.reduce((s, x) => s + (x.price_cents ?? 0), 0) +
+      chartRecharges.reduce((s, x) => s + (x.price_cents ?? 0), 0),
+    [chartSales, chartRecharges],
+  );
+
   const dailySales = useMemo(() => {
-    const days: { date: string; label: string; receita: number; vendas: number }[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = startOfDay(subDays(new Date(), i));
-      days.push({
-        date: d.toISOString(),
-        label: format(d, "dd/MM", { locale: ptBR }),
-        receita: 0,
-        vendas: 0,
-      });
-    }
-    completed.forEach((a) => {
-      const d = startOfDay(new Date(a.created_at)).toISOString();
+    if (!chartRange) return [];
+    const fromDay = startOfDay(chartRange.from);
+    const toDay = startOfDay(chartRange.to);
+    const allDays = eachDayOfInterval({ start: fromDay, end: toDay });
+    // Se a janela for muito grande, diminui o detalhe (label fica a cada N dias)
+    const span = differenceInCalendarDays(toDay, fromDay) + 1;
+    const stride = span > 60 ? Math.ceil(span / 30) : 1;
+    const days = allDays.map((d, i) => ({
+      date: d.toISOString(),
+      label: i % stride === 0 ? format(d, "dd/MM", { locale: ptBR }) : "",
+      receita: 0,
+      vendas: 0,
+    }));
+    const bump = (iso: string, cents: number) => {
+      const d = startOfDay(new Date(iso)).toISOString();
       const slot = days.find((x) => x.date === d);
-      if (slot) {
-        slot.receita += a.amount_cents / 100;
-        slot.vendas += 1;
-      }
-    });
+      if (slot) { slot.receita += cents / 100; slot.vendas += 1; }
+    };
+    chartSales.forEach((s) => bump(s.created_at, s.price_cents ?? 0));
+    chartRecharges.forEach((r) => bump(r.created_at, r.price_cents ?? 0));
     return days;
-  }, [completed]);
+  }, [chartRange?.from?.getTime(), chartRange?.to?.getTime(), chartSales, chartRecharges]);
 
   const byType = useMemo(() => {
     const map: Record<string, number> = {};
-    completed.forEach((a) => {
-      if (a.type === "sale" && a.metadata?.license_type) {
-        const type = a.metadata.license_type;
-        map[type] = (map[type] ?? 0) + 1;
-      } else if (a.type === "recharge") {
-        map["recharge"] = (map["recharge"] ?? 0) + 1;
-      }
+    chartSales.forEach((s) => {
+      const type = s.license_type ?? "outros";
+      if (/credit|recarga/i.test(type)) return;
+      map[type] = (map[type] ?? 0) + 1;
     });
+    if (chartRecharges.length > 0) {
+      map["recharge"] = (map["recharge"] ?? 0) + chartRecharges.length;
+    }
     return Object.entries(map)
-      .map(([k, v]) => ({ 
-        name: k === "recharge" ? "Recargas de Recargas" : (LICENSE_LABELS[k] ?? k), 
-        value: v 
+      .map(([k, v]) => ({
+        name: k === "recharge" ? "Recargas de Créditos" : (LICENSE_LABELS[k] ?? k),
+        value: v,
       }))
       .sort((a, b) => b.value - a.value);
-  }, [completed]);
+  }, [chartSales, chartRecharges]);
+
+  // Breakdown por origem (Pack / Saldo / Fallback) dentro do mesmo período
+  const chartOriginBreakdown = useMemo(() => {
+    let pack = 0, wallet = 0, fallback = 0;
+    for (const s of chartSales) {
+      const o = readOriginFromNotes(s.notes);
+      if (o === "pack") pack++;
+      else if (o === "wallet_fallback") fallback++;
+      else if (o === "wallet") wallet++;
+    }
+    return { pack, wallet, fallback, tracked: pack + wallet + fallback };
+  }, [chartSales]);
 
   const topExtensions = useMemo(() => {
     const map: Record<string, number> = {};
@@ -669,15 +744,33 @@ export default function RevendedorDashboard() {
       </div>
 
       {/* GRÁFICOS */}
-      <div className="hidden md:grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="hidden md:block space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+            ▸ Análise de período
+          </div>
+          <PeriodFilter
+            value={chartFilter}
+            onChange={setChartFilter}
+            customFrom={chartCustomFrom}
+            customTo={chartCustomTo}
+            onCustomChange={(f, t) => { setChartCustomFrom(f); setChartCustomTo(t); }}
+          />
+        </div>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <section className="rounded-2xl border border-border bg-card p-4 md:p-6 md:col-span-2 lg:col-span-2">
           <div className="flex items-center justify-between mb-4 md:mb-6">
             <h3 className="text-base md:text-lg font-bold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-primary" /> Receita (30d)
+              <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-primary" /> Receita
+              <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                · {chartRange?.label ?? "—"}
+              </span>
             </h3>
             <div className="text-right">
               <span className="text-[8px] md:text-[10px] font-bold uppercase text-muted-foreground tracking-widest block">Total</span>
-              <span className="text-lg md:text-xl font-black text-primary">{fmtBRL(last30.cents)}</span>
+              <span className="text-lg md:text-xl font-black text-primary">
+                {chartLoading ? <Loader2 className="h-4 w-4 animate-spin inline" /> : fmtBRL(chartRevenueCents)}
+              </span>
             </div>
           </div>
 
@@ -704,9 +797,12 @@ export default function RevendedorDashboard() {
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-4 md:p-6">
-          <h3 className="text-base md:text-lg font-bold flex items-center gap-2 mb-4 md:mb-6">
+          <h3 className="text-base md:text-lg font-bold flex items-center gap-2 mb-1">
             <Package className="h-4 w-4 md:h-5 md:w-5 text-primary" /> Mix de Planos
           </h3>
+          <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-4">
+            {chartRange?.label ?? "—"}
+          </div>
           <div className="h-48 relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -727,7 +823,7 @@ export default function RevendedorDashboard() {
             </ResponsiveContainer>
           </div>
           <div className="mt-4 space-y-2">
-            {byType.slice(0, 4).map((b, i) => (
+            {byType.slice(0, 6).map((b, i) => (
               <div key={b.name} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
@@ -736,8 +832,45 @@ export default function RevendedorDashboard() {
                 <span className="font-bold">{b.value}</span>
               </div>
             ))}
+            {byType.length === 0 && !chartLoading && (
+              <div className="text-center text-xs text-muted-foreground py-6">
+                Sem vendas no período.
+              </div>
+            )}
           </div>
+          {/* Origem das vendas no período (Pack / Saldo / Fallback) */}
+          {isPack && chartOriginBreakdown.tracked > 0 && (
+            <div className="mt-4 pt-3 border-t border-border/60">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
+                ▸ Origem das vendas
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                <div className="rounded-lg border border-primary/30 bg-primary/5 text-primary p-2">
+                  <div className="flex items-center gap-1">
+                    <Package className="h-3 w-3" />
+                    <span className="text-[8px] uppercase tracking-widest font-bold">Pacote</span>
+                  </div>
+                  <div className="text-base font-mono font-black">{chartOriginBreakdown.pack}</div>
+                </div>
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 text-emerald-500 p-2">
+                  <div className="flex items-center gap-1">
+                    <Wallet className="h-3 w-3" />
+                    <span className="text-[8px] uppercase tracking-widest font-bold">Saldo</span>
+                  </div>
+                  <div className="text-base font-mono font-black">{chartOriginBreakdown.wallet}</div>
+                </div>
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 text-amber-600 dark:text-amber-400 p-2">
+                  <div className="flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    <span className="text-[8px] uppercase tracking-widest font-bold">Fallback</span>
+                  </div>
+                  <div className="text-base font-mono font-black">{chartOriginBreakdown.fallback}</div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
+      </div>
       </div>
 
       {/* ÚLTIMAS ATIVIDADES */}
