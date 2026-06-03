@@ -770,7 +770,7 @@ Deno.serve(async (req) => {
         fallback: true,
         details: netErr?.message ?? String(netErr),
       }), {
-        status: 503,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -783,10 +783,12 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         success: false,
         error: `Provedor respondeu com status ${response.status} (resposta não-JSON)`,
+        code: "PROVIDER_BAD_RESPONSE",
+        fallback: true,
         provider_status: response.status,
         provider_body_preview: rawText.slice(0, 300),
       }), {
-        status: 502,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
