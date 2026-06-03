@@ -382,7 +382,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       packCount,
       costCents,
       costCreditsCents,
-      gatewayFeeCents,
+      gatewayFeeCents: totalGatewayFeeCents,
       manualExpenseCents,
       profitCents,
       marginPct,
