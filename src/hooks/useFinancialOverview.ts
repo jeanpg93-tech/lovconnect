@@ -227,7 +227,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     // Lançamentos manuais
     let mQ = supabase
       .from("manual_financial_entries")
-      .select("entry_type, amount_cents, cost_cents, entry_date");
+      .select("entry_type, amount_cents, cost_cents, entry_date, reference_kind");
     if (startIso) mQ = mQ.gte("entry_date", startIso);
     if (endIso) mQ = mQ.lte("entry_date", endIso);
     const { data: manuals } = await mQ;
@@ -235,8 +235,12 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const manualRevenueCents = manualArr
       .filter((m: any) => m.entry_type === "revenue")
       .reduce((s, m: any) => s + Number(m.amount_cents || 0), 0);
+    // Taxas MisticPay lançadas manualmente entram no bloco "Taxa Gateway", não em Despesas
+    const manualMisticFeeCents = manualArr
+      .filter((m: any) => m.entry_type === "expense" && m.reference_kind === "misticpay_fee")
+      .reduce((s, m: any) => s + Number(m.amount_cents || 0), 0);
     const manualExpenseCents = manualArr
-      .filter((m: any) => m.entry_type === "expense")
+      .filter((m: any) => m.entry_type === "expense" && m.reference_kind !== "misticpay_fee")
       .reduce((s, m: any) => s + Number(m.amount_cents || 0), 0);
     // Custo embutido nas receitas manuais (ex: venda de pacote de créditos por fora)
     const manualRevenueCostCents = manualArr
@@ -245,7 +249,8 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
 
     const revenueCents =
       rechargesRevenueCents + manualRevenueCents + activationRevenueCents + subscriptionRevenueCents + packRevenueCents;
-    const costCents = costCreditsCents + gatewayFeeCents + manualExpenseCents + manualRevenueCostCents;
+    const totalGatewayFeeCents = gatewayFeeCents + manualMisticFeeCents;
+    const costCents = costCreditsCents + totalGatewayFeeCents + manualExpenseCents + manualRevenueCostCents;
     const profitCents = revenueCents - costCents;
     const marginPct = revenueCents > 0 ? (profitCents / revenueCents) * 100 : 0;
 
@@ -377,7 +382,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       packCount,
       costCents,
       costCreditsCents,
-      gatewayFeeCents,
+      gatewayFeeCents: totalGatewayFeeCents,
       manualExpenseCents,
       profitCents,
       marginPct,
