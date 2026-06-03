@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useManualEntries, type ManualEntry } from "@/hooks/useManualEntries";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2, Package, KeyRound, Copy, Store, Receipt } from "lucide-react";
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2, Package, KeyRound, Copy, Store, Receipt, ChevronUp, ChevronDown } from "lucide-react";
 import ManualEntryDialog from "./ManualEntryDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,7 +20,7 @@ import {
 const brl = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function FinanceiroLancamentosManuais() {
-  const { entries, loading, create, update, remove } = useManualEntries();
+  const { entries, loading, create, update, remove, move } = useManualEntries();
   const [filter, setFilter] = useState<"all" | "revenue" | "expense">("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ManualEntry | null>(null);
@@ -36,7 +36,7 @@ export default function FinanceiroLancamentosManuais() {
           <div className="h-8 w-1 bg-primary rounded-full" />
           <div>
             <h3 className="font-display text-lg font-bold tracking-tight">Lançamentos Manuais</h3>
-            <p className="text-xs text-muted-foreground">Vendas por fora e gastos avulsos do sistema</p>
+            <p className="text-xs text-muted-foreground">Vendas por fora e gastos avulsos. A ordem aqui é visual — o painel financeiro sempre usa a data do lançamento.</p>
           </div>
         </div>
         <Button onClick={() => { setEditing(null); setDuplicating(null); setOpen(true); }} className="gap-2">
@@ -69,7 +69,7 @@ export default function FinanceiroLancamentosManuais() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((e) => {
+          {filtered.map((e, idx) => {
             const isRev = e.entry_type === "revenue";
             const isCreditSale = e.reference_kind === "credit_pack";
             const isLicenseSale = e.reference_kind === "license";
@@ -119,6 +119,28 @@ export default function FinanceiroLancamentosManuais() {
                   {isRev ? "+" : "−"} {brl(e.amount_cents)}
                 </div>
                 <div className="flex gap-1 shrink-0">
+                  <div className="flex flex-col">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-4 w-6 rounded-md"
+                      title="Mover para cima"
+                      disabled={filter !== "all" || idx === 0}
+                      onClick={() => move(e.id, "up")}
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-4 w-6 rounded-md"
+                      title="Mover para baixo"
+                      disabled={filter !== "all" || idx === filtered.length - 1}
+                      onClick={() => move(e.id, "down")}
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </div>
                   <Button size="icon" variant="ghost" className="h-8 w-8" title="Duplicar" onClick={() => { setEditing(null); setDuplicating(e); setOpen(true); }}>
                     <Copy className="h-4 w-4" />
                   </Button>

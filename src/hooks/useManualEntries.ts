@@ -11,6 +11,7 @@ export type ManualEntry = {
   reference_meta: any | null;
   category: string | null;
   entry_date: string;
+  sort_order: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -37,6 +38,7 @@ export function useManualEntries(opts?: { fromDate?: string | null }) {
     let q = supabase
       .from("manual_financial_entries")
       .select("*")
+      .order("sort_order", { ascending: false, nullsFirst: false })
       .order("entry_date", { ascending: false });
     if (opts?.fromDate) q = q.gte("entry_date", opts.fromDate);
     const { data, error } = await q;
@@ -51,9 +53,11 @@ export function useManualEntries(opts?: { fromDate?: string | null }) {
 
   const create = async (input: ManualEntryInput) => {
     const { data: u } = await supabase.auth.getUser();
+    const sort_order = new Date(input.entry_date).getTime();
     const { error } = await supabase.from("manual_financial_entries").insert({
       ...input,
       created_by: u.user?.id ?? null,
+      sort_order,
     });
     if (error) throw error;
     await load();
@@ -74,5 +78,29 @@ export function useManualEntries(opts?: { fromDate?: string | null }) {
     await load();
   };
 
-  return { entries, loading, error, reload: load, create, update, remove };
+  // Move um lançamento para cima/baixo na listagem trocando o sort_order com o vizinho.
+  const move = async (id: string, direction: "up" | "down") => {
+    const idx = entries.findIndex((e) => e.id === id);
+    if (idx < 0) return;
+    const neighborIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (neighborIdx < 0 || neighborIdx >= entries.length) return;
+    const a = entries[idx];
+    const b = entries[neighborIdx];
+    const aOrder = a.sort_order ?? new Date(a.entry_date).getTime();
+    const bOrder = b.sort_order ?? new Date(b.entry_date).getTime();
+    // Garante valores distintos
+    const newA = bOrder === aOrder ? bOrder + (direction === "up" ? 1 : -1) : bOrder;
+    const newB = bOrder === aOrder ? aOrder : aOrder;
+    // Otimismo: atualiza local primeiro
+    setEntries((prev) => {
+      const copy = [...prev];
+      [copy[idx], copy[neighborIdx]] = [copy[neighborIdx], copy[idx]];
+      return copy;
+    });
+    await supabase.from("manual_financial_entries").update({ sort_order: newA }).eq("id", a.id);
+    await supabase.from("manual_financial_entries").update({ sort_order: newB }).eq("id", b.id);
+    await load();
+  };
+
+  return { entries, loading, error, reload: load, create, update, remove, move };
 }
