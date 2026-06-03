@@ -121,7 +121,7 @@ export default function GerenteValores() {
       { data: tData },
       { data: exData }
     ] = await Promise.all([
-      supabase.from("pricing_plans").select("*"),
+      supabase.rpc("gerente_list_pricing_plans"),
       supabase.from("reseller_tiers").select("*").order("sort_order"),
       supabase.from("extensions").select("id").eq("is_active", true).limit(1)
     ]);

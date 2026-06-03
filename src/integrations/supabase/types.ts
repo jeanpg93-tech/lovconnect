@@ -3869,6 +3869,29 @@ export type Database = {
         Args: { _reseller_id: string }
         Returns: string
       }
+      gerente_list_pricing_plans: {
+        Args: never
+        Returns: {
+          cost_cents: number
+          created_at: string
+          customer_price_cents: number
+          id: string
+          is_active: boolean
+          label: string
+          license_type: string
+          markup_percent: number
+          min_price_cents: number
+          price_cents: number
+          pricing_mode: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pricing_plans"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_active_promotion: {
         Args: never
         Returns: {
