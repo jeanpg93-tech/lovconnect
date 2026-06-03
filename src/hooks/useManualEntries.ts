@@ -102,5 +102,27 @@ export function useManualEntries(opts?: { fromDate?: string | null }) {
     await load();
   };
 
-  return { entries, loading, error, reload: load, create, update, remove, move };
+  // Reordena a lista inteira: o primeiro id recebe o maior sort_order.
+  const reorder = async (orderedIds: string[]) => {
+    if (orderedIds.length === 0) return;
+    // aplica localmente já
+    setEntries((prev) => {
+      const map = new Map(prev.map((e) => [e.id, e]));
+      const reordered = orderedIds.map((id) => map.get(id)).filter(Boolean) as ManualEntry[];
+      const rest = prev.filter((e) => !orderedIds.includes(e.id));
+      return [...reordered, ...rest];
+    });
+    const base = Date.now();
+    await Promise.all(
+      orderedIds.map((id, i) =>
+        supabase
+          .from("manual_financial_entries")
+          .update({ sort_order: base - i })
+          .eq("id", id),
+      ),
+    );
+    await load();
+  };
+
+  return { entries, loading, error, reload: load, create, update, remove, move, reorder };
 }
