@@ -160,7 +160,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Modos */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
             <ModeButton active={mode === "credit_sale"} onClick={() => setMode("credit_sale")} icon={Package} label="Venda Crédito" activeClass="bg-blue-600 hover:bg-blue-700 text-white" />
             <ModeButton active={mode === "license_sale"} onClick={() => setMode("license_sale")} icon={KeyRound} label="Venda Licença" activeClass="bg-violet-600 hover:bg-violet-700 text-white" />
             <ModeButton active={mode === "lovastore"} onClick={() => setMode("lovastore")} icon={Store} label="LovaStore" activeClass="bg-orange-600 hover:bg-orange-700 text-white" />
@@ -290,10 +290,10 @@ function ModeButton({
       type="button"
       variant={active ? "default" : "outline"}
       onClick={onClick}
-      className={`flex flex-col h-auto py-2.5 gap-1 text-[11px] font-bold ${active ? activeClass : ""}`}
+      className={`flex flex-col h-auto min-h-[64px] px-1.5 py-2 gap-1 text-[10px] font-bold leading-tight whitespace-normal text-center ${active ? activeClass : ""}`}
     >
-      <Icon className="h-4 w-4" />
-      <span>{label}</span>
+      <Icon className="h-4 w-4 shrink-0" />
+      <span className="break-words">{label}</span>
     </Button>
   );
 }
