@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useManualEntries, type ManualEntry } from "@/hooks/useManualEntries";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2, Package, KeyRound } from "lucide-react";
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2, Package, KeyRound, Copy } from "lucide-react";
 import ManualEntryDialog from "./ManualEntryDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -24,6 +24,7 @@ export default function FinanceiroLancamentosManuais() {
   const [filter, setFilter] = useState<"all" | "revenue" | "expense">("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ManualEntry | null>(null);
+  const [duplicating, setDuplicating] = useState<ManualEntry | null>(null);
   const [toDelete, setToDelete] = useState<ManualEntry | null>(null);
 
   const filtered = entries.filter((e) => filter === "all" || e.entry_type === filter);
@@ -38,7 +39,7 @@ export default function FinanceiroLancamentosManuais() {
             <p className="text-xs text-muted-foreground">Vendas por fora e gastos avulsos do sistema</p>
           </div>
         </div>
-        <Button onClick={() => { setEditing(null); setOpen(true); }} className="gap-2">
+        <Button onClick={() => { setEditing(null); setDuplicating(null); setOpen(true); }} className="gap-2">
           <Plus className="h-4 w-4" /> Novo lançamento
         </Button>
       </div>
@@ -112,7 +113,10 @@ export default function FinanceiroLancamentosManuais() {
                   {isRev ? "+" : "−"} {brl(e.amount_cents)}
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(e); setOpen(true); }}>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Duplicar" onClick={() => { setEditing(null); setDuplicating(e); setOpen(true); }}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar" onClick={() => { setDuplicating(null); setEditing(e); setOpen(true); }}>
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setToDelete(e)}>
@@ -127,8 +131,9 @@ export default function FinanceiroLancamentosManuais() {
 
       <ManualEntryDialog
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setDuplicating(null); } }}
         initial={editing}
+        prefill={duplicating}
         onSubmit={async (data) => {
           if (editing) await update(editing.id, data);
           else await create(data);
