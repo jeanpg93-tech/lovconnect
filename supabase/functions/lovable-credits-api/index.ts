@@ -758,7 +758,22 @@ Deno.serve(async (req) => {
       requestInit.body = await req.text();
     }
 
-    const response = await fetch(fullUrl, requestInit);
+    let response: Response;
+    try {
+      response = await fetch(fullUrl, requestInit);
+    } catch (netErr: any) {
+      console.error("Provider network error:", netErr?.message ?? netErr);
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Provedor de créditos temporariamente indisponível. Tente novamente em instantes.",
+        code: "PROVIDER_UNREACHABLE",
+        fallback: true,
+        details: netErr?.message ?? String(netErr),
+      }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const rawText = await response.text();
     let data: any;
     try {
