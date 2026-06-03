@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { ManualEntry, ManualEntryInput } from "@/hooks/useManualEntries";
 import { useSalesCatalog } from "@/hooks/useSalesCatalog";
-import { TrendingUp, TrendingDown, Package, KeyRound, Receipt } from "lucide-react";
+import { TrendingUp, TrendingDown, Package, KeyRound, Receipt, Store } from "lucide-react";
 
-type Mode = "revenue" | "expense" | "credit_sale" | "license_sale" | "misticpay_fee";
+type Mode = "revenue" | "expense" | "credit_sale" | "license_sale" | "misticpay_fee" | "lovastore";
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -51,6 +51,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         if (src.reference_kind === "credit_pack") setMode("credit_sale");
         else if (src.reference_kind === "license") setMode("license_sale");
         else if (src.reference_kind === "misticpay_fee") setMode("misticpay_fee");
+        else if (src.reference_kind === "lovastore") setMode("lovastore");
         else setMode(src.entry_type);
         setDescription(src.description);
         setAmount(fromCents(src.amount_cents));
@@ -95,7 +96,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
     }
   };
 
-  const isSale = mode === "credit_sale" || mode === "license_sale";
+  const isSale = mode === "credit_sale" || mode === "license_sale" || mode === "lovastore";
   const entryType: "revenue" | "expense" =
     mode === "expense" || mode === "misticpay_fee" ? "expense" : "revenue";
 
@@ -120,7 +121,8 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
       const reference_kind =
         mode === "credit_sale" ? "credit_pack" :
         mode === "license_sale" ? "license" :
-        mode === "misticpay_fee" ? "misticpay_fee" : null;
+        mode === "misticpay_fee" ? "misticpay_fee" :
+        mode === "lovastore" ? "lovastore" : null;
       const reference_meta =
         mode === "credit_sale"
           ? { plan_id: selectedPackId, ...creditPacks.find((p) => p.plan_id === selectedPackId) }
@@ -134,7 +136,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         cost_cents: costCents,
         reference_kind,
         reference_meta,
-        category: category.trim() || (mode === "misticpay_fee" ? "Taxa MisticPay" : null),
+        category: category.trim() || (mode === "misticpay_fee" ? "Taxa MisticPay" : mode === "lovastore" ? "LovaStore" : null),
         // Salva como meia-noite LOCAL (não UTC) para alinhar com filtros do dashboard.
         // new Date("YYYY-MM-DD") é interpretado como UTC; usar "YYYY-MM-DDT00:00:00" força local.
         entry_date: new Date(`${date}T00:00:00`).toISOString(),
@@ -158,13 +160,20 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Modos */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
             <ModeButton active={mode === "credit_sale"} onClick={() => setMode("credit_sale")} icon={Package} label="Venda Crédito" activeClass="bg-blue-600 hover:bg-blue-700 text-white" />
             <ModeButton active={mode === "license_sale"} onClick={() => setMode("license_sale")} icon={KeyRound} label="Venda Licença" activeClass="bg-violet-600 hover:bg-violet-700 text-white" />
+            <ModeButton active={mode === "lovastore"} onClick={() => setMode("lovastore")} icon={Store} label="LovaStore" activeClass="bg-orange-600 hover:bg-orange-700 text-white" />
             <ModeButton active={mode === "revenue"} onClick={() => setMode("revenue")} icon={TrendingUp} label="Receita Avulsa" activeClass="bg-emerald-600 hover:bg-emerald-700 text-white" />
             <ModeButton active={mode === "expense"} onClick={() => setMode("expense")} icon={TrendingDown} label="Despesa" activeClass="bg-red-600 hover:bg-red-700 text-white" />
             <ModeButton active={mode === "misticpay_fee"} onClick={() => setMode("misticpay_fee")} icon={Receipt} label="Taxa MisticPay" activeClass="bg-amber-600 hover:bg-amber-700 text-white" />
           </div>
+
+          {mode === "lovastore" && (
+            <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 text-[11px] text-orange-700 dark:text-orange-300">
+              Venda da sua loja própria <strong>LovaStore</strong>. Entra no bloco LovaStore da Composição da Receita e soma na Receita Total. Informe o custo se houver, para o lucro ser calculado.
+            </div>
+          )}
 
           {mode === "misticpay_fee" && (
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] text-amber-700 dark:text-amber-300">

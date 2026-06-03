@@ -136,6 +136,7 @@ export default function FinanceiroVisaoGeral({ range, customRange }: { range: Da
             { label: "Mensalidades", hint: "revendedores mensalistas", value: data.subscriptionRevenueCents, color: "#0ea5e9" },
             { label: "Pacotes (Pack)", hint: "revendedores Pack", value: data.packRevenueCents, color: "#10b981" },
             { label: "Receitas manuais", hint: "lançamentos manuais", value: data.manualRevenueCents, color: "#8b5cf6" },
+            { label: "LovaStore", hint: `loja própria${data.lovastoreCount ? ` · ${data.lovastoreCount} venda(s)` : ""}`, value: data.lovastoreRevenueCents, color: "#f97316" },
           ]}
         />
       </div>
