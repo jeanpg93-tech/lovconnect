@@ -26,10 +26,11 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initial?: ManualEntry | null;
+  prefill?: ManualEntry | null;
   onSubmit: (data: ManualEntryInput) => Promise<void>;
 };
 
-export default function ManualEntryDialog({ open, onOpenChange, initial, onSubmit }: Props) {
+export default function ManualEntryDialog({ open, onOpenChange, initial, prefill, onSubmit }: Props) {
   const { toast } = useToast();
   const { creditPacks, licenses } = useSalesCatalog();
   const [mode, setMode] = useState<Mode>("revenue");
@@ -44,18 +45,20 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, onSubmi
 
   useEffect(() => {
     if (open) {
-      if (initial) {
+      const src = initial ?? prefill;
+      if (src) {
         // Modo a partir do reference_kind
-        if (initial.reference_kind === "credit_pack") setMode("credit_sale");
-        else if (initial.reference_kind === "license") setMode("license_sale");
-        else setMode(initial.entry_type);
-        setDescription(initial.description);
-        setAmount(fromCents(initial.amount_cents));
-        setCost(initial.cost_cents ? fromCents(initial.cost_cents) : "");
-        setSelectedPackId(initial.reference_meta?.plan_id || "");
-        setSelectedLicense(initial.reference_meta?.license_type || "");
-        setCategory(initial.category || "");
-        setDate(initial.entry_date.slice(0, 10));
+        if (src.reference_kind === "credit_pack") setMode("credit_sale");
+        else if (src.reference_kind === "license") setMode("license_sale");
+        else setMode(src.entry_type);
+        setDescription(src.description);
+        setAmount(fromCents(src.amount_cents));
+        setCost(src.cost_cents ? fromCents(src.cost_cents) : "");
+        setSelectedPackId(src.reference_meta?.plan_id || "");
+        setSelectedLicense(src.reference_meta?.license_type || "");
+        setCategory(src.category || "");
+        // ao duplicar, usa data de hoje; ao editar, mantém data original
+        setDate(initial ? src.entry_date.slice(0, 10) : new Date().toISOString().slice(0, 10));
       } else {
         setMode("revenue");
         setDescription("");
@@ -67,7 +70,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, onSubmi
         setDate(new Date().toISOString().slice(0, 10));
       }
     }
-  }, [open, initial]);
+  }, [open, initial, prefill]);
 
   // Auto-preenche quando muda o pacote/licença
   const handlePackSelect = (planId: string) => {
