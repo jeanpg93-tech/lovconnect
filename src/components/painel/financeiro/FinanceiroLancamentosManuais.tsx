@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useManualEntries, type ManualEntry } from "@/hooks/useManualEntries";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2, Package, KeyRound, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2, Package, KeyRound, Copy, Store, Receipt } from "lucide-react";
 import ManualEntryDialog from "./ManualEntryDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -73,13 +73,19 @@ export default function FinanceiroLancamentosManuais() {
             const isRev = e.entry_type === "revenue";
             const isCreditSale = e.reference_kind === "credit_pack";
             const isLicenseSale = e.reference_kind === "license";
-            const isSale = isCreditSale || isLicenseSale;
+            const isLovastore = e.reference_kind === "lovastore";
+            const isMisticFee = e.reference_kind === "misticpay_fee";
+            const isSale = isCreditSale || isLicenseSale || isLovastore;
             const profit = isSale ? e.amount_cents - (e.cost_cents || 0) : 0;
-            const Icon = isCreditSale ? Package : isLicenseSale ? KeyRound : isRev ? TrendingUp : TrendingDown;
+            const Icon = isCreditSale ? Package : isLicenseSale ? KeyRound : isLovastore ? Store : isMisticFee ? Receipt : isRev ? TrendingUp : TrendingDown;
             const iconColor = isCreditSale
               ? "bg-blue-500/15 text-blue-500"
               : isLicenseSale
               ? "bg-violet-500/15 text-violet-500"
+              : isLovastore
+              ? "bg-orange-500/15 text-orange-500"
+              : isMisticFee
+              ? "bg-amber-500/15 text-amber-500"
               : isRev
               ? "bg-emerald-500/15 text-emerald-500"
               : "bg-red-500/15 text-red-500";
