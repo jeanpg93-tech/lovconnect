@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { ManualEntry, ManualEntryInput } from "@/hooks/useManualEntries";
 import { useSalesCatalog } from "@/hooks/useSalesCatalog";
-import { TrendingUp, TrendingDown, Package, KeyRound } from "lucide-react";
+import { TrendingUp, TrendingDown, Package, KeyRound, Receipt } from "lucide-react";
 
-type Mode = "revenue" | "expense" | "credit_sale" | "license_sale";
+type Mode = "revenue" | "expense" | "credit_sale" | "license_sale" | "misticpay_fee";
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -50,6 +50,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         // Modo a partir do reference_kind
         if (src.reference_kind === "credit_pack") setMode("credit_sale");
         else if (src.reference_kind === "license") setMode("license_sale");
+        else if (src.reference_kind === "misticpay_fee") setMode("misticpay_fee");
         else setMode(src.entry_type);
         setDescription(src.description);
         setAmount(fromCents(src.amount_cents));
@@ -95,7 +96,8 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
   };
 
   const isSale = mode === "credit_sale" || mode === "license_sale";
-  const entryType: "revenue" | "expense" = mode === "expense" ? "expense" : "revenue";
+  const entryType: "revenue" | "expense" =
+    mode === "expense" || mode === "misticpay_fee" ? "expense" : "revenue";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +117,10 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
     }
     setSaving(true);
     try {
-      const reference_kind = mode === "credit_sale" ? "credit_pack" : mode === "license_sale" ? "license" : null;
+      const reference_kind =
+        mode === "credit_sale" ? "credit_pack" :
+        mode === "license_sale" ? "license" :
+        mode === "misticpay_fee" ? "misticpay_fee" : null;
       const reference_meta =
         mode === "credit_sale"
           ? { plan_id: selectedPackId, ...creditPacks.find((p) => p.plan_id === selectedPackId) }
@@ -129,7 +134,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         cost_cents: costCents,
         reference_kind,
         reference_meta,
-        category: category.trim() || null,
+        category: category.trim() || (mode === "misticpay_fee" ? "Taxa MisticPay" : null),
         // Salva como meia-noite LOCAL (não UTC) para alinhar com filtros do dashboard.
         // new Date("YYYY-MM-DD") é interpretado como UTC; usar "YYYY-MM-DDT00:00:00" força local.
         entry_date: new Date(`${date}T00:00:00`).toISOString(),
@@ -153,12 +158,19 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Modos */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             <ModeButton active={mode === "credit_sale"} onClick={() => setMode("credit_sale")} icon={Package} label="Venda Crédito" activeClass="bg-blue-600 hover:bg-blue-700 text-white" />
             <ModeButton active={mode === "license_sale"} onClick={() => setMode("license_sale")} icon={KeyRound} label="Venda Licença" activeClass="bg-violet-600 hover:bg-violet-700 text-white" />
             <ModeButton active={mode === "revenue"} onClick={() => setMode("revenue")} icon={TrendingUp} label="Receita Avulsa" activeClass="bg-emerald-600 hover:bg-emerald-700 text-white" />
             <ModeButton active={mode === "expense"} onClick={() => setMode("expense")} icon={TrendingDown} label="Despesa" activeClass="bg-red-600 hover:bg-red-700 text-white" />
+            <ModeButton active={mode === "misticpay_fee"} onClick={() => setMode("misticpay_fee")} icon={Receipt} label="Taxa MisticPay" activeClass="bg-amber-600 hover:bg-amber-700 text-white" />
           </div>
+
+          {mode === "misticpay_fee" && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] text-amber-700 dark:text-amber-300">
+              Esta taxa será somada ao bloco <strong>Taxa Gateway</strong> no dashboard financeiro (junto às taxas automáticas por recarga), e não ao bloco de despesas avulsas.
+            </div>
+          )}
 
           {/* Seletor de pacote/licença */}
           {mode === "credit_sale" && (
