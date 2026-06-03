@@ -119,7 +119,7 @@ export default function FinanceiroLancamentosManuais() {
       ) : (
         <div className="space-y-2">
           {filtered.map((e) => (
-            <Row
+            <StaticRow
               key={e.id}
               entry={e}
               onEdit={() => { setDuplicating(null); setEditing(e); setOpen(true); }}
