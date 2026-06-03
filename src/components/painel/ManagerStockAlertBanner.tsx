@@ -90,7 +90,7 @@ export default function ManagerStockAlertBanner() {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
   }, [settings]);
 
-  if (c.loading && !c.committed && !c.flowRemaining && !c.lovaxRemaining) return null;
+  const hasNoStockData = c.loading && !c.committed && !c.flowRemaining && !c.lovaxRemaining;
 
   // Considera apenas o estoque do método atualmente ativo
   const methodRemaining = activeMethod === "flow" ? c.flowRemaining : c.lovaxRemaining;
@@ -145,6 +145,7 @@ export default function ManagerStockAlertBanner() {
     if (settings.soundEnabled) { ensureNotificationPermission().catch(() => {}); }
   }, [settings.soundEnabled]);
 
+  if (hasNoStockData) return null;
   if (sev === "ok") return null;
   if (dismissedSev && severityRank(dismissedSev) >= severityRank(sev)) {
     // Allow showing a tiny settings strip even when dismissed
