@@ -35,6 +35,8 @@ export type FinancialOverview = {
   revenueCents: number;
   rechargesRevenueCents: number;
   manualRevenueCents: number;
+  lovastoreRevenueCents: number;
+  lovastoreCount: number;
   activationRevenueCents: number;
   activationsCount: number;
   subscriptionRevenueCents: number;
@@ -232,8 +234,13 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     if (endIso) mQ = mQ.lte("entry_date", endIso);
     const { data: manuals } = await mQ;
     const manualArr = manuals || [];
+    const lovastoreArr = manualArr.filter(
+      (m: any) => m.entry_type === "revenue" && m.reference_kind === "lovastore",
+    );
+    const lovastoreRevenueCents = lovastoreArr.reduce((s, m: any) => s + Number(m.amount_cents || 0), 0);
+    const lovastoreCount = lovastoreArr.length;
     const manualRevenueCents = manualArr
-      .filter((m: any) => m.entry_type === "revenue")
+      .filter((m: any) => m.entry_type === "revenue" && m.reference_kind !== "lovastore")
       .reduce((s, m: any) => s + Number(m.amount_cents || 0), 0);
     // Taxas MisticPay lançadas manualmente entram no bloco "Taxa Gateway", não em Despesas
     const manualMisticFeeCents = manualArr
@@ -248,7 +255,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       .reduce((s, m: any) => s + Number(m.cost_cents || 0), 0);
 
     const revenueCents =
-      rechargesRevenueCents + manualRevenueCents + activationRevenueCents + subscriptionRevenueCents + packRevenueCents;
+      rechargesRevenueCents + manualRevenueCents + lovastoreRevenueCents + activationRevenueCents + subscriptionRevenueCents + packRevenueCents;
     const totalGatewayFeeCents = gatewayFeeCents + manualMisticFeeCents;
     const costCents = costCreditsCents + totalGatewayFeeCents + manualExpenseCents + manualRevenueCostCents;
     const profitCents = revenueCents - costCents;
@@ -374,6 +381,8 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       revenueCents,
       rechargesRevenueCents,
       manualRevenueCents,
+      lovastoreRevenueCents,
+      lovastoreCount,
       activationRevenueCents,
       activationsCount,
       subscriptionRevenueCents,
