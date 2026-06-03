@@ -1147,6 +1147,7 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           client_id: string | null
+          client_ip: string | null
           client_refund_endtoend_id: string | null
           client_refund_error: string | null
           client_refund_method: string | null
@@ -1174,6 +1175,7 @@ export type Database = {
           status: string
           telegram_sale_notified_at: string | null
           updated_at: string
+          user_agent: string | null
         }
         Insert: {
           api_key_id?: string | null
@@ -1182,6 +1184,7 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           client_id?: string | null
+          client_ip?: string | null
           client_refund_endtoend_id?: string | null
           client_refund_error?: string | null
           client_refund_method?: string | null
@@ -1209,6 +1212,7 @@ export type Database = {
           status?: string
           telegram_sale_notified_at?: string | null
           updated_at?: string
+          user_agent?: string | null
         }
         Update: {
           api_key_id?: string | null
@@ -1217,6 +1221,7 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           client_id?: string | null
+          client_ip?: string | null
           client_refund_endtoend_id?: string | null
           client_refund_error?: string | null
           client_refund_method?: string | null
@@ -1244,6 +1249,7 @@ export type Database = {
           status?: string
           telegram_sale_notified_at?: string | null
           updated_at?: string
+          user_agent?: string | null
         }
         Relationships: [
           {
