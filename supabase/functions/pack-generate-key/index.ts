@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     // Carrega revendedor
     const { data: reseller } = await svc
       .from("resellers")
-      .select("id,activation_status,billing_mode,pack_sales_disabled")
+      .select("id,activation_status,billing_mode,pack_sales_disabled,test_keys_per_day_override")
       .eq("user_id", userId).maybeSingle();
     if (!reseller) return json({ error: "Revendedor não encontrado" }, 404);
     if ((reseller as any).billing_mode !== "pack") {
@@ -94,6 +94,37 @@ Deno.serve(async (req) => {
       return json({ error: "Vendas pausadas pelo gerente. Entre em contato com o suporte.", reason: "sales_disabled" }, 403);
     }
     const reseller_id = reseller.id as string;
+
+    // Captura IP/UA da requisição (para auditoria de chaves teste geradas pelo painel)
+    const client_ip = (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim())
+      || req.headers.get("x-real-ip")
+      || null;
+    const user_agent = req.headers.get("user-agent")?.slice(0, 500) || null;
+
+    // Para trial: aplica limite diário (override do revendedor ou tier padrão).
+    if (isTrial) {
+      let dailyLimit = 10;
+      if ((reseller as any).test_keys_per_day_override != null) {
+        dailyLimit = Number((reseller as any).test_keys_per_day_override);
+      } else {
+        const { data: tierRows } = await svc.rpc("get_reseller_tier", { _reseller_id: reseller_id });
+        const tier = Array.isArray(tierRows) ? tierRows[0] : tierRows;
+        dailyLimit = Number((tier as any)?.test_keys_per_day ?? 10);
+      }
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await svc
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("reseller_id", reseller_id)
+        .eq("is_test", true)
+        .gte("created_at", since);
+      if ((count ?? 0) >= dailyLimit) {
+        return json({
+          error: `Limite diário de chaves teste atingido (${dailyLimit}/24h).`,
+          code: "trial_daily_limit",
+        }, 429);
+      }
+    }
 
     // Verifica saldo de créditos (trial não exige saldo)
     if (!isTrial) {
@@ -144,6 +175,8 @@ Deno.serve(async (req) => {
         product_type: "extension",
         is_test: isTrial,
         notes: JSON.stringify(notesObj),
+        client_ip,
+        user_agent,
       })
       .select("id")
       .single();

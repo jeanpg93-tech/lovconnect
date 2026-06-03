@@ -2,15 +2,17 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageContainer } from "@/components/painel/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { BarChart3, History as HistoryIcon, Tag, KeyRound } from "lucide-react";
+import { BarChart3, History as HistoryIcon, Tag, KeyRound, Gift } from "lucide-react";
 import GerenteLicencasDashboard from "./GerenteLicencasDashboard";
 import GerenteLicencasAcompanhar from "./GerenteLicencasAcompanhar";
 import GerenteLicencasValores from "./GerenteLicencasValores";
 import GerenteLicencasApis from "./GerenteLicencasApis";
+import GerenteChavesTeste from "./GerenteChavesTeste";
 
 const TABS = [
   { value: "dashboard", label: "Dashboard", icon: BarChart3, Comp: GerenteLicencasDashboard },
   { value: "acompanhar", label: "Acompanhar", icon: HistoryIcon, Comp: GerenteLicencasAcompanhar },
+  { value: "trials", label: "Chaves Teste", icon: Gift, Comp: GerenteChavesTeste },
   { value: "valores", label: "Valores", icon: Tag, Comp: GerenteLicencasValores },
   { value: "api", label: "API's", icon: KeyRound, Comp: GerenteLicencasApis },
 ] as const;
