@@ -1027,6 +1027,7 @@ export type Database = {
           id: string
           reference_kind: string | null
           reference_meta: Json | null
+          sort_order: number | null
           updated_at: string
         }
         Insert: {
@@ -1041,6 +1042,7 @@ export type Database = {
           id?: string
           reference_kind?: string | null
           reference_meta?: Json | null
+          sort_order?: number | null
           updated_at?: string
         }
         Update: {
@@ -1055,6 +1057,7 @@ export type Database = {
           id?: string
           reference_kind?: string | null
           reference_meta?: Json | null
+          sort_order?: number | null
           updated_at?: string
         }
         Relationships: []
