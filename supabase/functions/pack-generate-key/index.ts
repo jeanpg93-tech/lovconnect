@@ -101,15 +101,11 @@ Deno.serve(async (req) => {
       || null;
     const user_agent = req.headers.get("user-agent")?.slice(0, 500) || null;
 
-    // Para trial: aplica limite diário (override do revendedor ou tier padrão).
+    // Para trial: aplica limite diário (override do revendedor ou 35 padrão para Pack).
     if (isTrial) {
-      let dailyLimit = 10;
+      let dailyLimit = 35;
       if ((reseller as any).test_keys_per_day_override != null) {
         dailyLimit = Number((reseller as any).test_keys_per_day_override);
-      } else {
-        const { data: tierRows } = await svc.rpc("get_reseller_tier", { _reseller_id: reseller_id });
-        const tier = Array.isArray(tierRows) ? tierRows[0] : tierRows;
-        dailyLimit = Number((tier as any)?.test_keys_per_day ?? 10);
       }
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { count } = await svc
