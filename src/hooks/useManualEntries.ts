@@ -53,9 +53,11 @@ export function useManualEntries(opts?: { fromDate?: string | null }) {
 
   const create = async (input: ManualEntryInput) => {
     const { data: u } = await supabase.auth.getUser();
+    const sort_order = new Date(input.entry_date).getTime();
     const { error } = await supabase.from("manual_financial_entries").insert({
       ...input,
       created_by: u.user?.id ?? null,
+      sort_order,
     });
     if (error) throw error;
     await load();
