@@ -321,6 +321,26 @@ Deno.serve(async (req) => {
                   _referral_id: ref.id,
                   _amount_cents: commission,
                 });
+                // Notifica o indicador que ganhou comissão pela recarga do indicado
+                try {
+                  const [{ data: referrer }, { data: referred }] = await Promise.all([
+                    admin.from("resellers").select("user_id").eq("id", ref.referrer_reseller_id).maybeSingle(),
+                    admin.from("resellers").select("display_name").eq("id", intent.reseller_id).maybeSingle(),
+                  ]);
+                  if (referrer?.user_id) {
+                    const name = referred?.display_name || "seu indicado";
+                    const commissionBRL = (commission / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const rechargeBRL = (Number(intent.amount_cents) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    await admin.from("notifications").insert({
+                      user_id: referrer.user_id,
+                      title: `Você ganhou R$ ${commissionBRL} de comissão! 💰`,
+                      body: `${name} fez uma recarga de R$ ${rechargeBRL} e você recebeu ${pct}% como comissão de indicação. O valor já está no seu saldo.`,
+                      type: "referral_commission",
+                    });
+                  }
+                } catch (notifyErr) {
+                  console.warn("referral commission notification failed", notifyErr);
+                }
               }
             }
           }
