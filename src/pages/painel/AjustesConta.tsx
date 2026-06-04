@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Loader2, Mail, Phone, KeyRound, Save, AlertTriangle,
-  User, Camera, Trash2, LogOut, ShieldCheck, Copy,
+  User, Camera, Trash2, LogOut, ShieldCheck, Copy, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useOnboardingTour } from "@/hooks/useOnboardingTour";
+import { useRole } from "@/hooks/useRole";
 
 const emailSchema = z.string().trim().email({ message: "E-mail inválido" }).max(255);
 const phoneSchema = z
@@ -26,6 +28,8 @@ export default function AjustesConta() {
   const { user, signOut } = useAuth() as any;
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
+  const { primaryRole } = useRole();
+  const tour = (() => { try { return useOnboardingTour(); } catch { return null; } })();
 
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
