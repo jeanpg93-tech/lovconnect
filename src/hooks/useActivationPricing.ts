@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useRole } from "@/hooks/useRole";
 
 export type ActivationPricing = {
   basePriceCents: number;
