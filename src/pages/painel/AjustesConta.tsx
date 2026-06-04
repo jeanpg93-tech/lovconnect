@@ -29,7 +29,7 @@ export default function AjustesConta() {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const { primaryRole } = useRole();
-  const tour = (() => { try { return useOnboardingTour(); } catch { return null; } })();
+  const tour = useOnboardingTour();
 
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
