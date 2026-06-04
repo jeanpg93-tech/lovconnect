@@ -3,8 +3,9 @@ import Joyride, { CallBackProps, STATUS, Step, EVENTS, ACTIONS } from "react-joy
 import { useNavigate, useLocation } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Rocket, SkipForward } from "lucide-react";
+import { Sparkles, Rocket, SkipForward, PartyPopper } from "lucide-react";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
+import confetti from "canvas-confetti";
 
 type TourStep = Step & { route?: string };
 
@@ -75,6 +76,18 @@ export function OnboardingTour() {
     else setShowWelcome(false);
   }, [shouldShow, running]);
 
+  // Dispara animação de confete quando o modal de boas-vindas abre (ativação concluída)
+  useEffect(() => {
+    if (!showWelcome) return;
+    const fire = (opts: confetti.Options) =>
+      confetti({ zIndex: 10000, spread: 70, startVelocity: 45, ticks: 200, ...opts });
+    fire({ particleCount: 80, angle: 60, origin: { x: 0, y: 0.7 } });
+    fire({ particleCount: 80, angle: 120, origin: { x: 1, y: 0.7 } });
+    fire({ particleCount: 120, origin: { x: 0.5, y: 0.4 }, scalar: 1.1 });
+    const t = setTimeout(() => fire({ particleCount: 60, origin: { x: 0.5, y: 0.5 } }), 450);
+    return () => clearTimeout(t);
+  }, [showWelcome]);
+
   // Garante que estamos no dashboard antes de iniciar
   const beginTour = () => {
     setShowWelcome(false);
@@ -122,14 +135,20 @@ export function OnboardingTour() {
     <>
       {/* Modal de boas-vindas */}
       <Dialog open={showWelcome} onOpenChange={(o) => !o && skipNow()}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md overflow-hidden">
           <DialogHeader>
-            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-primary/10">
-              <Sparkles className="h-6 w-6 text-primary" />
+            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-primary/40 bg-primary/10 shadow-lg animate-scale-in">
+              <PartyPopper className="h-7 w-7 text-primary" />
             </div>
-            <DialogTitle className="text-center font-display text-xl">Tudo pronto! 🎉</DialogTitle>
-            <DialogDescription className="text-center">
-              Seu acesso foi liberado. Quer um tour rápido (≈ 1 min) pelos principais recursos do painel?
+            <DialogTitle className="text-center font-display text-2xl">
+              Parabéns! 🎉
+            </DialogTitle>
+            <DialogDescription className="text-center text-base">
+              Seu painel de revendedor está <strong className="text-primary">ativado</strong>!
+              <br />
+              Seja muito bem-vindo(a) à LovConnect — sua jornada de faturamento começa agora.
+              <br /><br />
+              Que tal um tour rápido (≈ 1 min) pelos principais recursos?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-center">
