@@ -1,20 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-// @ts-expect-error - react-joyride v3 has no bundled types
-import { Joyride, STATUS, EVENTS, ACTIONS } from "react-joyride";
+import Joyride, { CallBackProps, STATUS, Step, EVENTS, ACTIONS } from "react-joyride";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Rocket, SkipForward } from "lucide-react";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 
-type TourStep = {
-  target: string;
-  title: string;
-  content: string;
-  route?: string;
-  placement?: "top" | "bottom" | "left" | "right" | "center" | "auto";
-  disableBeacon?: boolean;
-};
+type TourStep = Step & { route?: string };
 
 const STEPS: TourStep[] = [
   {
@@ -98,7 +90,7 @@ export function OnboardingTour() {
 
   const steps = useMemo<TourStep[]>(() => STEPS, []);
 
-  const handleCallback = (data: any) => {
+  const handleCallback = (data: CallBackProps) => {
     const { status, type, index, action } = data;
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
       const next = index + (action === ACTIONS.PREV ? -1 : 1);
