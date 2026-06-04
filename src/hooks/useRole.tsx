@@ -44,13 +44,16 @@ const initialFromCache = (): RoleSnapshot => {
   let isDemo = false;
   let deliverySource: "wallet" | "pack" = "wallet";
   try {
-    const cached = localStorage.getItem("app_roles_cache");
-    if (cached) {
-      roles = JSON.parse(cached) as AppRole[];
-      hasData = true;
-    }
-    if (localStorage.getItem("user_is_banned") === "true") isBanned = true;
-    if (localStorage.getItem("user_is_active") === "false") isActive = false;
+    // SECURITY: Do NOT seed roles, ban status, or active status from
+    // localStorage. These drive access-control decisions in RoleRoute /
+    // AppLayout and must come from the server only. A local attacker (or
+    // malicious extension) could otherwise flip a flag and briefly see the
+    // admin UI shell before the server fetch lands. The actual data is still
+    // RLS-protected, but the UI shell itself should not be exposed.
+    // Legacy cache cleanup.
+    localStorage.removeItem("app_roles_cache");
+    localStorage.removeItem("user_is_banned");
+    localStorage.removeItem("user_is_active");
     const cachedMode = localStorage.getItem("user_billing_mode");
     if (cachedMode === "subscription" || cachedMode === "pack") billingMode = cachedMode;
     if (localStorage.getItem("user_subscription_blocked") === "true") subscriptionBlocked = true;
@@ -96,12 +99,10 @@ const fetchRoles = async (userId: string) => {
 
       if (profileRes.data) {
         next.isBanned = !!profileRes.data.is_banned;
-        localStorage.setItem("user_is_banned", next.isBanned ? "true" : "false");
       }
       if (resellerRes.data) {
         const r: any = resellerRes.data;
         next.isActive = !!r.is_active;
-        localStorage.setItem("user_is_active", next.isActive ? "true" : "false");
         next.billingMode = r.billing_mode === "subscription" ? "subscription" : r.billing_mode === "pack" ? "pack" : "normal";
         localStorage.setItem("user_billing_mode", next.billingMode);
         next.subscriptionBlocked = !!r.subscription_blocked;
@@ -163,7 +164,6 @@ const fetchRoles = async (userId: string) => {
       if (!rolesRes.error) {
         const fetched = (rolesRes.data ?? []).map((r) => r.role as AppRole);
         next.roles = fetched;
-        localStorage.setItem("app_roles_cache", JSON.stringify(fetched));
       }
       setSnapshot(next);
     } finally {
