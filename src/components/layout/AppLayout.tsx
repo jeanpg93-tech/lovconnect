@@ -157,6 +157,7 @@ export default function AppLayout() {
 
   return (
     <SidebarProvider>
+      <PendingProfileGate userId={user.id}>
       <FirstAccessGate userId={user.id}>
       <OnboardingTourProvider>
       <div className="flex min-h-screen w-full bg-background text-foreground">
@@ -191,6 +192,7 @@ export default function AppLayout() {
       </div>
       </OnboardingTourProvider>
       </FirstAccessGate>
+      </PendingProfileGate>
     </SidebarProvider>
   );
 }
