@@ -526,7 +526,7 @@ export function AppSidebar() {
       <SidebarContent>
         {primaryRole === "revendedor" && !collapsed && (
           <div className="px-2 pt-3">
-            <div className="block rounded-lg border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3">
+            <div data-tour="dashboard-saldo" className="block rounded-lg border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3">
               <div className="flex items-center gap-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/15 text-primary">
                   <Wallet className="h-3.5 w-3.5 text-primary" />
