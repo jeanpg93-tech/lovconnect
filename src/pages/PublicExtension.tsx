@@ -111,9 +111,19 @@ export default function PublicExtension({ slug: slugProp }: { slug?: string } = 
     if (!slug) return;
     setDownloading(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        toast.error("Faça login para baixar a extensão.");
+        setDownloading(false);
+        return;
+      }
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-extension-download?slug=${encodeURIComponent(slug)}`;
       const res = await fetch(url, {
-        headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string },
+        headers: {
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+          Authorization: `Bearer ${token}`,
+        },
       });
       const json = await res.json();
       if (!res.ok || !json.url) throw new Error(json.error || "Falha ao gerar link");
