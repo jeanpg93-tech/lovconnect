@@ -68,7 +68,7 @@ import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import { useProviderCommitments } from "@/hooks/useProviderCommitments";
 import { useTranslation } from "react-i18next";
 
-type Item = { title: string; url: string; icon: any; badge?: "store-status" };
+type Item = { title: string; url: string; icon: any; badge?: "store-status"; tour?: string };
 type Group = { label: string; items: Item[] };
 
 const groupsByRole: Record<AppRole, Group[]> = {
@@ -105,18 +105,18 @@ const groupsByRole: Record<AppRole, Group[]> = {
   ],
   revendedor: [
     { label: "Painel", items: [
-      { title: "Dashboard", url: "/painel/revendedor", icon: LayoutDashboard },
-      { title: "Carteira", url: "/painel/revendedor/carteira", icon: Wallet },
-      { title: "Indique e ganhe", url: "/painel/revendedor/indicacoes", icon: Gift },
+      { title: "Dashboard", url: "/painel/revendedor", icon: LayoutDashboard, tour: "menu-dashboard" },
+      { title: "Carteira", url: "/painel/revendedor/carteira", icon: Wallet, tour: "menu-carteira" },
+      { title: "Indique e ganhe", url: "/painel/revendedor/indicacoes", icon: Gift, tour: "menu-indicacoes" },
     ]},
     { label: "Mensalidade", items: [
-      { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles },
-      { title: "Minhas Chaves", url: "/painel/revendedor/minhas-chaves", icon: KeyRound },
+      { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles, tour: "menu-gerar-chave" },
+      { title: "Minhas Chaves", url: "/painel/revendedor/minhas-chaves", icon: KeyRound, tour: "menu-minhas-chaves" },
       { title: "Minhas Cobranças", url: "/painel/revendedor/cobrancas", icon: Wallet },
     ]},
     { label: "Vendas - Packs", items: [
-      { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles },
-      { title: "Minhas Chaves", url: "/painel/revendedor/minhas-chaves", icon: KeyRound },
+      { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles, tour: "menu-gerar-chave" },
+      { title: "Minhas Chaves", url: "/painel/revendedor/minhas-chaves", icon: KeyRound, tour: "menu-minhas-chaves" },
       { title: "Comprar Packs", url: "/painel/revendedor/comprar-pacote", icon: ShoppingCart },
       { title: "Histórico", url: "/painel/revendedor/historico-pacote", icon: HistoryIcon },
     ]},
@@ -125,9 +125,9 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Licenças", url: "/painel/revendedor/licencas", icon: Puzzle },
     ]},
     { label: "Configurarações", items: [
-      { title: "Minha Loja", url: "/painel/revendedor/loja", icon: Store, badge: "store-status" },
-      { title: "Precificação", url: "/painel/revendedor/precos", icon: Tag },
-      { title: "Baixar Extensão", url: "/painel/revendedor/baixar-extensao", icon: Package },
+      { title: "Minha Loja", url: "/painel/revendedor/loja", icon: Store, badge: "store-status", tour: "menu-loja" },
+      { title: "Precificação", url: "/painel/revendedor/precos", icon: Tag, tour: "menu-precos" },
+      { title: "Baixar Extensão", url: "/painel/revendedor/baixar-extensao", icon: Package, tour: "menu-extensao" },
       { title: "API Licenças", url: "/painel/revendedor/api", icon: KeyRound },
       { title: "API Recargas", url: "/painel/revendedor/api-recargas", icon: Coins },
       { title: "Resetar chave", url: "/painel/revendedor/resetar-chave", icon: RotateCcw },
@@ -833,6 +833,7 @@ export function AppSidebar() {
                               <NavLink
                                 to={item.url}
                                 end
+                                  data-tour={item.tour}
                                   className={cn(
                                     "flex items-center gap-2.5 rounded-md transition-colors",
                                     active
