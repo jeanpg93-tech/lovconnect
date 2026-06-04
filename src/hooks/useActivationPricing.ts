@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useRole } from "@/hooks/useRole";
 
 export type ActivationPricing = {
   basePriceCents: number;
@@ -20,24 +19,11 @@ const BASE_CENTS = 20000;
  */
 export function useActivationPricing(): ActivationPricing | null {
   const [pricing, setPricing] = useState<ActivationPricing | null>(null);
-  const { billingMode, hasData } = useRole();
-
   useEffect(() => {
     let alive = true;
-    // Promo de adesão só vale para revendedores "normais".
-    // Mensalistas e Pack não pagam adesão por este fluxo.
-    if (hasData && billingMode !== "normal") {
-      setPricing({
-        basePriceCents: BASE_CENTS,
-        finalPriceCents: BASE_CENTS,
-        bonusCents: 0,
-        balanceCreditCents: BASE_CENTS,
-        promotionId: null,
-        hasDiscount: false,
-        hasBonus: false,
-      });
-      return () => { alive = false; };
-    }
+    // A promoção de adesão é decidida no servidor por compute_activation_pricing.
+    // Sempre consultamos a RPC para refletir o mesmo preço que o backend cobra,
+    // independentemente do billing_mode do revendedor.
     (async () => {
       try {
         const { data, error } = await supabase.rpc("compute_activation_pricing", {
@@ -71,7 +57,7 @@ export function useActivationPricing(): ActivationPricing | null {
       }
     })();
     return () => { alive = false; };
-  }, [billingMode, hasData]);
+  }, []);
 
   return pricing;
 }

@@ -88,13 +88,14 @@ Deno.serve(async (req) => {
 
     const expiresAt = new Date(Date.now() + PIX_TTL_MINUTES * 60 * 1000).toISOString();
 
-    // Pricing dinâmico com promoção de adesão ativa (se houver)
+    // Pricing dinâmico com promoção de adesão ativa (se houver).
+    // A promoção aplica-se a QUALQUER revendedor que esteja pagando a adesão
+    // por este fluxo, independente do billing_mode — a função RPC já decide
+    // se há promoção ativa válida.
     let finalCents = ACTIVATION_BASE_CENTS;
     let bonusCents = 0;
     let promotionId: string | null = null;
-    // Promo de adesão só vale para revendedores "normais" (não mensalistas/packs)
-    const eligibleForPromo = (reseller as any).billing_mode === "normal" || !(reseller as any).billing_mode;
-    if (eligibleForPromo) try {
+    try {
       const { data: pricing } = await admin.rpc("compute_activation_pricing", { _base_cents: ACTIVATION_BASE_CENTS });
       const row: any = Array.isArray(pricing) ? pricing[0] : pricing;
       if (row) {
