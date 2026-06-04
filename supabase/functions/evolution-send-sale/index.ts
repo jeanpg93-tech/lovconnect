@@ -67,11 +67,21 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const reseller_id = String(body.reseller_id ?? "");
     const kind = String(body.kind ?? ""); // "license" | "recharge" | "storefront"
-    const to = (String(body.to ?? "")).replace(/\D+/g, "");
+    let to = (String(body.to ?? "")).replace(/\D+/g, "");
     const vars = (body.vars ?? {}) as Record<string, string>;
 
     if (!reseller_id || !kind || to.length < 10) {
       return json({ ok: false, skipped: "invalid_input" });
+    }
+
+    // Garante DDI Brasil (55). Aceita números no formato:
+    // - 10 dígitos (DDD+fixo)        -> prepend 55
+    // - 11 dígitos (DDD+celular 9)   -> prepend 55
+    // - 12/13 dígitos começando com 55 -> mantém
+    if (to.length === 10 || to.length === 11) {
+      to = "55" + to;
+    } else if (to.length >= 12 && !to.startsWith("55")) {
+      // número internacional já com DDI — mantém como está
     }
 
     const svc = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
