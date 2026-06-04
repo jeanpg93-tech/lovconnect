@@ -164,7 +164,6 @@ const fetchRoles = async (userId: string) => {
       if (!rolesRes.error) {
         const fetched = (rolesRes.data ?? []).map((r) => r.role as AppRole);
         next.roles = fetched;
-        localStorage.setItem("app_roles_cache", JSON.stringify(fetched));
       }
       setSnapshot(next);
     } finally {
