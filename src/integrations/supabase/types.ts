@@ -2648,13 +2648,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "reseller_pack_ledger_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "reseller_pack_ledger_purchase_id_fkey"
             columns: ["purchase_id"]
             isOneToOne: false
