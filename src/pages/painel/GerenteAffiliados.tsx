@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Loader2, Copy, Trash2, Sparkles, Tag, CheckCircle2, Users, Pause, Share2, TrendingUp, DollarSign, Search } from "lucide-react";
+import { Plus, Loader2, Copy, Trash2, Sparkles, Tag, CheckCircle2, Users, Pause, Share2, TrendingUp, DollarSign, Search, Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Affiliate = {
@@ -181,6 +181,12 @@ export default function GerenteAffiliados() {
     toast.success("Copiado");
   };
 
+  const copyLink = (code: string) => {
+    const url = `${window.location.origin}/auth?ref=${code}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link copiado");
+  };
+
   const stats = {
     total: list.length,
     active: list.filter((l) => l.is_active).length,
@@ -319,6 +325,9 @@ export default function GerenteAffiliados() {
                             <Button size="sm" variant="ghost" onClick={() => copy(a.code)} className="h-6 w-6 p-0">
                               <Copy className="h-3 w-3" />
                             </Button>
+                            <Button size="sm" variant="ghost" onClick={() => copyLink(a.code)} className="h-6 w-6 p-0" title="Copiar link de cadastro">
+                              <Link2 className="h-3 w-3" />
+                            </Button>
                             {exhausted && <Badge variant="destructive" className="text-[10px]">esgotado</Badge>}
                           </div>
                         </td>
@@ -364,6 +373,9 @@ export default function GerenteAffiliados() {
                           <code className="rounded bg-primary/10 border border-primary/20 px-2 py-0.5 font-mono text-sm font-semibold text-primary">{a.code}</code>
                           <Button size="sm" variant="ghost" onClick={() => copy(a.code)} className="h-6 w-6 p-0">
                             <Copy className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => copyLink(a.code)} className="h-6 w-6 p-0" title="Copiar link de cadastro">
+                            <Link2 className="h-3 w-3" />
                           </Button>
                         </div>
                         {a.owner_reseller_id ? (
