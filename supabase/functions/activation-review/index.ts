@@ -62,6 +62,32 @@ Deno.serve(async (req) => {
         type: "activation_approved",
       });
 
+      // Notifica o indicador (se houver) que o indicado ativou o painel
+      try {
+        const { data: ref } = await admin
+          .from("reseller_referrals")
+          .select("referrer_reseller_id")
+          .eq("referred_reseller_id", payment.reseller_id)
+          .maybeSingle();
+        if (ref?.referrer_reseller_id) {
+          const [{ data: referrer }, { data: referred }] = await Promise.all([
+            admin.from("resellers").select("user_id").eq("id", ref.referrer_reseller_id).maybeSingle(),
+            admin.from("resellers").select("display_name").eq("id", payment.reseller_id).maybeSingle(),
+          ]);
+          if (referrer?.user_id) {
+            const name = referred?.display_name || "Seu indicado";
+            await admin.from("notifications").insert({
+              user_id: referrer.user_id,
+              title: "Sua indicação ativou o painel! 🎉",
+              body: `${name} acabou de ativar o painel de revendedor. Você passará a receber comissão recorrente sobre as recargas dele(a).`,
+              type: "referral_activated",
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("referral activation notification failed", e);
+      }
+
       return json({ ok: true });
     } else {
       await admin.from("activation_payments").update({
