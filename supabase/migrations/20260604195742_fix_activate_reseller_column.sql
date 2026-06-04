@@ -1,4 +1,4 @@
--- Fix: coluna correta é reviewer_id (não reviewed_by)
+-- Fix: a coluna real é reviewer_id (não reviewed_by). Mantém todo o resto da lógica.
 CREATE OR REPLACE FUNCTION public.activate_reseller(_reseller_id uuid, _payment_id uuid DEFAULT NULL::uuid, _actor_id uuid DEFAULT NULL::uuid)
  RETURNS void
  LANGUAGE plpgsql
@@ -14,6 +14,11 @@ DECLARE
   _extra_pct          numeric(5,2);
   _bonus_cents_promo  bigint;
   _bonus_extra        bigint := 0;
+  _referrer           record;
+  _tier_row           record;
+  _base_pct           numeric;
+  _total_pct          numeric;
+  _commission         bigint;
 BEGIN
   IF _payment_id IS NOT NULL THEN
     UPDATE public.activation_payments
@@ -88,8 +93,42 @@ BEGIN
 
       IF _promote_tier IS NOT NULL THEN
         UPDATE public.resellers
-           SET tier_id = _promote_tier
+           SET bonus_min_tier_id = _promote_tier,
+               updated_at = now()
          WHERE id = _reseller_id;
+      END IF;
+
+      IF _amount IS NOT NULL AND _amount > 0 THEN
+        SELECT id, referrer_reseller_id
+          INTO _referrer
+          FROM public.reseller_referrals
+         WHERE referred_reseller_id = _reseller_id
+         LIMIT 1;
+
+        IF _referrer.referrer_reseller_id IS NOT NULL THEN
+          SELECT *
+            INTO _tier_row
+            FROM public.get_reseller_tier(_referrer.referrer_reseller_id)
+            LIMIT 1;
+
+          _base_pct  := COALESCE(_tier_row.referral_commission_percent, 0);
+          _total_pct := _base_pct + COALESCE(_extra_pct, 0);
+
+          IF _total_pct > 0 THEN
+            _commission := floor((_amount * _total_pct) / 100)::bigint;
+            IF _commission > 0 THEN
+              PERFORM public.credit_reseller_balance(
+                _referrer.referrer_reseller_id,
+                _commission,
+                'referral_commission',
+                'Comissão de indicação — adesão (' || _total_pct::text || '% sobre R$ '
+                  || to_char((_amount::numeric / 100), 'FM999990.00') || ')',
+                _payment_id
+              );
+              PERFORM public.add_referral_commission(_referrer.id, _commission);
+            END IF;
+          END IF;
+        END IF;
       END IF;
     END IF;
   END IF;
