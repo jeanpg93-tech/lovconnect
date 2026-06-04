@@ -3113,6 +3113,8 @@ export type Database = {
           is_active: boolean
           is_demo: boolean
           last_test_key_reset: string | null
+          onboarding_tour_completed_at: string | null
+          onboarding_tour_status: Database["public"]["Enums"]["onboarding_tour_status"]
           pack_sales_disabled: boolean
           slug: string
           subscription_blocked: boolean
@@ -3135,6 +3137,8 @@ export type Database = {
           is_active?: boolean
           is_demo?: boolean
           last_test_key_reset?: string | null
+          onboarding_tour_completed_at?: string | null
+          onboarding_tour_status?: Database["public"]["Enums"]["onboarding_tour_status"]
           pack_sales_disabled?: boolean
           slug: string
           subscription_blocked?: boolean
@@ -3157,6 +3161,8 @@ export type Database = {
           is_active?: boolean
           is_demo?: boolean
           last_test_key_reset?: string | null
+          onboarding_tour_completed_at?: string | null
+          onboarding_tour_status?: Database["public"]["Enums"]["onboarding_tour_status"]
           pack_sales_disabled?: boolean
           slug?: string
           subscription_blocked?: boolean
@@ -4068,6 +4074,7 @@ export type Database = {
     }
     Enums: {
       app_role: "gerente" | "revendedor" | "cliente"
+      onboarding_tour_status: "pending" | "completed" | "skipped"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4196,6 +4203,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["gerente", "revendedor", "cliente"],
+      onboarding_tour_status: ["pending", "completed", "skipped"],
     },
   },
 } as const

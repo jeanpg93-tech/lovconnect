@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Loader2, Mail, Phone, KeyRound, Save, AlertTriangle,
-  User, Camera, Trash2, LogOut, ShieldCheck, Copy,
+  User, Camera, Trash2, LogOut, ShieldCheck, Copy, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useOnboardingTour } from "@/hooks/useOnboardingTour";
+import { useRole } from "@/hooks/useRole";
 
 const emailSchema = z.string().trim().email({ message: "E-mail inválido" }).max(255);
 const phoneSchema = z
@@ -26,6 +28,8 @@ export default function AjustesConta() {
   const { user, signOut } = useAuth() as any;
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
+  const { primaryRole } = useRole();
+  const tour = useOnboardingTour();
 
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -165,6 +169,23 @@ export default function AjustesConta() {
         title="Ajustes da conta"
         description="Atualize seu perfil, dados de acesso e preferências de segurança."
       />
+
+      {primaryRole === "revendedor" && (
+        <section className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/15 text-primary">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold">Tour do painel</div>
+              <div className="text-xs text-muted-foreground">Reveja o passo a passo dos principais recursos.</div>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => { navigate("/painel/revendedor"); setTimeout(() => tour.restart(), 300); }}>
+            Refazer tour
+          </Button>
+        </section>
+      )}
 
       {/* PERFIL */}
       <section className="rounded-xl border border-border bg-card/60 p-6">

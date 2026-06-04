@@ -20,6 +20,8 @@ import { useActivation } from "@/hooks/useActivation";
 import { SubscriptionLockOverlay } from "@/components/subscription/SubscriptionLockOverlay";
 import { FirstAccessGate } from "@/components/FirstAccessGate";
 import { DemoBanner } from "@/components/DemoBanner";
+import { OnboardingTourProvider } from "@/hooks/useOnboardingTour";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 
 export default function AppLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -156,6 +158,7 @@ export default function AppLayout() {
   return (
     <SidebarProvider>
       <FirstAccessGate userId={user.id}>
+      <OnboardingTourProvider>
       <div className="flex min-h-screen w-full bg-background text-foreground">
         <AppSidebar />
         <div className="flex flex-1 flex-col min-w-0 pb-28 md:pb-0">
@@ -184,7 +187,9 @@ export default function AppLayout() {
         </div>
         <MobileNav />
           <NotificationCenter />
+          {primaryRole === "revendedor" && <OnboardingTour />}
       </div>
+      </OnboardingTourProvider>
       </FirstAccessGate>
     </SidebarProvider>
   );
