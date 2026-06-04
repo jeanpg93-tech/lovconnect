@@ -19,9 +19,12 @@ Deno.serve(async (req) => {
     const buyer_name = typeof body.buyer_name === "string" ? body.buyer_name.trim().slice(0, 100) : "";
     const whatsapp_raw = typeof body.buyer_whatsapp === "string" ? body.buyer_whatsapp : "";
     const buyer_whatsapp = whatsapp_raw.replace(/\D+/g, "").slice(0, 15);
-    const ip = (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim())
+    const rawIp = (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim())
       || req.headers.get("x-real-ip")
       || "0.0.0.0";
+    const IPV4_RE = /^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)$/;
+    const IPV6_RE = /^[0-9a-fA-F:]{2,45}$/;
+    const ip = (IPV4_RE.test(rawIp) || IPV6_RE.test(rawIp)) ? rawIp : "0.0.0.0";
 
     if (!reseller_slug) return json({ error: "Loja inválida" }, 400);
     if (buyer_name.length < 2) return json({ error: "Informe seu nome" }, 400);
