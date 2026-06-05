@@ -212,9 +212,22 @@ Deno.serve(async (req) => {
       }
       if (!to) return json({ ok: false, skipped: "no_whatsapp" });
 
+      // Auto-enrich context vars when missing (saldo/valor + link de recarga)
+      let saldoBRL = "";
+      if (finalResellerId) {
+        const { data: bal } = await svc.from("reseller_balances")
+          .select("balance_cents").eq("reseller_id", finalResellerId).maybeSingle();
+        const cents = Number(bal?.balance_cents ?? 0);
+        saldoBRL = (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      const defaultLink = "https://lovconnect.store/painel/revendedor/adicionar-saldo";
+
       const merged: Record<string, string> = {
         nome: vars.nome ?? nome,
         loja: vars.loja ?? loja,
+        valor: vars.valor ?? saldoBRL,
+        saldo: vars.saldo ?? saldoBRL,
+        link: vars.link ?? defaultLink,
         ...vars,
       };
       const message = render(ev.template, merged);
@@ -251,7 +264,16 @@ Deno.serve(async (req) => {
             results.push({ ok: false, reseller_id: id, skipped: "no_whatsapp" });
             continue;
           }
-          const personalized = render(message, { nome });
+          const { data: bal } = await svc.from("reseller_balances")
+            .select("balance_cents").eq("reseller_id", id).maybeSingle();
+          const cents = Number(bal?.balance_cents ?? 0);
+          const saldoBRL = (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const personalized = render(message, {
+            nome,
+            valor: saldoBRL,
+            saldo: saldoBRL,
+            link: "https://lovconnect.store/painel/revendedor/adicionar-saldo",
+          });
           results.push(await sendOne({ kind: "manual", eventKey: null, resellerId: id, toRaw: to, message: personalized }));
         }
       }
