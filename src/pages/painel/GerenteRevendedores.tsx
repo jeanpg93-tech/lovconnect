@@ -16,6 +16,8 @@ import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, T
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { labelForPath, isOnline, formatLastSeenBR } from "@/lib/path-labels";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { countryDialCodes, DEFAULT_DIAL_CODE, splitDialCode } from "@/lib/country-codes";
 
 type Reseller = {
   id: string; user_id: string; display_name: string; slug: string; is_active: boolean; test_keys_used_today: number; test_keys_per_day_override: number | null; activation_status?: string | null; billing_mode?: string | null;
