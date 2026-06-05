@@ -1203,7 +1203,33 @@ Deno.serve(async (req) => {
       console.warn("orders insert (storefront) failed", e);
     }
 
-    // Disparo WhatsApp (fire-and-forget)
+    // Disparo WhatsApp para o revendedor (Notificação de Venda na Loja)
+    if (license_key && storeOrder.reseller_id) {
+      const event_key = usedPack ? "reseller_sale_pack" : "reseller_sale_store";
+      
+      let licencas_restantes = "";
+      if (usedPack) {
+        const { data: packBal } = await admin.from("reseller_pack_balances")
+          .select("balance").eq("reseller_id", storeOrder.reseller_id).maybeSingle();
+        licencas_restantes = String(packBal?.balance ?? "0");
+      }
+
+      triggerWhatsAppNotify({
+        event_key,
+        reseller_id: storeOrder.reseller_id,
+        vars: {
+          pedido_id: storeOrder.id.slice(0, 8).toUpperCase(),
+          cliente_nome: storeOrder.buyer_name,
+          cliente_whatsapp: storeOrder.buyer_whatsapp ? `+${storeOrder.buyer_whatsapp}` : "N/A",
+          licenca: license_key,
+          custo: (cost_cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          licencas_restantes,
+          canal: "Loja Pública",
+        },
+      });
+    }
+
+    // Disparo WhatsApp para o CLIENTE (fire-and-forget)
     if (license_key && storeOrder.buyer_whatsapp) {
       fetch(`${SUPABASE_URL}/functions/v1/evolution-send-sale`, {
         method: "POST",
