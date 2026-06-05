@@ -12,6 +12,8 @@ import { signInSchema, signUpSchema, forgotPasswordSchema } from "@/lib/auth-sch
 import { ArrowLeft, Loader2, Mail, Lock, User as UserIcon, Ticket, AlertTriangle, MessageCircle, Eye, EyeOff, Phone } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { WhatsAppFloatingButtons } from "@/components/WhatsAppFloatingButtons";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { countryDialCodes, DEFAULT_DIAL_CODE } from "@/lib/country-codes";
 
 type Mode = "signin" | "signup" | "forgot";
 
@@ -27,6 +29,7 @@ const Auth = () => {
   const [displayName, setDisplayName] = useState("");
   const [affiliateCode, setAffiliateCode] = useState<string>("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [whatsappDdi, setWhatsappDdi] = useState<string>(DEFAULT_DIAL_CODE);
   const [codeLookup, setCodeLookup] = useState<
     | { status: "idle" }
     | { status: "checking" }
@@ -126,7 +129,8 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     resetErrors();
-    const parsed = signUpSchema.safeParse({ email, password, displayName, affiliateCode, whatsapp });
+    const fullWhatsapp = `${whatsappDdi}${(whatsapp || "").replace(/\D/g, "")}`;
+    const parsed = signUpSchema.safeParse({ email, password, displayName, affiliateCode, whatsapp: fullWhatsapp });
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
       parsed.error.issues.forEach((i) => { fieldErrors[i.path[0] as string] = i.message; });
