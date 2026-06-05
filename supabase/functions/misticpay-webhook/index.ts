@@ -201,17 +201,17 @@ Deno.serve(async (req) => {
           if (!ok) {
             console.warn("[webhook] activation tx not confirmed by MisticPay", txId);
             return json({ ok: false, reason: "unverified_transaction" }, 403);
-            });
-
-            // Notifica o revendedor sobre a ativação do painel via WhatsApp
-            triggerWhatsAppNotify({
-              event_key: "panel_unlocked",
-              reseller_id: actPay.reseller_id,
-              vars: {
-                link: "https://lovconnect.store/painel",
-              },
-            });
           }
+
+          // Notifica o revendedor sobre a ativação do painel via WhatsApp
+          triggerWhatsAppNotify({
+            event_key: "panel_unlocked",
+            reseller_id: actPay.reseller_id,
+            vars: {
+              link: "https://lovconnect.store/painel",
+            },
+          });
+
 
           await admin.from("activation_payments").update({
             status: "paid",
