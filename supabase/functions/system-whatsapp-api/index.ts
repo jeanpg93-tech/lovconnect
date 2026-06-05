@@ -201,43 +201,53 @@ Deno.serve(async (req) => {
     }
 
     if (action === "status") {
-      const st = await evo("/instance/status", { method: "GET" }, instanceToken);
-      const rawErr = String(st.data?.error ?? st.data?.message ?? "");
-      // If Evolution reports the zombie state, force disconnected so the UI prompts a reconnect.
-      const isZombie = /device jid|client is nil/i.test(rawErr);
-      const state: string = isZombie ? "close" :
-        st.data?.data?.Connected === true || st.data?.data?.LoggedIn === true ? "open" :
-        st.data?.data?.Connected === false ? "close" :
-        st.data?.instance?.state ?? st.data?.state ?? "unknown";
+      const [connState, fetched, legacyStatus] = await Promise.all([
+        evo(`/instance/connectionState/${encodeURIComponent(instance)}`, { method: "GET" }, instanceToken),
+        evo(`/instance/fetchInstances?instanceName=${encodeURIComponent(instance)}`, { method: "GET" }, EVO_KEY),
+        evo("/instance/status", { method: "GET" }, instanceToken),
+      ]);
+      const fetchedRec = instanceRecord(fetched.data, instance);
+      const combinedRaw = `${rawString(connState.data)} ${rawString(fetched.data)} ${rawString(legacyStatus.data)}`;
+      // Se a instância não existe, foi deletada, não tem JID/número, ou Evolution devolve estado zumbi,
+      // força desconectado para não voltar a exibir "Conectado" indevidamente.
+      const isZombie = /device jid|client is nil|not found|not exist|inexistente|instance not found/i.test(combinedRaw);
+      const state: string = isZombie || (!fetchedRec && fetched.ok) ? "close" :
+        instanceState(connState.data) || instanceState(fetchedRec) || instanceState(legacyStatus.data) || "unknown";
+      const connectedNumber = instanceNumber(fetchedRec) ?? instanceNumber(connState.data) ?? instanceNumber(legacyStatus.data);
       const mapped =
         state === "open" ? "connected" :
         state === "connecting" ? "connecting" :
-        state === "close" || state === "closed" ? "disconnected" : state;
+        state === "close" || state === "closed" || state === "disconnected" || state === "unknown" ? "disconnected" : state;
 
       const update: Record<string, unknown> = { status: mapped };
-      if (mapped === "connected") {
-        const fi = await evo(`/instance/fetchInstances?instanceName=${encodeURIComponent(instance)}`, { method: "GET" });
-        const rec = Array.isArray(fi.data) ? fi.data[0] : fi.data;
-        const inst = rec?.instance ?? rec;
-        const number = inst?.number ?? inst?.owner ?? inst?.wuid ?? null;
-        update.connected_number = typeof number === "string" ? number.split("@")[0] : null;
+      if (mapped === "connected" && connectedNumber) {
+        update.connected_number = connectedNumber;
       } else if (mapped === "disconnected") {
         update.connected_number = null;
       }
       await svc.from("system_whatsapp_settings").update(update).eq("singleton", true);
-      return json({ ok: true, state: mapped, zombie: isZombie, raw: rawErr || undefined });
+      return json({ ok: true, state: mapped, zombie: isZombie, raw: { connectionState: connState.data, fetched: fetched.data, legacyStatus: legacyStatus.data } });
     }
 
     if (action === "disconnect") {
-      // Fully wipe the instance so the next connect starts from scratch.
-      const r = await evo("/instance/logout", { method: "DELETE" }, instanceToken);
-      try { await evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }); } catch (_) {}
-      try { await evo("/instance/delete", { method: "DELETE", body: JSON.stringify({ name: instance }) }); } catch (_) {}
       await svc.from("system_whatsapp_settings").update({
         status: "disconnected",
         connected_number: null,
       }).eq("singleton", true);
-      return json({ ok: true, raw: r.data });
+      // Fully wipe the instance so the next connect starts from scratch. Run best-effort in background
+      // so the UI never fica carregando caso a Evolution demore/trave.
+      const cleanupTask = (async () => {
+        const results = await Promise.all([
+          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" }, instanceToken, 5_000),
+          evo("/instance/logout", { method: "DELETE" }, instanceToken, 5_000),
+          evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY, 5_000),
+          evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }, instanceToken, 5_000),
+          evo("/instance/delete", { method: "DELETE", body: JSON.stringify({ name: instance, instanceName: instance }) }, EVO_KEY, 5_000),
+        ]);
+        console.log("[disconnect cleanup]", results.map((r) => ({ ok: r.ok, status: r.status })));
+      })();
+      (globalThis as any).EdgeRuntime?.waitUntil?.(cleanupTask);
+      return json({ ok: true, queued: true });
     }
 
     if (action === "send_test") {
