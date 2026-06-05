@@ -214,13 +214,31 @@ Deno.serve(async (req) => {
 
       // Auto-enrich context vars when missing (saldo/valor + link de recarga)
       let saldoBRL = "";
+      let saldoCents = 0;
       if (finalResellerId) {
         const { data: bal } = await svc.from("reseller_balances")
           .select("balance_cents").eq("reseller_id", finalResellerId).maybeSingle();
-        const cents = Number(bal?.balance_cents ?? 0);
-        saldoBRL = (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        saldoCents = Number(bal?.balance_cents ?? 0);
+        saldoBRL = (saldoCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
-      const defaultLink = "https://lovconnect.store/painel/revendedor/adicionar-saldo";
+      const linkRecarga = "https://lovconnect.store/painel/revendedor/adicionar-saldo";
+      const linkComprarPack = "https://lovconnect.store/painel/revendedor/comprar-pacote";
+
+      // aviso_saldo (usado por pack_sold_out e similares): conteúdo varia se saldo está baixo
+      let avisoSaldo = "";
+      if (finalResellerId) {
+        const { data: tset } = await svc.from("telegram_settings")
+          .select("low_balance_threshold_cents").limit(1).maybeSingle();
+        const threshold = Number(tset?.low_balance_threshold_cents ?? 5000);
+        if (saldoCents < threshold) {
+          avisoSaldo = `💰 Seu saldo atual é de *R$ ${saldoBRL}* — está *baixo*. Recarregue agora para não interromper suas vendas:\n${linkRecarga}`;
+        } else {
+          avisoSaldo = `✅ Seu saldo atual é de *R$ ${saldoBRL}* e está suficiente por enquanto. Se precisar reforçar: ${linkRecarga}`;
+        }
+      }
+
+      // {link} por padrão = recarga; para pack_sold_out aponta para comprar pacote
+      const defaultLink = event_key === "pack_sold_out" ? linkComprarPack : linkRecarga;
 
       const merged: Record<string, string> = {
         nome: vars.nome ?? nome,
@@ -228,6 +246,9 @@ Deno.serve(async (req) => {
         valor: vars.valor ?? saldoBRL,
         saldo: vars.saldo ?? saldoBRL,
         link: vars.link ?? defaultLink,
+        link_recarga: vars.link_recarga ?? linkRecarga,
+        link_pack: vars.link_pack ?? linkComprarPack,
+        aviso_saldo: vars.aviso_saldo ?? avisoSaldo,
         ...vars,
       };
       const message = render(ev.template, merged);
