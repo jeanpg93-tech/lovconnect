@@ -101,6 +101,14 @@ function instanceState(data: any) {
   if (rec?.Connected === false || rec?.LoggedIn === false) return "close";
   return String(raw).toLowerCase();
 }
+function legacyConnected(data: any) {
+  const rec = data?.data ?? data;
+  return rec?.Connected === true && rec?.LoggedIn === true;
+}
+function legacyDisconnected(data: any) {
+  const rec = data?.data ?? data;
+  return rec?.Connected === false || rec?.LoggedIn === false;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -207,20 +215,19 @@ Deno.serve(async (req) => {
         evo("/instance/status", { method: "GET" }, instanceToken),
       ]);
       const fetchedRec = instanceRecord(fetched.data, instance);
-      const combinedRaw = `${rawString(connState.data)} ${rawString(fetched.data)} ${rawString(legacyStatus.data)}`;
-      // Se a instância não existe, foi deletada, não tem JID/número, ou Evolution devolve estado zumbi,
-      // força desconectado para não voltar a exibir "Conectado" indevidamente.
-      const isZombie = /device jid|client is nil|not found|not exist|inexistente|instance not found/i.test(combinedRaw);
-      const state: string = isZombie || (!fetchedRec && fetched.ok) ? "close" :
+      const hardErrors = `${rawString(connState.data)} ${rawString(fetched.data)} ${rawString(legacyStatus.data)}`;
+      const legacyIsConnected = legacyConnected(legacyStatus.data);
+      // Evolution GO usa /instance/status. Alguns endpoints da Evolution API clássica retornam 404
+      // mesmo com a instância conectada; por isso 404 não pode derrubar um status Connected=true.
+      const isZombie = !legacyIsConnected && /device jid|client is nil|not exist|inexistente|instance not found/i.test(hardErrors);
+      const state: string = legacyIsConnected ? "open" :
+        isZombie || legacyDisconnected(legacyStatus.data) || (!fetchedRec && fetched.ok) ? "close" :
         instanceState(connState.data) || instanceState(fetchedRec) || instanceState(legacyStatus.data) || "unknown";
       const connectedNumber = instanceNumber(fetchedRec) ?? instanceNumber(connState.data) ?? instanceNumber(legacyStatus.data);
       let mapped =
         state === "open" ? "connected" :
         state === "connecting" ? "connecting" :
         state === "close" || state === "closed" || state === "disconnected" || state === "unknown" ? "disconnected" : state;
-      if (mapped === "connected" && !connectedNumber) {
-        mapped = "disconnected";
-      }
 
       const update: Record<string, unknown> = { status: mapped };
       if (mapped === "connected" && connectedNumber) {
