@@ -23,6 +23,7 @@ export default function TabConexao() {
   const [qr, setQr] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [testNumber, setTestNumber] = useState("");
+  const [testDdi, setTestDdi] = useState("55");
   const [testText, setTestText] = useState("✅ Teste do WhatsApp do sistema");
   const [footerDraft, setFooterDraft] = useState("");
 
@@ -80,7 +81,10 @@ export default function TabConexao() {
   };
   const sendTest = async () => {
     if (!testNumber.trim()) { toast.error("Informe o número"); return; }
-    const r = await callApi("send_test", { number: testNumber, text: testText });
+    const ddi = (testDdi || "55").replace(/\D/g, "");
+    const local = testNumber.replace(/\D/g, "");
+    const fullNumber = local.startsWith(ddi) ? local : `${ddi}${local}`;
+    const r = await callApi("send_test", { number: fullNumber, text: testText });
     if (r) toast.success("Teste colocado na fila de envio. Confira o histórico em instantes.");
   };
   const saveFooter = async () => {
@@ -158,7 +162,19 @@ export default function TabConexao() {
       <Card>
         <CardHeader><CardTitle>Enviar teste</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-[120px_1fr]">
+            <div>
+              <Label>DDI</Label>
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground">+</span>
+                <Input
+                  inputMode="numeric"
+                  placeholder="55"
+                  value={testDdi}
+                  onChange={(e) => setTestDdi(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                />
+              </div>
+            </div>
             <div>
               <Label>Número (com DDD)</Label>
               <Input placeholder="11999998888" value={testNumber} onChange={(e) => setTestNumber(e.target.value)} />
