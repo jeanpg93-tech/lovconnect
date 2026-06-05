@@ -19,7 +19,24 @@ type Event = {
   template: string;
   cooldown_hours: number;
   variables: string[];
+  audience: "new_reseller" | "active_reseller" | "referral_owner" | string;
 };
+
+const AUDIENCE_META: Record<string, { title: string; subtitle: string }> = {
+  new_reseller: {
+    title: "Para novos revendedores",
+    subtitle: "Mensagens enviadas durante o cadastro até a ativação do painel.",
+  },
+  active_reseller: {
+    title: "Para revendedores ativos",
+    subtitle: "Alertas de saldo, licenças e operação do dia a dia.",
+  },
+  referral_owner: {
+    title: "Para o dono do código de indicação",
+    subtitle: "Avisos quando alguém usa o código de indicação do revendedor.",
+  },
+};
+const AUDIENCE_ORDER = ["new_reseller", "active_reseller", "referral_owner"];
 
 export default function TabEventos() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -61,6 +78,16 @@ export default function TabEventos() {
 
   if (loading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
 
+  const grouped: Record<string, Event[]> = {};
+  for (const ev of events) {
+    const k = ev.audience ?? "new_reseller";
+    (grouped[k] ??= []).push(ev);
+  }
+  const groupKeys = [
+    ...AUDIENCE_ORDER.filter((k) => grouped[k]?.length),
+    ...Object.keys(grouped).filter((k) => !AUDIENCE_ORDER.includes(k)),
+  ];
+
   return (
     <div className="space-y-4">
       <Card>
@@ -76,7 +103,19 @@ export default function TabEventos() {
         </CardContent>
       </Card>
 
-      {events.map((ev) => {
+      {groupKeys.map((groupKey) => {
+        const meta = AUDIENCE_META[groupKey] ?? { title: groupKey, subtitle: "" };
+        return (
+          <div key={groupKey} className="space-y-3">
+            <div className="pt-2">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                {meta.title}
+              </h3>
+              {meta.subtitle && (
+                <p className="text-xs text-muted-foreground mt-0.5">{meta.subtitle}</p>
+              )}
+            </div>
+            {grouped[groupKey].map((ev) => {
         const draft = drafts[ev.id] ?? {};
         const enabled = draft.enabled ?? ev.enabled;
         const template = draft.template ?? ev.template;
@@ -126,6 +165,9 @@ export default function TabEventos() {
               </Button>
             </CardContent>
           </Card>
+        );
+            })}
+          </div>
         );
       })}
     </div>
