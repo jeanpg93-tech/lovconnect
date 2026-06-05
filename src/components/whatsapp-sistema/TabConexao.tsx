@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, RefreshCw, Power, QrCode, Send } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,6 +16,21 @@ type Settings = {
   footer_text: string;
   webhook_secret: string;
 };
+
+const countryDialCodes = [
+  { code: "55", flag: "🇧🇷", country: "Brasil" },
+  { code: "1", flag: "🇺🇸", country: "Estados Unidos / Canadá" },
+  { code: "351", flag: "🇵🇹", country: "Portugal" },
+  { code: "54", flag: "🇦🇷", country: "Argentina" },
+  { code: "56", flag: "🇨🇱", country: "Chile" },
+  { code: "57", flag: "🇨🇴", country: "Colômbia" },
+  { code: "52", flag: "🇲🇽", country: "México" },
+  { code: "34", flag: "🇪🇸", country: "Espanha" },
+  { code: "44", flag: "🇬🇧", country: "Reino Unido" },
+  { code: "33", flag: "🇫🇷", country: "França" },
+  { code: "49", flag: "🇩🇪", country: "Alemanha" },
+  { code: "39", flag: "🇮🇹", country: "Itália" },
+];
 
 export default function TabConexao() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -55,6 +71,7 @@ export default function TabConexao() {
       });
       if (error) throw new Error(error.message);
       if ((data as any)?.error) throw new Error((data as any).error);
+      await load();
       return data;
     } catch (e: any) {
       toast.error(e.message ?? "Erro");
@@ -76,7 +93,8 @@ export default function TabConexao() {
   const refreshStatus = async () => { await callApi("status"); };
   const disconnect = async () => {
     if (!confirm("Desconectar o WhatsApp do sistema?")) return;
-    await callApi("disconnect");
+    const r = await callApi("disconnect");
+    if (r) toast.success("WhatsApp desconectado. A limpeza da sessão antiga continuará em segundo plano.");
     setQr(null); setPairingCode(null);
   };
   const sendTest = async () => {
@@ -162,18 +180,25 @@ export default function TabConexao() {
       <Card>
         <CardHeader><CardTitle>Enviar teste</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid gap-3 md:grid-cols-[120px_1fr]">
+          <div className="grid gap-3 md:grid-cols-[240px_1fr]">
             <div>
-              <Label>DDI</Label>
-              <div className="flex items-center gap-1">
-                <span className="text-sm text-muted-foreground">+</span>
-                <Input
-                  inputMode="numeric"
-                  placeholder="55"
-                  value={testDdi}
-                  onChange={(e) => setTestDdi(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                />
-              </div>
+              <Label>País / DDI</Label>
+              <Select value={testDdi} onValueChange={setTestDdi}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o país" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countryDialCodes.map((item) => (
+                    <SelectItem key={`${item.code}-${item.country}`} value={item.code}>
+                      <span className="inline-flex items-center gap-2">
+                        <span>{item.flag}</span>
+                        <span>{item.country}</span>
+                        <span className="text-muted-foreground">+{item.code}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Número (com DDD)</Label>
