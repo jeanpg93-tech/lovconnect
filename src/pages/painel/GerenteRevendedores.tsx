@@ -840,14 +840,32 @@ export default function GerenteRevendedores() {
             </div>
             <div className="space-y-1.5">
               <Label>WhatsApp</Label>
-              <Input
-                value={editPhone}
-                onChange={(e) => setEditPhone(e.target.value)}
-                placeholder="Ex.: 11999999999 (com DDD)"
-                inputMode="tel"
-              />
+              <div className="flex gap-2">
+                <Select value={editDdi} onValueChange={setEditDdi}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {countryDialCodes.map((item) => (
+                      <SelectItem key={`${item.code}-${item.country}`} value={item.code}>
+                        <span className="inline-flex items-center gap-2">
+                          <span>{item.flag}</span>
+                          <span>+{item.code}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  className="flex-1"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="Ex.: 11999999999 (com DDD)"
+                  inputMode="tel"
+                />
+              </div>
               <p className="text-[10px] text-muted-foreground">
-                Apenas números. Inclua o DDD; aceita também o código do país (ex.: 5511...).
+                Selecione o país e informe DDD + número (apenas dígitos).
               </p>
             </div>
           </div>
