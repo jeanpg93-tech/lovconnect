@@ -3396,6 +3396,7 @@ export type Database = {
       }
       system_whatsapp_events: {
         Row: {
+          audience: string
           cooldown_hours: number
           created_at: string
           description: string | null
@@ -3408,6 +3409,7 @@ export type Database = {
           variables: string[]
         }
         Insert: {
+          audience?: string
           cooldown_hours?: number
           created_at?: string
           description?: string | null
@@ -3420,6 +3422,7 @@ export type Database = {
           variables?: string[]
         }
         Update: {
+          audience?: string
           cooldown_hours?: number
           created_at?: string
           description?: string | null

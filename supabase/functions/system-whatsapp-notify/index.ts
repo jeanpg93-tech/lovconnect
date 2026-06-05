@@ -168,14 +168,17 @@ Deno.serve(async (req) => {
     if (mode === "auto") {
       const event_key = String(body.event_key ?? "");
       const reseller_id = String(body.reseller_id ?? "");
+      const profile_id = String(body.profile_id ?? "");
       const vars = (body.vars ?? {}) as Record<string, string>;
-      if (!event_key || !reseller_id) return json({ error: "event_key e reseller_id obrigatórios" }, 400);
+      if (!event_key || (!reseller_id && !profile_id)) {
+        return json({ error: "event_key e reseller_id/profile_id obrigatórios" }, 400);
+      }
 
       const { data: ev } = await svc.from("system_whatsapp_events").select("*").eq("event_key", event_key).maybeSingle();
       if (!ev || !ev.enabled) return json({ ok: false, skipped: "event_disabled_or_missing" });
 
       // cooldown: skip if same event was sent to same reseller in last `cooldown_hours`
-      if (ev.cooldown_hours > 0) {
+      if (ev.cooldown_hours > 0 && reseller_id) {
         const since = new Date(Date.now() - ev.cooldown_hours * 3600 * 1000).toISOString();
         const { data: recent } = await svc
           .from("system_whatsapp_log")
@@ -188,21 +191,34 @@ Deno.serve(async (req) => {
         if (recent && recent.length > 0) return json({ ok: false, skipped: "cooldown" });
       }
 
-      const { data: reseller } = await svc
-        .from("resellers").select("id, display_name, user_id").eq("id", reseller_id).maybeSingle();
-      if (!reseller) return json({ ok: false, skipped: "reseller_not_found" });
+      let to = "";
+      let nome = "";
+      let loja = "";
+      let finalResellerId: string | null = reseller_id || null;
 
-      const { data: prof } = await svc.from("profiles").select("whatsapp, display_name").eq("id", reseller.user_id).maybeSingle();
-      const to = String(prof?.whatsapp ?? "");
+      if (reseller_id) {
+        const { data: reseller } = await svc
+          .from("resellers").select("id, display_name, user_id").eq("id", reseller_id).maybeSingle();
+        if (!reseller) return json({ ok: false, skipped: "reseller_not_found" });
+        const { data: prof } = await svc.from("profiles").select("whatsapp, display_name").eq("id", reseller.user_id).maybeSingle();
+        to = String(prof?.whatsapp ?? "");
+        nome = prof?.display_name ?? reseller.display_name ?? "";
+        loja = reseller.display_name ?? "";
+      } else {
+        const { data: prof } = await svc.from("profiles").select("whatsapp, display_name").eq("id", profile_id).maybeSingle();
+        if (!prof) return json({ ok: false, skipped: "profile_not_found" });
+        to = String(prof.whatsapp ?? "");
+        nome = prof.display_name ?? "";
+      }
       if (!to) return json({ ok: false, skipped: "no_whatsapp" });
 
       const merged: Record<string, string> = {
-        nome: vars.nome ?? prof?.display_name ?? reseller.display_name ?? "",
-        loja: vars.loja ?? reseller.display_name ?? "",
+        nome: vars.nome ?? nome,
+        loja: vars.loja ?? loja,
         ...vars,
       };
       const message = render(ev.template, merged);
-      const res = await sendOne({ kind: "auto", eventKey: event_key, resellerId: reseller_id, toRaw: to, message });
+      const res = await sendOne({ kind: "auto", eventKey: event_key, resellerId: finalResellerId, toRaw: to, message });
       return json(res);
     }
 
