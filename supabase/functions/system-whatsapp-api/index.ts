@@ -22,18 +22,27 @@ function json(b: unknown, status = 200) {
 }
 
 async function evo(path: string, init: RequestInit = {}, apiKey = EVO_KEY) {
-  const r = await fetch(`${EVO_BASE}${path}`, {
-    ...init,
-    headers: {
-      apikey: apiKey,
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
-  const txt = await r.text();
-  let data: any = null;
-  try { data = JSON.parse(txt); } catch { data = { raw: txt }; }
-  return { ok: r.ok, status: r.status, data };
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20_000);
+  try {
+    const r = await fetch(`${EVO_BASE}${path}`, {
+      ...init,
+      signal: ctrl.signal,
+      headers: {
+        apikey: apiKey,
+        "Content-Type": "application/json",
+        ...(init.headers ?? {}),
+      },
+    });
+    const txt = await r.text();
+    let data: any = null;
+    try { data = JSON.parse(txt); } catch { data = { raw: txt }; }
+    return { ok: r.ok, status: r.status, data };
+  } catch (e) {
+    return { ok: false, status: 0, data: { error: e instanceof Error ? e.message : String(e) } };
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 async function systemInstanceToken() {
@@ -178,10 +187,26 @@ Deno.serve(async (req) => {
       const text = String(body.text ?? "✅ Teste do WhatsApp do sistema");
       if (number.length < 10) return json({ error: "WhatsApp inválido" }, 400);
       const finalText = `${text}\n\n${settings.footer_text}`;
-      const r = await evo("/send/text", {
+      let r = await evo("/send/text", {
         method: "POST",
         body: JSON.stringify({ number, text: finalText }),
       }, instanceToken);
+      if (!r.ok) {
+        console.warn("[send_test] /send/text with instanceToken failed", r.status, r.data);
+        // fallback 1: usar EVO_KEY global
+        r = await evo("/send/text", {
+          method: "POST",
+          body: JSON.stringify({ number, text: finalText }),
+        }, EVO_KEY);
+        if (!r.ok) {
+          console.warn("[send_test] /send/text with EVO_KEY failed", r.status, r.data);
+          // fallback 2: endpoint legado Evolution v2
+          r = await evo(`/message/sendText/${encodeURIComponent(instance)}`, {
+            method: "POST",
+            body: JSON.stringify({ number, text: finalText }),
+          }, EVO_KEY);
+        }
+      }
       const evoMsgId = r.data?.key?.id ?? r.data?.data?.key?.id ?? null;
       await svc.from("system_whatsapp_log").insert({
         kind: "test",
