@@ -93,6 +93,21 @@ async function triggerReleasePending(orderIds: string[]) {
   }
 }
 
+async function triggerWhatsAppNotify(payload: any) {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/system-whatsapp-notify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ mode: "auto", ...payload }),
+    });
+  } catch (e) {
+    console.warn("system-whatsapp-notify invoke failed", e);
+  }
+}
+
 /**
  * Cria o pedido de recargas no provedor externo (mesma API usada pelo painel manual),
  * registra em reseller_credit_purchases e devolve o provider_pedido_id para o link do cliente.
@@ -187,6 +202,17 @@ Deno.serve(async (req) => {
             console.warn("[webhook] activation tx not confirmed by MisticPay", txId);
             return json({ ok: false, reason: "unverified_transaction" }, 403);
           }
+
+          // Notifica o revendedor sobre a ativação do painel via WhatsApp
+          triggerWhatsAppNotify({
+            event_key: "panel_unlocked",
+            reseller_id: actPay.reseller_id,
+            vars: {
+              link: "https://lovconnect.store/painel",
+            },
+          });
+
+
           await admin.from("activation_payments").update({
             status: "paid",
             paid_at: new Date().toISOString(),
@@ -353,6 +379,15 @@ Deno.serve(async (req) => {
           paid_at: new Date().toISOString(),
           raw_response: payload,
         }).eq("id", intent.id);
+
+        // Notifica o revendedor sobre a recarga confirmada via WhatsApp
+        triggerWhatsAppNotify({
+          event_key: "recharge_confirmed",
+          reseller_id: intent.reseller_id,
+          vars: {
+            valor: (Number(intent.amount_cents) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          },
+        });
 
         // Após creditar saldo, tenta liberar vendas em espera
         try {
@@ -564,6 +599,16 @@ Deno.serve(async (req) => {
                 title: "Pacote confirmado!",
                 body: `${(packPurchase as any).credits} licenças liberadas. Restam: ${newBal ?? "?"}.`,
                 link: "/painel/revendedor/gerar-chave",
+              });
+
+              // Notifica o revendedor sobre o pacote confirmado via WhatsApp
+              triggerWhatsAppNotify({
+                event_key: "pack_purchase_confirmed",
+                reseller_id: (packPurchase as any).reseller_id,
+                vars: {
+                  pack_name: (packPurchase as any).pack_name,
+                  credits: String((packPurchase as any).credits),
+                },
               });
             }
           } catch (e) {
