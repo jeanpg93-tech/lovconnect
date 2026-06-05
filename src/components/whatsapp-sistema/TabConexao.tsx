@@ -180,18 +180,25 @@ export default function TabConexao() {
       <Card>
         <CardHeader><CardTitle>Enviar teste</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid gap-3 md:grid-cols-[120px_1fr]">
+          <div className="grid gap-3 md:grid-cols-[240px_1fr]">
             <div>
-              <Label>DDI</Label>
-              <div className="flex items-center gap-1">
-                <span className="text-sm text-muted-foreground">+</span>
-                <Input
-                  inputMode="numeric"
-                  placeholder="55"
-                  value={testDdi}
-                  onChange={(e) => setTestDdi(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                />
-              </div>
+              <Label>País / DDI</Label>
+              <Select value={testDdi} onValueChange={setTestDdi}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o país" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countryDialCodes.map((item) => (
+                    <SelectItem key={`${item.code}-${item.country}`} value={item.code}>
+                      <span className="inline-flex items-center gap-2">
+                        <span>{item.flag}</span>
+                        <span>{item.country}</span>
+                        <span className="text-muted-foreground">+{item.code}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Número (com DDD)</Label>
