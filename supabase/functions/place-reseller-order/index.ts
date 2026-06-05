@@ -500,24 +500,34 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Disparo WhatsApp (fire-and-forget) — não bloqueia retorno
-    if (license_key && whatsapp) {
-      fetch(`${supabaseUrl}/functions/v1/evolution-send-sale`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reseller_id: reseller.id,
-          kind: "license",
-          to: whatsapp,
-          vars: {
-            nome: final_display_name,
-            chave: license_key,
-            tipo: license_type,
-            valor_cents: String(price_cents),
-          },
-        }),
-      }).catch((e) => console.warn("evolution-send-sale failed", e));
+    // Disparo WhatsApp para o revendedor (Notificação de Venda)
+    if (!is_test && license_key) {
+      const event_key = usedPack ? "reseller_sale_pack" : (method === "api" ? "reseller_sale_api" : "reseller_sale_manual");
+      
+      let licencas_restantes = "";
+      if (usedPack) {
+        const { data: packBal } = await svc.from("reseller_pack_balances")
+          .select("balance").eq("reseller_id", reseller.id).maybeSingle();
+        licencas_restantes = String(packBal?.balance ?? "0");
+      }
+
+      triggerWhatsAppNotify(supabaseUrl, serviceKey, {
+        event_key,
+        reseller_id: reseller.id,
+        vars: {
+          pedido_id: order.id.slice(0, 8).toUpperCase(),
+          cliente_nome: final_display_name,
+          cliente_whatsapp: whatsapp ? `+${whatsapp}` : "N/A",
+          licenca: license_key,
+          custo: (price_cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          licencas_restantes,
+          canal: method === "api" ? "API" : "Manual",
+        },
+      });
     }
+
+    // Disparo WhatsApp para o CLIENTE (fire-and-forget)
+    if (license_key && whatsapp) {
 
     return json({
       ok: true,
