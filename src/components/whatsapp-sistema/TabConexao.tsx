@@ -71,6 +71,7 @@ export default function TabConexao() {
       });
       if (error) throw new Error(error.message);
       if ((data as any)?.error) throw new Error((data as any).error);
+      await load();
       return data;
     } catch (e: any) {
       toast.error(e.message ?? "Erro");
@@ -92,7 +93,8 @@ export default function TabConexao() {
   const refreshStatus = async () => { await callApi("status"); };
   const disconnect = async () => {
     if (!confirm("Desconectar o WhatsApp do sistema?")) return;
-    await callApi("disconnect");
+    const r = await callApi("disconnect");
+    if (r) toast.success("WhatsApp desconectado. A limpeza da sessão antiga continuará em segundo plano.");
     setQr(null); setPairingCode(null);
   };
   const sendTest = async () => {
