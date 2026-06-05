@@ -59,8 +59,18 @@ Deno.serve(async (req) => {
     // Auth: either service-role bearer, or authenticated gerente.
     const auth = req.headers.get("Authorization") ?? "";
     const bearer = auth.replace(/^Bearer\s+/i, "");
+    const systemSecretHeader = req.headers.get("x-system-secret") ?? "";
     let isServiceCall = bearer && bearer === SERVICE_ROLE_KEY;
     let callerUserId: string | null = null;
+
+    if (!isServiceCall && systemSecretHeader) {
+      const svcTmp = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+      const { data: s } = await svcTmp.from("system_whatsapp_settings")
+        .select("webhook_secret").eq("singleton", true).maybeSingle();
+      if (s && systemSecretHeader === s.webhook_secret) {
+        isServiceCall = true;
+      }
+    }
 
     if (!isServiceCall) {
       const userClient = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: auth } } });
