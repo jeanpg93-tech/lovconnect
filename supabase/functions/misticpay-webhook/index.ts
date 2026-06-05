@@ -1210,8 +1210,8 @@ Deno.serve(async (req) => {
       let licencas_restantes = "";
       if (usedPack) {
         const { data: packBal } = await admin.from("reseller_pack_balances")
-          .select("balance").eq("reseller_id", storeOrder.reseller_id).maybeSingle();
-        licencas_restantes = String(packBal?.balance ?? "0");
+          .select("credits").eq("reseller_id", storeOrder.reseller_id).maybeSingle();
+        licencas_restantes = String(packBal?.credits ?? "0");
       }
 
       triggerWhatsAppNotify({
