@@ -37,6 +37,32 @@ function packToDays(t: string): number {
   }
 }
 
+function mapLicenseTypeToDuration(type: string, packType: string): string {
+  if (packType === "lifetime" || type.includes("lifetime")) return "Vitalício";
+  switch (packType) {
+    case "1d": return "1 Dia";
+    case "7d": return "7 Dias";
+    case "15d": return "15 Dias";
+    case "30d": return "30 Dias";
+    default: return packType;
+  }
+}
+
+async function triggerWhatsAppNotify(supabaseUrl: string, serviceKey: string, payload: any) {
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/system-whatsapp-notify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ mode: "auto", ...payload }),
+    });
+  } catch (e) {
+    console.warn("system-whatsapp-notify invoke failed", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
