@@ -1240,6 +1240,7 @@ Deno.serve(async (req) => {
           custo: (cost_cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
           licencas_restantes,
           canal: "Loja Pública",
+          prazo: mapLicenseTypeToDuration(storeOrder.license_type),
         },
       });
     }
