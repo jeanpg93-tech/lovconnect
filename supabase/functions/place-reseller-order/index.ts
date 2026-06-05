@@ -507,8 +507,8 @@ Deno.serve(async (req) => {
       let licencas_restantes = "";
       if (usedPack) {
         const { data: packBal } = await svc.from("reseller_pack_balances")
-          .select("balance").eq("reseller_id", reseller.id).maybeSingle();
-        licencas_restantes = String(packBal?.balance ?? "0");
+          .select("credits").eq("reseller_id", reseller.id).maybeSingle();
+        licencas_restantes = String(packBal?.credits ?? "0");
       }
 
       triggerWhatsAppNotify(supabaseUrl, serviceKey, {
