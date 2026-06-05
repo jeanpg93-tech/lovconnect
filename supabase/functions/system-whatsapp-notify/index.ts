@@ -157,12 +157,12 @@ Deno.serve(async (req) => {
         .from("resellers").select("id, display_name, user_id").eq("id", reseller_id).maybeSingle();
       if (!reseller) return json({ ok: false, skipped: "reseller_not_found" });
 
-      const { data: prof } = await svc.from("profiles").select("whatsapp, full_name").eq("id", reseller.user_id).maybeSingle();
+      const { data: prof } = await svc.from("profiles").select("whatsapp, display_name").eq("id", reseller.user_id).maybeSingle();
       const to = String(prof?.whatsapp ?? "");
       if (!to) return json({ ok: false, skipped: "no_whatsapp" });
 
       const merged: Record<string, string> = {
-        nome: vars.nome ?? prof?.full_name ?? reseller.display_name ?? "",
+        nome: vars.nome ?? prof?.display_name ?? reseller.display_name ?? "",
         loja: vars.loja ?? reseller.display_name ?? "",
         ...vars,
       };
@@ -182,26 +182,14 @@ Deno.serve(async (req) => {
         results.push(await sendOne({ kind: "manual", eventKey: null, resellerId: null, toRaw: raw_number, message }));
       }
       if (reseller_ids.length > 0) {
-        const { data: rows } = await svc
-          .from("resellers")
-          .select("id, display_name, user_id, profiles:profiles!resellers_user_id_fkey(whatsapp, full_name)")
-          .in("id", reseller_ids);
-        // fallback fetch profiles individually if the join shape changes
         for (const id of reseller_ids) {
-          const r: any = (rows ?? []).find((x: any) => x.id === id);
+          const { data: reseller } = await svc.from("resellers").select("user_id, display_name").eq("id", id).maybeSingle();
           let to = "";
           let nome = "";
-          if (r) {
-            to = r.profiles?.whatsapp ?? "";
-            nome = r.profiles?.full_name ?? r.display_name ?? "";
-          }
-          if (!to) {
-            const { data: reseller } = await svc.from("resellers").select("user_id, display_name").eq("id", id).maybeSingle();
-            if (reseller) {
-              const { data: prof } = await svc.from("profiles").select("whatsapp, full_name").eq("id", reseller.user_id).maybeSingle();
-              to = prof?.whatsapp ?? "";
-              nome = prof?.full_name ?? reseller.display_name ?? "";
-            }
+          if (reseller) {
+            const { data: prof } = await svc.from("profiles").select("whatsapp, display_name").eq("id", reseller.user_id).maybeSingle();
+            to = prof?.whatsapp ?? "";
+            nome = prof?.display_name ?? reseller.display_name ?? "";
           }
           if (!to) {
             await svc.from("system_whatsapp_log").insert({
