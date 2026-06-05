@@ -81,7 +81,7 @@ export default function TabConexao() {
   const sendTest = async () => {
     if (!testNumber.trim()) { toast.error("Informe o número"); return; }
     const r = await callApi("send_test", { number: testNumber, text: testText });
-    if (r) toast.success("Teste enviado!");
+    if (r) toast.success("Teste colocado na fila de envio. Confira o histórico em instantes.");
   };
   const saveFooter = async () => {
     setBusy("footer");
