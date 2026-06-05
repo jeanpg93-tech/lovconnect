@@ -687,7 +687,12 @@ export default function GerenteRevendedores() {
                         </h3>
                         <p className="text-[11px] text-muted-foreground">@{r.display_name}</p>
                         <p className="text-xs text-muted-foreground">{prof?.email ?? "—"}</p>
-                        <p className="text-[11px] text-muted-foreground font-mono">{formatPhoneBR(prof?.whatsapp ?? prof?.phone)}</p>
+                        <div className="flex items-center gap-1">
+                          <p className="text-[11px] text-muted-foreground font-mono">{formatPhoneBR(prof?.whatsapp ?? prof?.phone)}</p>
+                          <Button size="icon" variant="ghost" className="h-5 w-5 p-0 text-muted-foreground hover:text-primary" onClick={() => openEdit(r)}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </div>
                         <div className="mt-2"><ActivationBadge status={r.activation_status} /></div>
                       </div>
                       <div className="text-right">
