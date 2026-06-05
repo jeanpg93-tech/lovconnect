@@ -303,4 +303,4 @@ Deno.serve(async (req) => {
 });
 
 // Helper exportado para reuso em outras edge functions via cópia
-export { resolveContext, buildIssues, classify, computeLicenseCost };
+export { resolveContext, buildIssues, classify, lookupLicenseCost };

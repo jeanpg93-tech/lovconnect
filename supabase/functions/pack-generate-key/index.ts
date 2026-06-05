@@ -37,6 +37,32 @@ function packToDays(t: string): number {
   }
 }
 
+function mapLicenseTypeToDuration(type: string, packType: string): string {
+  if (packType === "lifetime" || type.includes("lifetime")) return "Vitalício";
+  switch (packType) {
+    case "1d": return "1 Dia";
+    case "7d": return "7 Dias";
+    case "15d": return "15 Dias";
+    case "30d": return "30 Dias";
+    default: return packType;
+  }
+}
+
+async function triggerWhatsAppNotify(supabaseUrl: string, serviceKey: string, payload: any) {
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/system-whatsapp-notify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ mode: "auto", ...payload }),
+    });
+  } catch (e) {
+    console.warn("system-whatsapp-notify invoke failed", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -325,6 +351,25 @@ Deno.serve(async (req) => {
           },
         }),
       }).catch((e) => console.warn("evolution-send-sale failed", e));
+    }
+
+    // Notifica o REVENDEDOR via WhatsApp (system-whatsapp-notify) sobre a venda do Pack
+    if (!isTrial && license_key) {
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      triggerWhatsAppNotify(supabaseUrl, serviceKey, {
+        event_key: "reseller_sale_pack",
+        reseller_id,
+        vars: {
+          pedido_id: order.id.slice(0, 8).toUpperCase(),
+          cliente_nome: display_name,
+          cliente_whatsapp: whatsapp ? `+${whatsapp}` : "N/A",
+          licenca: license_key,
+          custo: "0,00",
+          licencas_restantes: remainingCredits !== null ? String(remainingCredits) : "",
+          canal: "Manual (Pack)",
+          prazo: mapLicenseTypeToDuration(license_type, type),
+        },
+      });
     }
 
     return json({

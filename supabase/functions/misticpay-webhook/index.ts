@@ -76,8 +76,6 @@ function mapTypeToProviderBody(type: string): Record<string, unknown> {
   }
 }
 
-const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
-
 function mapLicenseTypeToDuration(type: string): string {
   switch (type) {
     case "pro_1d": return "1 Dia";
