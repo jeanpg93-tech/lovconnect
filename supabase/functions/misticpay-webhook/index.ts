@@ -93,6 +93,21 @@ async function triggerReleasePending(orderIds: string[]) {
   }
 }
 
+async function triggerWhatsAppNotify(payload: any) {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/system-whatsapp-notify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ mode: "auto", ...payload }),
+    });
+  } catch (e) {
+    console.warn("system-whatsapp-notify invoke failed", e);
+  }
+}
+
 /**
  * Cria o pedido de recargas no provedor externo (mesma API usada pelo painel manual),
  * registra em reseller_credit_purchases e devolve o provider_pedido_id para o link do cliente.
