@@ -138,7 +138,7 @@ export default function GerenteRevendedores() {
       const userIds = list.map((r) => r.user_id);
       const resellerIds = list.map((r) => r.id);
       const [{ data: profs }, { data: bals }, { data: pres }] = await Promise.all([
-        supabase.from("profiles").select("id,email,display_name,phone,is_banned").in("id", userIds),
+        supabase.from("profiles").select("id,email,display_name,phone,whatsapp,is_banned").in("id", userIds),
         supabase.from("reseller_balances").select("reseller_id,balance_cents").in("reseller_id", resellerIds),
         supabase.from("user_presence").select("user_id,current_path,last_seen_at").in("user_id", userIds),
       ]);
