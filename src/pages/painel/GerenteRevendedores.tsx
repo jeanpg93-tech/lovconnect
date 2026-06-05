@@ -310,25 +310,26 @@ export default function GerenteRevendedores() {
     if (!editDialog) return;
     const name = editName.trim();
     if (!name) { toast.error("Informe o nome"); return; }
-    const phoneDigits = onlyDigits(editPhone);
-    if (phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 13)) {
+    const localDigits = onlyDigits(editPhone);
+    if (localDigits && (localDigits.length < 8 || localDigits.length > 13)) {
       toast.error("WhatsApp inválido. Use DDD + número (ex.: 11999999999).");
       return;
     }
     setEditSaving(true);
-    const phoneToSave = phoneDigits || null;
+    const phoneToSave = localDigits ? `${editDdi}${localDigits}` : null;
     const { error } = await supabase
       .from("profiles")
-      .update({ display_name: name, phone: phoneToSave })
+      .update({ display_name: name, phone: phoneToSave, whatsapp: phoneToSave })
       .eq("id", editDialog.user_id);
     setEditSaving(false);
     if (error) return toast.error(error.message);
     setProfilesByUser((prev) => ({
       ...prev,
       [editDialog.user_id]: {
-        ...(prev[editDialog.user_id] ?? { id: editDialog.user_id, email: "", display_name: null, phone: null, is_banned: false }),
+        ...(prev[editDialog.user_id] ?? { id: editDialog.user_id, email: "", display_name: null, phone: null, whatsapp: null, is_banned: false }),
         display_name: name,
         phone: phoneToSave,
+        whatsapp: phoneToSave,
       } as Profile,
     }));
     toast.success("Cadastro atualizado");
