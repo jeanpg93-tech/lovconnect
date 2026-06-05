@@ -3992,6 +3992,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      dispatch_system_whatsapp_event: {
+        Args: { _event_key: string; _reseller_id: string; _vars?: Json }
+        Returns: undefined
+      }
       enqueue_reseller_webhook: {
         Args: {
           _api_key_id: string
