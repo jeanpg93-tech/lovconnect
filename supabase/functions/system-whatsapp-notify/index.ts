@@ -30,7 +30,8 @@ async function systemInstanceToken() {
 }
 
 function render(tpl: string, vars: Record<string, string>) {
-  return tpl.replace(/\{(\w+)\}/g, (_m, k) => vars[k] ?? "");
+  const rendered = tpl.replace(/\{(\w+)\}/g, (_m, k) => vars[k] ?? "");
+  return rendered.replace(/\\n/g, "\n");
 }
 
 function normalizeBR(raw: string): string {
