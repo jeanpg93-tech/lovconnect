@@ -298,7 +298,10 @@ export default function GerenteRevendedores() {
     const prof = profilesByUser[r.user_id];
     setEditDialog(r);
     setEditName(prof?.display_name ?? "");
-    setEditPhone(prof?.phone ?? "");
+    const stored = prof?.whatsapp ?? prof?.phone ?? "";
+    const parts = splitDialCode(stored);
+    setEditDdi(parts.ddi);
+    setEditPhone(parts.local);
   };
 
   const onlyDigits = (v: string) => v.replace(/\D/g, "");
