@@ -103,6 +103,7 @@ export default function GerenteRevendedores() {
   const [editDialog, setEditDialog] = useState<Reseller | null>(null);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
+  const [editDdi, setEditDdi] = useState<string>(DEFAULT_DIAL_CODE);
   const [editSaving, setEditSaving] = useState(false);
 
   const load = async () => {
