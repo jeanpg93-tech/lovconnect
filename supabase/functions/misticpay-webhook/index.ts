@@ -369,6 +369,15 @@ Deno.serve(async (req) => {
           raw_response: payload,
         }).eq("id", intent.id);
 
+        // Notifica o revendedor sobre a recarga confirmada via WhatsApp
+        triggerWhatsAppNotify({
+          event_key: "recharge_confirmed",
+          reseller_id: intent.reseller_id,
+          vars: {
+            valor: (Number(intent.amount_cents) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          },
+        });
+
         // Após creditar saldo, tenta liberar vendas em espera
         try {
           const { data: released } = await admin.rpc("try_release_pending_orders", {
