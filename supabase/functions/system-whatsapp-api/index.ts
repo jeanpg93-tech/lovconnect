@@ -22,18 +22,27 @@ function json(b: unknown, status = 200) {
 }
 
 async function evo(path: string, init: RequestInit = {}, apiKey = EVO_KEY) {
-  const r = await fetch(`${EVO_BASE}${path}`, {
-    ...init,
-    headers: {
-      apikey: apiKey,
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
-  const txt = await r.text();
-  let data: any = null;
-  try { data = JSON.parse(txt); } catch { data = { raw: txt }; }
-  return { ok: r.ok, status: r.status, data };
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20_000);
+  try {
+    const r = await fetch(`${EVO_BASE}${path}`, {
+      ...init,
+      signal: ctrl.signal,
+      headers: {
+        apikey: apiKey,
+        "Content-Type": "application/json",
+        ...(init.headers ?? {}),
+      },
+    });
+    const txt = await r.text();
+    let data: any = null;
+    try { data = JSON.parse(txt); } catch { data = { raw: txt }; }
+    return { ok: r.ok, status: r.status, data };
+  } catch (e) {
+    return { ok: false, status: 0, data: { error: e instanceof Error ? e.message : String(e) } };
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 async function systemInstanceToken() {
