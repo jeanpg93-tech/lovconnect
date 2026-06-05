@@ -21,6 +21,18 @@ function mapTypeToProviderBody(type: string): Record<string, unknown> {
   }
 }
 
+function mapLicenseTypeToDuration(type: string): string {
+  switch (type) {
+    case "pro_1d": return "1 Dia";
+    case "pro_7d": return "7 Dias";
+    case "pro_15d": return "15 Dias";
+    case "pro_30d": return "30 Dias";
+    case "lifetime": return "Vitalício";
+    case "trial": return "Teste (15 min)";
+    default: return type.includes("trial") ? "Teste (15 min)" : "30 Dias";
+  }
+}
+
 async function triggerWhatsAppNotify(supabaseUrl: string, serviceKey: string, payload: any) {
   try {
     await fetch(`${supabaseUrl}/functions/v1/system-whatsapp-notify`, {
