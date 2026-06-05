@@ -534,6 +534,7 @@ Deno.serve(async (req) => {
           custo: (price_cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
           licencas_restantes,
           canal: method === "api" ? "API" : "Manual",
+          prazo: mapLicenseTypeToDuration(license_type),
         },
       });
     }
