@@ -41,6 +41,26 @@ function normalizeBR(raw: string): string {
   return d;
 }
 
+async function evoFetch(path: string, init: RequestInit, apiKey: string) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20_000);
+  try {
+    const r = await fetch(`${EVO_BASE}${path}`, {
+      ...init,
+      signal: ctrl.signal,
+      headers: { apikey: apiKey, "Content-Type": "application/json", ...(init.headers ?? {}) },
+    });
+    const txt = await r.text();
+    let data: any = null;
+    try { data = JSON.parse(txt); } catch { data = { raw: txt }; }
+    return { ok: r.ok, status: r.status, data };
+  } catch (e) {
+    return { ok: false, status: 0, data: { error: e instanceof Error ? e.message : String(e) } };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 /**
  * Body:
  *  - mode: "auto" (requires event_key + reseller_id) | "manual" (requires reseller_ids[] OR raw_number, message, created_by)
@@ -119,25 +139,30 @@ Deno.serve(async (req) => {
         created_by: callerUserId,
       }).select("id").single();
 
-      const r = await fetch(`${EVO_BASE}/send/text`, {
-        method: "POST",
-        headers: { apikey: instanceToken, "Content-Type": "application/json" },
-        body: JSON.stringify({ number: to, text: finalText }),
-      });
-      const txt = await r.text();
-      let data: any = null;
-      try { data = JSON.parse(txt); } catch { data = { raw: txt }; }
-      const evoMsgId = data?.key?.id ?? data?.data?.key?.id ?? null;
-
-      if (row?.id) {
-        await svc.from("system_whatsapp_log").update({
-          status: r.ok ? "sent" : "error",
-          error_reason: r.ok ? null : (typeof data === "string" ? data : JSON.stringify(data)).slice(0, 500),
-          evolution_message_id: evoMsgId,
-          sent_at: r.ok ? new Date().toISOString() : null,
-        }).eq("id", row.id);
-      }
-      return { ok: r.ok, log_id: row?.id, status: r.status };
+      const logId = row?.id;
+      const sendTask = (async () => {
+        let r = await evoFetch("/send/text", {
+          method: "POST",
+          body: JSON.stringify({ number: to, text: finalText }),
+        }, instanceToken);
+        if (!r.ok) {
+          r = await evoFetch("/send/text", {
+            method: "POST",
+            body: JSON.stringify({ number: to, text: finalText }),
+          }, EVO_KEY);
+        }
+        const evoMsgId = r.data?.key?.id ?? r.data?.data?.key?.id ?? null;
+        if (logId) {
+          await svc.from("system_whatsapp_log").update({
+            status: r.ok ? "sent" : "error",
+            error_reason: r.ok ? null : JSON.stringify(r.data).slice(0, 500),
+            evolution_message_id: evoMsgId,
+            sent_at: r.ok ? new Date().toISOString() : null,
+          }).eq("id", logId);
+        }
+      })();
+      (globalThis as any).EdgeRuntime?.waitUntil?.(sendTask);
+      return { ok: true, queued: true, log_id: logId };
     }
 
     if (mode === "auto") {
