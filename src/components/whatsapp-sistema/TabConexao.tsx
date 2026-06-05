@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, RefreshCw, Power, QrCode, Send } from "lucide-react";
 import { toast } from "sonner";
+import { countryDialCodes } from "@/lib/country-codes";
 
 type Settings = {
   status: string;
@@ -16,21 +17,6 @@ type Settings = {
   footer_text: string;
   webhook_secret: string;
 };
-
-const countryDialCodes = [
-  { code: "55", flag: "🇧🇷", country: "Brasil" },
-  { code: "1", flag: "🇺🇸", country: "Estados Unidos / Canadá" },
-  { code: "351", flag: "🇵🇹", country: "Portugal" },
-  { code: "54", flag: "🇦🇷", country: "Argentina" },
-  { code: "56", flag: "🇨🇱", country: "Chile" },
-  { code: "57", flag: "🇨🇴", country: "Colômbia" },
-  { code: "52", flag: "🇲🇽", country: "México" },
-  { code: "34", flag: "🇪🇸", country: "Espanha" },
-  { code: "44", flag: "🇬🇧", country: "Reino Unido" },
-  { code: "33", flag: "🇫🇷", country: "França" },
-  { code: "49", flag: "🇩🇪", country: "Alemanha" },
-  { code: "39", flag: "🇮🇹", country: "Itália" },
-];
 
 export default function TabConexao() {
   const [settings, setSettings] = useState<Settings | null>(null);
