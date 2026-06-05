@@ -114,6 +114,20 @@ Deno.serve(async (req) => {
     const webhookUrl = `${SUPABASE_URL}/functions/v1/system-whatsapp-webhook?secret=${settings.webhook_secret}`;
 
     if (action === "connect") {
+      // 1) Try to fully delete any previous instance to start clean
+      //    (avoids the "store doesn't contain a device JID" zombie state).
+      try {
+        await evo("/instance/logout", { method: "DELETE" }, instanceToken);
+      } catch (_) { /* ignore */ }
+      try {
+        await evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" });
+      } catch (_) { /* ignore */ }
+      try {
+        await evo("/instance/delete", { method: "DELETE", body: JSON.stringify({ name: instance }) });
+      } catch (_) { /* ignore */ }
+      await delay(400);
+
+      // 2) Create fresh
       const created = await evo("/instance/create", {
         method: "POST",
         body: JSON.stringify({ name: instance, token: instanceToken }),
@@ -142,16 +156,20 @@ Deno.serve(async (req) => {
       }, instanceToken);
       if (!conn.ok) console.warn("evo connect returned", conn.status, conn.data);
 
-      let qrResp = await evo("/instance/qr", { method: "GET" }, instanceToken);
-      if (!extractQr(qrResp.data)) {
-        await delay(800);
+      // Try several times because evolution-go takes ~1-3s to generate the QR
+      let qr: string | null = extractQr(conn.data);
+      let pairingCode: string | null = extractPairingCode(conn.data);
+      let qrResp = { data: conn.data } as any;
+      for (let i = 0; i < 6 && !qr; i++) {
+        await delay(600);
         qrResp = await evo("/instance/qr", { method: "GET" }, instanceToken);
+        qr = extractQr(qrResp.data);
+        pairingCode = pairingCode ?? extractPairingCode(qrResp.data);
       }
-      const qr = extractQr(qrResp.data);
-      const pairingCode = extractPairingCode(qrResp.data) ?? extractPairingCode(conn.data);
 
       await svc.from("system_whatsapp_settings").update({
         status: "connecting",
+        connected_number: null,
       }).eq("singleton", true);
 
       return json({ ok: true, instance, qr, pairingCode });
@@ -159,7 +177,10 @@ Deno.serve(async (req) => {
 
     if (action === "status") {
       const st = await evo("/instance/status", { method: "GET" }, instanceToken);
-      const state: string =
+      const rawErr = String(st.data?.error ?? st.data?.message ?? "");
+      // If Evolution reports the zombie state, force disconnected so the UI prompts a reconnect.
+      const isZombie = /device jid|client is nil/i.test(rawErr);
+      const state: string = isZombie ? "close" :
         st.data?.data?.Connected === true || st.data?.data?.LoggedIn === true ? "open" :
         st.data?.data?.Connected === false ? "close" :
         st.data?.instance?.state ?? st.data?.state ?? "unknown";
@@ -175,13 +196,18 @@ Deno.serve(async (req) => {
         const inst = rec?.instance ?? rec;
         const number = inst?.number ?? inst?.owner ?? inst?.wuid ?? null;
         update.connected_number = typeof number === "string" ? number.split("@")[0] : null;
+      } else if (mapped === "disconnected") {
+        update.connected_number = null;
       }
       await svc.from("system_whatsapp_settings").update(update).eq("singleton", true);
-      return json({ ok: true, state: mapped });
+      return json({ ok: true, state: mapped, zombie: isZombie, raw: rawErr || undefined });
     }
 
     if (action === "disconnect") {
+      // Fully wipe the instance so the next connect starts from scratch.
       const r = await evo("/instance/logout", { method: "DELETE" }, instanceToken);
+      try { await evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }); } catch (_) {}
+      try { await evo("/instance/delete", { method: "DELETE", body: JSON.stringify({ name: instance }) }); } catch (_) {}
       await svc.from("system_whatsapp_settings").update({
         status: "disconnected",
         connected_number: null,
