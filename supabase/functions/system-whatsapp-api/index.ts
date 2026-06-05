@@ -214,10 +214,13 @@ Deno.serve(async (req) => {
       const state: string = isZombie || (!fetchedRec && fetched.ok) ? "close" :
         instanceState(connState.data) || instanceState(fetchedRec) || instanceState(legacyStatus.data) || "unknown";
       const connectedNumber = instanceNumber(fetchedRec) ?? instanceNumber(connState.data) ?? instanceNumber(legacyStatus.data);
-      const mapped =
+      let mapped =
         state === "open" ? "connected" :
         state === "connecting" ? "connecting" :
         state === "close" || state === "closed" || state === "disconnected" || state === "unknown" ? "disconnected" : state;
+      if (mapped === "connected" && !connectedNumber) {
+        mapped = "disconnected";
+      }
 
       const update: Record<string, unknown> = { status: mapped };
       if (mapped === "connected" && connectedNumber) {
