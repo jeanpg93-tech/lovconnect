@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.subscription-create-charge]
 verify_jwt = false
+
+[functions.system-whatsapp-webhook]
+verify_jwt = false
+
+[functions.system-whatsapp-notify]
+verify_jwt = false
