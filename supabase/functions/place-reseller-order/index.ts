@@ -528,6 +528,22 @@ Deno.serve(async (req) => {
 
     // Disparo WhatsApp para o CLIENTE (fire-and-forget)
     if (license_key && whatsapp) {
+      fetch(`${supabaseUrl}/functions/v1/evolution-send-sale`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reseller_id: reseller.id,
+          kind: "license",
+          to: whatsapp,
+          vars: {
+            nome: final_display_name,
+            chave: license_key,
+            tipo: license_type,
+            valor_cents: String(price_cents),
+          },
+        }),
+      }).catch((e) => console.warn("evolution-send-sale failed", e));
+    }
 
     return json({
       ok: true,
