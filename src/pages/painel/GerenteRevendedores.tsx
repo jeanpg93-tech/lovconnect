@@ -552,7 +552,14 @@ export default function GerenteRevendedores() {
                         </td>
                         <td className="px-6 py-4"><ActivationBadge status={r.activation_status} /></td>
                         <td className="px-6 py-4 text-muted-foreground/80">{prof?.email ?? "—"}</td>
-                        <td className="px-6 py-4 text-muted-foreground/80 font-mono text-xs whitespace-nowrap">{formatPhoneBR(prof?.whatsapp ?? prof?.phone)}</td>
+                        <td className="px-6 py-4 text-muted-foreground/80 font-mono text-xs whitespace-nowrap">
+                          <div className="flex items-center gap-1">
+                            {formatPhoneBR(prof?.whatsapp ?? prof?.phone)}
+                            <Button size="icon" variant="ghost" className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary" onClick={() => openEdit(r)}>
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </td>
                         <td className="px-6 py-4 text-center">
                           {tier ? (
                             <span className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest" style={{ background: `${tier.color}22`, color: tier.color }}>
@@ -680,7 +687,12 @@ export default function GerenteRevendedores() {
                         </h3>
                         <p className="text-[11px] text-muted-foreground">@{r.display_name}</p>
                         <p className="text-xs text-muted-foreground">{prof?.email ?? "—"}</p>
-                        <p className="text-[11px] text-muted-foreground font-mono">{formatPhoneBR(prof?.whatsapp ?? prof?.phone)}</p>
+                        <div className="flex items-center gap-1">
+                          <p className="text-[11px] text-muted-foreground font-mono">{formatPhoneBR(prof?.whatsapp ?? prof?.phone)}</p>
+                          <Button size="icon" variant="ghost" className="h-5 w-5 p-0 text-muted-foreground hover:text-primary" onClick={() => openEdit(r)}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </div>
                         <div className="mt-2"><ActivationBadge status={r.activation_status} /></div>
                       </div>
                       <div className="text-right">
