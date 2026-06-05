@@ -38,6 +38,7 @@ const GerentePersonalizarExtensao = lazy(() => import("@/pages/painel/GerentePer
 const GerenteAcoesEspeciais = lazy(() => import("@/pages/painel/GerenteAcoesEspeciais"));
 const GerenteContasDemo = lazy(() => import("@/pages/painel/GerenteContasDemo"));
 const GerenteTelegram = lazy(() => import("@/pages/painel/GerenteTelegram"));
+const GerenteWhatsAppSistema = lazy(() => import("@/pages/painel/GerenteWhatsAppSistema"));
 const GerenteAtivacoes = lazy(() => import("@/pages/painel/GerenteAtivacoes"));
 const RevendedorPersonalizarExtensao = lazy(() => import("@/pages/painel/RevendedorPersonalizarExtensao"));
 const RevendedorLanding = lazy(() => import("@/pages/painel/RevendedorLanding"));
@@ -120,6 +121,7 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/gerente/acoes-especiais", match: exact("/painel/gerente/acoes-especiais"), render: () => <RoleRoute allow={["gerente"]}><GerenteAcoesEspeciais /></RoleRoute> },
   { key: "/painel/gerente/contas-demo", match: exact("/painel/gerente/contas-demo"), render: () => <RoleRoute allow={["gerente"]}><GerenteContasDemo /></RoleRoute> },
   { key: "/painel/gerente/telegram", match: exact("/painel/gerente/telegram"), render: () => <RoleRoute allow={["gerente"]}><GerenteTelegram /></RoleRoute> },
+  { key: "/painel/gerente/whatsapp-sistema", match: exact("/painel/gerente/whatsapp-sistema"), render: () => <RoleRoute allow={["gerente"]}><GerenteWhatsAppSistema /></RoleRoute> },
   { key: "/painel/gerente/pacotes", match: exact("/painel/gerente/pacotes"), render: () => <RoleRoute allow={["gerente"]}><GerentePacotes /></RoleRoute> },
   { key: "/painel/gerente/instalar-app", match: exact("/painel/gerente/instalar-app"), render: () => <RoleRoute allow={["gerente"]}><InstallApp /></RoleRoute> },
   { key: "/painel/revendedor/avisos", match: exact("/painel/revendedor/avisos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorAvisos /></RoleRoute> },

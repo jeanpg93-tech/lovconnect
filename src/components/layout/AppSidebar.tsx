@@ -85,6 +85,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Promoções", url: "/painel/gerente/acoes-especiais", icon: Sparkles },
       { title: "Contas demo", url: "/painel/gerente/contas-demo", icon: UserCheck },
       { title: "Bot Telegram", url: "/painel/gerente/telegram", icon: Send },
+      { title: "WhatsApp do Sistema", url: "/painel/gerente/whatsapp-sistema", icon: MessageCircle },
     ]},
     { label: "Rede", items: [
       { title: "Revendedores", url: "/painel/gerente/revendedores", icon: Store },
