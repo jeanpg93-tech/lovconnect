@@ -3394,6 +3394,147 @@ export type Database = {
           },
         ]
       }
+      system_whatsapp_events: {
+        Row: {
+          cooldown_hours: number
+          created_at: string
+          description: string | null
+          enabled: boolean
+          event_key: string
+          id: string
+          label: string
+          template: string
+          updated_at: string
+          variables: string[]
+        }
+        Insert: {
+          cooldown_hours?: number
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          event_key: string
+          id?: string
+          label: string
+          template: string
+          updated_at?: string
+          variables?: string[]
+        }
+        Update: {
+          cooldown_hours?: number
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          event_key?: string
+          id?: string
+          label?: string
+          template?: string
+          updated_at?: string
+          variables?: string[]
+        }
+        Relationships: []
+      }
+      system_whatsapp_log: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          error_reason: string | null
+          event_key: string | null
+          evolution_message_id: string | null
+          id: string
+          kind: string
+          message: string
+          read_at: string | null
+          reseller_id: string | null
+          sent_at: string | null
+          status: string
+          to_number: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          error_reason?: string | null
+          event_key?: string | null
+          evolution_message_id?: string | null
+          id?: string
+          kind: string
+          message: string
+          read_at?: string | null
+          reseller_id?: string | null
+          sent_at?: string | null
+          status?: string
+          to_number: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          error_reason?: string | null
+          event_key?: string | null
+          evolution_message_id?: string | null
+          id?: string
+          kind?: string
+          message?: string
+          read_at?: string | null
+          reseller_id?: string | null
+          sent_at?: string | null
+          status?: string
+          to_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_whatsapp_log_event_key_fkey"
+            columns: ["event_key"]
+            isOneToOne: false
+            referencedRelation: "system_whatsapp_events"
+            referencedColumns: ["event_key"]
+          },
+          {
+            foreignKeyName: "system_whatsapp_log_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_whatsapp_settings: {
+        Row: {
+          connected_number: string | null
+          created_at: string
+          footer_text: string
+          id: string
+          instance_name: string
+          singleton: boolean
+          status: string
+          updated_at: string
+          webhook_secret: string
+        }
+        Insert: {
+          connected_number?: string | null
+          created_at?: string
+          footer_text?: string
+          id?: string
+          instance_name?: string
+          singleton?: boolean
+          status?: string
+          updated_at?: string
+          webhook_secret?: string
+        }
+        Update: {
+          connected_number?: string | null
+          created_at?: string
+          footer_text?: string
+          id?: string
+          instance_name?: string
+          singleton?: boolean
+          status?: string
+          updated_at?: string
+          webhook_secret?: string
+        }
+        Relationships: []
+      }
       telegram_notification_failures: {
         Row: {
           amount_cents: number | null
@@ -3850,6 +3991,10 @@ export type Database = {
           _reseller_id: string
         }
         Returns: boolean
+      }
+      dispatch_system_whatsapp_event: {
+        Args: { _event_key: string; _reseller_id: string; _vars?: Json }
+        Returns: undefined
       }
       enqueue_reseller_webhook: {
         Args: {
