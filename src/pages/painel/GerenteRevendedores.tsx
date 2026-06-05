@@ -22,7 +22,7 @@ import { countryDialCodes, DEFAULT_DIAL_CODE, splitDialCode } from "@/lib/countr
 type Reseller = {
   id: string; user_id: string; display_name: string; slug: string; is_active: boolean; test_keys_used_today: number; test_keys_per_day_override: number | null; activation_status?: string | null; billing_mode?: string | null;
 };
-type Profile = { id: string; email: string; display_name: string | null; phone: string | null; is_banned: boolean | null };
+type Profile = { id: string; email: string; display_name: string | null; phone: string | null; whatsapp: string | null; is_banned: boolean | null };
 type Tier = { id: string; name: string; color: string; min_spent_cents: number; is_active: boolean; is_hidden: boolean; test_keys_per_day: number; sort_order: number };
 type State = { reseller_id: string; total_spent_cents: number; forced_tier_id: string | null };
 type Presence = { user_id: string; current_path: string | null; last_seen_at: string };
