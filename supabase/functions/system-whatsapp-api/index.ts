@@ -21,9 +21,9 @@ function json(b: unknown, status = 200) {
   });
 }
 
-async function evo(path: string, init: RequestInit = {}, apiKey = EVO_KEY) {
+async function evo(path: string, init: RequestInit = {}, apiKey = EVO_KEY, timeoutMs = 8_000) {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 20_000);
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const r = await fetch(`${EVO_BASE}${path}`, {
       ...init,
@@ -78,6 +78,29 @@ function normalizeBR(raw: string): string {
   if (d.length === 10 || d.length === 11) return `55${d}`;
   return d;
 }
+function rawString(data: any) {
+  try { return JSON.stringify(data ?? ""); } catch { return String(data ?? ""); }
+}
+function instanceRecord(data: any, instance: string) {
+  const rows = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [data?.data ?? data].filter(Boolean);
+  return rows.find((row: any) => {
+    const rec = row?.instance ?? row;
+    const name = rec?.instanceName ?? rec?.name ?? rec?.instance?.instanceName;
+    return !name || name === instance;
+  }) ?? null;
+}
+function instanceNumber(data: any) {
+  const rec = data?.instance ?? data?.data?.instance ?? data?.data ?? data;
+  const value = rec?.ownerJid ?? rec?.owner ?? rec?.wuid ?? rec?.number ?? rec?.profileNumber ?? rec?.profile_number ?? null;
+  return typeof value === "string" && value ? value.split("@")[0] : null;
+}
+function instanceState(data: any) {
+  const rec = data?.instance ?? data?.data?.instance ?? data?.data ?? data;
+  const raw = rec?.connectionStatus ?? rec?.state ?? rec?.status ?? data?.state ?? "";
+  if (rec?.Connected === true || rec?.LoggedIn === true) return "open";
+  if (rec?.Connected === false || rec?.LoggedIn === false) return "close";
+  return String(raw).toLowerCase();
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -117,13 +140,15 @@ Deno.serve(async (req) => {
       // 1) Try to fully delete any previous instance to start clean
       //    (avoids the "store doesn't contain a device JID" zombie state).
       try {
+        await evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" }, instanceToken);
         await evo("/instance/logout", { method: "DELETE" }, instanceToken);
       } catch (_) { /* ignore */ }
       try {
-        await evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" });
+        await evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY);
+        await evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }, instanceToken);
       } catch (_) { /* ignore */ }
       try {
-        await evo("/instance/delete", { method: "DELETE", body: JSON.stringify({ name: instance }) });
+        await evo("/instance/delete", { method: "DELETE", body: JSON.stringify({ name: instance, instanceName: instance }) });
       } catch (_) { /* ignore */ }
       await delay(400);
 
