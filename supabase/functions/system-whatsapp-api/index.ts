@@ -187,10 +187,26 @@ Deno.serve(async (req) => {
       const text = String(body.text ?? "✅ Teste do WhatsApp do sistema");
       if (number.length < 10) return json({ error: "WhatsApp inválido" }, 400);
       const finalText = `${text}\n\n${settings.footer_text}`;
-      const r = await evo("/send/text", {
+      let r = await evo("/send/text", {
         method: "POST",
         body: JSON.stringify({ number, text: finalText }),
       }, instanceToken);
+      if (!r.ok) {
+        console.warn("[send_test] /send/text with instanceToken failed", r.status, r.data);
+        // fallback 1: usar EVO_KEY global
+        r = await evo("/send/text", {
+          method: "POST",
+          body: JSON.stringify({ number, text: finalText }),
+        }, EVO_KEY);
+        if (!r.ok) {
+          console.warn("[send_test] /send/text with EVO_KEY failed", r.status, r.data);
+          // fallback 2: endpoint legado Evolution v2
+          r = await evo(`/message/sendText/${encodeURIComponent(instance)}`, {
+            method: "POST",
+            body: JSON.stringify({ number, text: finalText }),
+          }, EVO_KEY);
+        }
+      }
       const evoMsgId = r.data?.key?.id ?? r.data?.data?.key?.id ?? null;
       await svc.from("system_whatsapp_log").insert({
         kind: "test",
