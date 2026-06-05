@@ -589,6 +589,16 @@ Deno.serve(async (req) => {
                 body: `${(packPurchase as any).credits} licenças liberadas. Restam: ${newBal ?? "?"}.`,
                 link: "/painel/revendedor/gerar-chave",
               });
+
+              // Notifica o revendedor sobre o pacote confirmado via WhatsApp
+              triggerWhatsAppNotify({
+                event_key: "pack_purchase_confirmed",
+                reseller_id: (packPurchase as any).reseller_id,
+                vars: {
+                  pack_name: (packPurchase as any).pack_name,
+                  credits: String((packPurchase as any).credits),
+                },
+              });
             }
           } catch (e) {
             console.warn("[webhook] pack notify failed", e);
