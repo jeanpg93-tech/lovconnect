@@ -355,11 +355,28 @@ const Auth = () => {
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="signup-whatsapp" className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">WhatsApp</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-                        <Input id="signup-whatsapp" type="tel" inputMode="tel" autoComplete="tel" value={whatsapp}
-                          onChange={(e) => setWhatsapp(e.target.value)}
-                          className="rounded-none border-border/50 bg-background/40 pl-9 text-xs placeholder:text-muted-foreground/30 focus-visible:ring-primary/30" placeholder="(11) 98888-7777" />
+                      <div className="flex gap-2">
+                        <Select value={whatsappDdi} onValueChange={setWhatsappDdi}>
+                          <SelectTrigger className="w-[120px] rounded-none border-border/50 bg-background/40 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-72">
+                            {countryDialCodes.map((item) => (
+                              <SelectItem key={`${item.code}-${item.country}`} value={item.code}>
+                                <span className="inline-flex items-center gap-2">
+                                  <span>{item.flag}</span>
+                                  <span className="text-muted-foreground">+{item.code}</span>
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="relative flex-1">
+                          <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+                          <Input id="signup-whatsapp" type="tel" inputMode="tel" autoComplete="tel" value={whatsapp}
+                            onChange={(e) => setWhatsapp(e.target.value)}
+                            className="rounded-none border-border/50 bg-background/40 pl-9 text-xs placeholder:text-muted-foreground/30 focus-visible:ring-primary/30" placeholder="(11) 98888-7777" />
+                        </div>
                       </div>
                       {errors.whatsapp && <p className="text-[10px] text-destructive uppercase tracking-widest">{errors.whatsapp}</p>}
                     </div>
