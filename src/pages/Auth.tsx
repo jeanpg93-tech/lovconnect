@@ -12,6 +12,8 @@ import { signInSchema, signUpSchema, forgotPasswordSchema } from "@/lib/auth-sch
 import { ArrowLeft, Loader2, Mail, Lock, User as UserIcon, Ticket, AlertTriangle, MessageCircle, Eye, EyeOff, Phone } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { WhatsAppFloatingButtons } from "@/components/WhatsAppFloatingButtons";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { countryDialCodes, DEFAULT_DIAL_CODE } from "@/lib/country-codes";
 
 type Mode = "signin" | "signup" | "forgot";
 
@@ -27,6 +29,7 @@ const Auth = () => {
   const [displayName, setDisplayName] = useState("");
   const [affiliateCode, setAffiliateCode] = useState<string>("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [whatsappDdi, setWhatsappDdi] = useState<string>(DEFAULT_DIAL_CODE);
   const [codeLookup, setCodeLookup] = useState<
     | { status: "idle" }
     | { status: "checking" }
@@ -126,7 +129,8 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     resetErrors();
-    const parsed = signUpSchema.safeParse({ email, password, displayName, affiliateCode, whatsapp });
+    const fullWhatsapp = `${whatsappDdi}${(whatsapp || "").replace(/\D/g, "")}`;
+    const parsed = signUpSchema.safeParse({ email, password, displayName, affiliateCode, whatsapp: fullWhatsapp });
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
       parsed.error.issues.forEach((i) => { fieldErrors[i.path[0] as string] = i.message; });
@@ -351,11 +355,28 @@ const Auth = () => {
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="signup-whatsapp" className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">WhatsApp</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-                        <Input id="signup-whatsapp" type="tel" inputMode="tel" autoComplete="tel" value={whatsapp}
-                          onChange={(e) => setWhatsapp(e.target.value)}
-                          className="rounded-none border-border/50 bg-background/40 pl-9 text-xs placeholder:text-muted-foreground/30 focus-visible:ring-primary/30" placeholder="(11) 98888-7777" />
+                      <div className="flex gap-2">
+                        <Select value={whatsappDdi} onValueChange={setWhatsappDdi}>
+                          <SelectTrigger className="w-[120px] rounded-none border-border/50 bg-background/40 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-72">
+                            {countryDialCodes.map((item) => (
+                              <SelectItem key={`${item.code}-${item.country}`} value={item.code}>
+                                <span className="inline-flex items-center gap-2">
+                                  <span>{item.flag}</span>
+                                  <span className="text-muted-foreground">+{item.code}</span>
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="relative flex-1">
+                          <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+                          <Input id="signup-whatsapp" type="tel" inputMode="tel" autoComplete="tel" value={whatsapp}
+                            onChange={(e) => setWhatsapp(e.target.value)}
+                            className="rounded-none border-border/50 bg-background/40 pl-9 text-xs placeholder:text-muted-foreground/30 focus-visible:ring-primary/30" placeholder="(11) 98888-7777" />
+                        </div>
                       </div>
                       {errors.whatsapp && <p className="text-[10px] text-destructive uppercase tracking-widest">{errors.whatsapp}</p>}
                     </div>

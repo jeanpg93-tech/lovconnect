@@ -16,11 +16,13 @@ import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, T
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { labelForPath, isOnline, formatLastSeenBR } from "@/lib/path-labels";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { countryDialCodes, DEFAULT_DIAL_CODE, splitDialCode } from "@/lib/country-codes";
 
 type Reseller = {
   id: string; user_id: string; display_name: string; slug: string; is_active: boolean; test_keys_used_today: number; test_keys_per_day_override: number | null; activation_status?: string | null; billing_mode?: string | null;
 };
-type Profile = { id: string; email: string; display_name: string | null; phone: string | null; is_banned: boolean | null };
+type Profile = { id: string; email: string; display_name: string | null; phone: string | null; whatsapp: string | null; is_banned: boolean | null };
 type Tier = { id: string; name: string; color: string; min_spent_cents: number; is_active: boolean; is_hidden: boolean; test_keys_per_day: number; sort_order: number };
 type State = { reseller_id: string; total_spent_cents: number; forced_tier_id: string | null };
 type Presence = { user_id: string; current_path: string | null; last_seen_at: string };
@@ -101,6 +103,7 @@ export default function GerenteRevendedores() {
   const [editDialog, setEditDialog] = useState<Reseller | null>(null);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
+  const [editDdi, setEditDdi] = useState<string>(DEFAULT_DIAL_CODE);
   const [editSaving, setEditSaving] = useState(false);
 
   const load = async () => {
@@ -136,7 +139,7 @@ export default function GerenteRevendedores() {
       const userIds = list.map((r) => r.user_id);
       const resellerIds = list.map((r) => r.id);
       const [{ data: profs }, { data: bals }, { data: pres }] = await Promise.all([
-        supabase.from("profiles").select("id,email,display_name,phone,is_banned").in("id", userIds),
+        supabase.from("profiles").select("id,email,display_name,phone,whatsapp,is_banned").in("id", userIds),
         supabase.from("reseller_balances").select("reseller_id,balance_cents").in("reseller_id", resellerIds),
         supabase.from("user_presence").select("user_id,current_path,last_seen_at").in("user_id", userIds),
       ]);
@@ -295,7 +298,10 @@ export default function GerenteRevendedores() {
     const prof = profilesByUser[r.user_id];
     setEditDialog(r);
     setEditName(prof?.display_name ?? "");
-    setEditPhone(prof?.phone ?? "");
+    const stored = prof?.whatsapp ?? prof?.phone ?? "";
+    const parts = splitDialCode(stored);
+    setEditDdi(parts.ddi);
+    setEditPhone(parts.local);
   };
 
   const onlyDigits = (v: string) => v.replace(/\D/g, "");
@@ -304,25 +310,26 @@ export default function GerenteRevendedores() {
     if (!editDialog) return;
     const name = editName.trim();
     if (!name) { toast.error("Informe o nome"); return; }
-    const phoneDigits = onlyDigits(editPhone);
-    if (phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 13)) {
+    const localDigits = onlyDigits(editPhone);
+    if (localDigits && (localDigits.length < 8 || localDigits.length > 13)) {
       toast.error("WhatsApp inválido. Use DDD + número (ex.: 11999999999).");
       return;
     }
     setEditSaving(true);
-    const phoneToSave = phoneDigits || null;
+    const phoneToSave = localDigits ? `${editDdi}${localDigits}` : null;
     const { error } = await supabase
       .from("profiles")
-      .update({ display_name: name, phone: phoneToSave })
+      .update({ display_name: name, phone: phoneToSave, whatsapp: phoneToSave })
       .eq("id", editDialog.user_id);
     setEditSaving(false);
     if (error) return toast.error(error.message);
     setProfilesByUser((prev) => ({
       ...prev,
       [editDialog.user_id]: {
-        ...(prev[editDialog.user_id] ?? { id: editDialog.user_id, email: "", display_name: null, phone: null, is_banned: false }),
+        ...(prev[editDialog.user_id] ?? { id: editDialog.user_id, email: "", display_name: null, phone: null, whatsapp: null, is_banned: false }),
         display_name: name,
         phone: phoneToSave,
+        whatsapp: phoneToSave,
       } as Profile,
     }));
     toast.success("Cadastro atualizado");
@@ -833,14 +840,32 @@ export default function GerenteRevendedores() {
             </div>
             <div className="space-y-1.5">
               <Label>WhatsApp</Label>
-              <Input
-                value={editPhone}
-                onChange={(e) => setEditPhone(e.target.value)}
-                placeholder="Ex.: 11999999999 (com DDD)"
-                inputMode="tel"
-              />
+              <div className="flex gap-2">
+                <Select value={editDdi} onValueChange={setEditDdi}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {countryDialCodes.map((item) => (
+                      <SelectItem key={`${item.code}-${item.country}`} value={item.code}>
+                        <span className="inline-flex items-center gap-2">
+                          <span>{item.flag}</span>
+                          <span>+{item.code}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  className="flex-1"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="Ex.: 11999999999 (com DDD)"
+                  inputMode="tel"
+                />
+              </div>
               <p className="text-[10px] text-muted-foreground">
-                Apenas números. Inclua o DDD; aceita também o código do país (ex.: 5511...).
+                Selecione o país e informe DDD + número (apenas dígitos).
               </p>
             </div>
           </div>
