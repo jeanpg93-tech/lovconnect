@@ -71,6 +71,13 @@ function extractPairingCode(data: any) {
 }
 function delay(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 function onlyDigits(s: string) { return (s ?? "").replace(/\D+/g, ""); }
+function normalizeBR(raw: string): string {
+  const d = onlyDigits(raw);
+  if (!d) return "";
+  if (d.length >= 12 && d.startsWith("55")) return d;
+  if (d.length === 10 || d.length === 11) return `55${d}`;
+  return d;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -183,43 +190,42 @@ Deno.serve(async (req) => {
     }
 
     if (action === "send_test") {
-      const number = onlyDigits(String(body.number ?? ""));
+      const number = normalizeBR(String(body.number ?? ""));
       const text = String(body.text ?? "✅ Teste do WhatsApp do sistema");
-      if (number.length < 10) return json({ error: "WhatsApp inválido" }, 400);
+      if (number.length < 12) return json({ error: "WhatsApp inválido. Informe DDD + número, ex: 13988804959" }, 400);
       const finalText = `${text}\n\n${settings.footer_text}`;
-      let r = await evo("/send/text", {
-        method: "POST",
-        body: JSON.stringify({ number, text: finalText }),
-      }, instanceToken);
-      if (!r.ok) {
-        console.warn("[send_test] /send/text with instanceToken failed", r.status, r.data);
-        // fallback 1: usar EVO_KEY global
-        r = await evo("/send/text", {
-          method: "POST",
-          body: JSON.stringify({ number, text: finalText }),
-        }, EVO_KEY);
-        if (!r.ok) {
-          console.warn("[send_test] /send/text with EVO_KEY failed", r.status, r.data);
-          // fallback 2: endpoint legado Evolution v2
-          r = await evo(`/message/sendText/${encodeURIComponent(instance)}`, {
-            method: "POST",
-            body: JSON.stringify({ number, text: finalText }),
-          }, EVO_KEY);
-        }
-      }
-      const evoMsgId = r.data?.key?.id ?? r.data?.data?.key?.id ?? null;
-      await svc.from("system_whatsapp_log").insert({
+      const { data: row, error: logError } = await svc.from("system_whatsapp_log").insert({
         kind: "test",
         to_number: number,
         message: finalText,
-        status: r.ok ? "sent" : "error",
-        error_reason: r.ok ? null : JSON.stringify(r.data).slice(0, 500),
-        evolution_message_id: evoMsgId,
-        sent_at: r.ok ? new Date().toISOString() : null,
+        status: "queued",
         created_by: user.id,
-      });
-      if (!r.ok) return json({ ok: false, error: "Falha ao enviar", details: r.data }, 502);
-      return json({ ok: true });
+      }).select("id").single();
+      if (logError || !row?.id) return json({ error: logError?.message ?? "Não foi possível criar o envio" }, 500);
+
+      const sendPromise = (async () => {
+        let r = await evo("/send/text", {
+          method: "POST",
+          body: JSON.stringify({ number, text: finalText }),
+        }, instanceToken);
+        if (!r.ok) {
+          console.warn("[send_test] /send/text with instanceToken failed", r.status, r.data);
+          r = await evo("/send/text", {
+            method: "POST",
+            body: JSON.stringify({ number, text: finalText }),
+          }, EVO_KEY);
+          if (!r.ok) console.warn("[send_test] /send/text with EVO_KEY failed", r.status, r.data);
+        }
+        const evoMsgId = r.data?.key?.id ?? r.data?.data?.key?.id ?? null;
+        await svc.from("system_whatsapp_log").update({
+          status: r.ok ? "sent" : "error",
+          error_reason: r.ok ? null : JSON.stringify(r.data).slice(0, 500),
+          evolution_message_id: evoMsgId,
+          sent_at: r.ok ? new Date().toISOString() : null,
+        }).eq("id", row.id);
+      })();
+      (globalThis as any).EdgeRuntime?.waitUntil?.(sendPromise);
+      return json({ ok: true, queued: true, log_id: row.id, number });
     }
 
     if (action === "get_webhook_url") {
