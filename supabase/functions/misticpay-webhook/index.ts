@@ -1266,6 +1266,8 @@ Deno.serve(async (req) => {
       console.warn("orders insert (storefront) failed", e);
     }
 
+    await notifyTelegramStorefrontLicenseSale(admin, storeOrder, license_key, cost_cents);
+
     // Disparo WhatsApp para o revendedor (Notificação de Venda na Loja)
     if (license_key && storeOrder.reseller_id) {
       const event_key = usedPack ? "reseller_sale_pack" : "reseller_sale_store";
