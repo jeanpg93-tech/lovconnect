@@ -471,13 +471,11 @@ Deno.serve(async (req) => {
         let saldoStr = "";
         try {
           const { data: balRow } = await svc
-            .from("resellers")
-            .select("wallet_cents,balance_cents")
-            .eq("id", reseller_id)
+            .from("reseller_balances")
+            .select("balance_cents")
+            .eq("reseller_id", reseller_id)
             .maybeSingle();
-          const bal = Number(
-            (balRow as any)?.wallet_cents ?? (balRow as any)?.balance_cents ?? 0,
-          );
+          const bal = Number((balRow as any)?.balance_cents ?? 0);
           saldoStr = formatBRL(bal);
         } catch (_e) { /* opcional */ }
 
