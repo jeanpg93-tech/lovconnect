@@ -143,27 +143,16 @@ export default function PublicStorefront() {
     }
     setDownloadingExt(true);
     try {
-      const method = store?.extension_method === "lovax" ? "lovax" : "flow";
-      // Prefer extension marked for the active method; fallback to any active.
-      const { data: byMethod } = await supabase
+      // Sempre baixar a versão mais recente publicada no painel,
+      // independente do método configurado na loja.
+      const { data: latest } = await supabase
         .from("extensions")
         .select("slug")
         .eq("is_active", true)
-        .eq("method", method)
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      let slug = byMethod?.slug as string | undefined;
-      if (!slug) {
-        const { data: fallback } = await supabase
-          .from("extensions")
-          .select("slug")
-          .eq("is_active", true)
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        slug = fallback?.slug;
-      }
+      const slug = latest?.slug as string | undefined;
       if (!slug) throw new Error("Extensão indisponível");
       const { data: funcData, error: funcErr } = await supabase.functions.invoke("public-extension-download", {
         body: { slug },
