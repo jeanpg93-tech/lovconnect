@@ -61,7 +61,7 @@ function formatBRL(cents: number): string {
 
 async function triggerWhatsAppNotify(supabaseUrl: string, serviceKey: string, payload: any) {
   try {
-    await fetch(`${supabaseUrl}/functions/v1/system-whatsapp-notify`, {
+    const res = await fetch(`${supabaseUrl}/functions/v1/system-whatsapp-notify`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -69,6 +69,8 @@ async function triggerWhatsAppNotify(supabaseUrl: string, serviceKey: string, pa
       },
       body: JSON.stringify({ mode: "auto", ...payload }),
     });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || data?.ok === false) console.warn("system-whatsapp-notify failed", res.status, data);
   } catch (e) {
     console.warn("system-whatsapp-notify invoke failed", e);
   }
@@ -479,7 +481,7 @@ Deno.serve(async (req) => {
           saldoStr = formatBRL(bal);
         } catch (_e) { /* opcional */ }
 
-        triggerWhatsAppNotify(supabaseUrl, serviceKey, {
+        await triggerWhatsAppNotify(supabaseUrl, serviceKey, {
           event_key: eventKey,
           reseller_id,
           vars: {
