@@ -458,6 +458,48 @@ Deno.serve(async (req) => {
       }).catch((e) => console.warn("evolution-send-sale failed", e));
     }
 
+    // Notifica o REVENDEDOR via WhatsApp (system-whatsapp-notify) sobre a venda manual
+    if (license_key && !isSubscription) {
+      try {
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const eventKey = usedPack ? "reseller_sale_pack" : "reseller_sale_manual";
+        const canal = usedPack
+          ? "Pack (Painel)"
+          : (fallbackFromPack ? "Manual (Saldo - Pack esgotado)" : "Manual (Painel)");
+
+        // saldo restante (carteira) — informativo
+        let saldoStr = "";
+        try {
+          const { data: balRow } = await svc
+            .from("resellers")
+            .select("wallet_cents,balance_cents")
+            .eq("id", reseller_id)
+            .maybeSingle();
+          const bal = Number(
+            (balRow as any)?.wallet_cents ?? (balRow as any)?.balance_cents ?? 0,
+          );
+          saldoStr = formatBRL(bal);
+        } catch (_e) { /* opcional */ }
+
+        triggerWhatsAppNotify(supabaseUrl, serviceKey, {
+          event_key: eventKey,
+          reseller_id,
+          vars: {
+            pedido_id: order.id.slice(0, 8).toUpperCase(),
+            cliente_nome: display_name,
+            cliente_whatsapp: whatsapp ? `+${whatsapp}` : "N/A",
+            licenca: license_key,
+            custo: formatBRL(price_cents),
+            canal,
+            prazo: mapPackToDuration(pack_id),
+            saldo: saldoStr,
+          },
+        });
+      } catch (e) {
+        console.warn("reseller whatsapp notify failed", e);
+      }
+    }
+
     return json({
       ok: true,
       order_id: order.id,
