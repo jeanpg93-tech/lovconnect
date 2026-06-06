@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
           }
 
           // Notifica o revendedor sobre a ativação do painel via WhatsApp
-          triggerWhatsAppNotify({
+          await triggerWhatsAppNotify({
             event_key: "panel_unlocked",
             reseller_id: actPay.reseller_id,
             vars: {
@@ -396,7 +396,7 @@ Deno.serve(async (req) => {
         }).eq("id", intent.id);
 
         // Notifica o revendedor sobre a recarga confirmada via WhatsApp
-        triggerWhatsAppNotify({
+        await triggerWhatsAppNotify({
           event_key: "recharge_confirmed",
           reseller_id: intent.reseller_id,
           vars: {
@@ -617,7 +617,7 @@ Deno.serve(async (req) => {
               });
 
               // Notifica o revendedor sobre o pacote confirmado via WhatsApp
-              triggerWhatsAppNotify({
+              await triggerWhatsAppNotify({
                 event_key: "pack_purchase_confirmed",
                 reseller_id: (packPurchase as any).reseller_id,
                 vars: {
@@ -1207,6 +1207,8 @@ Deno.serve(async (req) => {
           display_name: storeOrder.buyer_name,
           whatsapp: storeOrder.buyer_whatsapp ?? null,
           received_cents: Number(storeOrder.price_cents) || 0,
+          storefront_order_id: storeOrder.id,
+          storefront_short_code: storeOrder.short_code ?? null,
           billing_mode: (resellerCfg as any)?.billing_mode ?? "normal",
           delivery_source: deliveryFromPack
             ? (usedPack ? "pack" : "wallet_fallback")
