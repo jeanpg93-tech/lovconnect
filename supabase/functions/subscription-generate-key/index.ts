@@ -36,6 +36,33 @@ function packToDays(t: string): number {
   }
 }
 
+function mapLicenseTypeToDuration(type: string): string {
+  switch (type) {
+    case "1d": return "1 Dia";
+    case "7d": return "7 Dias";
+    case "30d": return "30 Dias";
+    case "lifetime": return "Vitalício";
+    default: return type;
+  }
+}
+
+async function triggerWhatsAppNotify(supabaseUrl: string, serviceKey: string, payload: any) {
+  try {
+    const res = await fetch(`${supabaseUrl}/functions/v1/system-whatsapp-notify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ mode: "auto", ...payload }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || data?.ok === false) console.warn("system-whatsapp-notify failed", res.status, data);
+  } catch (e) {
+    console.warn("system-whatsapp-notify invoke failed", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -49,7 +76,8 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, anon, {
       global: { headers: { Authorization: authHeader } },
     });
-    const svc = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const svc = createClient(supabaseUrl, serviceKey);
 
     const token = authHeader.replace(/^Bearer\s+/i, "");
     const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
@@ -298,6 +326,18 @@ Deno.serve(async (req) => {
           },
         }),
       }).catch((e) => console.warn("evolution-send-sale failed", e));
+
+      await triggerWhatsAppNotify(supabaseUrl, serviceKey, {
+        event_key: "reseller_sale_subscription",
+        reseller_id,
+        vars: {
+          pedido_id: order.id.slice(0, 8).toUpperCase(),
+          cliente_nome: display_name,
+          cliente_whatsapp: whatsapp ? `+${whatsapp}` : "N/A",
+          licenca: license_key,
+          prazo: mapLicenseTypeToDuration(type),
+        },
+      });
     }
 
     return json({
