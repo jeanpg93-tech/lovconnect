@@ -333,9 +333,14 @@ export default function PublicStorefront() {
           return;
         }
         const o = (data as any).order;
-        // Pedidos finais (refunded/failed/expirado/cancelado) sem chave não precisam reabrir a UI.
-        if (["failed", "refunded", "cancelado", "expirado"].includes(o.status) && !o.license_key) {
-          persistOrder(null);
+        // Só reabrimos a UI se o pedido já foi concluído e há chave/invite
+        // para mostrar. Pedidos ainda 'pending' precisam do QR/copia-e-cola
+        // original (que não retornamos por status), então deixamos o cliente
+        // refazer ou cancelar manualmente.
+        if (o.status !== "completed" || (!o.license_key && !o.invite_link)) {
+          if (["failed", "refunded", "cancelado", "expirado"].includes(o.status)) {
+            persistOrder(null);
+          }
           return;
         }
         setOrder({
