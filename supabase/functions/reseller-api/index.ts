@@ -507,6 +507,8 @@ Deno.serve(async (req) => {
       status: "completed", license_key, provider_response: providerData,
       notes: JSON.stringify({
         source: "api",
+        display_name: display_name || null,
+        whatsapp: whatsapp || null,
         billing_mode: (reseller as any).billing_mode ?? "normal",
         delivery_source: deliveryFromPack ? (usedPack ? "pack" : "wallet_fallback") : "wallet",
         fallback_from_pack: fallbackFromPack,
