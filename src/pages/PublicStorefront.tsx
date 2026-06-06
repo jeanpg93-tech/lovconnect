@@ -206,6 +206,20 @@ export default function PublicStorefront() {
   const [securityNoticeOpen, setSecurityConfirmOpen] = useState(false);
   const pollRef = useRef<number | null>(null);
 
+  // Chave para guardar o pedido em andamento (ou recém-concluído) por loja.
+  // Sem isso, se o cliente fechar a aba após pagar o PIX (caso comum quando
+  // ele paga pelo app do banco em outro device), a tela com a chave não
+  // aparece quando ele volta — e revendedores sem WhatsApp configurado não
+  // têm como entregar a licença automaticamente.
+  const storageKey = slug ? `storefront_order:${slug}` : null;
+  const persistOrder = (id: string | null) => {
+    if (!storageKey) return;
+    try {
+      if (id) localStorage.setItem(storageKey, id);
+      else localStorage.removeItem(storageKey);
+    } catch { /* ignore quota / private mode */ }
+  };
+
   // Tick a cada segundo enquanto há pedido pendente, para o cronômetro de expiração do PIX.
   useEffect(() => {
     if (!order?.expires_at || orderStatus !== "pending") return;
@@ -302,6 +316,52 @@ export default function PublicStorefront() {
     })();
   }, [slug]);
 
+  // Restaurar pedido salvo localmente (caso o cliente tenha fechado/recarregado a aba).
+  useEffect(() => {
+    if (!storageKey) return;
+    let savedId: string | null = null;
+    try { savedId = localStorage.getItem(storageKey); } catch { /* ignore */ }
+    if (!savedId || order?.id) return;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("storefront-order-status", {
+          method: "GET",
+          headers: { "x-query-order-id": savedId } as any,
+        });
+        if (error || (data as any)?.error || !(data as any)?.order) {
+          persistOrder(null);
+          return;
+        }
+        const o = (data as any).order;
+        // Só reabrimos a UI se o pedido já foi concluído e há chave/invite
+        // para mostrar. Pedidos ainda 'pending' precisam do QR/copia-e-cola
+        // original (que não retornamos por status), então deixamos o cliente
+        // refazer ou cancelar manualmente.
+        if (o.status !== "completed" || (!o.license_key && !o.invite_link)) {
+          if (["failed", "refunded", "cancelado", "expirado"].includes(o.status)) {
+            persistOrder(null);
+          }
+          return;
+        }
+        setOrder({
+          id: o.id,
+          short_code: o.short_code,
+          amount_cents: o.price_cents ?? 0,
+          qr_code_base64: "",
+          copy_paste: "",
+          product_type: o.product_type,
+          credit_amount: o.credit_amount,
+          expires_at: o.expires_at,
+        } as any);
+        setOrderStatus(o.status);
+        if (o.license_key) setLicenseKey(o.license_key);
+        if (o.invite_link) setInviteLink(o.invite_link);
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, [storageKey]);
+
   useEffect(() => {
     if (!order?.id) return;
     const tick = async () => {
@@ -394,6 +454,7 @@ export default function PublicStorefront() {
         setOrder({ id: data.order_id, amount_cents: 0, qr_code_base64: "", copy_paste: "" } as any);
         setOrderStatus("completed");
         setLicenseKey(data.license_key ?? null);
+        persistOrder(data.order_id ?? null);
         return;
       }
       const { data, error } = await supabase.functions.invoke("storefront-create-order", {
@@ -411,6 +472,7 @@ export default function PublicStorefront() {
       }
       setOrder(data);
       setOrderStatus("pending");
+      persistOrder(data?.id ?? null);
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao processar pedido");
     } finally {
@@ -426,6 +488,7 @@ export default function PublicStorefront() {
     setSelRec(null);
     setBuyerName("");
     setBuyerWa("");
+    persistOrder(null);
   };
 
   const formatBRL = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
