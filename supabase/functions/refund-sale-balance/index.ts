@@ -84,6 +84,44 @@ Deno.serve(async (req) => {
     ? Number(sale.cost_cents ?? 0)
     : Number(sale.price_cents ?? 0);
 
+  // Detecta se essa venda foi paga via PACK (consume no pack ledger),
+  // não via saldo em dinheiro. Nesse caso o estorno deve devolver
+  // 1 crédito do pack, não cents na carteira.
+  const { data: packConsume } = await svc
+    .from("reseller_pack_ledger")
+    .select("id, kind")
+    .eq("order_id", sale.id)
+    .in("kind", ["consume", "sale_consume"])
+    .limit(1)
+    .maybeSingle();
+
+  const { data: packRefundExisting } = await svc
+    .from("reseller_pack_ledger")
+    .select("id")
+    .eq("order_id", sale.id)
+    .eq("kind", "sale_refund")
+    .limit(1)
+    .maybeSingle();
+
+  if (packConsume && !packRefundExisting) {
+    const descPack = sale_type === "storefront"
+      ? `Estorno venda Loja #${sale.short_code ?? sale.id}`
+      : `Estorno licença ${sale.license_key ?? sale.id}`;
+    const { error: pErr } = await svc.rpc("pack_refund_credit", {
+      _reseller_id: reseller.id,
+      _order_id: sale.id,
+      _description: descPack,
+    });
+    if (pErr) return json({ error: pErr.message }, 500);
+
+    await svc.from(table).update({
+      cancellation_status: "balance_refunded",
+      balance_refunded_at: new Date().toISOString(),
+      status: "reembolsado",
+    }).eq("id", sale.id);
+    return json({ ok: true, refunded_pack_credits: 1 });
+  }
+
   if (!amount || amount <= 0) {
     // Mesmo sem valor, fecha o ciclo (nada a creditar).
     await svc.from(table).update({
