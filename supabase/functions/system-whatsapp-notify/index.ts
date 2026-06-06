@@ -251,6 +251,22 @@ Deno.serve(async (req) => {
         ...vars,
       };
       const message = render(ev.template, merged);
+      const dedupeToken = String(merged.pedido_id ?? "").replace(/[^a-zA-Z0-9_-]/g, "");
+      if (event_key.startsWith("reseller_sale") && finalResellerId && dedupeToken) {
+        const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        const { data: duplicate } = await svc
+          .from("system_whatsapp_log")
+          .select("id, status")
+          .eq("event_key", event_key)
+          .eq("reseller_id", finalResellerId)
+          .gte("created_at", since)
+          .ilike("message", `%${dedupeToken}%`)
+          .in("status", ["queued", "sent", "delivered", "read"])
+          .limit(1);
+        if (duplicate && duplicate.length > 0) {
+          return json({ ok: true, skipped: "duplicate_sale_notification", log_id: duplicate[0].id });
+        }
+      }
       const res = await sendOne({ kind: "auto", eventKey: event_key, resellerId: finalResellerId, toRaw: to, message });
       return json(res);
     }
