@@ -391,6 +391,11 @@ Deno.serve(async (req) => {
       price_cents,
       status: "pending",
       api_key_id: keyRow.id,
+      notes: JSON.stringify({
+        source: "api",
+        display_name: display_name || null,
+        whatsapp: whatsapp || null,
+      }),
     }).select().single();
     if (ordErr || !order) {
       await logUsage(500, { error_message: "Falha pedido" });
