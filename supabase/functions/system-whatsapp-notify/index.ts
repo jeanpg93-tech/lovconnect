@@ -141,29 +141,27 @@ Deno.serve(async (req) => {
       }).select("id").single();
 
       const logId = row?.id;
-      const sendTask = (async () => {
-        let r = await evoFetch("/send/text", {
+      let r = await evoFetch("/send/text", {
+        method: "POST",
+        body: JSON.stringify({ number: to, text: finalText }),
+      }, instanceToken);
+      if (!r.ok) {
+        console.warn("[system-whatsapp-notify] /send/text with instance token failed", r.status, r.data);
+        r = await evoFetch("/send/text", {
           method: "POST",
           body: JSON.stringify({ number: to, text: finalText }),
-        }, instanceToken);
-        if (!r.ok) {
-          r = await evoFetch("/send/text", {
-            method: "POST",
-            body: JSON.stringify({ number: to, text: finalText }),
-          }, EVO_KEY);
-        }
-        const evoMsgId = r.data?.key?.id ?? r.data?.data?.key?.id ?? null;
-        if (logId) {
-          await svc.from("system_whatsapp_log").update({
-            status: r.ok ? "sent" : "error",
-            error_reason: r.ok ? null : JSON.stringify(r.data).slice(0, 500),
-            evolution_message_id: evoMsgId,
-            sent_at: r.ok ? new Date().toISOString() : null,
-          }).eq("id", logId);
-        }
-      })();
-      (globalThis as any).EdgeRuntime?.waitUntil?.(sendTask);
-      return { ok: true, queued: true, log_id: logId };
+        }, EVO_KEY);
+      }
+      const evoMsgId = r.data?.key?.id ?? r.data?.data?.key?.id ?? null;
+      if (logId) {
+        await svc.from("system_whatsapp_log").update({
+          status: r.ok ? "sent" : "error",
+          error_reason: r.ok ? null : JSON.stringify(r.data).slice(0, 500),
+          evolution_message_id: evoMsgId,
+          sent_at: r.ok ? new Date().toISOString() : null,
+        }).eq("id", logId);
+      }
+      return { ok: r.ok, queued: false, sent: r.ok, log_id: logId, error: r.ok ? undefined : "send_failed" };
     }
 
     if (mode === "auto") {
