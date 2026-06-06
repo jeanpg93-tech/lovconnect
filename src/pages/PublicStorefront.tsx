@@ -206,6 +206,20 @@ export default function PublicStorefront() {
   const [securityNoticeOpen, setSecurityConfirmOpen] = useState(false);
   const pollRef = useRef<number | null>(null);
 
+  // Chave para guardar o pedido em andamento (ou recém-concluído) por loja.
+  // Sem isso, se o cliente fechar a aba após pagar o PIX (caso comum quando
+  // ele paga pelo app do banco em outro device), a tela com a chave não
+  // aparece quando ele volta — e revendedores sem WhatsApp configurado não
+  // têm como entregar a licença automaticamente.
+  const storageKey = slug ? `storefront_order:${slug}` : null;
+  const persistOrder = (id: string | null) => {
+    if (!storageKey) return;
+    try {
+      if (id) localStorage.setItem(storageKey, id);
+      else localStorage.removeItem(storageKey);
+    } catch { /* ignore quota / private mode */ }
+  };
+
   // Tick a cada segundo enquanto há pedido pendente, para o cronômetro de expiração do PIX.
   useEffect(() => {
     if (!order?.expires_at || orderStatus !== "pending") return;
@@ -411,6 +425,7 @@ export default function PublicStorefront() {
       }
       setOrder(data);
       setOrderStatus("pending");
+      persistOrder(data?.id ?? null);
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao processar pedido");
     } finally {
@@ -426,6 +441,7 @@ export default function PublicStorefront() {
     setSelRec(null);
     setBuyerName("");
     setBuyerWa("");
+    persistOrder(null);
   };
 
   const formatBRL = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
