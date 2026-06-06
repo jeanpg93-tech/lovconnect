@@ -13,7 +13,13 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const slug = url.searchParams.get("slug") || req.headers.get("x-query-slug");
+    let slug = url.searchParams.get("slug") || req.headers.get("x-query-slug");
+    if (!slug && (req.method === "POST" || req.method === "PUT")) {
+      try {
+        const body = await req.json();
+        slug = body?.slug ?? null;
+      } catch (_) { /* ignore */ }
+    }
     if (!slug) {
       return new Response(JSON.stringify({ error: "missing slug" }), {
         status: 400,
