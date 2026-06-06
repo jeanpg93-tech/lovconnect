@@ -50,7 +50,7 @@ function mapLicenseTypeToDuration(type: string, packType: string): string {
 
 async function triggerWhatsAppNotify(supabaseUrl: string, serviceKey: string, payload: any) {
   try {
-    await fetch(`${supabaseUrl}/functions/v1/system-whatsapp-notify`, {
+    const res = await fetch(`${supabaseUrl}/functions/v1/system-whatsapp-notify`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -58,6 +58,8 @@ async function triggerWhatsAppNotify(supabaseUrl: string, serviceKey: string, pa
       },
       body: JSON.stringify({ mode: "auto", ...payload }),
     });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || data?.ok === false) console.warn("system-whatsapp-notify failed", res.status, data);
   } catch (e) {
     console.warn("system-whatsapp-notify invoke failed", e);
   }
@@ -356,7 +358,7 @@ Deno.serve(async (req) => {
     // Notifica o REVENDEDOR via WhatsApp (system-whatsapp-notify) sobre a venda do Pack
     if (!isTrial && license_key) {
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      triggerWhatsAppNotify(supabaseUrl, serviceKey, {
+      await triggerWhatsAppNotify(supabaseUrl, serviceKey, {
         event_key: "reseller_sale_pack",
         reseller_id,
         vars: {
