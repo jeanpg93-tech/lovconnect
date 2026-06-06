@@ -123,6 +123,52 @@ async function triggerWhatsAppNotify(payload: any) {
   }
 }
 
+async function notifyTelegramStorefrontLicenseSale(admin: any, storeOrder: any, licenseKey: string | null, costCents: number) {
+  try {
+    const { data: settings } = await admin
+      .from("telegram_settings")
+      .select("chat_id, notify_sales")
+      .eq("id", 1)
+      .maybeSingle();
+    if (!settings?.chat_id || settings.notify_sales === false) return;
+
+    const { data: existing } = await admin
+      .from("telegram_outbox")
+      .select("id")
+      .eq("reference_kind", "storefront_license_sale")
+      .eq("reference_id", storeOrder.id)
+      .limit(1);
+    if (existing && existing.length > 0) return;
+
+    const { data: reseller } = await admin
+      .from("resellers")
+      .select("display_name")
+      .eq("id", storeOrder.reseller_id)
+      .maybeSingle();
+
+    const amountBRL = "R$ " + (Number(costCents || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const text =
+      "🛒 <b>Venda na Loja Pública</b>\n" +
+      "👨‍💼 Revendedor: " + (reseller?.display_name ?? "—") + "\n" +
+      "💵 Valor: " + amountBRL + "\n" +
+      "🧾 Pedido (loja): <code>#" + (storeOrder.short_code ?? storeOrder.id.slice(0, 8)) + "</code>\n" +
+      "🆔 ID completo: <code>" + storeOrder.id + "</code>\n" +
+      "📦 Produto: Licença " + (storeOrder.license_type ?? "—") + "\n" +
+      "🔑 Chave: <code>" + (licenseKey ?? "—") + "</code>\n" +
+      "👤 Cliente: " + (storeOrder.buyer_name ?? "—") + " (" + (storeOrder.buyer_whatsapp ?? "—") + ")\n" +
+      "🏷 Canal: Loja Pública\n" +
+      "💳 Pagamento: Saldo da carteira (PIX " + (storeOrder.provider ?? "misticpay") + ")";
+
+    await admin.from("telegram_outbox").insert({
+      text,
+      reference_kind: "storefront_license_sale",
+      reference_id: storeOrder.id,
+    });
+  } catch (e) {
+    console.warn("telegram storefront license notify failed", e);
+  }
+}
+
 /**
  * Cria o pedido de recargas no provedor externo (mesma API usada pelo painel manual),
  * registra em reseller_credit_purchases e devolve o provider_pedido_id para o link do cliente.
@@ -219,7 +265,7 @@ Deno.serve(async (req) => {
           }
 
           // Notifica o revendedor sobre a ativação do painel via WhatsApp
-          triggerWhatsAppNotify({
+          await triggerWhatsAppNotify({
             event_key: "panel_unlocked",
             reseller_id: actPay.reseller_id,
             vars: {
@@ -396,7 +442,7 @@ Deno.serve(async (req) => {
         }).eq("id", intent.id);
 
         // Notifica o revendedor sobre a recarga confirmada via WhatsApp
-        triggerWhatsAppNotify({
+        await triggerWhatsAppNotify({
           event_key: "recharge_confirmed",
           reseller_id: intent.reseller_id,
           vars: {
@@ -617,7 +663,7 @@ Deno.serve(async (req) => {
               });
 
               // Notifica o revendedor sobre o pacote confirmado via WhatsApp
-              triggerWhatsAppNotify({
+              await triggerWhatsAppNotify({
                 event_key: "pack_purchase_confirmed",
                 reseller_id: (packPurchase as any).reseller_id,
                 vars: {
@@ -1207,6 +1253,8 @@ Deno.serve(async (req) => {
           display_name: storeOrder.buyer_name,
           whatsapp: storeOrder.buyer_whatsapp ?? null,
           received_cents: Number(storeOrder.price_cents) || 0,
+          storefront_order_id: storeOrder.id,
+          storefront_short_code: storeOrder.short_code ?? null,
           billing_mode: (resellerCfg as any)?.billing_mode ?? "normal",
           delivery_source: deliveryFromPack
             ? (usedPack ? "pack" : "wallet_fallback")
@@ -1217,6 +1265,8 @@ Deno.serve(async (req) => {
     } catch (e) {
       console.warn("orders insert (storefront) failed", e);
     }
+
+    await notifyTelegramStorefrontLicenseSale(admin, storeOrder, license_key, cost_cents);
 
     // Disparo WhatsApp para o revendedor (Notificação de Venda na Loja)
     if (license_key && storeOrder.reseller_id) {
