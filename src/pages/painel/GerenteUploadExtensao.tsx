@@ -22,6 +22,7 @@ import {
   GitCommit,
 } from "lucide-react";
 import { toast } from "sonner";
+import * as tus from "tus-js-client";
 
 type Ext = {
   id: string;
@@ -179,13 +180,39 @@ export default function GerenteUploadExtensao() {
         .replace(/[^a-zA-Z0-9._-]+/g, "_")
         .replace(/_+/g, "_");
       const path = `${ext.id}/${newVersion}-${safeName}`;
-      const { error: upErr } = await supabase.storage
-        .from("extension-files")
-        .upload(path, file, {
-          upsert: true,
-          contentType: file.type || "application/octet-stream",
+      // Use TUS resumable upload — more reliable for files > 6MB and survives
+      // CORS/timeout quirks that break a single multipart POST.
+      const { data: sess } = await supabase.auth.getSession();
+      const accessToken = sess.session?.access_token;
+      if (!accessToken) throw new Error("Sessão expirada, faça login novamente");
+      const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+      const anonKey = (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      await new Promise<void>((resolve, reject) => {
+        const upload = new tus.Upload(file, {
+          endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
+          retryDelays: [0, 1000, 3000, 5000, 10000],
+          headers: {
+            authorization: `Bearer ${accessToken}`,
+            apikey: anonKey,
+            "x-upsert": "true",
+          },
+          uploadDataDuringCreation: true,
+          removeFingerprintOnSuccess: true,
+          chunkSize: 6 * 1024 * 1024,
+          metadata: {
+            bucketName: "extension-files",
+            objectName: path,
+            contentType: file.type || "application/octet-stream",
+            cacheControl: "3600",
+          },
+          onError: (err) => reject(err),
+          onSuccess: () => resolve(),
         });
-      if (upErr) throw upErr;
+        upload.findPreviousUploads().then((prev) => {
+          if (prev.length > 0) upload.resumeFromPreviousUpload(prev[0]);
+          upload.start();
+        });
+      });
 
       const { error: vErr } = await supabase.from("extension_versions").insert({
         extension_id: ext.id,
