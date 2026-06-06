@@ -408,6 +408,7 @@ export default function PublicStorefront() {
         setOrder({ id: data.order_id, amount_cents: 0, qr_code_base64: "", copy_paste: "" } as any);
         setOrderStatus("completed");
         setLicenseKey(data.license_key ?? null);
+        persistOrder(data.order_id ?? null);
         return;
       }
       const { data, error } = await supabase.functions.invoke("storefront-create-order", {
