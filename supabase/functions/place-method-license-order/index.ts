@@ -41,6 +41,39 @@ function packToLovaxDays(pack: string): number {
   }
 }
 
+function mapPackToDuration(pack: string): string {
+  switch (pack) {
+    case "1d": return "1 Dia";
+    case "7d": return "7 Dias";
+    case "15d": return "15 Dias";
+    case "30d": return "30 Dias";
+    case "90d": return "90 Dias";
+    case "365d": return "365 Dias";
+    case "lifetime": return "Vitalício";
+    default: return pack;
+  }
+}
+
+function formatBRL(cents: number): string {
+  const v = (Number(cents) || 0) / 100;
+  return v.toFixed(2).replace(".", ",");
+}
+
+async function triggerWhatsAppNotify(supabaseUrl: string, serviceKey: string, payload: any) {
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/system-whatsapp-notify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ mode: "auto", ...payload }),
+    });
+  } catch (e) {
+    console.warn("system-whatsapp-notify invoke failed", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
