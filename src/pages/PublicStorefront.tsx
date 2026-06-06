@@ -166,8 +166,7 @@ export default function PublicStorefront() {
       }
       if (!slug) throw new Error("Extensão indisponível");
       const { data: funcData, error: funcErr } = await supabase.functions.invoke("public-extension-download", {
-        method: "GET",
-        headers: { "x-query-slug": slug } as any
+        body: { slug },
       });
       if (funcErr || !funcData?.url) throw new Error(funcErr?.message || "Falha ao gerar link");
       const a = document.createElement("a");
