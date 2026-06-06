@@ -1266,7 +1266,11 @@ Deno.serve(async (req) => {
       console.warn("orders insert (storefront) failed", e);
     }
 
-    await notifyTelegramStorefrontLicenseSale(admin, storeOrder, license_key, cost_cents);
+    // Se a loja usou Pack, o trigger do ledger do Pack já cria a notificação única
+    // com os dados da venda. Não envie uma segunda notificação de "saldo/carteira".
+    if (!usedPack) {
+      await notifyTelegramStorefrontLicenseSale(admin, storeOrder, license_key, cost_cents);
+    }
 
     // Disparo WhatsApp para o revendedor (Notificação de Venda na Loja)
     if (license_key && storeOrder.reseller_id) {
