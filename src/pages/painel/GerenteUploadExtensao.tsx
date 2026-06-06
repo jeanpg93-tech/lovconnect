@@ -260,7 +260,7 @@ export default function GerenteUploadExtensao() {
               <Package className="h-5 w-5" />
             </div>
             <div>
-              <div className="font-display text-lg font-semibold">{ext?.name}</div>
+              <div className="font-display text-lg font-semibold">LovConnect {ext?.version}</div>
               <div className="font-mono text-[11px] text-muted-foreground">
                 Atual: v{ext?.version}
               </div>
