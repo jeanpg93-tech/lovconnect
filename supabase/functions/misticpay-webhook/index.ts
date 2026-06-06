@@ -123,6 +123,52 @@ async function triggerWhatsAppNotify(payload: any) {
   }
 }
 
+async function notifyTelegramStorefrontLicenseSale(admin: any, storeOrder: any, licenseKey: string | null, costCents: number) {
+  try {
+    const { data: settings } = await admin
+      .from("telegram_settings")
+      .select("chat_id, notify_sales")
+      .eq("id", 1)
+      .maybeSingle();
+    if (!settings?.chat_id || settings.notify_sales === false) return;
+
+    const { data: existing } = await admin
+      .from("telegram_outbox")
+      .select("id")
+      .eq("reference_kind", "storefront_license_sale")
+      .eq("reference_id", storeOrder.id)
+      .limit(1);
+    if (existing && existing.length > 0) return;
+
+    const { data: reseller } = await admin
+      .from("resellers")
+      .select("display_name")
+      .eq("id", storeOrder.reseller_id)
+      .maybeSingle();
+
+    const amountBRL = "R$ " + (Number(costCents || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const text =
+      "🛒 <b>Venda na Loja Pública</b>\n" +
+      "👨‍💼 Revendedor: " + (reseller?.display_name ?? "—") + "\n" +
+      "💵 Valor: " + amountBRL + "\n" +
+      "🧾 Pedido (loja): <code>#" + (storeOrder.short_code ?? storeOrder.id.slice(0, 8)) + "</code>\n" +
+      "🆔 ID completo: <code>" + storeOrder.id + "</code>\n" +
+      "📦 Produto: Licença " + (storeOrder.license_type ?? "—") + "\n" +
+      "🔑 Chave: <code>" + (licenseKey ?? "—") + "</code>\n" +
+      "👤 Cliente: " + (storeOrder.buyer_name ?? "—") + " (" + (storeOrder.buyer_whatsapp ?? "—") + ")\n" +
+      "🏷 Canal: Loja Pública\n" +
+      "💳 Pagamento: Saldo da carteira (PIX " + (storeOrder.provider ?? "misticpay") + ")";
+
+    await admin.from("telegram_outbox").insert({
+      text,
+      reference_kind: "storefront_license_sale",
+      reference_id: storeOrder.id,
+    });
+  } catch (e) {
+    console.warn("telegram storefront license notify failed", e);
+  }
+}
+
 /**
  * Cria o pedido de recargas no provedor externo (mesma API usada pelo painel manual),
  * registra em reseller_credit_purchases e devolve o provider_pedido_id para o link do cliente.
