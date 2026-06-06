@@ -316,6 +316,47 @@ export default function PublicStorefront() {
     })();
   }, [slug]);
 
+  // Restaurar pedido salvo localmente (caso o cliente tenha fechado/recarregado a aba).
+  useEffect(() => {
+    if (!storageKey) return;
+    let savedId: string | null = null;
+    try { savedId = localStorage.getItem(storageKey); } catch { /* ignore */ }
+    if (!savedId || order?.id) return;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("storefront-order-status", {
+          method: "GET",
+          headers: { "x-query-order-id": savedId } as any,
+        });
+        if (error || (data as any)?.error || !(data as any)?.order) {
+          persistOrder(null);
+          return;
+        }
+        const o = (data as any).order;
+        // Pedidos finais (refunded/failed/expirado/cancelado) sem chave não precisam reabrir a UI.
+        if (["failed", "refunded", "cancelado", "expirado"].includes(o.status) && !o.license_key) {
+          persistOrder(null);
+          return;
+        }
+        setOrder({
+          id: o.id,
+          short_code: o.short_code,
+          amount_cents: o.price_cents ?? 0,
+          qr_code_base64: "",
+          copy_paste: "",
+          product_type: o.product_type,
+          credit_amount: o.credit_amount,
+          expires_at: o.expires_at,
+        } as any);
+        setOrderStatus(o.status);
+        if (o.license_key) setLicenseKey(o.license_key);
+        if (o.invite_link) setInviteLink(o.invite_link);
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, [storageKey]);
+
   useEffect(() => {
     if (!order?.id) return;
     const tick = async () => {
