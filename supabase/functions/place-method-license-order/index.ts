@@ -41,6 +41,39 @@ function packToLovaxDays(pack: string): number {
   }
 }
 
+function mapPackToDuration(pack: string): string {
+  switch (pack) {
+    case "1d": return "1 Dia";
+    case "7d": return "7 Dias";
+    case "15d": return "15 Dias";
+    case "30d": return "30 Dias";
+    case "90d": return "90 Dias";
+    case "365d": return "365 Dias";
+    case "lifetime": return "Vitalício";
+    default: return pack;
+  }
+}
+
+function formatBRL(cents: number): string {
+  const v = (Number(cents) || 0) / 100;
+  return v.toFixed(2).replace(".", ",");
+}
+
+async function triggerWhatsAppNotify(supabaseUrl: string, serviceKey: string, payload: any) {
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/system-whatsapp-notify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ mode: "auto", ...payload }),
+    });
+  } catch (e) {
+    console.warn("system-whatsapp-notify invoke failed", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -423,6 +456,46 @@ Deno.serve(async (req) => {
           },
         }),
       }).catch((e) => console.warn("evolution-send-sale failed", e));
+    }
+
+    // Notifica o REVENDEDOR via WhatsApp (system-whatsapp-notify) sobre a venda manual
+    if (license_key && !isSubscription) {
+      try {
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const eventKey = usedPack ? "reseller_sale_pack" : "reseller_sale_manual";
+        const canal = usedPack
+          ? "Pack (Painel)"
+          : (fallbackFromPack ? "Manual (Saldo - Pack esgotado)" : "Manual (Painel)");
+
+        // saldo restante (carteira) — informativo
+        let saldoStr = "";
+        try {
+          const { data: balRow } = await svc
+            .from("reseller_balances")
+            .select("balance_cents")
+            .eq("reseller_id", reseller_id)
+            .maybeSingle();
+          const bal = Number((balRow as any)?.balance_cents ?? 0);
+          saldoStr = formatBRL(bal);
+        } catch (_e) { /* opcional */ }
+
+        triggerWhatsAppNotify(supabaseUrl, serviceKey, {
+          event_key: eventKey,
+          reseller_id,
+          vars: {
+            pedido_id: order.id.slice(0, 8).toUpperCase(),
+            cliente_nome: display_name,
+            cliente_whatsapp: whatsapp ? `+${whatsapp}` : "N/A",
+            licenca: license_key,
+            custo: formatBRL(price_cents),
+            canal,
+            prazo: mapPackToDuration(pack_id),
+            saldo: saldoStr,
+          },
+        });
+      } catch (e) {
+        console.warn("reseller whatsapp notify failed", e);
+      }
     }
 
     return json({
