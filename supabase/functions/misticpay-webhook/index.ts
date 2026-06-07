@@ -77,16 +77,17 @@ function mapTypeToProviderBody(type: string): Record<string, unknown> {
 }
 
 function mapLicenseTypeToDuration(type: string): string {
-  switch (type) {
-    case "pro_1d": return "1 Dia";
-    case "pro_7d": return "7 Dias";
-    case "pro_15d": return "15 Dias";
-    case "pro_30d": return "30 Dias";
-    case "lifetime": return "Vitalício";
-    case "trial": return "Teste (15 min)";
-    case "credits": return "Créditos";
-    default: return "30 Dias";
+  // Normaliza variantes vindas da loja: "1d", "pro_1d", "flow_pro_1d", etc.
+  const t = String(type ?? "").toLowerCase().trim();
+  if (t === "lifetime" || t.endsWith("_lifetime")) return "Vitalício";
+  if (t === "trial" || t.endsWith("_trial")) return "Teste (15 min)";
+  if (t === "credits") return "Créditos";
+  const m = t.match(/(\d+)\s*d$/);
+  if (m) {
+    const n = Number(m[1]);
+    return `${n} ${n === 1 ? "Dia" : "Dias"}`;
   }
+  return t || "—";
 }
 
 async function triggerReleasePending(orderIds: string[]) {
