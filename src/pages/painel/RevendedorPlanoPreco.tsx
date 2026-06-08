@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, CalendarClock, Info, Sparkles } from "lucide-react";
+import { Loader2, Save, CalendarClock, Sparkles, Store } from "lucide-react";
 import { toast } from "sonner";
 import GerarVendaPlanoDialog from "@/components/painel/planos/GerarVendaPlanoDialog";
 
@@ -17,6 +17,7 @@ type RechargePlan = {
   credits_per_day: number;
   total_credits_cap: number;
   delivery_hour: number;
+  base_cost_cents: number;
   is_active: boolean;
   bot_owner_email: string;
 };
@@ -25,9 +26,9 @@ type PriceRow = {
   id?: string;
   reseller_id: string;
   plan_id: string;
-  cost_cents: number;
   sale_price_cents: number | null;
   is_active: boolean;
+  show_on_storefront: boolean;
 };
 
 const fmtBRL = (c: number) =>
@@ -47,6 +48,7 @@ export default function RevendedorPlanoPreco() {
   const [price, setPrice] = useState<PriceRow | null>(null);
   const [saleInput, setSaleInput] = useState<string>("");
   const [active, setActive] = useState<boolean>(true);
+  const [showStore, setShowStore] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [vendaOpen, setVendaOpen] = useState(false);
@@ -68,7 +70,7 @@ export default function RevendedorPlanoPreco() {
 
       const { data: planRows } = await supabase
         .from("recharge_plans")
-        .select("id,name,description,duration_days,credits_per_day,total_credits_cap,delivery_hour,is_active,bot_owner_email")
+        .select("id,name,description,duration_days,credits_per_day,total_credits_cap,delivery_hour,base_cost_cents,is_active,bot_owner_email")
         .eq("is_active", true)
         .order("created_at", { ascending: true })
         .limit(1);
@@ -88,9 +90,11 @@ export default function RevendedorPlanoPreco() {
           row?.sale_price_cents != null ? formatBRL(row.sale_price_cents) : "",
         );
         setActive(row?.is_active ?? true);
+        setShowStore(row?.show_on_storefront ?? false);
       } else {
         setPrice(null);
         setSaleInput("");
+        setShowStore(false);
       }
     } catch (e: any) {
       toast.error("Erro ao carregar", { description: e.message });
@@ -103,14 +107,14 @@ export default function RevendedorPlanoPreco() {
     load();
   }, []);
 
-  const cost = price?.cost_cents ?? null;
+  const cost = plan?.base_cost_cents ?? null;
   const saleCents = parseBRL(saleInput);
   const margin = useMemo(() => {
     if (cost == null || !saleCents) return null;
     return saleCents - cost;
   }, [cost, saleCents]);
 
-  const canSave = !!(price && (saleInput || active !== price.is_active));
+  const canSave = !!plan;
   const canSell =
     !!price &&
     !!price.sale_price_cents &&
@@ -118,17 +122,20 @@ export default function RevendedorPlanoPreco() {
     !!plan?.bot_owner_email;
 
   const save = async () => {
-    if (!price) return;
+    if (!plan || !resellerId) return;
     setSaving(true);
     try {
       const newSale = saleInput ? parseBRL(saleInput) : null;
+      const payload = {
+        reseller_id: resellerId,
+        plan_id: plan.id,
+        sale_price_cents: newSale,
+        is_active: active,
+        show_on_storefront: showStore && !!newSale && active,
+      };
       const { error } = await supabase
         .from("reseller_recharge_plan_prices")
-        .update({
-          sale_price_cents: newSale,
-          is_active: active,
-        })
-        .eq("id", price.id!);
+        .upsert(payload, { onConflict: "reseller_id,plan_id" });
       if (error) throw error;
       toast.success("Preço salvo");
       await load();
@@ -152,34 +159,6 @@ export default function RevendedorPlanoPreco() {
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
           Nenhum plano disponível no momento.
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!price) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarClock className="h-5 w-5 text-primary" />
-            {plan.name}
-          </CardTitle>
-          <CardDescription>{plan.description}</CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-amber-700 dark:text-amber-400 flex gap-3">
-            <Info className="h-5 w-5 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium">
-                Plano ainda não liberado para você.
-              </p>
-              <p className="text-xs mt-1">
-                O gerente precisa definir seu custo deste plano. Aguarde ou
-                entre em contato.
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     );
@@ -253,11 +232,29 @@ export default function RevendedorPlanoPreco() {
           <Switch checked={active} onCheckedChange={setActive} />
           <div>
             <p className="text-sm font-medium">
-              {active ? "Plano ativo na sua loja" : "Plano desativado"}
+              {active ? "Vender este plano" : "Plano desativado"}
             </p>
             <p className="text-xs text-muted-foreground">
-              Quando ativo, o plano aparece como opção em vendas manuais, na
-              sua loja pública e na API.
+              Quando ativo, o plano fica disponível para vendas manuais e via
+              API. A exibição na loja pública é controlada abaixo.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-3">
+          <Switch
+            checked={showStore}
+            onCheckedChange={setShowStore}
+            disabled={!active}
+          />
+          <div className="flex-1">
+            <p className="text-sm font-medium flex items-center gap-2">
+              <Store className="h-4 w-4 text-primary" />
+              {showStore && active ? "Visível na loja pública" : "Não aparece na loja pública"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Quando ativado, o plano aparece como opção de compra na sua loja
+              pública (PIX). Você pode vender manualmente mesmo sem exibir aqui.
             </p>
           </div>
         </div>
