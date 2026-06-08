@@ -47,7 +47,6 @@ export default function RevendedorPlanoPreco() {
   const [plan, setPlan] = useState<RechargePlan | null>(null);
   const [price, setPrice] = useState<PriceRow | null>(null);
   const [saleInput, setSaleInput] = useState<string>("");
-  const [active, setActive] = useState<boolean>(true);
   const [showStore, setShowStore] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -89,7 +88,6 @@ export default function RevendedorPlanoPreco() {
         setSaleInput(
           row?.sale_price_cents != null ? formatBRL(row.sale_price_cents) : "",
         );
-        setActive(row?.is_active ?? true);
         setShowStore(row?.show_on_storefront ?? false);
       } else {
         setPrice(null);
@@ -116,10 +114,7 @@ export default function RevendedorPlanoPreco() {
 
   const canSave = !!plan;
   const canSell =
-    !!price &&
-    !!price.sale_price_cents &&
-    price.is_active &&
-    !!plan?.bot_owner_email;
+    !!price && !!price.sale_price_cents && !!plan?.bot_owner_email;
 
   const save = async () => {
     if (!plan || !resellerId) return;
@@ -131,8 +126,8 @@ export default function RevendedorPlanoPreco() {
         plan_id: plan.id,
         cost_cents: plan.base_cost_cents,
         sale_price_cents: newSale,
-        is_active: active,
-        show_on_storefront: showStore && !!newSale && active,
+        is_active: !!newSale,
+        show_on_storefront: showStore && !!newSale,
       };
       const { error } = await supabase
         .from("reseller_recharge_plan_prices")
@@ -230,32 +225,20 @@ export default function RevendedorPlanoPreco() {
         </div>
 
         <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-3">
-          <Switch checked={active} onCheckedChange={setActive} />
-          <div>
-            <p className="text-sm font-medium">
-              {active ? "Vender este plano" : "Plano desativado"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Quando ativo, o plano fica disponível para vendas manuais e via
-              API. A exibição na loja pública é controlada abaixo.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-3">
           <Switch
             checked={showStore}
             onCheckedChange={setShowStore}
-            disabled={!active}
+            disabled={!saleCents}
           />
           <div className="flex-1">
             <p className="text-sm font-medium flex items-center gap-2">
               <Store className="h-4 w-4 text-primary" />
-              {showStore && active ? "Visível na loja pública" : "Não aparece na loja pública"}
+              {showStore && saleCents ? "Visível na loja pública" : "Não aparece na loja pública"}
             </p>
             <p className="text-xs text-muted-foreground">
               Quando ativado, o plano aparece como opção de compra na sua loja
-              pública (PIX). Você pode vender manualmente mesmo sem exibir aqui.
+              pública (PIX). Mesmo sem exibir aqui, você pode vender manualmente
+              ou via API — basta ter o preço definido acima.
             </p>
           </div>
         </div>
