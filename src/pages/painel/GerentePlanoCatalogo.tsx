@@ -54,12 +54,11 @@ export default function GerentePlanoCatalogo() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data: planRows } = await supabase
-        .from("recharge_plans")
-        .select("*")
-        .order("created_at", { ascending: true })
-        .limit(1);
-      const p = (planRows?.[0] ?? null) as RechargePlan | null;
+      const { data: planRows } = await supabase.rpc("gerente_list_recharge_plans" as any);
+      const arr = ((planRows as any[]) || []).slice().sort((a: any, b: any) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      const p = (arr[0] ?? null) as RechargePlan | null;
       setPlan(p);
       setPlanEdits({});
       setBaseCostInput(null);
