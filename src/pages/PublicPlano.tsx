@@ -647,3 +647,36 @@ function Row({ label, value, dark }: { label: string; value: string; dark?: bool
     </div>
   );
 }
+
+function TutorialBlock({ tutorial }: { tutorial?: Tutorial }) {
+  if (!tutorial?.media_url) return null;
+  const isVideo = tutorial.media_type === "video";
+  return (
+    <div className="relative rounded-xl border border-violet-500/30 bg-zinc-900/40 p-3 space-y-2">
+      <div className="flex items-center gap-2 text-xs font-semibold text-violet-200">
+        <HelpCircle className="h-3.5 w-3.5" />
+        {tutorial.title}
+      </div>
+      {tutorial.description && (
+        <p className="text-[11px] text-zinc-400 leading-relaxed">{tutorial.description}</p>
+      )}
+      <div className="overflow-hidden rounded-lg border border-zinc-800 bg-black">
+        {isVideo ? (
+          <video
+            src={tutorial.media_url}
+            controls
+            playsInline
+            className="w-full max-h-72 object-contain"
+          />
+        ) : (
+          <img
+            src={tutorial.media_url}
+            alt={tutorial.title}
+            loading="lazy"
+            className="w-full max-h-72 object-contain"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
