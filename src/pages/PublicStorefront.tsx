@@ -1168,9 +1168,11 @@ export default function PublicStorefront() {
                 </>
               ) : (
                 /* Catálogo de Recargas */
-                recharges.length === 0 && sellablePlans.length === 0 ? (
+                (rechargeMaintenance.enabled ? sellablePlans.length === 0 : (recharges.length === 0 && sellablePlans.length === 0)) ? (
                   <div className="text-center py-12 text-sm text-muted-foreground">
-                    Nenhuma opção de recargas disponível.
+                    {rechargeMaintenance.enabled
+                      ? rechargeMaintenance.message
+                      : "Nenhuma opção de recargas disponível."}
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2.5 max-w-xl mx-auto">
@@ -1270,7 +1272,18 @@ export default function PublicStorefront() {
                         ))}
                       </div>
                     )}
-                    {recharges.map((rec) => (
+                    {rechargeMaintenance.enabled && recharges.length > 0 && (
+                      <div
+                        className="rounded-2xl border bg-background/70 backdrop-blur p-4 text-center text-xs text-muted-foreground"
+                        style={{ borderColor: `${color}55` }}
+                      >
+                        <span className="font-black uppercase tracking-widest text-[10px] block mb-1" style={{ color }}>
+                          Recargas avulsas em manutenção
+                        </span>
+                        {rechargeMaintenance.message}
+                      </div>
+                    )}
+                    {!rechargeMaintenance.enabled && recharges.map((rec) => (
                       <button
                         key={rec.id}
                         onClick={() => setSelRec(rec.id)}
