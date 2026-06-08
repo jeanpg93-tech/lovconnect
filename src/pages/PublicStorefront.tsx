@@ -1148,7 +1148,7 @@ export default function PublicStorefront() {
                 </>
               ) : (
                 /* Catálogo de Recargas */
-                recharges.length === 0 ? (
+                recharges.length === 0 && sellablePlans.length === 0 ? (
                   <div className="text-center py-12 text-sm text-muted-foreground">
                     Nenhuma opção de recargas disponível.
                   </div>
