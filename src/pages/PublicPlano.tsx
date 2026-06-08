@@ -322,6 +322,8 @@ export default function PublicPlano() {
               </Button>
             </div>
 
+            <TutorialBlock tutorial={data.tutorials?.find((t) => t.slug === "add-owner-email")} />
+
             <div className="relative">
               <Label className="text-zinc-300">Nome do seu workspace</Label>
               <Input
@@ -334,6 +336,8 @@ export default function PublicPlano() {
                 Confira no Lovable, no canto superior esquerdo.
               </p>
             </div>
+
+            <TutorialBlock tutorial={data.tutorials?.find((t) => t.slug === "find-workspace-name")} />
 
             <div className="relative flex justify-between gap-2">
               <Button
@@ -358,7 +362,7 @@ export default function PublicPlano() {
           </div>
         )}
 
-        {/* ESTADO 2: AGUARDANDO CONFIRMAÇÃO */}
+        {/* ESTADO 2: AGUARDANDO VERIFICAÇÃO MANUAL DO GERENTE */}
         {status === "awaiting_confirm" && (
           <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-violet-400/50 via-fuchsia-400/20 to-violet-400/50 shadow-xl shadow-violet-900/20">
           <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] border border-violet-400/10 bg-zinc-950/85 backdrop-blur-xl p-5 space-y-4">
@@ -366,14 +370,25 @@ export default function PublicPlano() {
             <div className="relative flex items-center gap-3">
               <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/30">
                 <span className="absolute inset-0 rounded-lg bg-violet-400/30 blur-md animate-pulse" />
-                <PlayCircle className="relative h-5 w-5" />
+                <Clock className="relative h-5 w-5 animate-pulse" />
               </div>
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-violet-300">
-                  Etapa 2 de 2
+                  Quase lá!
                 </div>
-                <div className="text-base font-bold">Confira e confirme o início</div>
+                <div className="text-base font-bold">Aguardando nossa verificação</div>
               </div>
+            </div>
+
+            <div className="relative rounded-xl border border-violet-500/40 bg-violet-500/10 p-3 text-[13px] text-violet-100 leading-relaxed">
+              Recebemos sua confirmação! 🎉 Nossa equipe está verificando manualmente
+              se o email <code className="font-mono text-violet-200">{data.owner_email_required}</code> está
+              marcado como <strong>Owner</strong> no seu workspace
+              <code className="font-mono text-violet-200"> {data.workspace_name}</code>.
+              <br /><br />
+              Assim que confirmarmos, as entregas dos créditos começam{" "}
+              <strong>hoje mesmo às {String(data.delivery_hour).padStart(2, "0")}h (BRT)</strong>.
+              Você não precisa fazer nada agora — basta aguardar.
             </div>
 
             <div className="relative rounded-lg bg-zinc-900/60 border border-violet-400/20 p-3 space-y-2 text-sm shadow-inner shadow-violet-500/5">
@@ -381,30 +396,66 @@ export default function PublicPlano() {
               <Row label="Email Owner adicionado" value={data.owner_email_required} />
               <Row label="Créditos por dia" value={data.credits_per_day.toLocaleString("pt-BR")} />
               <Row label="Duração" value={`${data.duration_days} dias`} />
-              <Row label="Total no período" value={data.total_credits_cap.toLocaleString("pt-BR")} />
-              <Row label="Horário de entrega" value={`${String(data.delivery_hour).padStart(2, "0")}h (BRT)`} />
-              <Row label="Valor pago" value={fmtBRL(data.sale_price_cents)} />
             </div>
 
-            <div className="relative rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-[12px] text-amber-200 flex gap-2">
-              <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="relative flex justify-start gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCancelOpen(true)}
+                className="text-zinc-500 hover:text-rose-400"
+              >
+                Cancelar pedido
+              </Button>
+            </div>
+          </div>
+          </div>
+        )}
+
+        {/* ESTADO 2B: OWNER REJEITADO PELO GERENTE — cliente precisa corrigir */}
+        {status === "owner_rejected" && (
+          <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-rose-400/50 via-orange-400/20 to-rose-400/50 shadow-xl shadow-rose-900/20">
+          <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] border border-rose-400/10 bg-zinc-950/85 backdrop-blur-xl p-5 space-y-4">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-rose-500/20 blur-3xl animate-pulse" />
+            <div className="relative flex items-center gap-3">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-rose-500/20 text-rose-200 ring-1 ring-rose-400/30">
+                <span className="absolute inset-0 rounded-lg bg-rose-400/30 blur-md animate-pulse" />
+                <AlertCircle className="relative h-5 w-5" />
+              </div>
               <div>
-                <strong>Atenção:</strong> após confirmar o início, o pedido{" "}
-                <strong>não poderá mais ser cancelado nem reembolsado</strong>.
-                Confira tudo com cuidado antes de continuar.
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-rose-300">
+                  Ação necessária
+                </div>
+                <div className="text-base font-bold">Seu email ainda não está como Owner</div>
               </div>
             </div>
 
-            <div className="relative rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 text-[12px] text-zinc-400 flex gap-2">
-              <Clock className="h-4 w-4 shrink-0 mt-0.5 text-zinc-500" />
-              <div>
-                A primeira entrega pode levar até <strong>2 horas</strong> após
-                a confirmação. Se nada acontecer nesse prazo, o pedido será
-                cancelado e o valor reembolsado.
-              </div>
+            <div className="relative rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-[13px] text-rose-100 leading-relaxed">
+              Verificamos o workspace <code className="font-mono text-rose-200">{data.workspace_name}</code>{" "}
+              e o email <code className="font-mono text-rose-200">{data.owner_email_required}</code> ainda
+              <strong> não está marcado como Owner</strong>. Por isso não conseguimos
+              iniciar as entregas dos seus créditos.
+              {data.owner_rejected_reason && (
+                <div className="mt-2 rounded-lg bg-rose-950/40 border border-rose-500/30 p-2 text-xs">
+                  <strong>Observação da nossa equipe:</strong>{" "}
+                  {data.owner_rejected_reason}
+                </div>
+              )}
             </div>
 
-            <div className="relative flex justify-between gap-2">
+            <div className="relative rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-[12px] text-amber-100 space-y-2">
+              <div className="font-bold">O que fazer agora:</div>
+              <ol className="list-decimal list-inside space-y-1 leading-relaxed">
+                <li>Abra seu workspace <code className="font-mono">{data.workspace_name}</code> no Lovable</li>
+                <li>Vá em <strong>Settings → Members</strong></li>
+                <li>Encontre o email <code className="font-mono">{data.owner_email_required}</code> e marque como <strong>Owner</strong></li>
+                <li>Volte aqui e clique no botão abaixo para nos avisar</li>
+              </ol>
+            </div>
+
+            <TutorialBlock tutorial={data.tutorials?.find((t) => t.slug === "add-owner-email")} />
+
+            <div className="relative flex justify-between gap-2 flex-wrap">
               <Button
                 variant="ghost"
                 size="sm"
@@ -414,14 +465,26 @@ export default function PublicPlano() {
                 Cancelar pedido
               </Button>
               <Button
-                onClick={() => setConfirmOpen(true)}
-                className="relative bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 text-white font-bold shadow-lg shadow-violet-500/40 hover:shadow-fuchsia-400/60 transition-all hover:scale-[1.02]"
+                onClick={resubmitOwner}
+                disabled={resubmitting}
+                className="relative bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold shadow-lg shadow-emerald-500/40 hover:shadow-teal-400/60 transition-all hover:scale-[1.02]"
               >
-                <span className="absolute -inset-0.5 rounded-md bg-gradient-to-r from-violet-400 to-fuchsia-400 opacity-60 blur-md animate-pulse -z-10" />
-                <PlayCircle className="h-4 w-4 mr-2" />
-                Confirmar e iniciar entrega
+                <span className="absolute -inset-0.5 rounded-md bg-gradient-to-r from-emerald-400 to-teal-400 opacity-60 blur-md animate-pulse -z-10" />
+                {resubmitting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Já marquei como Owner — verificar de novo
               </Button>
             </div>
+
+            {data.owner_rejected_count > 1 && (
+              <p className="relative text-[11px] text-zinc-500 text-center">
+                Esta é sua {data.owner_rejected_count}ª tentativa. Se precisar de ajuda,
+                entre em contato com quem te vendeu o plano.
+              </p>
+            )}
           </div>
           </div>
         )}
@@ -548,33 +611,6 @@ export default function PublicPlano() {
           </div>
         )}
       </div>
-
-      {/* Dialog: confirmar início */}
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar início da entrega</DialogTitle>
-            <DialogDescription>
-              Após confirmar, <strong>não será mais possível cancelar</strong> nem
-              solicitar reembolso. Tem certeza?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
-            <Row label="Workspace" value={data.workspace_name ?? "—"} dark />
-            <Row label="Duração" value={`${data.duration_days} dias`} dark />
-            <Row label="Créditos/dia" value={data.credits_per_day.toLocaleString("pt-BR")} dark />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              Voltar
-            </Button>
-            <Button onClick={confirmStart} disabled={confirming}>
-              {confirming && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Sim, confirmar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Dialog: cancelar */}
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
