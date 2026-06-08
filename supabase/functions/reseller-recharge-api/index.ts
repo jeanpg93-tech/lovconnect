@@ -456,13 +456,13 @@ Deno.serve(async (req) => {
       const { data: plans } = await admin
         .from("recharge_plans")
         .select(
-          "id, name, description, duration_days, credits_per_day, total_credits_cap, delivery_hour, is_active, bot_owner_email",
+          "id, name, description, duration_days, credits_per_day, total_credits_cap, delivery_hour, base_cost_cents, is_active, bot_owner_email",
         )
         .eq("is_active", true)
         .order("created_at", { ascending: true });
       const { data: prices } = await admin
         .from("reseller_recharge_plan_prices")
-        .select("plan_id, cost_cents, sale_price_cents, is_active")
+        .select("plan_id, sale_price_cents, is_active")
         .eq("reseller_id", resellerId);
       const byPlan = new Map<string, any>();
       (prices ?? []).forEach((p: any) => byPlan.set(p.plan_id, p));
@@ -476,7 +476,7 @@ Deno.serve(async (req) => {
           creditosPorDia: p.credits_per_day,
           capTotal: p.total_credits_cap,
           horarioEntregaBRT: p.delivery_hour,
-          custoCentavos: pr?.cost_cents ?? null,
+          custoCentavos: Number(p.base_cost_cents),
           precoVendaCentavos: pr?.sale_price_cents ?? null,
           disponivel: !!pr?.is_active && pr?.sale_price_cents > 0,
         };
@@ -514,17 +514,17 @@ Deno.serve(async (req) => {
 
       const { data: price } = await admin
         .from("reseller_recharge_plan_prices")
-        .select("cost_cents, sale_price_cents, is_active")
+        .select("sale_price_cents, is_active")
         .eq("reseller_id", resellerId)
         .eq("plan_id", planoId)
         .maybeSingle();
-      if (!price) return errResp(403, "PRICE_NOT_SET", "O gerente ainda não definiu seu custo deste plano");
+      if (!price) return errResp(400, "SALE_PRICE_MISSING", "Defina seu preço de venda antes de gerar pedidos");
       if (!price.is_active) return errResp(400, "PLAN_DISABLED", "Você desativou este plano na sua loja");
       if (!price.sale_price_cents || price.sale_price_cents <= 0) {
         return errResp(400, "SALE_PRICE_MISSING", "Defina seu preço de venda antes de gerar pedidos");
       }
 
-      const costCents = Number(price.cost_cents);
+      const costCents = Number(plan.base_cost_cents);
       // Debita do saldo da plataforma
       const { data: debited, error: debitErr } = await admin.rpc("debit_reseller_balance", {
         _reseller_id: resellerId,

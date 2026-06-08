@@ -305,6 +305,7 @@ export default function PublicStorefront() {
         )
         .eq("reseller_id", r.id)
         .eq("is_active", true)
+        .eq("show_on_storefront", true)
         .gt("sale_price_cents", 0);
       const sp: SellablePlan[] = ((rpp ?? []) as any[])
         .filter((row) => row.recharge_plans?.is_active && row.recharge_plans?.bot_owner_email)

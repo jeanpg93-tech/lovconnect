@@ -65,17 +65,17 @@ Deno.serve(async (req) => {
 
     const { data: price } = await admin
       .from("reseller_recharge_plan_prices")
-      .select("cost_cents, sale_price_cents, is_active")
+      .select("sale_price_cents, is_active")
       .eq("reseller_id", resellerId)
       .eq("plan_id", planId)
       .maybeSingle();
-    if (!price) return json({ error: "price_not_set" }, 403);
+    if (!price) return json({ error: "sale_price_missing" }, 400);
     if (!price.is_active) return json({ error: "plan_disabled" }, 400);
     if (!price.sale_price_cents || price.sale_price_cents <= 0) {
       return json({ error: "sale_price_missing" }, 400);
     }
 
-    const costCents = Number(price.cost_cents);
+    const costCents = Number(plan.base_cost_cents);
     const saleCents = Number(price.sale_price_cents);
 
     // Debita do saldo
