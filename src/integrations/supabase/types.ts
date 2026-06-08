@@ -1762,6 +1762,98 @@ export type Database = {
           },
         ]
       }
+      recharge_plan_deliveries: {
+        Row: {
+          created_at: string
+          credits: number
+          day_number: number
+          delivered_at: string | null
+          delivered_by: string | null
+          id: string
+          notes: string | null
+          scheduled_date: string
+          status: Database["public"]["Enums"]["recharge_plan_delivery_status"]
+          subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits: number
+          day_number: number
+          delivered_at?: string | null
+          delivered_by?: string | null
+          id?: string
+          notes?: string | null
+          scheduled_date: string
+          status?: Database["public"]["Enums"]["recharge_plan_delivery_status"]
+          subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          day_number?: number
+          delivered_at?: string | null
+          delivered_by?: string | null
+          id?: string
+          notes?: string | null
+          scheduled_date?: string
+          status?: Database["public"]["Enums"]["recharge_plan_delivery_status"]
+          subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recharge_plan_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_recharge_plan_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recharge_plans: {
+        Row: {
+          base_cost_cents: number
+          created_at: string
+          credits_per_day: number
+          delivery_hour: number
+          description: string | null
+          duration_days: number
+          id: string
+          is_active: boolean
+          name: string
+          total_credits_cap: number
+          updated_at: string
+        }
+        Insert: {
+          base_cost_cents?: number
+          created_at?: string
+          credits_per_day?: number
+          delivery_hour?: number
+          description?: string | null
+          duration_days?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          total_credits_cap?: number
+          updated_at?: string
+        }
+        Update: {
+          base_cost_cents?: number
+          created_at?: string
+          credits_per_day?: number
+          delivery_hour?: number
+          description?: string | null
+          duration_days?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          total_credits_cap?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       recharge_schedule: {
         Row: {
           created_at: string
@@ -2731,6 +2823,172 @@ export type Database = {
           },
           {
             foreignKeyName: "reseller_pack_purchases_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reseller_recharge_plan_prices: {
+        Row: {
+          cost_cents: number
+          created_at: string
+          id: string
+          is_active: boolean
+          plan_id: string
+          reseller_id: string
+          sale_price_cents: number | null
+          updated_at: string
+        }
+        Insert: {
+          cost_cents: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          plan_id: string
+          reseller_id: string
+          sale_price_cents?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cost_cents?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          plan_id?: string
+          reseller_id?: string
+          sale_price_cents?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_recharge_plan_prices_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "recharge_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_recharge_plan_prices_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reseller_recharge_plan_subscriptions: {
+        Row: {
+          awaiting_owner_expires_at: string | null
+          cancelled_at: string | null
+          cancelled_reason: string | null
+          completed_at: string | null
+          cost_cents: number
+          created_at: string
+          credits_per_day: number
+          customer_id: string | null
+          customer_name: string | null
+          customer_whatsapp: string | null
+          delivery_hour: number
+          duration_days: number
+          ends_at: string | null
+          id: string
+          notes: string | null
+          order_token: string
+          owner_email_added_at: string | null
+          owner_email_required: string
+          paused_at: string | null
+          plan_id: string
+          reseller_id: string
+          sale_price_cents: number
+          source: string
+          source_reference_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["recharge_plan_status"]
+          total_credits_cap: number
+          updated_at: string
+          workspace_name: string | null
+        }
+        Insert: {
+          awaiting_owner_expires_at?: string | null
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          completed_at?: string | null
+          cost_cents: number
+          created_at?: string
+          credits_per_day: number
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_whatsapp?: string | null
+          delivery_hour?: number
+          duration_days: number
+          ends_at?: string | null
+          id?: string
+          notes?: string | null
+          order_token?: string
+          owner_email_added_at?: string | null
+          owner_email_required: string
+          paused_at?: string | null
+          plan_id: string
+          reseller_id: string
+          sale_price_cents: number
+          source?: string
+          source_reference_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["recharge_plan_status"]
+          total_credits_cap: number
+          updated_at?: string
+          workspace_name?: string | null
+        }
+        Update: {
+          awaiting_owner_expires_at?: string | null
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          completed_at?: string | null
+          cost_cents?: number
+          created_at?: string
+          credits_per_day?: number
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_whatsapp?: string | null
+          delivery_hour?: number
+          duration_days?: number
+          ends_at?: string | null
+          id?: string
+          notes?: string | null
+          order_token?: string
+          owner_email_added_at?: string | null
+          owner_email_required?: string
+          paused_at?: string | null
+          plan_id?: string
+          reseller_id?: string
+          sale_price_cents?: number
+          source?: string
+          source_reference_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["recharge_plan_status"]
+          total_credits_cap?: number
+          updated_at?: string
+          workspace_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_recharge_plan_subscriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_recharge_plan_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "recharge_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_recharge_plan_subscriptions_reseller_id_fkey"
             columns: ["reseller_id"]
             isOneToOne: false
             referencedRelation: "resellers"
@@ -4216,6 +4474,19 @@ export type Database = {
     Enums: {
       app_role: "gerente" | "revendedor" | "cliente"
       onboarding_tour_status: "pending" | "completed" | "skipped"
+      recharge_plan_delivery_status:
+        | "pending"
+        | "delivered"
+        | "skipped"
+        | "failed"
+      recharge_plan_status:
+        | "awaiting_owner"
+        | "awaiting_confirm"
+        | "active"
+        | "paused"
+        | "cancelled"
+        | "completed"
+        | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4345,6 +4616,21 @@ export const Constants = {
     Enums: {
       app_role: ["gerente", "revendedor", "cliente"],
       onboarding_tour_status: ["pending", "completed", "skipped"],
+      recharge_plan_delivery_status: [
+        "pending",
+        "delivered",
+        "skipped",
+        "failed",
+      ],
+      recharge_plan_status: [
+        "awaiting_owner",
+        "awaiting_confirm",
+        "active",
+        "paused",
+        "cancelled",
+        "completed",
+        "expired",
+      ],
     },
   },
 } as const
