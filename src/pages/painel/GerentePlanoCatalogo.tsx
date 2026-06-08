@@ -39,6 +39,8 @@ const formatBRL = (cents: number): string =>
 export default function GerentePlanoCatalogo() {
   const [plan, setPlan] = useState<RechargePlan | null>(null);
   const [planEdits, setPlanEdits] = useState<Partial<RechargePlan>>({});
+  const [baseCostInput, setBaseCostInput] = useState<string | null>(null);
+  const [platformCostInput, setPlatformCostInput] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -53,6 +55,8 @@ export default function GerentePlanoCatalogo() {
       const p = (planRows?.[0] ?? null) as RechargePlan | null;
       setPlan(p);
       setPlanEdits({});
+      setBaseCostInput(null);
+      setPlatformCostInput(null);
     } catch (e: any) {
       toast.error("Erro ao carregar", { description: e.message });
     } finally {
@@ -69,13 +73,25 @@ export default function GerentePlanoCatalogo() {
     return { ...plan, ...planEdits } as RechargePlan;
   };
 
-  const planDirty = useMemo(() => Object.keys(planEdits).length > 0, [planEdits]);
+  const planDirty = useMemo(
+    () =>
+      Object.keys(planEdits).length > 0 ||
+      baseCostInput !== null ||
+      platformCostInput !== null,
+    [planEdits, baseCostInput, platformCostInput],
+  );
 
   const savePlan = async () => {
     if (!plan) return;
     setSaving(true);
     try {
       const m = merged()!;
+      const baseCostCents =
+        baseCostInput !== null ? parseBRL(baseCostInput) : m.base_cost_cents;
+      const platformCostCents =
+        platformCostInput !== null
+          ? parseBRL(platformCostInput)
+          : (m.platform_cost_cents ?? 0);
       const payload = {
         name: m.name,
         description: m.description,
@@ -83,8 +99,8 @@ export default function GerentePlanoCatalogo() {
         credits_per_day: Number(m.credits_per_day),
         total_credits_cap: Number(m.total_credits_cap),
         delivery_hour: Number(m.delivery_hour),
-        base_cost_cents: Number(m.base_cost_cents),
-        platform_cost_cents: Number(m.platform_cost_cents ?? 0),
+        base_cost_cents: baseCostCents,
+        platform_cost_cents: platformCostCents,
         is_active: !!m.is_active,
         bot_owner_email: (m.bot_owner_email ?? "").trim(),
       };
@@ -247,17 +263,8 @@ export default function GerentePlanoCatalogo() {
             <Label>Custo do plano (R$) — cobrado de todos os revendedores</Label>
             <Input
               inputMode="decimal"
-              value={
-                planEdits.base_cost_cents != null
-                  ? formatBRL(Number(planEdits.base_cost_cents))
-                  : formatBRL(plan.base_cost_cents)
-              }
-              onChange={(e) =>
-                setPlanEdits((s) => ({
-                  ...s,
-                  base_cost_cents: parseBRL(e.target.value),
-                }))
-              }
+              value={baseCostInput ?? formatBRL(plan.base_cost_cents)}
+              onChange={(e) => setBaseCostInput(e.target.value)}
               placeholder="0,00"
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -270,17 +277,8 @@ export default function GerentePlanoCatalogo() {
             <Label>Meu custo do plano (R$) — pago ao fornecedor</Label>
             <Input
               inputMode="decimal"
-              value={
-                planEdits.platform_cost_cents != null
-                  ? formatBRL(Number(planEdits.platform_cost_cents))
-                  : formatBRL(plan.platform_cost_cents ?? 0)
-              }
-              onChange={(e) =>
-                setPlanEdits((s) => ({
-                  ...s,
-                  platform_cost_cents: parseBRL(e.target.value),
-                }))
-              }
+              value={platformCostInput ?? formatBRL(plan.platform_cost_cents ?? 0)}
+              onChange={(e) => setPlatformCostInput(e.target.value)}
               placeholder="0,00"
             />
             <p className="text-xs text-muted-foreground mt-1">
