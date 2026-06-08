@@ -19,6 +19,7 @@ type RechargePlan = {
   delivery_hour: number;
   base_cost_cents: number;
   is_active: boolean;
+  bot_owner_email: string;
 };
 
 type Reseller = {
@@ -123,6 +124,7 @@ export default function GerentePlanoCatalogo() {
         delivery_hour: Number(m.delivery_hour),
         base_cost_cents: Number(m.base_cost_cents),
         is_active: !!m.is_active,
+        bot_owner_email: (m.bot_owner_email ?? "").trim(),
       };
       const { error } = await supabase
         .from("recharge_plans")
@@ -337,6 +339,23 @@ export default function GerentePlanoCatalogo() {
             <p className="text-xs text-muted-foreground mt-1">
               Custo sugerido. O custo real cobrado de cada revendedor é
               definido individualmente abaixo.
+            </p>
+          </div>
+
+          <div>
+            <Label>Email do bot (Owner do workspace do cliente)</Label>
+            <Input
+              type="email"
+              value={m.bot_owner_email ?? ""}
+              onChange={(e) =>
+                setPlanEdits((s) => ({ ...s, bot_owner_email: e.target.value }))
+              }
+              placeholder="bot@exemplo.com"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Email que o cliente deverá adicionar como <strong>Owner</strong> no
+              workspace do Lovable para receber as recargas. Sem isso, nenhum
+              revendedor consegue gerar venda.
             </p>
           </div>
 

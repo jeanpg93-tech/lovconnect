@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.system-whatsapp-notify]
 verify_jwt = false
+
+[functions.recharge-plan-public]
+verify_jwt = false

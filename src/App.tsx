@@ -16,6 +16,7 @@ const AppLayout = lazy(() => lazyWithChunkRecovery(() => import("./components/la
 const PublicStorefront = lazy(() => lazyWithChunkRecovery(() => import("./pages/PublicStorefront")));
 const PublicExtension = lazy(() => lazyWithChunkRecovery(() => import("./pages/PublicExtension")));
 const PublicRecharge = lazy(() => lazyWithChunkRecovery(() => import("./pages/PublicRecharge")));
+const PublicPlano = lazy(() => lazyWithChunkRecovery(() => import("./pages/PublicPlano")));
 const Banned = lazy(() => lazyWithChunkRecovery(() => import("./pages/Banned")));
 const Inactive = lazy(() => lazyWithChunkRecovery(() => import("./pages/Inactive")));
 const Install = lazy(() => lazyWithChunkRecovery(() => import("./pages/Install")));
@@ -91,6 +92,7 @@ const App = () => (
                 <Route path="/Extension-flow" element={<PublicExtension slug="lovmain-unlimited" />} />
                 <Route path="/Extension-lovax" element={<PublicExtension slug="extension-lovax" />} />
                 <Route path="/recargas/:id" element={<PublicRecharge />} />
+                <Route path="/plano/:token" element={<PublicPlano />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
