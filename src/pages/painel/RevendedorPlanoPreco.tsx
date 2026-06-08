@@ -169,7 +169,9 @@ export default function RevendedorPlanoPreco() {
     return (
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          Nenhum plano disponível no momento.
+          {featureEnabled
+            ? "Nenhum plano disponível no momento."
+            : "Os planos de recarga ainda não foram liberados para a sua loja. Fale com o suporte para participar do teste."}
         </CardContent>
       </Card>
     );
