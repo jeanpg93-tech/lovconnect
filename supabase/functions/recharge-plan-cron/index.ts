@@ -30,12 +30,18 @@ Deno.serve(async (req) => {
     // 1) Auto-cancelar: status=active, started_at < now-2h, e NENHUMA entrega delivered.
     const { data: stuck } = await db
       .from("reseller_recharge_plan_subscriptions")
-      .select("id, started_at")
+      .select("id, started_at, reseller_id, cost_cents, plan_id")
       .eq("status", "active")
       .lt("started_at", cutoff);
 
     const cancelled: string[] = [];
-    for (const s of (stuck ?? []) as { id: string; started_at: string }[]) {
+    for (const s of (stuck ?? []) as {
+      id: string;
+      started_at: string;
+      reseller_id: string;
+      cost_cents: number;
+      plan_id: string;
+    }[]) {
       const { count } = await db
         .from("recharge_plan_deliveries")
         .select("id", { count: "exact", head: true })
@@ -52,7 +58,18 @@ Deno.serve(async (req) => {
         })
         .eq("id", s.id)
         .eq("status", "active");
-      if (!error) cancelled.push(s.id);
+      if (!error) {
+        cancelled.push(s.id);
+        if (s.cost_cents > 0) {
+          await db.rpc("credit_reseller_balance", {
+            _reseller_id: s.reseller_id,
+            _amount_cents: s.cost_cents,
+            _kind: "recharge_plan_refund",
+            _description: `Estorno automático (entrega não iniciada em 2h) — assinatura ${s.id}`,
+            _reference_id: null,
+          });
+        }
+      }
     }
 
     // 2) Auto-completar: assinaturas active cujas TODAS entregas são delivered ou skipped.
