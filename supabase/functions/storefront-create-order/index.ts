@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     // resolve reseller
     const { data: reseller } = await admin
       .from("resellers")
-      .select("id, display_name, is_active, activation_status")
+      .select("id, display_name, is_active, activation_status, recharge_plans_enabled")
       .eq("slug", reseller_slug)
       .maybeSingle();
     if (!reseller || !reseller.is_active) return json({ error: "Loja indisponível" }, 404);
@@ -78,6 +78,16 @@ Deno.serve(async (req) => {
 
     if (recharge_plan_id) {
       // ===== Venda de Plano de Recarga (3.000 créditos / 30 dias etc) =====
+      // Feature gate: liberada globalmente ou apenas para revendedores marcados
+      const { data: gFlag } = await admin
+        .from("app_settings")
+        .select("value")
+        .eq("key", "recharge_plans_enabled_globally")
+        .maybeSingle();
+      const globallyEnabled = (gFlag?.value as any) === true;
+      if (!globallyEnabled && !(reseller as any).recharge_plans_enabled) {
+        return json({ error: "Plano de recarga ainda não liberado para esta loja" }, 403);
+      }
       const { data: plan } = await admin
         .from("recharge_plans")
         .select("*")

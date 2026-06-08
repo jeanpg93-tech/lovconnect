@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, RefreshCcw, CalendarClock } from "lucide-react";
+import { Loader2, Save, RefreshCcw, CalendarClock, Power, Users } from "lucide-react";
 import { toast } from "sonner";
 
 type RechargePlan = {
@@ -43,6 +43,13 @@ export default function GerentePlanoCatalogo() {
   const [platformCostInput, setPlatformCostInput] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [globalEnabled, setGlobalEnabled] = useState(false);
+  const [savingGlobal, setSavingGlobal] = useState(false);
+  const [resellers, setResellers] = useState<
+    { id: string; display_name: string; slug: string; recharge_plans_enabled: boolean }[]
+  >([]);
+  const [resellerSearch, setResellerSearch] = useState("");
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -57,12 +64,73 @@ export default function GerentePlanoCatalogo() {
       setPlanEdits({});
       setBaseCostInput(null);
       setPlatformCostInput(null);
+
+      const { data: gFlag } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "recharge_plans_enabled_globally")
+        .maybeSingle();
+      setGlobalEnabled((gFlag?.value as any) === true);
+
+      const { data: rs } = await supabase
+        .from("resellers")
+        .select("id, display_name, slug, recharge_plans_enabled")
+        .eq("is_active", true)
+        .order("display_name", { ascending: true });
+      setResellers((rs ?? []) as any);
     } catch (e: any) {
       toast.error("Erro ao carregar", { description: e.message });
     } finally {
       setLoading(false);
     }
   };
+
+  const toggleGlobal = async (next: boolean) => {
+    setSavingGlobal(true);
+    try {
+      const { error } = await supabase
+        .from("app_settings")
+        .upsert(
+          { key: "recharge_plans_enabled_globally", value: next as any },
+          { onConflict: "key" },
+        );
+      if (error) throw error;
+      setGlobalEnabled(next);
+      toast.success(next ? "Liberado para todos" : "Liberação global desativada");
+    } catch (e: any) {
+      toast.error("Erro ao salvar", { description: e.message });
+    } finally {
+      setSavingGlobal(false);
+    }
+  };
+
+  const toggleReseller = async (id: string, next: boolean) => {
+    setTogglingId(id);
+    try {
+      const { error } = await supabase
+        .from("resellers")
+        .update({ recharge_plans_enabled: next })
+        .eq("id", id);
+      if (error) throw error;
+      setResellers((s) =>
+        s.map((r) => (r.id === id ? { ...r, recharge_plans_enabled: next } : r)),
+      );
+    } catch (e: any) {
+      toast.error("Erro ao atualizar", { description: e.message });
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const filteredResellers = useMemo(() => {
+    const q = resellerSearch.trim().toLowerCase();
+    if (!q) return resellers;
+    return resellers.filter(
+      (r) =>
+        r.display_name.toLowerCase().includes(q) ||
+        r.slug.toLowerCase().includes(q),
+    );
+  }, [resellers, resellerSearch]);
 
   useEffect(() => {
     load();
@@ -140,6 +208,89 @@ export default function GerentePlanoCatalogo() {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Power className="h-5 w-5 text-primary" />
+            Liberação do plano de recarga
+          </CardTitle>
+          <CardDescription>
+            Controle quem pode vender o plano. Use a chave global para liberar para
+            todos de uma vez, ou libere manualmente apenas para revendedores específicos
+            (ideal para testes iniciais).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-4">
+            <Switch
+              checked={globalEnabled}
+              disabled={savingGlobal}
+              onCheckedChange={toggleGlobal}
+            />
+            <div className="flex-1">
+              <p className="text-sm font-medium">
+                {globalEnabled
+                  ? "Liberado para TODOS os revendedores"
+                  : "Liberação manual — só quem estiver marcado abaixo"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Quando ligado, todos os revendedores ativos podem vender o plano,
+                independente da marcação individual.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <Label className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Revendedores liberados manualmente
+              </Label>
+              <Input
+                placeholder="Buscar por nome ou slug..."
+                value={resellerSearch}
+                onChange={(e) => setResellerSearch(e.target.value)}
+                className="max-w-xs"
+              />
+            </div>
+            <div className="rounded-lg border divide-y max-h-80 overflow-y-auto">
+              {filteredResellers.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  Nenhum revendedor encontrado.
+                </div>
+              ) : (
+                filteredResellers.map((r) => (
+                  <div
+                    key={r.id}
+                    className="flex items-center justify-between gap-3 p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {r.display_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        /{r.slug}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={r.recharge_plans_enabled || globalEnabled}
+                      disabled={togglingId === r.id || globalEnabled}
+                      onCheckedChange={(v) => toggleReseller(r.id, v)}
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+            {globalEnabled && (
+              <p className="text-xs text-muted-foreground mt-2">
+                A liberação global está ligada — todos têm acesso. Desligue acima
+                para voltar ao controle manual.
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between gap-4">

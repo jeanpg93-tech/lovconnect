@@ -238,7 +238,7 @@ export default function PublicStorefront() {
       setLoading(true);
       const { data: r } = await supabase
         .from("resellers")
-        .select("id, display_name, slug, is_active")
+        .select("id, display_name, slug, is_active, recharge_plans_enabled")
         .eq("slug", slug)
         .maybeSingle();
       if (!r || !r.is_active) { setLoading(false); return; }
@@ -297,8 +297,17 @@ export default function PublicStorefront() {
         .order("credits_amount", { ascending: true });
       if (rec) setRecharges(rec);
 
-      // Planos de recarga à venda (assinatura 30 dias)
-      const { data: rpp } = await supabase
+      // Planos de recarga à venda (assinatura 30 dias) — feature gate
+      const { data: gFlag } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "recharge_plans_enabled_globally")
+        .maybeSingle();
+      const plansGloballyEnabled = (gFlag?.value as any) === true;
+      const plansEnabledForReseller =
+        plansGloballyEnabled || !!(r as any).recharge_plans_enabled;
+      const { data: rpp } = plansEnabledForReseller
+        ? await supabase
         .from("reseller_recharge_plan_prices")
         .select(
           "plan_id, sale_price_cents, recharge_plans!inner(id, name, duration_days, credits_per_day, total_credits_cap, is_active, bot_owner_email)",
@@ -306,7 +315,8 @@ export default function PublicStorefront() {
         .eq("reseller_id", r.id)
         .eq("is_active", true)
         .eq("show_on_storefront", true)
-        .gt("sale_price_cents", 0);
+        .gt("sale_price_cents", 0)
+        : { data: [] as any[] };
       const sp: SellablePlan[] = ((rpp ?? []) as any[])
         .filter((row) => row.recharge_plans?.is_active && row.recharge_plans?.bot_owner_email)
         .map((row) => ({
