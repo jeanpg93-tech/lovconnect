@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageContainer } from "@/components/painel/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart3, History as HistoryIcon, Tag, KeyRound, Undo2, CalendarClock, Package, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 import GerenteRecargasDashboard from "./GerenteRecargasDashboard";
 import GerenteAcompanharRecargas from "./GerenteAcompanharRecargas";
 import GerenteValoresCreditos from "./GerenteValoresCreditos";
@@ -27,6 +29,25 @@ export default function GerenteRecargas() {
   const [sp, setSp] = useSearchParams();
   const initial = TABS.find((t) => t.value === sp.get("tab"))?.value ?? "dashboard";
   const [tab, setTab] = useState<string>(initial);
+  const [pendingToday, setPendingToday] = useState<number>(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const today = new Date(Date.now() - 3 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10);
+      const { count } = await supabase
+        .from("recharge_plan_deliveries")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending")
+        .lte("scheduled_date", today);
+      if (!cancelled) setPendingToday(count ?? 0);
+    };
+    load();
+    const t = setInterval(load, 60_000);
+    return () => { cancelled = true; clearInterval(t); };
+  }, []);
 
   const handleChange = (v: string) => {
     setTab(v);
@@ -48,6 +69,11 @@ export default function GerenteRecargas() {
             <TabsTrigger key={t.value} value={t.value} className="gap-2">
               <t.icon className="h-4 w-4" />
               {t.label}
+              {t.value === "planos-ativos" && pendingToday > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-[10px] font-bold">
+                  {pendingToday}
+                </Badge>
+              )}
             </TabsTrigger>
           ))}
         </TabsList>
