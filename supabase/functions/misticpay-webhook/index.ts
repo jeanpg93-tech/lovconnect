@@ -726,6 +726,117 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ============================================================
+    // Venda de Plano de Recarga (3.000 créditos / 30 dias etc) pela loja
+    // ============================================================
+    if (storeOrder.product_type === "recharge_plan") {
+      // marca pedido como pago (já recebemos o PIX do cliente)
+      await admin.from("storefront_orders").update({
+        status: "paid",
+        paid_at: new Date().toISOString(),
+        raw_response: payload,
+      }).eq("id", storeOrder.id);
+
+      const planId = storeOrder.recharge_plan_id;
+      if (!planId) {
+        console.error("[webhook] recharge_plan order without plan_id", storeOrder.id);
+        return json({ ok: false, error: "missing_plan_id" }, 500);
+      }
+
+      const { data: plan } = await admin
+        .from("recharge_plans")
+        .select("*")
+        .eq("id", planId)
+        .maybeSingle();
+      if (!plan) {
+        console.error("[webhook] recharge_plan not found", planId);
+        return json({ ok: false, error: "plan_not_found" }, 500);
+      }
+
+      const planCost = Number(storeOrder.cost_cents ?? 0);
+
+      // Debita do saldo do revendedor o custo do plano
+      if (planCost > 0) {
+        const { data: debitOk, error: debitErr } = await admin.rpc("debit_reseller_balance", {
+          _reseller_id: storeOrder.reseller_id,
+          _amount_cents: planCost,
+          _kind: "recharge_plan_storefront",
+          _description: `Venda Loja: Plano ${plan.name}`,
+          _reference_id: storeOrder.id,
+        });
+        if (debitErr) {
+          console.error("[webhook] debit_reseller_balance error (recharge_plan)", debitErr);
+          return json({ ok: false, error: "debit_rpc_failed", detail: debitErr.message }, 500);
+        }
+        if (debitOk === false) {
+          // Sem saldo — marca como aguardando e registra para liberação posterior
+          await admin.from("storefront_orders").update({
+            status: "awaiting_balance",
+          }).eq("id", storeOrder.id);
+          await admin.from("pending_storefront_charges").insert({
+            order_id: storeOrder.id,
+            reseller_id: storeOrder.reseller_id,
+            cost_cents: planCost,
+            product_type: "recharge_plan",
+          }).select().maybeSingle();
+          return json({ ok: true, kind: "storefront_recharge_plan_awaiting_balance" });
+        }
+        await admin.rpc("add_reseller_spent", {
+          _reseller_id: storeOrder.reseller_id,
+          _amount_cents: planCost,
+        });
+      }
+
+      // Cria a assinatura — status default 'awaiting_owner', cliente segue para /plano/:token
+      const { data: sub, error: subErr } = await admin
+        .from("reseller_recharge_plan_subscriptions")
+        .insert({
+          reseller_id: storeOrder.reseller_id,
+          plan_id: plan.id,
+          customer_name: storeOrder.buyer_name,
+          customer_whatsapp: storeOrder.buyer_whatsapp,
+          owner_email_required: plan.bot_owner_email,
+          source: "storefront",
+          source_reference_id: storeOrder.id,
+          cost_cents: planCost,
+          sale_price_cents: Number(storeOrder.price_cents),
+          duration_days: plan.duration_days,
+          credits_per_day: plan.credits_per_day,
+          total_credits_cap: plan.total_credits_cap,
+          delivery_hour: plan.delivery_hour,
+        })
+        .select("id, order_token")
+        .single();
+
+      if (subErr || !sub) {
+        // estorna o débito — não conseguimos criar a assinatura
+        if (planCost > 0) {
+          await admin.rpc("credit_reseller_balance", {
+            _reseller_id: storeOrder.reseller_id,
+            _amount_cents: planCost,
+            _kind: "recharge_plan_refund",
+            _description: `Estorno (falha ao criar assinatura): ${storeOrder.id}`,
+            _reference_id: storeOrder.id,
+          });
+        }
+        console.error("[webhook] failed to create plan subscription", subErr);
+        return json({ ok: false, error: "subscription_create_failed", detail: subErr?.message }, 500);
+      }
+
+      // Liga assinatura ao pedido + grava o invite_link com a página /plano/:token
+      const appOrigin = (req.headers.get("origin") ?? "")
+        || (req.headers.get("referer") ?? "").replace(/\/?$/, "")
+        || "";
+      const link = `${appOrigin || ""}/plano/${sub.order_token}`;
+      await admin.from("storefront_orders").update({
+        status: "completed",
+        recharge_plan_subscription_id: sub.id,
+        invite_link: link,
+      }).eq("id", storeOrder.id);
+
+      return json({ ok: true, kind: "storefront_recharge_plan", order_token: sub.order_token });
+    }
+
     if (storeOrder.product_type === "credits" || storeOrder.product_type === "recharge" || storeOrder.license_type === "credits") {
       // Marca como pago (recebemos o PIX), agora tenta cobrar custo do revendedor
       await admin.from("storefront_orders").update({
