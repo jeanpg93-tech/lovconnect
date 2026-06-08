@@ -2,19 +2,21 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageContainer } from "@/components/painel/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { BarChart3, History as HistoryIcon, Tag, KeyRound, Undo2, CalendarClock } from "lucide-react";
+import { BarChart3, History as HistoryIcon, Tag, KeyRound, Undo2, CalendarClock, Package } from "lucide-react";
 import GerenteRecargasDashboard from "./GerenteRecargasDashboard";
 import GerenteAcompanharRecargas from "./GerenteAcompanharRecargas";
 import GerenteValoresCreditos from "./GerenteValoresCreditos";
 import GerenteApiRecargas from "./GerenteApiRecargas";
 import GerenteEstornosProvedor from "./GerenteEstornosProvedor";
 import GerenteRecargasAgenda from "./GerenteRecargasAgenda";
+import GerentePlanoCatalogo from "./GerentePlanoCatalogo";
 
 const TABS = [
   { value: "dashboard", label: "Dashboard", icon: BarChart3, Comp: GerenteRecargasDashboard },
   { value: "acompanhar", label: "Acompanhar", icon: HistoryIcon, Comp: GerenteAcompanharRecargas },
   { value: "estornos", label: "Estornos", icon: Undo2, Comp: GerenteEstornosProvedor },
   { value: "valores", label: "Valores", icon: Tag, Comp: GerenteValoresCreditos },
+  { value: "planos", label: "Planos", icon: Package, Comp: GerentePlanoCatalogo },
   { value: "agenda", label: "Agenda", icon: CalendarClock, Comp: GerenteRecargasAgenda },
   { value: "api", label: "API", icon: KeyRound, Comp: GerenteApiRecargas },
 ] as const;
