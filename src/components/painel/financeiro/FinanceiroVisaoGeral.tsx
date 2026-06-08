@@ -10,6 +10,7 @@ import {
   Rocket,
   Repeat,
   Package,
+  CalendarClock,
 } from "lucide-react";
 import {
   AreaChart,
@@ -122,6 +123,7 @@ export default function FinanceiroVisaoGeral({ range, customRange }: { range: Da
           items={[
             { label: "Créditos vendidos", hint: "custo do provedor", value: data.costCreditsCents, color: "#3b82f6" },
             { label: "Taxa gateway", hint: "R$ 0,50 / recarga", value: data.gatewayFeeCents, color: "#eab308" },
+            { label: "Planos de recarga", hint: "meu custo (fornecedor)", value: data.rechargePlanCostCents, color: "#14b8a6" },
             { label: "Gastos manuais", hint: "lançamentos manuais", value: data.manualExpenseCents, color: "#ec4899" },
           ]}
         />
@@ -135,6 +137,7 @@ export default function FinanceiroVisaoGeral({ range, customRange }: { range: Da
             { label: "Ativações Painel", hint: "novos revendedores", value: data.activationRevenueCents, color: "#d946ef" },
             { label: "Mensalidades", hint: "revendedores mensalistas", value: data.subscriptionRevenueCents, color: "#0ea5e9" },
             { label: "Pacotes (Pack)", hint: "revendedores Pack", value: data.packRevenueCents, color: "#10b981" },
+            { label: "Planos de recarga", hint: `${data.rechargePlanCount} venda(s)`, value: data.rechargePlanRevenueCents, color: "#14b8a6" },
             { label: "Receitas manuais", hint: "lançamentos manuais", value: data.manualRevenueCents, color: "#8b5cf6" },
             { label: "LovaStore", hint: `loja própria${data.lovastoreCount ? ` · ${data.lovastoreCount} venda(s)` : ""}`, value: data.lovastoreRevenueCents, color: "#f97316" },
           ]}
