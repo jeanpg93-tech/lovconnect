@@ -824,10 +824,9 @@ Deno.serve(async (req) => {
       }
 
       // Liga assinatura ao pedido + grava o invite_link com a página /plano/:token
-      const appOrigin = (req.headers.get("origin") ?? "")
-        || (req.headers.get("referer") ?? "").replace(/\/?$/, "")
-        || "";
-      const link = `${appOrigin || ""}/plano/${sub.order_token}`;
+      // Caminho relativo: o frontend (PublicStorefront) usa <a href> e o link funciona
+      // na mesma origem da loja pública.
+      const link = `/plano/${sub.order_token}`;
       await admin.from("storefront_orders").update({
         status: "completed",
         recharge_plan_subscription_id: sub.id,
