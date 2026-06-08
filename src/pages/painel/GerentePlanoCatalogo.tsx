@@ -22,21 +22,6 @@ type RechargePlan = {
   bot_owner_email: string;
 };
 
-type Reseller = {
-  id: string;
-  display_name: string | null;
-  is_active: boolean;
-};
-
-type PriceRow = {
-  id?: string;
-  reseller_id: string;
-  plan_id: string;
-  cost_cents: number;
-  sale_price_cents: number | null;
-  is_active: boolean;
-};
-
 const fmtBRL = (c: number) =>
   (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -53,13 +38,8 @@ const formatBRL = (cents: number): string =>
 export default function GerentePlanoCatalogo() {
   const [plan, setPlan] = useState<RechargePlan | null>(null);
   const [planEdits, setPlanEdits] = useState<Partial<RechargePlan>>({});
-  const [resellers, setResellers] = useState<Reseller[]>([]);
-  const [prices, setPrices] = useState<Record<string, PriceRow>>({}); // by reseller_id
-  const [costEdits, setCostEdits] = useState<Record<string, string>>({}); // reseller_id -> input
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savingCosts, setSavingCosts] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -72,26 +52,6 @@ export default function GerentePlanoCatalogo() {
       const p = (planRows?.[0] ?? null) as RechargePlan | null;
       setPlan(p);
       setPlanEdits({});
-
-      const { data: rRows } = await supabase
-        .from("resellers")
-        .select("id, display_name, is_active")
-        .eq("is_active", true)
-        .order("display_name", { ascending: true });
-      setResellers((rRows ?? []) as Reseller[]);
-
-      if (p) {
-        const { data: priceRows } = await supabase
-          .from("reseller_recharge_plan_prices")
-          .select("*")
-          .eq("plan_id", p.id);
-        const map: Record<string, PriceRow> = {};
-        (priceRows ?? []).forEach((row: any) => {
-          map[row.reseller_id] = row as PriceRow;
-        });
-        setPrices(map);
-      }
-      setCostEdits({});
     } catch (e: any) {
       toast.error("Erro ao carregar", { description: e.message });
     } finally {
@@ -139,44 +99,6 @@ export default function GerentePlanoCatalogo() {
       setSaving(false);
     }
   };
-
-  const costsDirty = useMemo(() => Object.keys(costEdits).length > 0, [costEdits]);
-
-  const saveCosts = async () => {
-    if (!plan) return;
-    setSavingCosts(true);
-    try {
-      const rows = Object.entries(costEdits).map(([reseller_id, val]) => {
-        const existing = prices[reseller_id];
-        return {
-          reseller_id,
-          plan_id: plan.id,
-          cost_cents: parseBRL(val),
-          // preserve sale_price/is_active if already set
-          sale_price_cents: existing?.sale_price_cents ?? null,
-          is_active: existing?.is_active ?? true,
-        };
-      });
-      const { error } = await supabase
-        .from("reseller_recharge_plan_prices")
-        .upsert(rows, { onConflict: "reseller_id,plan_id" });
-      if (error) throw error;
-      toast.success(`Custo atualizado para ${rows.length} revendedor(es)`);
-      await load();
-    } catch (e: any) {
-      toast.error("Erro ao salvar custos", { description: e.message });
-    } finally {
-      setSavingCosts(false);
-    }
-  };
-
-  const filteredResellers = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return resellers;
-    return resellers.filter((r) =>
-      (r.display_name ?? "").toLowerCase().includes(q),
-    );
-  }, [search, resellers]);
 
   if (loading) {
     return (
@@ -320,7 +242,7 @@ export default function GerentePlanoCatalogo() {
           </div>
 
           <div>
-            <Label>Custo padrão (R$)</Label>
+            <Label>Custo do plano (R$) — cobrado de todos os revendedores</Label>
             <Input
               inputMode="decimal"
               value={
@@ -337,8 +259,8 @@ export default function GerentePlanoCatalogo() {
               placeholder="0,00"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Custo sugerido. O custo real cobrado de cada revendedor é
-              definido individualmente abaixo.
+              Este é o valor que será debitado do saldo do revendedor a cada
+              venda deste plano. Vale para todos os revendedores.
             </p>
           </div>
 
@@ -368,116 +290,6 @@ export default function GerentePlanoCatalogo() {
               )}
               Salvar plano
             </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle>Custo por revendedor</CardTitle>
-              <CardDescription>
-                Quanto a plataforma cobra de cada revendedor por uma venda
-                deste plano. Eles definem o preço de venda final.
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Buscar revendedor…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-56"
-              />
-              <Button
-                onClick={saveCosts}
-                disabled={!costsDirty || savingCosts}
-              >
-                {savingCosts ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                Salvar custos
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-xs uppercase tracking-wider text-muted-foreground">
-                  <th className="text-left py-2 px-2">Revendedor</th>
-                  <th className="text-right py-2 px-2 w-44">Custo (R$)</th>
-                  <th className="text-right py-2 px-2 w-44">Preço de venda</th>
-                  <th className="text-right py-2 px-2 w-32">Margem</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredResellers.map((r) => {
-                  const row = prices[r.id];
-                  const curCost = row?.cost_cents ?? 0;
-                  const editVal = costEdits[r.id];
-                  const effCost =
-                    editVal != null ? parseBRL(editVal) : curCost;
-                  const sale = row?.sale_price_cents ?? null;
-                  const margin =
-                    sale != null && sale > 0 ? sale - effCost : null;
-                  return (
-                    <tr key={r.id} className="border-b hover:bg-muted/30">
-                      <td className="py-2 px-2">
-                        {r.display_name ?? "(sem nome)"}
-                      </td>
-                      <td className="py-2 px-2">
-                        <Input
-                          inputMode="decimal"
-                          value={editVal ?? formatBRL(curCost)}
-                          onChange={(e) =>
-                            setCostEdits((s) => ({
-                              ...s,
-                              [r.id]: e.target.value,
-                            }))
-                          }
-                          placeholder="0,00"
-                          className="h-9 text-right font-mono"
-                        />
-                      </td>
-                      <td className="py-2 px-2 text-right text-muted-foreground">
-                        {sale != null ? fmtBRL(sale) : "—"}
-                      </td>
-                      <td className="py-2 px-2 text-right">
-                        {margin != null ? (
-                          <span
-                            className={
-                              margin > 0
-                                ? "text-emerald-500 font-mono"
-                                : margin < 0
-                                  ? "text-destructive font-mono"
-                                  : "text-muted-foreground font-mono"
-                            }
-                          >
-                            {fmtBRL(margin)}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {filteredResellers.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="py-8 text-center text-muted-foreground"
-                    >
-                      Nenhum revendedor.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
           </div>
         </CardContent>
       </Card>
