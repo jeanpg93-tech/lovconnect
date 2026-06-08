@@ -448,6 +448,274 @@ Deno.serve(async (req) => {
       return json(r.data, r.status);
     }
 
+    // ====================================================================
+    // ====================  PLANOS DE RECARGA  ===========================
+    // ====================================================================
+    // Catálogo: GET /planos/catalogo
+    if (method === "GET" && path === "/planos/catalogo") {
+      const { data: plans } = await admin
+        .from("recharge_plans")
+        .select(
+          "id, name, description, duration_days, credits_per_day, total_credits_cap, delivery_hour, is_active, bot_owner_email",
+        )
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+      const { data: prices } = await admin
+        .from("reseller_recharge_plan_prices")
+        .select("plan_id, cost_cents, sale_price_cents, is_active")
+        .eq("reseller_id", resellerId);
+      const byPlan = new Map<string, any>();
+      (prices ?? []).forEach((p: any) => byPlan.set(p.plan_id, p));
+      const out = (plans ?? []).map((p: any) => {
+        const pr = byPlan.get(p.id);
+        return {
+          planoId: p.id,
+          nome: p.name,
+          descricao: p.description,
+          duracaoDias: p.duration_days,
+          creditosPorDia: p.credits_per_day,
+          capTotal: p.total_credits_cap,
+          horarioEntregaBRT: p.delivery_hour,
+          custoCentavos: pr?.cost_cents ?? null,
+          precoVendaCentavos: pr?.sale_price_cents ?? null,
+          disponivel: !!pr?.is_active && pr?.sale_price_cents > 0,
+        };
+      });
+      return json({ success: true, data: { planos: out } });
+    }
+
+    // POST /planos — cria uma assinatura e debita o custo do saldo da plataforma
+    if (method === "POST" && path === "/planos") {
+      let parsed: any = {};
+      try { parsed = JSON.parse(rawBody || "{}"); } catch {}
+      const planoId = parsed?.planoId ? String(parsed.planoId) : "";
+      const nome = typeof parsed?.cliente?.nome === "string"
+        ? parsed.cliente.nome.trim().slice(0, 120)
+        : typeof parsed?.nome === "string" ? parsed.nome.trim().slice(0, 120) : "";
+      const whatsapp = typeof parsed?.cliente?.whatsapp === "string"
+        ? parsed.cliente.whatsapp.trim().slice(0, 32)
+        : typeof parsed?.whatsapp === "string" ? parsed.whatsapp.trim().slice(0, 32) : "";
+      const notes = typeof parsed?.notas === "string"
+        ? parsed.notas.trim().slice(0, 500)
+        : null;
+
+      if (!planoId) return errResp(400, "MISSING_PLAN", "Campo planoId é obrigatório");
+      if (nome.length < 2) return errResp(400, "INVALID_NAME", "Informe o nome do cliente");
+
+      // Carrega plano + preço do revendedor
+      const { data: plan } = await admin
+        .from("recharge_plans")
+        .select("*")
+        .eq("id", planoId)
+        .maybeSingle();
+      if (!plan) return errResp(404, "PLAN_NOT_FOUND", "Plano não encontrado");
+      if (!plan.is_active) return errResp(400, "PLAN_INACTIVE", "Plano está desativado");
+      if (!plan.bot_owner_email) return errResp(503, "PLAN_NOT_READY", "Plano ainda não tem email do bot configurado");
+
+      const { data: price } = await admin
+        .from("reseller_recharge_plan_prices")
+        .select("cost_cents, sale_price_cents, is_active")
+        .eq("reseller_id", resellerId)
+        .eq("plan_id", planoId)
+        .maybeSingle();
+      if (!price) return errResp(403, "PRICE_NOT_SET", "O gerente ainda não definiu seu custo deste plano");
+      if (!price.is_active) return errResp(400, "PLAN_DISABLED", "Você desativou este plano na sua loja");
+      if (!price.sale_price_cents || price.sale_price_cents <= 0) {
+        return errResp(400, "SALE_PRICE_MISSING", "Defina seu preço de venda antes de gerar pedidos");
+      }
+
+      const costCents = Number(price.cost_cents);
+      // Debita do saldo da plataforma
+      const { data: debited, error: debitErr } = await admin.rpc("debit_reseller_balance", {
+        _reseller_id: resellerId,
+        _amount_cents: costCents,
+        _kind: "recharge_plan_api",
+        _description: `Venda do plano "${plan.name}" via API`,
+        _reference_id: null,
+      });
+      if (debitErr) return errResp(500, "DEBIT_FAILED", debitErr.message);
+      if (debited === false) {
+        return errResp(400, "INSUFFICIENT_BALANCE", "Saldo insuficiente para esta operação");
+      }
+
+      // Cria a assinatura
+      const { data: sub, error: insErr } = await admin
+        .from("reseller_recharge_plan_subscriptions")
+        .insert({
+          reseller_id: resellerId,
+          plan_id: plan.id,
+          customer_name: nome,
+          customer_whatsapp: whatsapp || null,
+          owner_email_required: plan.bot_owner_email,
+          source: "api",
+          source_reference_id: keyRow?.id ?? null,
+          cost_cents: costCents,
+          sale_price_cents: Number(price.sale_price_cents),
+          duration_days: plan.duration_days,
+          credits_per_day: plan.credits_per_day,
+          total_credits_cap: plan.total_credits_cap,
+          delivery_hour: plan.delivery_hour,
+          notes,
+        })
+        .select("id, order_token, status")
+        .single();
+
+      if (insErr || !sub) {
+        // Reverte débito
+        await admin.rpc("credit_reseller_balance", {
+          _reseller_id: resellerId,
+          _amount_cents: costCents,
+          _kind: "recharge_plan_refund",
+          _description: `Estorno (falha ao criar assinatura)`,
+          _reference_id: null,
+        });
+        return errResp(500, "CREATE_FAILED", insErr?.message ?? "Falha ao criar assinatura");
+      }
+
+      const origin = `${url.protocol}//${url.host}`;
+      // origin do edge não é o app; devolve a URL pública conhecida via header opcional
+      const appOrigin = req.headers.get("x-app-origin") || "";
+      const clientLink = `${appOrigin || origin}/plano/${sub.order_token}`;
+
+      const { data: bal } = await admin
+        .from("reseller_balances")
+        .select("balance_cents")
+        .eq("reseller_id", resellerId)
+        .maybeSingle();
+
+      return json({
+        success: true,
+        data: {
+          assinaturaId: sub.id,
+          token: sub.order_token,
+          status: sub.status,
+          linkCliente: clientLink,
+          custoCentavos: costCents,
+          precoVendaCentavos: Number(price.sale_price_cents),
+          novoSaldoCentavos: Number(bal?.balance_cents ?? 0),
+          novoSaldoReais: ((Number(bal?.balance_cents ?? 0)) / 100).toFixed(2),
+        },
+      });
+    }
+
+    // GET /planos — lista assinaturas do revendedor
+    if (method === "GET" && path === "/planos") {
+      const limit = Math.min(Number(url.searchParams.get("limit") ?? 50), 200);
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const statusFilter = url.searchParams.get("status");
+
+      let q = admin
+        .from("reseller_recharge_plan_subscriptions")
+        .select("id, order_token, status, customer_name, customer_whatsapp, workspace_name, started_at, ends_at, cost_cents, sale_price_cents, duration_days, credits_per_day, created_at", { count: "exact" })
+        .eq("reseller_id", resellerId)
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (statusFilter) q = q.eq("status", statusFilter as any);
+
+      const { data: rows, count, error } = await q;
+      if (error) return errResp(500, "DB_ERROR", error.message);
+
+      return json({
+        success: true,
+        data: {
+          total: count ?? rows?.length ?? 0,
+          limit,
+          offset,
+          planos: (rows ?? []).map((r: any) => ({
+            assinaturaId: r.id,
+            token: r.order_token,
+            status: r.status,
+            cliente: { nome: r.customer_name, whatsapp: r.customer_whatsapp },
+            workspaceName: r.workspace_name,
+            inicio: r.started_at,
+            fim: r.ends_at,
+            custoCentavos: r.cost_cents,
+            precoVendaCentavos: r.sale_price_cents,
+            duracaoDias: r.duration_days,
+            creditosPorDia: r.credits_per_day,
+            createdAt: r.created_at,
+          })),
+        },
+      });
+    }
+
+    // GET /planos/{token} — detalhes
+    const planTokenMatch = path.match(/^\/planos\/([a-f0-9]{32})$/i);
+    if (method === "GET" && planTokenMatch) {
+      const tk = planTokenMatch[1];
+      const { data: sub } = await admin
+        .from("reseller_recharge_plan_subscriptions")
+        .select("*")
+        .eq("order_token", tk)
+        .eq("reseller_id", resellerId)
+        .maybeSingle();
+      if (!sub) return errResp(404, "NOT_FOUND", "Assinatura não encontrada");
+      const { data: deliveries } = await admin
+        .from("recharge_plan_deliveries")
+        .select("day_number, scheduled_date, credits, status, delivered_at")
+        .eq("subscription_id", sub.id)
+        .order("day_number", { ascending: true });
+      return json({
+        success: true,
+        data: {
+          assinaturaId: sub.id,
+          token: sub.order_token,
+          status: sub.status,
+          cliente: { nome: sub.customer_name, whatsapp: sub.customer_whatsapp },
+          workspaceName: sub.workspace_name,
+          emailBotOwner: sub.owner_email_required,
+          inicio: sub.started_at,
+          fim: sub.ends_at,
+          duracaoDias: sub.duration_days,
+          creditosPorDia: sub.credits_per_day,
+          custoCentavos: sub.cost_cents,
+          precoVendaCentavos: sub.sale_price_cents,
+          entregas: (deliveries ?? []).map((d: any) => ({
+            dia: d.day_number,
+            dataAgendada: d.scheduled_date,
+            creditos: d.credits,
+            status: d.status,
+            entregueEm: d.delivered_at,
+          })),
+        },
+      });
+    }
+
+    // POST /planos/{token}/cancelar — só antes do cliente confirmar início
+    const planCancelMatch = path.match(/^\/planos\/([a-f0-9]{32})\/cancelar$/i);
+    if (method === "POST" && planCancelMatch) {
+      const tk = planCancelMatch[1];
+      const { data: sub } = await admin
+        .from("reseller_recharge_plan_subscriptions")
+        .select("id, status, cost_cents")
+        .eq("order_token", tk)
+        .eq("reseller_id", resellerId)
+        .maybeSingle();
+      if (!sub) return errResp(404, "NOT_FOUND", "Assinatura não encontrada");
+      if (sub.status !== "awaiting_owner" && sub.status !== "awaiting_confirm") {
+        return errResp(400, "NOT_CANCELLABLE", "Não é mais possível cancelar — cliente já confirmou o início");
+      }
+      const { error: updErr } = await admin
+        .from("reseller_recharge_plan_subscriptions")
+        .update({
+          status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+          cancelled_reason: "Cancelado pelo revendedor via API",
+        })
+        .eq("id", sub.id);
+      if (updErr) return errResp(500, "DB_ERROR", updErr.message);
+
+      // Estorna o débito
+      await admin.rpc("credit_reseller_balance", {
+        _reseller_id: resellerId,
+        _amount_cents: Number(sub.cost_cents),
+        _kind: "recharge_plan_refund",
+        _description: `Cancelamento de plano via API`,
+        _reference_id: null,
+      });
+      return json({ success: true, data: { cancelado: true } });
+    }
+
     return errResp(404, "NOT_FOUND", `Endpoint ${method} ${path} não encontrado`);
   } catch (e: any) {
     console.error("reseller-recharge-api error", e);
