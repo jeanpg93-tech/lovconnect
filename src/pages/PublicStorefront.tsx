@@ -297,6 +297,27 @@ export default function PublicStorefront() {
         .order("credits_amount", { ascending: true });
       if (rec) setRecharges(rec);
 
+      // Planos de recarga à venda (assinatura 30 dias)
+      const { data: rpp } = await supabase
+        .from("reseller_recharge_plan_prices")
+        .select(
+          "plan_id, sale_price_cents, recharge_plans!inner(id, name, duration_days, credits_per_day, total_credits_cap, is_active, bot_owner_email)",
+        )
+        .eq("reseller_id", r.id)
+        .eq("is_active", true)
+        .gt("sale_price_cents", 0);
+      const sp: SellablePlan[] = ((rpp ?? []) as any[])
+        .filter((row) => row.recharge_plans?.is_active && row.recharge_plans?.bot_owner_email)
+        .map((row) => ({
+          plan_id: row.plan_id,
+          name: row.recharge_plans.name,
+          duration_days: row.recharge_plans.duration_days,
+          credits_per_day: row.recharge_plans.credits_per_day,
+          total_credits_cap: row.recharge_plans.total_credits_cap,
+          sale_price_cents: Number(row.sale_price_cents),
+        }));
+      setSellablePlans(sp);
+
       const { data: rs } = await supabase
         .from("app_settings")
         .select("value")
