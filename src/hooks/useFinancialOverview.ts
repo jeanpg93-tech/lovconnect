@@ -149,11 +149,8 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const planIds = Array.from(new Set(planSubsArr.map((s) => s.plan_id).filter(Boolean)));
     const platformCostByPlan: Record<string, number> = {};
     if (planIds.length) {
-      const { data: planRows } = await supabase
-        .from("recharge_plans")
-        .select("id, platform_cost_cents")
-        .in("id", planIds);
-      (planRows || []).forEach((p: any) => {
+      const { data: planRows } = await supabase.rpc("gerente_list_recharge_plans" as any);
+      ((planRows as any[]) || []).filter((p: any) => planIds.includes(p.id)).forEach((p: any) => {
         platformCostByPlan[p.id] = Number(p.platform_cost_cents || 0);
       });
     }

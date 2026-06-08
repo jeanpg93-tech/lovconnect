@@ -4335,6 +4335,30 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      gerente_list_recharge_plans: {
+        Args: never
+        Returns: {
+          base_cost_cents: number
+          bot_owner_email: string
+          created_at: string
+          credits_per_day: number
+          delivery_hour: number
+          description: string | null
+          duration_days: number
+          id: string
+          is_active: boolean
+          name: string
+          platform_cost_cents: number
+          total_credits_cap: number
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "recharge_plans"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_active_promotion: {
         Args: never
         Returns: {
