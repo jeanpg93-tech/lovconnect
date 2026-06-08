@@ -65,27 +65,31 @@ export default function GerarVendaPlanoDialog({
     if (!canSubmit) return;
     setCreating(true);
     try {
-      const { data, error } = await supabase
-        .from("reseller_recharge_plan_subscriptions")
-        .insert({
-          reseller_id: resellerId,
-          plan_id: plan.id,
-          customer_name: customerName.trim(),
-          customer_whatsapp: customerWhatsapp.trim() || null,
-          owner_email_required: plan.bot_owner_email,
-          source: "manual",
-          cost_cents,
-          sale_price_cents,
-          duration_days: plan.duration_days,
-          credits_per_day: plan.credits_per_day,
-          total_credits_cap: plan.total_credits_cap,
-          notes: notes.trim() || null,
-        })
-        .select("order_token")
-        .single();
+      const { data, error } = await supabase.functions.invoke(
+        "recharge-plan-manual-sale",
+        {
+          body: {
+            plan_id: plan.id,
+            customer_name: customerName.trim(),
+            customer_whatsapp: customerWhatsapp.trim() || null,
+            notes: notes.trim() || null,
+          },
+        },
+      );
       if (error) throw error;
+      if (!data?.ok) {
+        const code = data?.error ?? "unknown";
+        const map: Record<string, string> = {
+          insufficient_balance: "Saldo insuficiente — recarregue antes de vender.",
+          price_not_set: "O gerente ainda não definiu seu custo deste plano.",
+          plan_disabled: "Você desativou este plano na sua loja.",
+          sale_price_missing: "Defina seu preço de venda antes de gerar pedidos.",
+          plan_not_ready: "O gerente ainda não configurou o email do bot.",
+        };
+        throw new Error(map[code] ?? code);
+      }
       setCreatedToken(data.order_token);
-      toast.success("Venda criada");
+      toast.success("Venda criada e saldo debitado");
       onCreated?.();
     } catch (e: any) {
       toast.error("Erro ao criar venda", { description: e.message });
