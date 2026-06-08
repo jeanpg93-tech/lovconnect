@@ -926,6 +926,82 @@ function SubDetailDialog({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-rose-600">
+                <ShieldAlert className="h-5 w-5" />
+                Rejeitar verificação do Owner
+              </DialogTitle>
+              <DialogDescription>
+                O cliente receberá a mensagem na página dele explicando o motivo.
+                Ele poderá corrigir e reenviar quantas vezes precisar.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Motivo da rejeição</Label>
+                <div className="grid gap-1.5 mt-1.5">
+                  {REJECT_PRESETS.map((p) => (
+                    <label
+                      key={p}
+                      className={`flex items-center gap-2 rounded-lg border p-2.5 text-sm cursor-pointer transition ${
+                        rejectPreset === p
+                          ? "border-rose-500/60 bg-rose-500/10"
+                          : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="reject-preset"
+                        value={p}
+                        checked={rejectPreset === p}
+                        onChange={() => setRejectPreset(p)}
+                        className="accent-rose-500"
+                      />
+                      <span>{p}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {rejectPreset.startsWith("Outro") && (
+                <div>
+                  <Label htmlFor="reject-custom" className="text-xs">
+                    Descreva (será mostrado ao cliente)
+                  </Label>
+                  <Textarea
+                    id="reject-custom"
+                    placeholder="Ex.: o email está com erro de digitação no convite…"
+                    value={rejectCustom}
+                    onChange={(e) => setRejectCustom(e.target.value)}
+                    rows={3}
+                    maxLength={300}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {rejectCustom.length}/300
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRejectOpen(false)} disabled={rejecting}>
+                Voltar
+              </Button>
+              <Button
+                className="bg-rose-600 hover:bg-rose-700 text-white"
+                onClick={rejectOwner}
+                disabled={rejecting}
+              >
+                {rejecting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Confirmar rejeição
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
