@@ -106,6 +106,7 @@ export default function PublicPlano() {
   const [confirming, setConfirming] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [resubmitting, setResubmitting] = useState(false);
 
   const call = useCallback(
     async (action: string, body?: Record<string, unknown>) => {
@@ -180,17 +181,16 @@ export default function PublicPlano() {
     }
   };
 
-  const confirmStart = async () => {
-    setConfirming(true);
+  const resubmitOwner = async () => {
+    setResubmitting(true);
     try {
-      const d = await call("confirm_start", {});
+      const d = await call("resubmit_owner", {});
       setData(d);
-      setConfirmOpen(false);
-      toast.success("Entrega iniciada!");
+      toast.success("Reenviado! Aguarde nossa verificação.");
     } catch (e: any) {
       toast.error("Falha", { description: e.message });
     } finally {
-      setConfirming(false);
+      setResubmitting(false);
     }
   };
 
