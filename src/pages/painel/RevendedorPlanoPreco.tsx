@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, CalendarClock, Info } from "lucide-react";
+import { Loader2, Save, CalendarClock, Info, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import GerarVendaPlanoDialog from "@/components/painel/planos/GerarVendaPlanoDialog";
 
 type RechargePlan = {
   id: string;
@@ -17,6 +18,7 @@ type RechargePlan = {
   total_credits_cap: number;
   delivery_hour: number;
   is_active: boolean;
+  bot_owner_email: string;
 };
 
 type PriceRow = {
@@ -47,6 +49,7 @@ export default function RevendedorPlanoPreco() {
   const [active, setActive] = useState<boolean>(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [vendaOpen, setVendaOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -65,7 +68,7 @@ export default function RevendedorPlanoPreco() {
 
       const { data: planRows } = await supabase
         .from("recharge_plans")
-        .select("*")
+        .select("id,name,description,duration_days,credits_per_day,total_credits_cap,delivery_hour,is_active,bot_owner_email")
         .eq("is_active", true)
         .order("created_at", { ascending: true })
         .limit(1);
@@ -108,6 +111,11 @@ export default function RevendedorPlanoPreco() {
   }, [cost, saleCents]);
 
   const canSave = !!(price && (saleInput || active !== price.is_active));
+  const canSell =
+    !!price &&
+    !!price.sale_price_cents &&
+    price.is_active &&
+    !!plan?.bot_owner_email;
 
   const save = async () => {
     if (!price) return;
@@ -255,6 +263,16 @@ export default function RevendedorPlanoPreco() {
         </div>
 
         <div className="flex justify-end">
+          <Button
+            variant="outline"
+            className="mr-2"
+            onClick={() => setVendaOpen(true)}
+            disabled={!canSell}
+            title={!canSell ? "Defina e ative o preço de venda primeiro" : ""}
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Gerar venda
+          </Button>
           <Button onClick={save} disabled={!canSave || saving}>
             {saving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -265,6 +283,23 @@ export default function RevendedorPlanoPreco() {
           </Button>
         </div>
       </CardContent>
+      {plan && resellerId && price && price.sale_price_cents && (
+        <GerarVendaPlanoDialog
+          open={vendaOpen}
+          onOpenChange={setVendaOpen}
+          resellerId={resellerId}
+          plan={{
+            id: plan.id,
+            name: plan.name,
+            duration_days: plan.duration_days,
+            credits_per_day: plan.credits_per_day,
+            total_credits_cap: plan.total_credits_cap,
+            bot_owner_email: plan.bot_owner_email,
+          }}
+          cost_cents={price.cost_cents}
+          sale_price_cents={price.sale_price_cents}
+        />
+      )}
     </Card>
   );
 }
