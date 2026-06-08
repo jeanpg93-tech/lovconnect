@@ -242,7 +242,7 @@ Deno.serve(async (req) => {
       .insert({
         reseller_id: reseller.id,
         extension_id,
-        license_type: license_type ?? "credits",
+        license_type: license_type ?? (product_type === "recharge_plan" ? "recharge_plan" : "credits"),
         buyer_name,
         buyer_whatsapp,
         price_cents,
@@ -251,6 +251,8 @@ Deno.serve(async (req) => {
         provider: "misticpay",
         status: "pending",
         expires_at: expiresAtIso,
+        recharge_plan_id: recharge_plan_id,
+        cost_cents: product_type === "recharge_plan" ? plan_cost_cents : null,
       })
       .select()
       .single();
