@@ -102,8 +102,6 @@ export default function PublicPlano() {
   const [workspaceInput, setWorkspaceInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [resubmitting, setResubmitting] = useState(false);
