@@ -21,6 +21,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Tabs,
   TabsList,
   TabsTrigger,
@@ -37,8 +47,10 @@ import {
   Sparkles,
   Calendar,
   Clock,
+  Ban,
 } from "lucide-react";
 import { toast } from "sonner";
+import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 
 type Sub = {
   id: string;
@@ -392,6 +404,9 @@ function SubDetailDialog({
   const [loading, setLoading] = useState(true);
   const [notesByDay, setNotesByDay] = useState<Record<number, string>>({});
   const [acting, setActing] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -462,6 +477,44 @@ function SubDetailDialog({
   };
 
   const deliveredCount = deliveries.filter((d) => d.status === "delivered").length;
+  const canCancel = !["cancelled", "completed", "expired"].includes(sub.status);
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    try {
+      const { data, error } = await invokeAuthenticatedFunction<{
+        ok?: boolean;
+        error?: string;
+        refund_cents?: number;
+        refundable_days?: number;
+        duration_days?: number;
+      }>("recharge-plan-cancel", {
+        method: "POST",
+        body: {
+          subscription_id: sub.id,
+          reason: cancelReason.trim() || "Cancelado manualmente pelo gerente",
+        },
+      });
+      if (error || !data?.ok) {
+        throw new Error(data?.error || error?.message || "Falha ao cancelar");
+      }
+      const refundBRL = ((data.refund_cents ?? 0) / 100).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+      toast.success("Assinatura cancelada", {
+        description: `Estorno de ${refundBRL} (${data.refundable_days}/${data.duration_days} dias) creditado ao revendedor.`,
+      });
+      setCancelOpen(false);
+      setCancelReason("");
+      onOpenChange(false);
+      onChanged();
+    } catch (e: any) {
+      toast.error("Erro ao cancelar", { description: e.message });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -628,10 +681,63 @@ function SubDetailDialog({
         </div>
 
         <DialogFooter>
+          {canCancel && (
+            <Button
+              variant="outline"
+              className="mr-auto text-rose-500 border-rose-500/40 hover:bg-rose-500/10"
+              onClick={() => setCancelOpen(true)}
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              Cancelar assinatura
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
         </DialogFooter>
+
+        <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancelar assinatura?</AlertDialogTitle>
+              <AlertDialogDescription>
+                A assinatura será marcada como cancelada e as entregas pendentes/falhas
+                não rodarão mais. O valor proporcional aos dias não entregues será
+                <strong> estornado automaticamente </strong>
+                ao saldo do revendedor.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="cancel-reason" className="text-xs">
+                Motivo (opcional)
+              </Label>
+              <Textarea
+                id="cancel-reason"
+                placeholder="Ex.: cliente solicitou, fraude, etc."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={cancelling}>Voltar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleCancel();
+                }}
+                disabled={cancelling}
+                className="bg-rose-600 hover:bg-rose-700"
+              >
+                {cancelling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Cancelar e estornar"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

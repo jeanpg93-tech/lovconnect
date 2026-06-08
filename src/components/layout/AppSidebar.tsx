@@ -42,6 +42,7 @@ import {
   Puzzle,
   ShieldCheck,
   MessageCircle,
+  CalendarClock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -124,6 +125,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
     ]},
     { label: "Minhas vendas", items: [
       { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
+      { title: "Planos", url: "/painel/revendedor/planos-vendidos", icon: CalendarClock },
       { title: "Licenças", url: "/painel/revendedor/licencas", icon: Puzzle },
     ]},
     { label: "Configurarações", items: [
