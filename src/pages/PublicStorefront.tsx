@@ -1008,12 +1008,9 @@ export default function PublicStorefront() {
               {activeTab === "extension" ? (
                 <>
                   {(() => {
-                    const method = store.extension_method ?? "flow";
-                    const isLovax = method === "lovax";
-                    const methodLabel = isLovax ? "LovaX" : "PromptFlow";
-                    const methodDesc = isLovax
-                      ? "As chaves desta vitrine são emitidas exclusivamente pela LovaX"
-                      : "As chaves desta vitrine são emitidas exclusivamente pela PromptFlow";
+                    const isLovax = false;
+                    const methodLabel = "Método LovConnect";
+                    const methodDesc = "As chaves desta vitrine são emitidas exclusivamente pelo método LovConnect";
                     return (
                       <div className="max-w-xl mx-auto mb-5">
                         <div
