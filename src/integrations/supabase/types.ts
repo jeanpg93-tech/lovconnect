@@ -1812,6 +1812,45 @@ export type Database = {
           },
         ]
       }
+      recharge_plan_tutorial_media: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          media_type: string
+          media_url: string | null
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          media_type?: string
+          media_url?: string | null
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          media_type?: string
+          media_url?: string | null
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       recharge_plans: {
         Row: {
           base_cost_cents: number
@@ -2905,8 +2944,12 @@ export type Database = {
           id: string
           notes: string | null
           order_token: string
+          owner_confirmation_attempts: number
           owner_email_added_at: string | null
           owner_email_required: string
+          owner_rejected_at: string | null
+          owner_rejected_count: number
+          owner_rejected_reason: string | null
           paused_at: string | null
           plan_id: string
           reseller_id: string
@@ -2936,8 +2979,12 @@ export type Database = {
           id?: string
           notes?: string | null
           order_token?: string
+          owner_confirmation_attempts?: number
           owner_email_added_at?: string | null
           owner_email_required: string
+          owner_rejected_at?: string | null
+          owner_rejected_count?: number
+          owner_rejected_reason?: string | null
           paused_at?: string | null
           plan_id: string
           reseller_id: string
@@ -2967,8 +3014,12 @@ export type Database = {
           id?: string
           notes?: string | null
           order_token?: string
+          owner_confirmation_attempts?: number
           owner_email_added_at?: string | null
           owner_email_required?: string
+          owner_rejected_at?: string | null
+          owner_rejected_count?: number
+          owner_rejected_reason?: string | null
           paused_at?: string | null
           plan_id?: string
           reseller_id?: string
@@ -3921,6 +3972,14 @@ export type Database = {
           low_balance_threshold_cents: number
           notify_delivery_progress: boolean
           notify_low_balance: boolean
+          notify_plan_cancelled: boolean
+          notify_plan_completed: boolean
+          notify_plan_delivery_failed: boolean
+          notify_plan_delivery_success: boolean
+          notify_plan_owner_rejected: boolean
+          notify_plan_owner_verified: boolean
+          notify_plan_resubmit: boolean
+          notify_plan_workspace_submitted: boolean
           notify_recharges: boolean
           notify_refunds: boolean
           notify_reseller_activity: boolean
@@ -3943,6 +4002,14 @@ export type Database = {
           low_balance_threshold_cents?: number
           notify_delivery_progress?: boolean
           notify_low_balance?: boolean
+          notify_plan_cancelled?: boolean
+          notify_plan_completed?: boolean
+          notify_plan_delivery_failed?: boolean
+          notify_plan_delivery_success?: boolean
+          notify_plan_owner_rejected?: boolean
+          notify_plan_owner_verified?: boolean
+          notify_plan_resubmit?: boolean
+          notify_plan_workspace_submitted?: boolean
           notify_recharges?: boolean
           notify_refunds?: boolean
           notify_reseller_activity?: boolean
@@ -3965,6 +4032,14 @@ export type Database = {
           low_balance_threshold_cents?: number
           notify_delivery_progress?: boolean
           notify_low_balance?: boolean
+          notify_plan_cancelled?: boolean
+          notify_plan_completed?: boolean
+          notify_plan_delivery_failed?: boolean
+          notify_plan_delivery_success?: boolean
+          notify_plan_owner_rejected?: boolean
+          notify_plan_owner_verified?: boolean
+          notify_plan_resubmit?: boolean
+          notify_plan_workspace_submitted?: boolean
           notify_recharges?: boolean
           notify_refunds?: boolean
           notify_reseller_activity?: boolean
@@ -4543,6 +4618,7 @@ export type Database = {
         | "cancelled"
         | "completed"
         | "expired"
+        | "owner_rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4686,6 +4762,7 @@ export const Constants = {
         "cancelled",
         "completed",
         "expired",
+        "owner_rejected",
       ],
     },
   },
