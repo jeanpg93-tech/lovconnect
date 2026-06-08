@@ -1,0 +1,1 @@
+CREATE POLICY rrpp_insert_own_reseller ON public.reseller_recharge_plan_prices FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM public.resellers r WHERE r.id = reseller_recharge_plan_prices.reseller_id AND r.user_id = auth.uid()));
