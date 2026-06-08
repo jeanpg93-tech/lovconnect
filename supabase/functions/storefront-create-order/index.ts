@@ -273,7 +273,9 @@ Deno.serve(async (req) => {
         payerName: buyer_name,
         payerDocument: payer_document || "00000000000",
         transactionId: order.id,
-        description: `Loja ${reseller.display_name ?? reseller_slug}`,
+        description: product_type === "recharge_plan"
+          ? `Plano ${resolved_plan?.name ?? "Recarga"} — ${reseller.display_name ?? reseller_slug}`
+          : `Loja ${reseller.display_name ?? reseller_slug}`,
         projectWebhook: webhookUrl,
       }),
     });
