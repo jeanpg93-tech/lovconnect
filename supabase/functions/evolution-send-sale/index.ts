@@ -59,6 +59,14 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
+  // Only trusted server-side callers (other edge functions) may invoke this.
+  // Require the service-role bearer token.
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (!token || token !== SERVICE_ROLE_KEY) {
+    return json({ error: "unauthorized" }, 401);
+  }
+
   if (!EVO_BASE || !EVO_KEY) {
     return json({ ok: false, skipped: "evolution_not_configured" });
   }
