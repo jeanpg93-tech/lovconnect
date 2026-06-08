@@ -37,6 +37,7 @@ import {
   ChevronUp,
   Info,
   Zap,
+  CalendarClock,
 } from "lucide-react";
 import {
   Select,
@@ -1142,6 +1143,7 @@ export default function GerenteDashboard() {
                        activation_credit: "Saldo Inicial (Ativação)",
                        mensalista_license: "Mensalista — Licença",
                        pack_license: "Pack — Licença",
+                       recharge_plan_storefront: "Plano de Recargas",
                     };
                     return groups.map((g) => (
                       <div key={g.label} className="space-y-2">
@@ -1163,7 +1165,8 @@ export default function GerenteDashboard() {
                           const kindLabel = kindLabels[m.kind] ?? m.kind;
                           const desc = m.description ?? "";
                            const isStoreSale = m.kind === "order_debit" && /venda\s*loja/i.test(desc);
-                            const isApiOrder = (m.kind === "order_debit" && !isStoreSale) || m.kind === "api_debit";
+                             const isApiOrder = (m.kind === "order_debit" && !isStoreSale) || m.kind === "api_debit";
+                            const isPlanSale = m.kind === "recharge_plan_storefront";
                            // Detecta venda de créditos pelo detalhe ("Recarga • N créditos")
                            // pois a mesma kind 'license_purchase' é usada para licença e para recarga manual.
                            const isRechargeDetail = /recarga|cr[ée]dito/i.test(String(m.detail ?? "")) || /recarga|cr[ée]dito/i.test(desc);
@@ -1175,7 +1178,7 @@ export default function GerenteDashboard() {
                           const isRecharge = m.kind === "recharge";
                           const isMensalista = m.kind === "mensalista_license";
                           const isPack = m.kind === "pack_license";
-                          const isSaleLike = isStoreSale || isCreditPurchase || isApiOrder || isLicensePurchase || isMensalista || isPack;
+                          const isSaleLike = isStoreSale || isCreditPurchase || isApiOrder || isLicensePurchase || isMensalista || isPack || isPlanSale;
                           const isLicensePurchaseRefund = String(m.kind) === "license_purchase_refund";
                           const isLicenseRoute = isLicensePurchase || isApiOrder || (isStoreSale && !isCreditPurchase) || isLicensePurchaseRefund || isMensalista || isPack;
                           // Tom: entrada=verde, venda/compra=azul (destaque), outras saídas=vermelho
@@ -1183,6 +1186,8 @@ export default function GerenteDashboard() {
                             ? (isIn
                                 ? { bg: "bg-rose-500/10", text: "text-rose-500", border: "border-rose-500/40", ring: "ring-1 ring-rose-500/20 shadow-[0_0_0_3px_hsl(var(--background))]" }
                                 : { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/30", ring: "" })
+                            : isPlanSale
+                            ? { bg: "bg-violet-500/15", text: "text-violet-500", border: "border-violet-500/40", ring: "ring-1 ring-violet-500/30 shadow-[0_0_0_3px_hsl(var(--background))]" }
                             : isMensalista
                             ? { bg: "bg-fuchsia-500/15", text: "text-fuchsia-600", border: "border-fuchsia-500/40", ring: "ring-1 ring-fuchsia-500/30 shadow-[0_0_0_3px_hsl(var(--background))]" }
                             : isPack
@@ -1197,7 +1202,9 @@ export default function GerenteDashboard() {
                           const Arrow = isIn ? ArrowDownLeft : ArrowUpRight;
                           const targetHref = isLicenseRoute
                             ? "/painel/gerente/todas-licencas"
-                            : isCreditPurchase
+                            : isPlanSale
+                              ? "/painel/gerente/planos-ativos"
+                              : isCreditPurchase
                               ? "/painel/gerente/recargas"
                               : "/painel/gerente/recargas";
                           return (
@@ -1214,11 +1221,11 @@ export default function GerenteDashboard() {
                                       {m.reseller_name}
                                       {isSaleLike ? (
                                         <>
-                                          <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isMensalista ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isPack ? "bg-indigo-500/15 text-indigo-500 border-indigo-500/30" : isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : "bg-sky-500/15 text-sky-600 border-sky-500/30"}`}>
-                                            <StoreIcon className="h-2.5 w-2.5" /> {isMensalista ? "Licença" : isPack ? "Licença" : isCreditPurchase ? "Recargas" : "Extensão"}
+                                          <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isPlanSale ? "bg-violet-500/15 text-violet-500 border-violet-500/30" : isMensalista ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isPack ? "bg-indigo-500/15 text-indigo-500 border-indigo-500/30" : isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : "bg-sky-500/15 text-sky-600 border-sky-500/30"}`}>
+                                            {isPlanSale ? <CalendarClock className="h-2.5 w-2.5" /> : <StoreIcon className="h-2.5 w-2.5" />} {isPlanSale ? "Plano" : isMensalista ? "Licença" : isPack ? "Licença" : isCreditPurchase ? "Recargas" : "Extensão"}
                                           </span>
-                                           <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isMensalista ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isPack ? "bg-indigo-500/15 text-indigo-500 border-indigo-500/30" : isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isStoreSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"}`}>
-                                             {isMensalista ? <>♻ Mensalista</> : isPack ? <>📦 Pack</> : isApiOrder ? <><Zap className="h-2.5 w-2.5" /> API</> : isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}
+                                           <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isPlanSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : isMensalista ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isPack ? "bg-indigo-500/15 text-indigo-500 border-indigo-500/30" : isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isStoreSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"}`}>
+                                             {isPlanSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : isMensalista ? <>♻ Mensalista</> : isPack ? <>📦 Pack</> : isApiOrder ? <><Zap className="h-2.5 w-2.5" /> API</> : isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}
                                            </span>
                                         </>
                                       ) : (
