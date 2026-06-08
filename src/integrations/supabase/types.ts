@@ -3477,6 +3477,8 @@ export type Database = {
           provider_transaction_id: string | null
           qr_code_base64: string | null
           raw_response: Json | null
+          recharge_plan_id: string | null
+          recharge_plan_subscription_id: string | null
           reseller_id: string
           short_code: string | null
           status: string
@@ -3520,6 +3522,8 @@ export type Database = {
           provider_transaction_id?: string | null
           qr_code_base64?: string | null
           raw_response?: Json | null
+          recharge_plan_id?: string | null
+          recharge_plan_subscription_id?: string | null
           reseller_id: string
           short_code?: string | null
           status?: string
@@ -3563,6 +3567,8 @@ export type Database = {
           provider_transaction_id?: string | null
           qr_code_base64?: string | null
           raw_response?: Json | null
+          recharge_plan_id?: string | null
+          recharge_plan_subscription_id?: string | null
           reseller_id?: string
           short_code?: string | null
           status?: string
@@ -3574,6 +3580,20 @@ export type Database = {
             columns: ["promotion_id"]
             isOneToOne: false
             referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storefront_orders_recharge_plan_id_fkey"
+            columns: ["recharge_plan_id"]
+            isOneToOne: false
+            referencedRelation: "recharge_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storefront_orders_recharge_plan_subscription_id_fkey"
+            columns: ["recharge_plan_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_recharge_plan_subscriptions"
             referencedColumns: ["id"]
           },
         ]
