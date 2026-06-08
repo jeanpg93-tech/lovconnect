@@ -10,7 +10,6 @@ import {
   Rocket,
   Repeat,
   Package,
-  CalendarClock,
 } from "lucide-react";
 import {
   AreaChart,
