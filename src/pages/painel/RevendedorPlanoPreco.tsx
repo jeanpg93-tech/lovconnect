@@ -129,13 +129,14 @@ export default function RevendedorPlanoPreco() {
       const payload = {
         reseller_id: resellerId,
         plan_id: plan.id,
+        cost_cents: plan.base_cost_cents,
         sale_price_cents: newSale,
         is_active: active,
         show_on_storefront: showStore && !!newSale && active,
       };
       const { error } = await supabase
         .from("reseller_recharge_plan_prices")
-        .upsert(payload, { onConflict: "reseller_id,plan_id" });
+        .upsert([payload], { onConflict: "reseller_id,plan_id" });
       if (error) throw error;
       toast.success("Preço salvo");
       await load();
@@ -293,7 +294,7 @@ export default function RevendedorPlanoPreco() {
             total_credits_cap: plan.total_credits_cap,
             bot_owner_email: plan.bot_owner_email,
           }}
-          cost_cents={price.cost_cents}
+          cost_cents={plan.base_cost_cents}
           sale_price_cents={price.sale_price_cents}
         />
       )}
