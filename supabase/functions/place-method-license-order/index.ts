@@ -445,7 +445,10 @@ Deno.serve(async (req) => {
     if (license_key && whatsapp) {
       fetch(`${supabaseUrl}/functions/v1/evolution-send-sale`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
+        },
         body: JSON.stringify({
           reseller_id,
           kind: "license",
