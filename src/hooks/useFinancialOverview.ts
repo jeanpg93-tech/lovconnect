@@ -43,6 +43,9 @@ export type FinancialOverview = {
   subscriptionCount: number;
   packRevenueCents: number;
   packCount: number;
+  rechargePlanRevenueCents: number;
+  rechargePlanCostCents: number;
+  rechargePlanCount: number;
   costCents: number;
   costCreditsCents: number;
   gatewayFeeCents: number;
