@@ -694,7 +694,7 @@ export default function PublicStorefront() {
         </header>
 
         <main className="w-full max-w-3xl flex-1 flex flex-col items-center">
-          {store.welcome_message && !order && !selLic && !selRec && (
+          {store.welcome_message && !order && !selLic && !selRec && !selPlan && (
             <p className="text-center text-sm text-muted-foreground whitespace-pre-line max-w-xl mb-8">
               {store.welcome_message}
             </p>
