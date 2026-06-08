@@ -630,7 +630,7 @@ export default function PublicStorefront() {
             </Button>
           )}
 
-          {store.show_credits && store.show_extensions && !order && !selLic && !selRec && (
+          {store.show_credits && store.show_extensions && !order && !selLic && !selRec && !selPlan && (
             <div className="flex items-center gap-3 mt-6">
               <button
                 onClick={() => setActiveTab("extension")}
