@@ -56,6 +56,14 @@ type Reseller = { id: string; display_name: string; slug: string; is_active: boo
 type Plan = { license_type: string; label: string; price_cents: number; customer_price_cents: number; is_active: boolean };
 type Pack = { license_type: string; price_cents: number; extension_id?: string | null; method?: "flow" | "lovax"; label?: string; desc?: string };
 type Recharge = { id: string; credits_amount: number; price_cents: number };
+type SellablePlan = {
+  plan_id: string;
+  name: string;
+  duration_days: number;
+  credits_per_day: number;
+  total_credits_cap: number;
+  sale_price_cents: number;
+};
 
 const FALLBACK_LABEL: Record<string, string> = {
   trial: "Chave Teste (15min)",
@@ -90,6 +98,7 @@ export default function PublicStorefront() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [packs, setPacks] = useState<Pack[]>([]);
   const [recharges, setRecharges] = useState<Recharge[]>([]);
+  const [sellablePlans, setSellablePlans] = useState<SellablePlan[]>([]);
   const [rechargeMode, setRechargeMode] = useState<"automatico" | "manual">("automatico");
   const [activeTab, setActiveTab] = useState<"extension" | "recharge">("extension");
   const [testimonials, setTestimonials] = useState<any[]>([]);
@@ -176,6 +185,7 @@ export default function PublicStorefront() {
 
   const [selLic, setSelLic] = useState<string | null>(null);
   const [selRec, setSelRec] = useState<string | null>(null);
+  const [selPlan, setSelPlan] = useState<string | null>(null);
   const [buyerName, setBuyerName] = useState("");
   const [buyerWa, setBuyerWa] = useState("");
   const [submitting, setSubmitting] = useState(false);
