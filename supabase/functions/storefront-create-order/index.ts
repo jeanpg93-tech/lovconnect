@@ -91,18 +91,18 @@ Deno.serve(async (req) => {
       }
       const { data: rp } = await admin
         .from("reseller_recharge_plan_prices")
-        .select("cost_cents, sale_price_cents, is_active")
+        .select("sale_price_cents, is_active, show_on_storefront")
         .eq("reseller_id", reseller.id)
         .eq("plan_id", recharge_plan_id)
         .maybeSingle();
-      if (!rp || !rp.is_active) {
+      if (!rp || !rp.is_active || !rp.show_on_storefront) {
         return json({ error: "Este plano não está disponível nessa loja" }, 400);
       }
       if (!rp.sale_price_cents || rp.sale_price_cents <= 0) {
         return json({ error: "Preço de venda do plano não definido" }, 400);
       }
       price_cents = Number(rp.sale_price_cents);
-      plan_cost_cents = Number(rp.cost_cents);
+      plan_cost_cents = Number(plan.base_cost_cents);
       product_type = "recharge_plan";
       resolved_plan = plan;
     } else if (recharge_id) {
