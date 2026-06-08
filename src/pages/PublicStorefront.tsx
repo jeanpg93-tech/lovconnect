@@ -1204,6 +1204,52 @@ export default function PublicStorefront() {
                         </div>
                       );
                     })()}
+                    {sellablePlans.length > 0 && (
+                      <div className="space-y-2.5 pb-1">
+                        <div className="flex items-center gap-2 mt-1 mb-1">
+                          <Sparkles className="h-3.5 w-3.5" style={{ color }} />
+                          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>
+                            Planos com entrega diária
+                          </span>
+                        </div>
+                        {sellablePlans.map((p) => (
+                          <button
+                            key={p.plan_id}
+                            onClick={() => setSelPlan(p.plan_id)}
+                            className={cn(
+                              "group relative overflow-hidden w-full rounded-2xl border bg-gradient-to-r from-card/90 to-card/60 backdrop-blur p-4 text-left",
+                              "flex items-center gap-4 transition-all hover:shadow-xl hover:-translate-y-0.5",
+                            )}
+                            style={{ borderColor: `${color}55` }}
+                          >
+                            <div
+                              className="absolute inset-y-0 left-0 w-1.5"
+                              style={{ background: `linear-gradient(to bottom, ${color}, ${color}80)` }}
+                            />
+                            <div
+                              className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 shadow-inner"
+                              style={{ background: `${color}1f`, color }}
+                            >
+                              <Sparkles className="h-5 w-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-extrabold text-base leading-tight">{p.name}</div>
+                              <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
+                                {p.credits_per_day} recargas/dia • {p.duration_days} dias • até {p.total_credits_cap.toLocaleString("pt-BR")}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="font-extrabold text-lg leading-none" style={{ color }}>
+                                {formatBRL(p.sale_price_cents)}
+                              </div>
+                              <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
+                                Plano
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {recharges.map((rec) => (
                       <button
                         key={rec.id}
