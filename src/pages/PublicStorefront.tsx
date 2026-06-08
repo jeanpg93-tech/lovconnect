@@ -904,22 +904,37 @@ export default function PublicStorefront() {
                 </div>
               )}
             </div>
-          ) : (selLic || selRec) ? (
+          ) : (selLic || selRec || selPlan) ? (
             /* Checkout */
             <div className="w-full max-w-md rounded-2xl border bg-card/90 backdrop-blur p-6 shadow-xl space-y-4">
-              <Button variant="ghost" size="sm" onClick={() => { setSelLic(null); setSelRec(null); }}>
+              <Button variant="ghost" size="sm" onClick={() => { setSelLic(null); setSelRec(null); setSelPlan(null); }}>
                 <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Voltar
               </Button>
               <div className="text-center">
                 <div className="text-xs uppercase tracking-wider text-muted-foreground">Item selecionado</div>
                 <h2 className="text-lg font-semibold mt-1">
-                  {selLic ? labelFor(selLic) : `${recharges.find(r => r.id === selRec)?.credits_amount} Recargas`}
+                  {selLic
+                    ? labelFor(selLic)
+                    : selPlan
+                      ? (sellablePlans.find(p => p.plan_id === selPlan)?.name ?? "Plano")
+                      : `${recharges.find(r => r.id === selRec)?.credits_amount} Recargas`}
                 </h2>
+                {selPlan && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {(() => {
+                      const p = sellablePlans.find(x => x.plan_id === selPlan);
+                      if (!p) return null;
+                      return `${p.credits_per_day} recargas/dia por ${p.duration_days} dias • até ${p.total_credits_cap.toLocaleString("pt-BR")} créditos`;
+                    })()}
+                  </div>
+                )}
                 <div className="text-3xl font-bold mt-2" style={{ color }}>
                   {selLic === "trial"
                     ? "Grátis"
                     : selLic
                       ? formatBRL(priceFor(selLic))
+                      : selPlan
+                      ? formatBRL(sellablePlans.find(p => p.plan_id === selPlan)?.sale_price_cents ?? 0)
                       : formatBRL(recharges.find(r => r.id === selRec)?.price_cents ?? 0)
                   }
                 </div>
@@ -959,7 +974,11 @@ export default function PublicStorefront() {
                   )}
                   {selLic === "trial"
                     ? "Gerar Chave Teste Grátis"
-                    : `Pagar ${selLic ? formatBRL(priceFor(selLic)) : formatBRL(recharges.find(r => r.id === selRec)?.price_cents ?? 0)} via PIX`}
+                    : `Pagar ${selLic
+                        ? formatBRL(priceFor(selLic))
+                        : selPlan
+                          ? formatBRL(sellablePlans.find(p => p.plan_id === selPlan)?.sale_price_cents ?? 0)
+                          : formatBRL(recharges.find(r => r.id === selRec)?.price_cents ?? 0)} via PIX`}
                 </Button>
               </div>
             </div>
