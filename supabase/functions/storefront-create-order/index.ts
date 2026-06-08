@@ -179,7 +179,9 @@ Deno.serve(async (req) => {
     // Calcula o CUSTO desse produto para o revendedor e compara com o preço de venda (price_cents).
     // ============================================================
     let cost_cents = 0;
-    if (product_type === "credits") {
+    if (product_type === "recharge_plan") {
+      cost_cents = plan_cost_cents;
+    } else if (product_type === "credits") {
       // créditos: usa a RPC oficial que considera override individual + tier + Partner→Ouro
       const { data: planRow } = await admin
         .from("credit_pricing_plans")
