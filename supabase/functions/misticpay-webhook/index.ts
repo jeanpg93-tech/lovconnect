@@ -1304,7 +1304,10 @@ Deno.serve(async (req) => {
     if (license_key && storeOrder.buyer_whatsapp) {
       fetch(`${SUPABASE_URL}/functions/v1/evolution-send-sale`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SERVICE_ROLE_KEY}`,
+        },
         body: JSON.stringify({
           reseller_id: storeOrder.reseller_id,
           kind: "storefront",
