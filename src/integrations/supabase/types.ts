@@ -2842,6 +2842,7 @@ export type Database = {
           plan_id: string
           reseller_id: string
           sale_price_cents: number | null
+          show_on_storefront: boolean
           updated_at: string
         }
         Insert: {
@@ -2852,6 +2853,7 @@ export type Database = {
           plan_id: string
           reseller_id: string
           sale_price_cents?: number | null
+          show_on_storefront?: boolean
           updated_at?: string
         }
         Update: {
@@ -2862,6 +2864,7 @@ export type Database = {
           plan_id?: string
           reseller_id?: string
           sale_price_cents?: number | null
+          show_on_storefront?: boolean
           updated_at?: string
         }
         Relationships: [
