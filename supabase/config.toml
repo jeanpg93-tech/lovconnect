@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.recharge-plan-public]
 verify_jwt = false
+
+[functions.recharge-plan-cron]
+verify_jwt = false
