@@ -340,6 +340,11 @@ export default function PublicStorefront() {
         .maybeSingle();
       const mode = (rs?.value as any)?.active_mode;
       if (mode === "manual" || mode === "automatico") setRechargeMode(mode);
+      const maintEnabled = !!(rs?.value as any)?.maintenance_enabled;
+      const maintMessage =
+        (rs?.value as any)?.maintenance_message ||
+        "Estamos em manutenção. Novas recargas estarão disponíveis em breve.";
+      setRechargeMaintenance({ enabled: maintEnabled, message: maintMessage });
 
       // Default active tab based on what is enabled
       if (s && !(s as any).show_extensions && (s as any).show_credits) {
