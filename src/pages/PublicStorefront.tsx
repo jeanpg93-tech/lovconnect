@@ -56,6 +56,14 @@ type Reseller = { id: string; display_name: string; slug: string; is_active: boo
 type Plan = { license_type: string; label: string; price_cents: number; customer_price_cents: number; is_active: boolean };
 type Pack = { license_type: string; price_cents: number; extension_id?: string | null; method?: "flow" | "lovax"; label?: string; desc?: string };
 type Recharge = { id: string; credits_amount: number; price_cents: number };
+type SellablePlan = {
+  plan_id: string;
+  name: string;
+  duration_days: number;
+  credits_per_day: number;
+  total_credits_cap: number;
+  sale_price_cents: number;
+};
 
 const FALLBACK_LABEL: Record<string, string> = {
   trial: "Chave Teste (15min)",
@@ -90,6 +98,7 @@ export default function PublicStorefront() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [packs, setPacks] = useState<Pack[]>([]);
   const [recharges, setRecharges] = useState<Recharge[]>([]);
+  const [sellablePlans, setSellablePlans] = useState<SellablePlan[]>([]);
   const [rechargeMode, setRechargeMode] = useState<"automatico" | "manual">("automatico");
   const [activeTab, setActiveTab] = useState<"extension" | "recharge">("extension");
   const [testimonials, setTestimonials] = useState<any[]>([]);
@@ -176,6 +185,7 @@ export default function PublicStorefront() {
 
   const [selLic, setSelLic] = useState<string | null>(null);
   const [selRec, setSelRec] = useState<string | null>(null);
+  const [selPlan, setSelPlan] = useState<string | null>(null);
   const [buyerName, setBuyerName] = useState("");
   const [buyerWa, setBuyerWa] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -286,6 +296,27 @@ export default function PublicStorefront() {
         .eq("is_active", true)
         .order("credits_amount", { ascending: true });
       if (rec) setRecharges(rec);
+
+      // Planos de recarga à venda (assinatura 30 dias)
+      const { data: rpp } = await supabase
+        .from("reseller_recharge_plan_prices")
+        .select(
+          "plan_id, sale_price_cents, recharge_plans!inner(id, name, duration_days, credits_per_day, total_credits_cap, is_active, bot_owner_email)",
+        )
+        .eq("reseller_id", r.id)
+        .eq("is_active", true)
+        .gt("sale_price_cents", 0);
+      const sp: SellablePlan[] = ((rpp ?? []) as any[])
+        .filter((row) => row.recharge_plans?.is_active && row.recharge_plans?.bot_owner_email)
+        .map((row) => ({
+          plan_id: row.plan_id,
+          name: row.recharge_plans.name,
+          duration_days: row.recharge_plans.duration_days,
+          credits_per_day: row.recharge_plans.credits_per_day,
+          total_credits_cap: row.recharge_plans.total_credits_cap,
+          sale_price_cents: Number(row.sale_price_cents),
+        }));
+      setSellablePlans(sp);
 
       const { data: rs } = await supabase
         .from("app_settings")
@@ -400,7 +431,7 @@ export default function PublicStorefront() {
   };
 
   const submit = async () => {
-    if ((!selLic && !selRec) || !slug) return;
+    if ((!selLic && !selRec && !selPlan) || !slug) return;
     if (buyerName.trim().length < 2) return toast.error("Informe seu nome");
     const wa = buyerWa.replace(/\D+/g, "");
     const isTrial = selLic === "trial";
@@ -450,6 +481,7 @@ export default function PublicStorefront() {
           reseller_slug: slug,
           ...(selLic ? { license_type: selLic, extension_id: getExtId(selLic) } : {}),
           ...(selRec ? { recharge_id: selRec } : {}),
+          ...(selPlan ? { recharge_plan_id: selPlan } : {}),
           buyer_name: buyerName.trim(),
           buyer_whatsapp: wa,
         },
@@ -474,6 +506,7 @@ export default function PublicStorefront() {
     setLicenseKey(null);
     setSelLic(null);
     setSelRec(null);
+    setSelPlan(null);
     setBuyerName("");
     setBuyerWa("");
     persistOrder(null);
@@ -597,7 +630,7 @@ export default function PublicStorefront() {
             </Button>
           )}
 
-          {store.show_credits && store.show_extensions && !order && !selLic && !selRec && (
+          {store.show_credits && store.show_extensions && !order && !selLic && !selRec && !selPlan && (
             <div className="flex items-center gap-3 mt-6">
               <button
                 onClick={() => setActiveTab("extension")}
@@ -661,7 +694,7 @@ export default function PublicStorefront() {
         </header>
 
         <main className="w-full max-w-3xl flex-1 flex flex-col items-center">
-          {store.welcome_message && !order && !selLic && !selRec && (
+          {store.welcome_message && !order && !selLic && !selRec && !selPlan && (
             <p className="text-center text-sm text-muted-foreground whitespace-pre-line max-w-xl mb-8">
               {store.welcome_message}
             </p>
@@ -694,20 +727,24 @@ export default function PublicStorefront() {
                 </div>
               </div>
 
-              {orderStatus === "completed" && (licenseKey || order.product_type === "credits") ? (
+              {orderStatus === "completed" && (licenseKey || order.product_type === "credits" || order.product_type === "recharge_plan") ? (
                 <div className="text-center space-y-3 py-4">
                   <CheckCircle2 className="h-12 w-12 mx-auto" style={{ color }} />
                   <h2 className="text-lg font-semibold">
-                    {order.product_type === "credits" ? "Recargas confirmada!" : order.amount_cents > 0 ? "Pagamento confirmado!" : "Chave teste gerada!"}
+                    {order.product_type === "recharge_plan"
+                      ? "Plano confirmado!"
+                      : order.product_type === "credits" ? "Recargas confirmada!" : order.amount_cents > 0 ? "Pagamento confirmado!" : "Chave teste gerada!"}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {order.product_type === "credits"
+                    {order.product_type === "recharge_plan"
+                      ? "Tudo certo! Acesse o link abaixo para confirmar o email do bot e iniciar suas entregas diárias."
+                      : order.product_type === "credits"
                       ? `${order.credit_amount ?? ""} recargas foram registradas. Acesse o link abaixo para acompanhar a entrega.`
                       : order.amount_cents > 0
                       ? "Sua chave foi gerada e enviada no seu WhatsApp."
                       : "Copie sua chave abaixo. Ela tem validade de 15 minutos."}
                   </p>
-                  {order.product_type === "credits" && inviteLink && (
+                  {(order.product_type === "credits" || order.product_type === "recharge_plan") && inviteLink && (
                     <div className="space-y-2">
                       <a
                         href={inviteLink}
@@ -716,7 +753,7 @@ export default function PublicStorefront() {
                         className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white shadow"
                         style={{ backgroundColor: color }}
                       >
-                        Acessar minhas recargas
+                        {order.product_type === "recharge_plan" ? "Acessar meu plano" : "Acessar minhas recargas"}
                       </a>
                       <div className="flex items-center justify-center gap-2">
                         <code className="rounded bg-muted px-2 py-1 text-xs break-all">{window.location.origin + inviteLink}</code>
@@ -867,22 +904,37 @@ export default function PublicStorefront() {
                 </div>
               )}
             </div>
-          ) : (selLic || selRec) ? (
+          ) : (selLic || selRec || selPlan) ? (
             /* Checkout */
             <div className="w-full max-w-md rounded-2xl border bg-card/90 backdrop-blur p-6 shadow-xl space-y-4">
-              <Button variant="ghost" size="sm" onClick={() => { setSelLic(null); setSelRec(null); }}>
+              <Button variant="ghost" size="sm" onClick={() => { setSelLic(null); setSelRec(null); setSelPlan(null); }}>
                 <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Voltar
               </Button>
               <div className="text-center">
                 <div className="text-xs uppercase tracking-wider text-muted-foreground">Item selecionado</div>
                 <h2 className="text-lg font-semibold mt-1">
-                  {selLic ? labelFor(selLic) : `${recharges.find(r => r.id === selRec)?.credits_amount} Recargas`}
+                  {selLic
+                    ? labelFor(selLic)
+                    : selPlan
+                      ? (sellablePlans.find(p => p.plan_id === selPlan)?.name ?? "Plano")
+                      : `${recharges.find(r => r.id === selRec)?.credits_amount} Recargas`}
                 </h2>
+                {selPlan && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {(() => {
+                      const p = sellablePlans.find(x => x.plan_id === selPlan);
+                      if (!p) return null;
+                      return `${p.credits_per_day} recargas/dia por ${p.duration_days} dias • até ${p.total_credits_cap.toLocaleString("pt-BR")} créditos`;
+                    })()}
+                  </div>
+                )}
                 <div className="text-3xl font-bold mt-2" style={{ color }}>
                   {selLic === "trial"
                     ? "Grátis"
                     : selLic
                       ? formatBRL(priceFor(selLic))
+                      : selPlan
+                      ? formatBRL(sellablePlans.find(p => p.plan_id === selPlan)?.sale_price_cents ?? 0)
                       : formatBRL(recharges.find(r => r.id === selRec)?.price_cents ?? 0)
                   }
                 </div>
@@ -922,7 +974,11 @@ export default function PublicStorefront() {
                   )}
                   {selLic === "trial"
                     ? "Gerar Chave Teste Grátis"
-                    : `Pagar ${selLic ? formatBRL(priceFor(selLic)) : formatBRL(recharges.find(r => r.id === selRec)?.price_cents ?? 0)} via PIX`}
+                    : `Pagar ${selLic
+                        ? formatBRL(priceFor(selLic))
+                        : selPlan
+                          ? formatBRL(sellablePlans.find(p => p.plan_id === selPlan)?.sale_price_cents ?? 0)
+                          : formatBRL(recharges.find(r => r.id === selRec)?.price_cents ?? 0)} via PIX`}
                 </Button>
               </div>
             </div>
@@ -1092,7 +1148,7 @@ export default function PublicStorefront() {
                 </>
               ) : (
                 /* Catálogo de Recargas */
-                recharges.length === 0 ? (
+                recharges.length === 0 && sellablePlans.length === 0 ? (
                   <div className="text-center py-12 text-sm text-muted-foreground">
                     Nenhuma opção de recargas disponível.
                   </div>
@@ -1148,6 +1204,52 @@ export default function PublicStorefront() {
                         </div>
                       );
                     })()}
+                    {sellablePlans.length > 0 && (
+                      <div className="space-y-2.5 pb-1">
+                        <div className="flex items-center gap-2 mt-1 mb-1">
+                          <Sparkles className="h-3.5 w-3.5" style={{ color }} />
+                          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>
+                            Planos com entrega diária
+                          </span>
+                        </div>
+                        {sellablePlans.map((p) => (
+                          <button
+                            key={p.plan_id}
+                            onClick={() => setSelPlan(p.plan_id)}
+                            className={cn(
+                              "group relative overflow-hidden w-full rounded-2xl border bg-gradient-to-r from-card/90 to-card/60 backdrop-blur p-4 text-left",
+                              "flex items-center gap-4 transition-all hover:shadow-xl hover:-translate-y-0.5",
+                            )}
+                            style={{ borderColor: `${color}55` }}
+                          >
+                            <div
+                              className="absolute inset-y-0 left-0 w-1.5"
+                              style={{ background: `linear-gradient(to bottom, ${color}, ${color}80)` }}
+                            />
+                            <div
+                              className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 shadow-inner"
+                              style={{ background: `${color}1f`, color }}
+                            >
+                              <Sparkles className="h-5 w-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-extrabold text-base leading-tight">{p.name}</div>
+                              <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
+                                {p.credits_per_day} recargas/dia • {p.duration_days} dias • até {p.total_credits_cap.toLocaleString("pt-BR")}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="font-extrabold text-lg leading-none" style={{ color }}>
+                                {formatBRL(p.sale_price_cents)}
+                              </div>
+                              <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
+                                Plano
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {recharges.map((rec) => (
                       <button
                         key={rec.id}

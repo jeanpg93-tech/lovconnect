@@ -22,6 +22,7 @@ Deno.serve(async (req) => {
     const extension_id = body.extension_id ? String(body.extension_id) : null;
     const license_type = body.license_type ? String(body.license_type) : null;
     const recharge_id = body.recharge_id ? String(body.recharge_id) : null;
+    const recharge_plan_id = body.recharge_plan_id ? String(body.recharge_plan_id) : null;
 
     const buyer_name = typeof body.buyer_name === "string" ? body.buyer_name.trim().slice(0, 100) : "";
     const whatsapp_raw = typeof body.buyer_whatsapp === "string" ? body.buyer_whatsapp : "";
@@ -33,7 +34,7 @@ Deno.serve(async (req) => {
     if (!reseller_slug) return json({ error: "Loja inválida" }, 400);
     
     // Validation: must have either license_type or recharge_id
-    if (!license_type && !recharge_id) {
+    if (!license_type && !recharge_id && !recharge_plan_id) {
       return json({ error: "Selecione um produto" }, 400);
     }
 
@@ -72,8 +73,39 @@ Deno.serve(async (req) => {
     let price_cents = 0;
     let product_type = "extension";
     let credit_amount = null;
+    let resolved_plan: any = null;
+    let plan_cost_cents = 0;
 
-    if (recharge_id) {
+    if (recharge_plan_id) {
+      // ===== Venda de Plano de Recarga (3.000 créditos / 30 dias etc) =====
+      const { data: plan } = await admin
+        .from("recharge_plans")
+        .select("*")
+        .eq("id", recharge_plan_id)
+        .maybeSingle();
+      if (!plan || !plan.is_active) {
+        return json({ error: "Plano indisponível" }, 400);
+      }
+      if (!plan.bot_owner_email) {
+        return json({ error: "Plano sem configuração de bot — fale com o suporte" }, 400);
+      }
+      const { data: rp } = await admin
+        .from("reseller_recharge_plan_prices")
+        .select("cost_cents, sale_price_cents, is_active")
+        .eq("reseller_id", reseller.id)
+        .eq("plan_id", recharge_plan_id)
+        .maybeSingle();
+      if (!rp || !rp.is_active) {
+        return json({ error: "Este plano não está disponível nessa loja" }, 400);
+      }
+      if (!rp.sale_price_cents || rp.sale_price_cents <= 0) {
+        return json({ error: "Preço de venda do plano não definido" }, 400);
+      }
+      price_cents = Number(rp.sale_price_cents);
+      plan_cost_cents = Number(rp.cost_cents);
+      product_type = "recharge_plan";
+      resolved_plan = plan;
+    } else if (recharge_id) {
       // It's a credit recharge
       const { data: rec, error: recErr } = await admin
         .from("reseller_credit_prices")
@@ -147,7 +179,9 @@ Deno.serve(async (req) => {
     // Calcula o CUSTO desse produto para o revendedor e compara com o preço de venda (price_cents).
     // ============================================================
     let cost_cents = 0;
-    if (product_type === "credits") {
+    if (product_type === "recharge_plan") {
+      cost_cents = plan_cost_cents;
+    } else if (product_type === "credits") {
       // créditos: usa a RPC oficial que considera override individual + tier + Partner→Ouro
       const { data: planRow } = await admin
         .from("credit_pricing_plans")
@@ -208,7 +242,7 @@ Deno.serve(async (req) => {
       .insert({
         reseller_id: reseller.id,
         extension_id,
-        license_type: license_type ?? "credits",
+        license_type: license_type ?? (product_type === "recharge_plan" ? "recharge_plan" : "credits"),
         buyer_name,
         buyer_whatsapp,
         price_cents,
@@ -217,6 +251,8 @@ Deno.serve(async (req) => {
         provider: "misticpay",
         status: "pending",
         expires_at: expiresAtIso,
+        recharge_plan_id: recharge_plan_id,
+        cost_cents: product_type === "recharge_plan" ? plan_cost_cents : null,
       })
       .select()
       .single();
@@ -237,7 +273,9 @@ Deno.serve(async (req) => {
         payerName: buyer_name,
         payerDocument: payer_document || "00000000000",
         transactionId: order.id,
-        description: `Loja ${reseller.display_name ?? reseller_slug}`,
+        description: product_type === "recharge_plan"
+          ? `Plano ${resolved_plan?.name ?? "Recarga"} — ${reseller.display_name ?? reseller_slug}`
+          : `Loja ${reseller.display_name ?? reseller_slug}`,
         projectWebhook: webhookUrl,
       }),
     });
