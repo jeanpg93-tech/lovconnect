@@ -48,6 +48,9 @@ import {
   Calendar,
   Clock,
   Ban,
+  ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
@@ -72,6 +75,10 @@ type Sub = {
   sale_price_cents: number;
   created_at: string;
   notes: string | null;
+  owner_rejected_at: string | null;
+  owner_rejected_reason: string | null;
+  owner_rejected_count: number;
+  owner_confirmation_attempts: number;
   resellers?: { display_name: string | null } | null;
 };
 
@@ -89,7 +96,8 @@ type Delivery = {
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   awaiting_owner: { label: "Aguardando cliente", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
-  awaiting_confirm: { label: "Aguardando confirmar", cls: "bg-violet-500/15 text-violet-500 border-violet-500/30" },
+  awaiting_confirm: { label: "Verificar Owner", cls: "bg-violet-500/15 text-violet-500 border-violet-500/30" },
+  owner_rejected: { label: "Owner rejeitado", cls: "bg-rose-500/15 text-rose-500 border-rose-500/30" },
   active: { label: "Ativo", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
   paused: { label: "Pausado", cls: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30" },
   cancelled: { label: "Cancelado", cls: "bg-rose-500/15 text-rose-500 border-rose-500/30" },
@@ -156,7 +164,10 @@ export default function GerentePlanosAtivos() {
 
   const buckets = useMemo(() => {
     const pending = filtered.filter(
-      (s) => s.status === "awaiting_owner" || s.status === "awaiting_confirm",
+      (s) =>
+        s.status === "awaiting_owner" ||
+        s.status === "awaiting_confirm" ||
+        s.status === "owner_rejected",
     );
     const active = filtered.filter((s) => s.status === "active");
     const done = filtered.filter(
@@ -168,6 +179,14 @@ export default function GerentePlanosAtivos() {
     );
     return { pending, active, done };
   }, [filtered]);
+
+  const toVerifyCount = useMemo(
+    () =>
+      filtered.filter(
+        (s) => s.status === "awaiting_confirm" || s.status === "owner_rejected",
+      ).length,
+    [filtered],
+  );
 
   if (loading) {
     return (
@@ -211,6 +230,15 @@ export default function GerentePlanosAtivos() {
               <TabsTrigger value="today">
                 Para entregar hoje
               </TabsTrigger>
+              <TabsTrigger value="verify" className="gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Verificar Owner
+                {toVerifyCount > 0 && (
+                  <Badge variant="destructive" className="h-4 px-1.5 text-[10px]">
+                    {toVerifyCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="active">
                 Ativos ({buckets.active.length})
               </TabsTrigger>
@@ -224,6 +252,14 @@ export default function GerentePlanosAtivos() {
 
             <TabsContent value="today" className="mt-4">
               <TodayList subs={buckets.active} onOpen={setSelected} />
+            </TabsContent>
+            <TabsContent value="verify" className="mt-4">
+              <SubsTable
+                subs={filtered.filter(
+                  (s) => s.status === "awaiting_confirm" || s.status === "owner_rejected",
+                )}
+                onOpen={setSelected}
+              />
             </TabsContent>
             <TabsContent value="active" className="mt-4">
               <SubsTable subs={buckets.active} onOpen={setSelected} />
