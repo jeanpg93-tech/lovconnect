@@ -431,7 +431,7 @@ export default function PublicStorefront() {
   };
 
   const submit = async () => {
-    if ((!selLic && !selRec) || !slug) return;
+    if ((!selLic && !selRec && !selPlan) || !slug) return;
     if (buyerName.trim().length < 2) return toast.error("Informe seu nome");
     const wa = buyerWa.replace(/\D+/g, "");
     const isTrial = selLic === "trial";
@@ -481,6 +481,7 @@ export default function PublicStorefront() {
           reseller_slug: slug,
           ...(selLic ? { license_type: selLic, extension_id: getExtId(selLic) } : {}),
           ...(selRec ? { recharge_id: selRec } : {}),
+          ...(selPlan ? { recharge_plan_id: selPlan } : {}),
           buyer_name: buyerName.trim(),
           buyer_whatsapp: wa,
         },
@@ -505,6 +506,7 @@ export default function PublicStorefront() {
     setLicenseKey(null);
     setSelLic(null);
     setSelRec(null);
+    setSelPlan(null);
     setBuyerName("");
     setBuyerWa("");
     persistOrder(null);
