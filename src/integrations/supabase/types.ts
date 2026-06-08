@@ -1824,6 +1824,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          platform_cost_cents: number
           total_credits_cap: number
           updated_at: string
         }
@@ -1838,6 +1839,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          platform_cost_cents?: number
           total_credits_cap?: number
           updated_at?: string
         }
@@ -1852,6 +1854,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          platform_cost_cents?: number
           total_credits_cap?: number
           updated_at?: string
         }

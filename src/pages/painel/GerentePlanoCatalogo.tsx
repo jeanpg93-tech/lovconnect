@@ -18,6 +18,7 @@ type RechargePlan = {
   total_credits_cap: number;
   delivery_hour: number;
   base_cost_cents: number;
+  platform_cost_cents: number;
   is_active: boolean;
   bot_owner_email: string;
 };
@@ -83,6 +84,7 @@ export default function GerentePlanoCatalogo() {
         total_credits_cap: Number(m.total_credits_cap),
         delivery_hour: Number(m.delivery_hour),
         base_cost_cents: Number(m.base_cost_cents),
+        platform_cost_cents: Number(m.platform_cost_cents ?? 0),
         is_active: !!m.is_active,
         bot_owner_email: (m.bot_owner_email ?? "").trim(),
       };
@@ -261,6 +263,30 @@ export default function GerentePlanoCatalogo() {
             <p className="text-xs text-muted-foreground mt-1">
               Este é o valor que será debitado do saldo do revendedor a cada
               venda deste plano. Vale para todos os revendedores.
+            </p>
+          </div>
+
+          <div>
+            <Label>Meu custo do plano (R$) — pago ao fornecedor</Label>
+            <Input
+              inputMode="decimal"
+              value={
+                planEdits.platform_cost_cents != null
+                  ? formatBRL(Number(planEdits.platform_cost_cents))
+                  : formatBRL(plan.platform_cost_cents ?? 0)
+              }
+              onChange={(e) =>
+                setPlanEdits((s) => ({
+                  ...s,
+                  platform_cost_cents: parseBRL(e.target.value),
+                }))
+              }
+              placeholder="0,00"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Quanto você gasta com o fornecedor para entregar cada venda deste
+              plano. Usado no /painel/gerente/financeiro para calcular seu lucro
+              real (lucro = custo do revendedor − meu custo).
             </p>
           </div>
 
