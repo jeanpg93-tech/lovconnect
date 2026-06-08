@@ -22,6 +22,14 @@ type Settings = {
   notify_low_balance: boolean;
   notify_subscription_sales: boolean;
   low_balance_threshold_cents: number;
+  notify_plan_workspace_submitted: boolean;
+  notify_plan_resubmit: boolean;
+  notify_plan_owner_verified: boolean;
+  notify_plan_owner_rejected: boolean;
+  notify_plan_delivery_success: boolean;
+  notify_plan_delivery_failed: boolean;
+  notify_plan_completed: boolean;
+  notify_plan_cancelled: boolean;
 };
 
 export default function GerenteTelegram() {
@@ -215,6 +223,14 @@ export default function GerenteTelegram() {
               { key: "notify_refunds", label: "↩️ Reembolsos", desc: "Estornos e reembolsos processados" },
               { key: "notify_reseller_activity", label: "⚙️ Outras movimentações", desc: "Débitos manuais, créditos manuais, ajustes" },
               { key: "notify_low_balance", label: "🔻 Saldo baixo (provedor / lojinha)", desc: "Alerta quando o saldo do provedor ou do gateway PIX cai abaixo do limite" },
+              { key: "notify_plan_workspace_submitted", label: "📨 Plano: cliente preencheu workspace", desc: "Cliente terminou o setup e aguarda sua verificação de Owner" },
+              { key: "notify_plan_resubmit", label: "🔁 Plano: cliente reenviou após rejeição", desc: "Cliente corrigiu o Owner e pediu nova verificação" },
+              { key: "notify_plan_owner_verified", label: "✅ Plano: Owner aprovado (log)", desc: "Confirmação de que você aprovou e as entregas começaram" },
+              { key: "notify_plan_owner_rejected", label: "⚠️ Plano: Owner rejeitado (log)", desc: "Confirmação de que você rejeitou — cliente foi avisado" },
+              { key: "notify_plan_delivery_success", label: "💧 Plano: entrega diária OK", desc: "Quando uma entrega diária de créditos é marcada como entregue" },
+              { key: "notify_plan_delivery_failed", label: "❌ Plano: falha em entrega diária", desc: "Quando uma entrega diária é marcada como falha" },
+              { key: "notify_plan_completed", label: "🏁 Plano: finalizado", desc: "Quando todas as entregas do plano terminam" },
+              { key: "notify_plan_cancelled", label: "🛑 Plano: cancelado", desc: "Quando o plano é cancelado (por você ou pelo cliente)" },
             ].map((opt) => (
               <div key={opt.key} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 p-3">
                 <div className="min-w-0">

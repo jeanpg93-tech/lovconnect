@@ -48,6 +48,9 @@ import {
   Calendar,
   Clock,
   Ban,
+  ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
@@ -72,6 +75,10 @@ type Sub = {
   sale_price_cents: number;
   created_at: string;
   notes: string | null;
+  owner_rejected_at: string | null;
+  owner_rejected_reason: string | null;
+  owner_rejected_count: number;
+  owner_confirmation_attempts: number;
   resellers?: { display_name: string | null } | null;
 };
 
@@ -89,7 +96,8 @@ type Delivery = {
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   awaiting_owner: { label: "Aguardando cliente", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
-  awaiting_confirm: { label: "Aguardando confirmar", cls: "bg-violet-500/15 text-violet-500 border-violet-500/30" },
+  awaiting_confirm: { label: "Verificar Owner", cls: "bg-violet-500/15 text-violet-500 border-violet-500/30" },
+  owner_rejected: { label: "Owner rejeitado", cls: "bg-rose-500/15 text-rose-500 border-rose-500/30" },
   active: { label: "Ativo", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
   paused: { label: "Pausado", cls: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30" },
   cancelled: { label: "Cancelado", cls: "bg-rose-500/15 text-rose-500 border-rose-500/30" },
@@ -156,7 +164,10 @@ export default function GerentePlanosAtivos() {
 
   const buckets = useMemo(() => {
     const pending = filtered.filter(
-      (s) => s.status === "awaiting_owner" || s.status === "awaiting_confirm",
+      (s) =>
+        s.status === "awaiting_owner" ||
+        s.status === "awaiting_confirm" ||
+        s.status === "owner_rejected",
     );
     const active = filtered.filter((s) => s.status === "active");
     const done = filtered.filter(
@@ -168,6 +179,14 @@ export default function GerentePlanosAtivos() {
     );
     return { pending, active, done };
   }, [filtered]);
+
+  const toVerifyCount = useMemo(
+    () =>
+      filtered.filter(
+        (s) => s.status === "awaiting_confirm" || s.status === "owner_rejected",
+      ).length,
+    [filtered],
+  );
 
   if (loading) {
     return (
@@ -211,6 +230,15 @@ export default function GerentePlanosAtivos() {
               <TabsTrigger value="today">
                 Para entregar hoje
               </TabsTrigger>
+              <TabsTrigger value="verify" className="gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Verificar Owner
+                {toVerifyCount > 0 && (
+                  <Badge variant="destructive" className="h-4 px-1.5 text-[10px]">
+                    {toVerifyCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="active">
                 Ativos ({buckets.active.length})
               </TabsTrigger>
@@ -224,6 +252,14 @@ export default function GerentePlanosAtivos() {
 
             <TabsContent value="today" className="mt-4">
               <TodayList subs={buckets.active} onOpen={setSelected} />
+            </TabsContent>
+            <TabsContent value="verify" className="mt-4">
+              <SubsTable
+                subs={filtered.filter(
+                  (s) => s.status === "awaiting_confirm" || s.status === "owner_rejected",
+                )}
+                onOpen={setSelected}
+              />
             </TabsContent>
             <TabsContent value="active" className="mt-4">
               <SubsTable subs={buckets.active} onOpen={setSelected} />
@@ -407,6 +443,99 @@ function SubDetailDialog({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectPreset, setRejectPreset] = useState<string>("Email não encontrado nos membros do workspace");
+  const [rejectCustom, setRejectCustom] = useState("");
+  const [rejecting, setRejecting] = useState(false);
+  const [approving, setApproving] = useState(false);
+
+  const REJECT_PRESETS = [
+    "Email não encontrado nos membros do workspace",
+    "Email está como Editor — precisa ser Owner",
+    "Email está como Admin — precisa ser Owner",
+    "Workspace não encontrado com o nome informado",
+    "Convite ainda não foi aceito",
+    "Outro (descreva abaixo)",
+  ];
+
+  const approveOwner = async () => {
+    setApproving(true);
+    try {
+      const now = new Date();
+      const endsAt = new Date(now);
+      endsAt.setUTCDate(endsAt.getUTCDate() + sub.duration_days);
+
+      const { error: updErr } = await supabase
+        .from("reseller_recharge_plan_subscriptions")
+        .update({
+          status: "active",
+          started_at: now.toISOString(),
+          ends_at: endsAt.toISOString(),
+          owner_rejected_at: null,
+          owner_rejected_reason: null,
+        })
+        .eq("id", sub.id)
+        .in("status", ["awaiting_confirm", "owner_rejected"]);
+      if (updErr) throw updErr;
+
+      const rows = [];
+      for (let i = 1; i <= sub.duration_days; i++) {
+        const d = new Date(now);
+        d.setUTCDate(d.getUTCDate() + (i - 1));
+        rows.push({
+          subscription_id: sub.id,
+          day_number: i,
+          scheduled_date: d.toISOString().slice(0, 10),
+          credits: sub.credits_per_day,
+          status: "pending",
+        });
+      }
+      const { error: insErr } = await supabase
+        .from("recharge_plan_deliveries")
+        .upsert(rows, { onConflict: "subscription_id,day_number" });
+      if (insErr) throw insErr;
+
+      toast.success("Owner aprovado! Entregas iniciadas.");
+      onChanged();
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error("Erro ao aprovar", { description: e.message });
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const rejectOwner = async () => {
+    const isCustom = rejectPreset.startsWith("Outro");
+    const reason = (isCustom ? rejectCustom : rejectPreset).trim();
+    if (!reason) {
+      toast.error("Descreva o motivo da rejeição");
+      return;
+    }
+    setRejecting(true);
+    try {
+      const { error } = await supabase
+        .from("reseller_recharge_plan_subscriptions")
+        .update({
+          status: "owner_rejected",
+          owner_rejected_at: new Date().toISOString(),
+          owner_rejected_reason: reason,
+          owner_rejected_count: (sub.owner_rejected_count ?? 0) + 1,
+        })
+        .eq("id", sub.id)
+        .in("status", ["awaiting_confirm", "owner_rejected"]);
+      if (error) throw error;
+      toast.success("Rejeitado. O cliente foi avisado para corrigir.");
+      setRejectOpen(false);
+      setRejectCustom("");
+      onChanged();
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error("Erro", { description: e.message });
+    } finally {
+      setRejecting(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -555,6 +684,65 @@ function SubDetailDialog({
         {sub.notes && (
           <div className="rounded-lg border bg-amber-500/5 border-amber-500/30 p-2 text-xs text-amber-700 dark:text-amber-300">
             <strong>Anotação interna:</strong> {sub.notes}
+          </div>
+        )}
+
+        {(sub.status === "awaiting_confirm" || sub.status === "owner_rejected") && (
+          <div className="rounded-xl border-2 border-violet-500/40 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/5 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-bold text-violet-600 dark:text-violet-300">
+              <ShieldCheck className="h-4 w-4" />
+              Verificação manual do Owner
+              {(sub.owner_confirmation_attempts ?? 0) > 1 && (
+                <Badge variant="outline" className="ml-auto text-[10px]">
+                  Tentativa #{sub.owner_confirmation_attempts}
+                </Badge>
+              )}
+            </div>
+
+            {sub.status === "owner_rejected" && sub.owner_rejected_reason && (
+              <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-2 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <div>
+                  <strong>Última rejeição ({sub.owner_rejected_count}x):</strong>{" "}
+                  {sub.owner_rejected_reason}
+                  <div className="text-[10px] opacity-70 mt-0.5">
+                    Cliente foi notificado. Aguardando reenvio.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="text-xs text-muted-foreground leading-relaxed">
+              Abra o workspace{" "}
+              <code className="font-mono bg-muted px-1 rounded">{sub.workspace_name}</code>{" "}
+              no Lovable e confirme que{" "}
+              <code className="font-mono bg-muted px-1 rounded">{sub.owner_email_required}</code>{" "}
+              está marcado como <strong>Owner</strong> (não Editor / não Admin).
+            </div>
+
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                className="border-rose-500/40 text-rose-600 hover:bg-rose-500/10"
+                onClick={() => setRejectOpen(true)}
+                disabled={approving || sub.status === "owner_rejected"}
+              >
+                <ShieldAlert className="h-4 w-4 mr-2" />
+                Rejeitar — não está como Owner
+              </Button>
+              <Button
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white ml-auto"
+                onClick={approveOwner}
+                disabled={approving}
+              >
+                {approving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                )}
+                Aprovar e iniciar entregas
+              </Button>
+            </div>
           </div>
         )}
 
@@ -738,6 +926,82 @@ function SubDetailDialog({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-rose-600">
+                <ShieldAlert className="h-5 w-5" />
+                Rejeitar verificação do Owner
+              </DialogTitle>
+              <DialogDescription>
+                O cliente receberá a mensagem na página dele explicando o motivo.
+                Ele poderá corrigir e reenviar quantas vezes precisar.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Motivo da rejeição</Label>
+                <div className="grid gap-1.5 mt-1.5">
+                  {REJECT_PRESETS.map((p) => (
+                    <label
+                      key={p}
+                      className={`flex items-center gap-2 rounded-lg border p-2.5 text-sm cursor-pointer transition ${
+                        rejectPreset === p
+                          ? "border-rose-500/60 bg-rose-500/10"
+                          : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="reject-preset"
+                        value={p}
+                        checked={rejectPreset === p}
+                        onChange={() => setRejectPreset(p)}
+                        className="accent-rose-500"
+                      />
+                      <span>{p}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {rejectPreset.startsWith("Outro") && (
+                <div>
+                  <Label htmlFor="reject-custom" className="text-xs">
+                    Descreva (será mostrado ao cliente)
+                  </Label>
+                  <Textarea
+                    id="reject-custom"
+                    placeholder="Ex.: o email está com erro de digitação no convite…"
+                    value={rejectCustom}
+                    onChange={(e) => setRejectCustom(e.target.value)}
+                    rows={3}
+                    maxLength={300}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {rejectCustom.length}/300
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRejectOpen(false)} disabled={rejecting}>
+                Voltar
+              </Button>
+              <Button
+                className="bg-rose-600 hover:bg-rose-700 text-white"
+                onClick={rejectOwner}
+                disabled={rejecting}
+              >
+                {rejecting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Confirmar rejeição
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );

@@ -49,6 +49,10 @@ type Sub = {
   paused_at: string | null;
   notes: string | null;
   created_at: string;
+  owner_rejected_at: string | null;
+  owner_rejected_reason: string | null;
+  owner_rejected_count: number;
+  owner_confirmation_attempts: number;
 };
 
 async function getSubByToken(db: ReturnType<typeof admin>, token: string) {
@@ -77,6 +81,11 @@ async function buildPayload(db: ReturnType<typeof admin>, sub: Sub) {
       .order("day_number", { ascending: true });
     deliveries = (rows ?? []) as typeof deliveries;
   }
+  const { data: tutorials } = await db
+    .from("recharge_plan_tutorial_media")
+    .select("slug,title,description,media_url,media_type")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
   return {
     id: sub.id,
     token: sub.order_token,
@@ -96,8 +105,13 @@ async function buildPayload(db: ReturnType<typeof admin>, sub: Sub) {
     cancelled_at: sub.cancelled_at,
     cancelled_reason: sub.cancelled_reason,
     completed_at: sub.completed_at,
+    owner_rejected_at: sub.owner_rejected_at,
+    owner_rejected_reason: sub.owner_rejected_reason,
+    owner_rejected_count: sub.owner_rejected_count ?? 0,
+    owner_confirmation_attempts: sub.owner_confirmation_attempts ?? 0,
     plan,
     deliveries,
+    tutorials: tutorials ?? [],
   };
 }
 
@@ -135,6 +149,7 @@ Deno.serve(async (req) => {
           workspace_name,
           owner_email_added_at: new Date().toISOString(),
           status: "awaiting_confirm",
+          owner_confirmation_attempts: (sub.owner_confirmation_attempts ?? 0) + 1,
         })
         .eq("id", sub.id);
       if (error) return json({ error: error.message }, 500);
@@ -143,49 +158,34 @@ Deno.serve(async (req) => {
     }
 
     if (action === "confirm_start") {
-      if (sub.status !== "awaiting_confirm") {
-        return json({ error: "Este pedido não está pronto para iniciar" }, 400);
-      }
-      const now = new Date();
-      const endsAt = new Date(now);
-      endsAt.setUTCDate(endsAt.getUTCDate() + sub.duration_days);
+      // Mantido apenas para compatibilidade — o início agora é manual pelo gerente.
+      return json({ error: "Aguarde a verificação manual do gerente para iniciar as entregas." }, 400);
+    }
 
-      const { error: updErr } = await db
+    if (action === "resubmit_owner") {
+      if (sub.status !== "owner_rejected") {
+        return json({ error: "Este pedido não está em estado de rejeição" }, 400);
+      }
+      const { error } = await db
         .from("reseller_recharge_plan_subscriptions")
         .update({
-          status: "active",
-          started_at: now.toISOString(),
-          ends_at: endsAt.toISOString(),
+          status: "awaiting_confirm",
+          owner_email_added_at: new Date().toISOString(),
+          owner_confirmation_attempts: (sub.owner_confirmation_attempts ?? 0) + 1,
         })
         .eq("id", sub.id)
-        .eq("status", "awaiting_confirm");
-      if (updErr) return json({ error: updErr.message }, 500);
-
-      // Gera N linhas de entrega (1 por dia). scheduled_date = dia (BRT) no horário do plano.
-      const rows = [];
-      for (let i = 1; i <= sub.duration_days; i++) {
-        const d = new Date(now);
-        d.setUTCDate(d.getUTCDate() + (i - 1));
-        const dateStr = d.toISOString().slice(0, 10);
-        rows.push({
-          subscription_id: sub.id,
-          day_number: i,
-          scheduled_date: dateStr,
-          credits: sub.credits_per_day,
-          status: "pending",
-        });
-      }
-      const { error: insErr } = await db
-        .from("recharge_plan_deliveries")
-        .upsert(rows, { onConflict: "subscription_id,day_number" });
-      if (insErr) return json({ error: insErr.message }, 500);
-
+        .eq("status", "owner_rejected");
+      if (error) return json({ error: error.message }, 500);
       const fresh = await getSubByToken(db, token);
       return json({ data: await buildPayload(db, fresh!) });
     }
 
     if (action === "cancel") {
-      if (sub.status !== "awaiting_owner" && sub.status !== "awaiting_confirm") {
+      if (
+        sub.status !== "awaiting_owner" &&
+        sub.status !== "awaiting_confirm" &&
+        sub.status !== "owner_rejected"
+      ) {
         return json({ error: "Não é mais possível cancelar este pedido" }, 400);
       }
       let reason = "Cancelado pelo cliente";

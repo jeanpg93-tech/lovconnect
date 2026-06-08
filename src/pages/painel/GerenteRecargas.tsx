@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageContainer } from "@/components/painel/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { BarChart3, History as HistoryIcon, Tag, KeyRound, Undo2, CalendarClock, Package, Sparkles } from "lucide-react";
+import { BarChart3, History as HistoryIcon, Tag, KeyRound, Undo2, CalendarClock, Package, Sparkles, Image as ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import GerenteRecargasDashboard from "./GerenteRecargasDashboard";
@@ -13,6 +13,7 @@ import GerenteEstornosProvedor from "./GerenteEstornosProvedor";
 import GerenteRecargasAgenda from "./GerenteRecargasAgenda";
 import GerentePlanoCatalogo from "./GerentePlanoCatalogo";
 import GerentePlanosAtivos from "./GerentePlanosAtivos";
+import GerentePlanoTutoriais from "./GerentePlanoTutoriais";
 
 const TABS = [
   { value: "dashboard", label: "Dashboard", icon: BarChart3, Comp: GerenteRecargasDashboard },
@@ -21,6 +22,7 @@ const TABS = [
   { value: "valores", label: "Valores", icon: Tag, Comp: GerenteValoresCreditos },
   { value: "planos", label: "Planos", icon: Package, Comp: GerentePlanoCatalogo },
   { value: "planos-ativos", label: "Planos Ativos", icon: Sparkles, Comp: GerentePlanosAtivos },
+  { value: "tutoriais", label: "Tutoriais", icon: ImageIcon, Comp: GerentePlanoTutoriais },
   { value: "agenda", label: "Agenda", icon: CalendarClock, Comp: GerenteRecargasAgenda },
   { value: "api", label: "API", icon: KeyRound, Comp: GerenteApiRecargas },
 ] as const;
