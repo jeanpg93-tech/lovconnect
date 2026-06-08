@@ -251,9 +251,10 @@ export default function PublicPlano() {
       <div className="relative mx-auto max-w-xl space-y-5">
         {/* Header */}
         <div className="text-center space-y-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/40 bg-violet-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-violet-200">
-            <Sparkles className="h-3 w-3" />
-            {data.plan?.name ?? "Plano de créditos"}
+          <span className="relative inline-flex items-center gap-1.5 rounded-full border border-violet-400/40 bg-violet-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-violet-200 shadow-lg shadow-violet-500/30">
+            <span className="absolute -inset-px rounded-full bg-gradient-to-r from-violet-500/0 via-fuchsia-500/30 to-violet-500/0 blur-md animate-pulse" />
+            <Sparkles className="relative h-3 w-3 animate-pulse" />
+            <span className="relative">{data.plan?.name ?? "Plano de créditos"}</span>
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             {data.credits_per_day.toLocaleString("pt-BR")} créditos/dia •{" "}
@@ -270,10 +271,13 @@ export default function PublicPlano() {
 
         {/* ESTADO 1: AGUARDANDO CONFIGURAÇÃO DO WORKSPACE */}
         {status === "awaiting_owner" && (
-          <div className="rounded-2xl border border-amber-400/30 bg-zinc-950/85 p-5 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/30">
-                <Mail className="h-5 w-5" />
+          <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-amber-400/50 via-orange-400/20 to-amber-400/50 shadow-xl shadow-amber-900/20">
+          <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] border border-amber-400/10 bg-zinc-950/85 backdrop-blur-xl p-5 space-y-4">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-500/20 blur-3xl animate-pulse" />
+            <div className="relative flex items-center gap-3">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/30">
+                <span className="absolute inset-0 rounded-lg bg-amber-400/30 blur-md animate-pulse" />
+                <Mail className="relative h-5 w-5" />
               </div>
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-300">
@@ -283,13 +287,13 @@ export default function PublicPlano() {
               </div>
             </div>
 
-            <div className="text-sm text-zinc-300 leading-relaxed">
+            <div className="relative text-sm text-zinc-300 leading-relaxed">
               Para que possamos entregar os créditos no seu workspace do Lovable,
               adicione o email abaixo como <strong>Owner</strong> do workspace
               que vai receber a recarga:
             </div>
 
-            <div className="rounded-lg bg-zinc-900 border border-zinc-800 px-3 py-2 flex items-center justify-between gap-2">
+            <div className="relative rounded-lg bg-zinc-900 border border-amber-400/20 px-3 py-2 flex items-center justify-between gap-2 shadow-inner shadow-amber-500/5">
               <span className="font-mono text-sm text-violet-200 truncate">
                 {data.owner_email_required || "(não configurado pelo gerente)"}
               </span>
@@ -303,7 +307,7 @@ export default function PublicPlano() {
               </Button>
             </div>
 
-            <div>
+            <div className="relative">
               <Label className="text-zinc-300">Nome do seu workspace</Label>
               <Input
                 value={workspaceInput}
@@ -316,7 +320,7 @@ export default function PublicPlano() {
               </p>
             </div>
 
-            <div className="flex justify-between gap-2">
+            <div className="relative flex justify-between gap-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -325,20 +329,29 @@ export default function PublicPlano() {
               >
                 Cancelar pedido
               </Button>
-              <Button onClick={submitWorkspace} disabled={submitting}>
+              <Button
+                onClick={submitWorkspace}
+                disabled={submitting}
+                className="relative bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold shadow-lg shadow-amber-500/40 hover:shadow-amber-400/60 transition-all hover:scale-[1.02]"
+              >
+                <span className="absolute -inset-0.5 rounded-md bg-gradient-to-r from-amber-400 to-orange-400 opacity-60 blur-md animate-pulse -z-10" />
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Já adicionei — continuar
               </Button>
             </div>
           </div>
+          </div>
         )}
 
         {/* ESTADO 2: AGUARDANDO CONFIRMAÇÃO */}
         {status === "awaiting_confirm" && (
-          <div className="rounded-2xl border border-violet-400/30 bg-zinc-950/85 p-5 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/30">
-                <PlayCircle className="h-5 w-5" />
+          <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-violet-400/50 via-fuchsia-400/20 to-violet-400/50 shadow-xl shadow-violet-900/20">
+          <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] border border-violet-400/10 bg-zinc-950/85 backdrop-blur-xl p-5 space-y-4">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-violet-500/20 blur-3xl animate-pulse" />
+            <div className="relative flex items-center gap-3">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/30">
+                <span className="absolute inset-0 rounded-lg bg-violet-400/30 blur-md animate-pulse" />
+                <PlayCircle className="relative h-5 w-5" />
               </div>
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-violet-300">
@@ -348,7 +361,7 @@ export default function PublicPlano() {
               </div>
             </div>
 
-            <div className="rounded-lg bg-zinc-900/60 border border-zinc-800 p-3 space-y-2 text-sm">
+            <div className="relative rounded-lg bg-zinc-900/60 border border-violet-400/20 p-3 space-y-2 text-sm shadow-inner shadow-violet-500/5">
               <Row label="Workspace" value={data.workspace_name ?? "—"} />
               <Row label="Email Owner adicionado" value={data.owner_email_required} />
               <Row label="Créditos por dia" value={data.credits_per_day.toLocaleString("pt-BR")} />
@@ -358,7 +371,7 @@ export default function PublicPlano() {
               <Row label="Valor pago" value={fmtBRL(data.sale_price_cents)} />
             </div>
 
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-[12px] text-amber-200 flex gap-2">
+            <div className="relative rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-[12px] text-amber-200 flex gap-2">
               <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
               <div>
                 <strong>Atenção:</strong> após confirmar o início, o pedido{" "}
@@ -367,7 +380,7 @@ export default function PublicPlano() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 text-[12px] text-zinc-400 flex gap-2">
+            <div className="relative rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 text-[12px] text-zinc-400 flex gap-2">
               <Clock className="h-4 w-4 shrink-0 mt-0.5 text-zinc-500" />
               <div>
                 A primeira entrega pode levar até <strong>2 horas</strong> após
@@ -376,7 +389,7 @@ export default function PublicPlano() {
               </div>
             </div>
 
-            <div className="flex justify-between gap-2">
+            <div className="relative flex justify-between gap-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -387,21 +400,26 @@ export default function PublicPlano() {
               </Button>
               <Button
                 onClick={() => setConfirmOpen(true)}
-                className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600"
+                className="relative bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 text-white font-bold shadow-lg shadow-violet-500/40 hover:shadow-fuchsia-400/60 transition-all hover:scale-[1.02]"
               >
+                <span className="absolute -inset-0.5 rounded-md bg-gradient-to-r from-violet-400 to-fuchsia-400 opacity-60 blur-md animate-pulse -z-10" />
                 <PlayCircle className="h-4 w-4 mr-2" />
                 Confirmar e iniciar entrega
               </Button>
             </div>
           </div>
+          </div>
         )}
 
         {/* ESTADO 3: ATIVO */}
         {status === "active" && (
-          <div className="rounded-2xl border border-emerald-400/30 bg-zinc-950/85 p-5 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/30">
-                <Zap className="h-5 w-5" />
+          <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-emerald-400/50 via-teal-400/20 to-emerald-400/50 shadow-xl shadow-emerald-900/20">
+          <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] border border-emerald-400/10 bg-zinc-950/85 backdrop-blur-xl p-5 space-y-4">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-emerald-500/20 blur-3xl animate-pulse" />
+            <div className="relative flex items-center gap-3">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/30">
+                <span className="absolute inset-0 rounded-lg bg-emerald-400/30 blur-md animate-pulse" />
+                <Zap className="relative h-5 w-5" />
               </div>
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
@@ -413,10 +431,10 @@ export default function PublicPlano() {
               </div>
             </div>
 
-            <div>
+            <div className="relative">
               <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-900">
                 <div
-                  className="h-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all"
+                  className="h-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all shadow-[0_0_12px_rgba(52,211,153,0.7)]"
                   style={{
                     width: `${Math.round((deliveredCount / Math.max(1, data.duration_days)) * 100)}%`,
                   }}
@@ -428,14 +446,14 @@ export default function PublicPlano() {
               </div>
             </div>
 
-            <div className="rounded-lg bg-zinc-900/60 border border-zinc-800 p-3 space-y-2 text-sm">
+            <div className="relative rounded-lg bg-zinc-900/60 border border-emerald-400/20 p-3 space-y-2 text-sm shadow-inner shadow-emerald-500/5">
               <Row label="Workspace" value={data.workspace_name ?? "—"} />
               <Row label="Créditos por dia" value={data.credits_per_day.toLocaleString("pt-BR")} />
               <Row label="Horário de entrega" value={`${String(data.delivery_hour).padStart(2, "0")}h (BRT)`} />
             </div>
 
             {data.deliveries.length > 0 && (
-              <div>
+              <div className="relative">
                 <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
                   Próximas entregas
                 </div>
@@ -463,12 +481,14 @@ export default function PublicPlano() {
               </div>
             )}
           </div>
+          </div>
         )}
 
         {/* ESTADO 4: ENCERRADO (paused/cancelled/completed/expired) */}
         {(status === "paused" || status === "cancelled" || status === "completed" || status === "expired") && (
-          <div className="rounded-2xl border border-zinc-700/60 bg-zinc-950/85 p-5 space-y-3">
-            <div className="flex items-center gap-3">
+          <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-zinc-600/40 via-zinc-700/20 to-zinc-600/40 shadow-xl shadow-black/40">
+          <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] border border-zinc-700/40 bg-zinc-950/85 backdrop-blur-xl p-5 space-y-3">
+            <div className="relative flex items-center gap-3">
               <div
                 className={`flex h-10 w-10 items-center justify-center rounded-lg ring-1 ${
                   status === "completed"
@@ -502,13 +522,14 @@ export default function PublicPlano() {
               </div>
             </div>
             {data.cancelled_reason && (
-              <p className="text-xs text-zinc-500">Motivo: {data.cancelled_reason}</p>
+              <p className="relative text-xs text-zinc-500">Motivo: {data.cancelled_reason}</p>
             )}
             {data.completed_at && (
-              <p className="text-xs text-zinc-500">
+              <p className="relative text-xs text-zinc-500">
                 Encerrado em {fmtDate(data.completed_at)}
               </p>
             )}
+          </div>
           </div>
         )}
       </div>
