@@ -3376,6 +3376,7 @@ export type Database = {
           onboarding_tour_completed_at: string | null
           onboarding_tour_status: Database["public"]["Enums"]["onboarding_tour_status"]
           pack_sales_disabled: boolean
+          recharge_plans_enabled: boolean
           slug: string
           subscription_blocked: boolean
           subscription_blocked_at: string | null
@@ -3400,6 +3401,7 @@ export type Database = {
           onboarding_tour_completed_at?: string | null
           onboarding_tour_status?: Database["public"]["Enums"]["onboarding_tour_status"]
           pack_sales_disabled?: boolean
+          recharge_plans_enabled?: boolean
           slug: string
           subscription_blocked?: boolean
           subscription_blocked_at?: string | null
@@ -3424,6 +3426,7 @@ export type Database = {
           onboarding_tour_completed_at?: string | null
           onboarding_tour_status?: Database["public"]["Enums"]["onboarding_tour_status"]
           pack_sales_disabled?: boolean
+          recharge_plans_enabled?: boolean
           slug?: string
           subscription_blocked?: boolean
           subscription_blocked_at?: string | null
