@@ -727,20 +727,24 @@ export default function PublicStorefront() {
                 </div>
               </div>
 
-              {orderStatus === "completed" && (licenseKey || order.product_type === "credits") ? (
+              {orderStatus === "completed" && (licenseKey || order.product_type === "credits" || order.product_type === "recharge_plan") ? (
                 <div className="text-center space-y-3 py-4">
                   <CheckCircle2 className="h-12 w-12 mx-auto" style={{ color }} />
                   <h2 className="text-lg font-semibold">
-                    {order.product_type === "credits" ? "Recargas confirmada!" : order.amount_cents > 0 ? "Pagamento confirmado!" : "Chave teste gerada!"}
+                    {order.product_type === "recharge_plan"
+                      ? "Plano confirmado!"
+                      : order.product_type === "credits" ? "Recargas confirmada!" : order.amount_cents > 0 ? "Pagamento confirmado!" : "Chave teste gerada!"}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {order.product_type === "credits"
+                    {order.product_type === "recharge_plan"
+                      ? "Tudo certo! Acesse o link abaixo para confirmar o email do bot e iniciar suas entregas diárias."
+                      : order.product_type === "credits"
                       ? `${order.credit_amount ?? ""} recargas foram registradas. Acesse o link abaixo para acompanhar a entrega.`
                       : order.amount_cents > 0
                       ? "Sua chave foi gerada e enviada no seu WhatsApp."
                       : "Copie sua chave abaixo. Ela tem validade de 15 minutos."}
                   </p>
-                  {order.product_type === "credits" && inviteLink && (
+                  {(order.product_type === "credits" || order.product_type === "recharge_plan") && inviteLink && (
                     <div className="space-y-2">
                       <a
                         href={inviteLink}
@@ -749,7 +753,7 @@ export default function PublicStorefront() {
                         className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white shadow"
                         style={{ backgroundColor: color }}
                       >
-                        Acessar minhas recargas
+                        {order.product_type === "recharge_plan" ? "Acessar meu plano" : "Acessar minhas recargas"}
                       </a>
                       <div className="flex items-center justify-center gap-2">
                         <code className="rounded bg-muted px-2 py-1 text-xs break-all">{window.location.origin + inviteLink}</code>
