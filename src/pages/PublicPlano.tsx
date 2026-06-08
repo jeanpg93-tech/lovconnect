@@ -27,6 +27,8 @@ import {
   PartyPopper,
   ShieldAlert,
   Clock,
+  HelpCircle,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,6 +38,14 @@ type Delivery = {
   credits: number;
   status: string;
   delivered_at: string | null;
+};
+
+type Tutorial = {
+  slug: string;
+  title: string;
+  description: string | null;
+  media_url: string | null;
+  media_type: string;
 };
 
 type PlanData = {
@@ -56,12 +66,17 @@ type PlanData = {
   cancelled_at: string | null;
   cancelled_reason: string | null;
   completed_at: string | null;
+  owner_rejected_at: string | null;
+  owner_rejected_reason: string | null;
+  owner_rejected_count: number;
+  owner_confirmation_attempts: number;
   plan: {
     name: string;
     description: string | null;
     bot_owner_email: string;
   } | null;
   deliveries: Delivery[];
+  tutorials: Tutorial[];
 };
 
 const fmtBRL = (c?: number) =>
