@@ -100,6 +100,10 @@ export default function PublicStorefront() {
   const [recharges, setRecharges] = useState<Recharge[]>([]);
   const [sellablePlans, setSellablePlans] = useState<SellablePlan[]>([]);
   const [rechargeMode, setRechargeMode] = useState<"automatico" | "manual">("automatico");
+  const [rechargeMaintenance, setRechargeMaintenance] = useState<{ enabled: boolean; message: string }>({
+    enabled: false,
+    message: "",
+  });
   const [activeTab, setActiveTab] = useState<"extension" | "recharge">("extension");
   const [testimonials, setTestimonials] = useState<any[]>([]);
   
