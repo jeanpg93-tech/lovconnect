@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, RefreshCcw, CalendarClock } from "lucide-react";
+import { Loader2, Save, RefreshCcw, CalendarClock, Power, Users } from "lucide-react";
 import { toast } from "sonner";
 
 type RechargePlan = {
@@ -43,6 +43,13 @@ export default function GerentePlanoCatalogo() {
   const [platformCostInput, setPlatformCostInput] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [globalEnabled, setGlobalEnabled] = useState(false);
+  const [savingGlobal, setSavingGlobal] = useState(false);
+  const [resellers, setResellers] = useState<
+    { id: string; display_name: string; slug: string; recharge_plans_enabled: boolean }[]
+  >([]);
+  const [resellerSearch, setResellerSearch] = useState("");
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -57,12 +64,73 @@ export default function GerentePlanoCatalogo() {
       setPlanEdits({});
       setBaseCostInput(null);
       setPlatformCostInput(null);
+
+      const { data: gFlag } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "recharge_plans_enabled_globally")
+        .maybeSingle();
+      setGlobalEnabled((gFlag?.value as any) === true);
+
+      const { data: rs } = await supabase
+        .from("resellers")
+        .select("id, display_name, slug, recharge_plans_enabled")
+        .eq("is_active", true)
+        .order("display_name", { ascending: true });
+      setResellers((rs ?? []) as any);
     } catch (e: any) {
       toast.error("Erro ao carregar", { description: e.message });
     } finally {
       setLoading(false);
     }
   };
+
+  const toggleGlobal = async (next: boolean) => {
+    setSavingGlobal(true);
+    try {
+      const { error } = await supabase
+        .from("app_settings")
+        .upsert(
+          { key: "recharge_plans_enabled_globally", value: next as any },
+          { onConflict: "key" },
+        );
+      if (error) throw error;
+      setGlobalEnabled(next);
+      toast.success(next ? "Liberado para todos" : "Liberação global desativada");
+    } catch (e: any) {
+      toast.error("Erro ao salvar", { description: e.message });
+    } finally {
+      setSavingGlobal(false);
+    }
+  };
+
+  const toggleReseller = async (id: string, next: boolean) => {
+    setTogglingId(id);
+    try {
+      const { error } = await supabase
+        .from("resellers")
+        .update({ recharge_plans_enabled: next })
+        .eq("id", id);
+      if (error) throw error;
+      setResellers((s) =>
+        s.map((r) => (r.id === id ? { ...r, recharge_plans_enabled: next } : r)),
+      );
+    } catch (e: any) {
+      toast.error("Erro ao atualizar", { description: e.message });
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const filteredResellers = useMemo(() => {
+    const q = resellerSearch.trim().toLowerCase();
+    if (!q) return resellers;
+    return resellers.filter(
+      (r) =>
+        r.display_name.toLowerCase().includes(q) ||
+        r.slug.toLowerCase().includes(q),
+    );
+  }, [resellers, resellerSearch]);
 
   useEffect(() => {
     load();
