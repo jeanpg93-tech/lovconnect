@@ -134,6 +134,36 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const packRevenueCents = packArr.reduce((s, a: any) => s + Number(a.price_cents || 0), 0);
     const packCount = packArr.length;
 
+    // Planos de recarga vendidos (subscriptions não canceladas no período)
+    // Receita do dono = cost_cents (o que o revendedor pagou em saldo, vindo de recargas)
+    // Custo do dono = platform_cost_cents do plano (fornecedor)
+    let rpsQ = supabase
+      .from("reseller_recharge_plan_subscriptions")
+      .select("cost_cents, plan_id, started_at, created_at, status, reseller_id")
+      .neq("status", "cancelled");
+    if (startIso) rpsQ = rpsQ.gte("created_at", startIso);
+    if (endIso) rpsQ = rpsQ.lte("created_at", endIso);
+    rpsQ = excludeDemos(rpsQ);
+    const { data: planSubs } = await rpsQ;
+    const planSubsArr = (planSubs || []) as any[];
+    const planIds = Array.from(new Set(planSubsArr.map((s) => s.plan_id).filter(Boolean)));
+    const platformCostByPlan: Record<string, number> = {};
+    if (planIds.length) {
+      const { data: planRows } = await supabase
+        .from("recharge_plans")
+        .select("id, platform_cost_cents")
+        .in("id", planIds);
+      (planRows || []).forEach((p: any) => {
+        platformCostByPlan[p.id] = Number(p.platform_cost_cents || 0);
+      });
+    }
+    const rechargePlanRevenueCents = planSubsArr.reduce((s, p) => s + Number(p.cost_cents || 0), 0);
+    const rechargePlanCostCents = planSubsArr.reduce(
+      (s, p) => s + (platformCostByPlan[p.plan_id] ?? 0),
+      0,
+    );
+    const rechargePlanCount = planSubsArr.length;
+
     // Custo: storefront_orders pagos
     let soQ = supabase
       .from("storefront_orders")
@@ -258,9 +288,9 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       .reduce((s, m: any) => s + Number(m.cost_cents || 0), 0);
 
     const revenueCents =
-      rechargesRevenueCents + manualRevenueCents + lovastoreRevenueCents + activationRevenueCents + subscriptionRevenueCents + packRevenueCents;
+      rechargesRevenueCents + manualRevenueCents + lovastoreRevenueCents + activationRevenueCents + subscriptionRevenueCents + packRevenueCents + rechargePlanRevenueCents;
     const totalGatewayFeeCents = gatewayFeeCents + manualMisticFeeCents;
-    const costCents = costCreditsCents + totalGatewayFeeCents + manualExpenseCents + manualRevenueCostCents;
+    const costCents = costCreditsCents + totalGatewayFeeCents + manualExpenseCents + manualRevenueCostCents + rechargePlanCostCents;
     const profitCents = revenueCents - costCents;
     const marginPct = revenueCents > 0 ? (profitCents / revenueCents) * 100 : 0;
 
@@ -287,6 +317,12 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       const k = key(a.paid_at);
       bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
       bucket[k].revenue += Number(a.price_cents || 0);
+    });
+    planSubsArr.forEach((p: any) => {
+      const k = key(p.started_at || p.created_at);
+      bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
+      bucket[k].revenue += Number(p.cost_cents || 0);
+      bucket[k].cost += platformCostByPlan[p.plan_id] ?? 0;
     });
     soArr.forEach((o: any) => {
       const k = key(o.paid_at || o.created_at);
@@ -331,6 +367,14 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       if (!id) return;
       perReseller[id] = perReseller[id] || { revenue: 0, cost: 0, sales: 0 };
       perReseller[id].revenue += Number(p.price_cents || 0);
+      perReseller[id].sales += 1;
+    });
+    planSubsArr.forEach((p: any) => {
+      const id = p.reseller_id;
+      if (!id) return;
+      perReseller[id] = perReseller[id] || { revenue: 0, cost: 0, sales: 0 };
+      perReseller[id].revenue += Number(p.cost_cents || 0);
+      perReseller[id].cost += platformCostByPlan[p.plan_id] ?? 0;
       perReseller[id].sales += 1;
     });
     soArr.forEach((o: any) => {
@@ -392,6 +436,9 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       subscriptionCount,
       packRevenueCents,
       packCount,
+      rechargePlanRevenueCents,
+      rechargePlanCostCents,
+      rechargePlanCount,
       costCents,
       costCreditsCents,
       gatewayFeeCents: totalGatewayFeeCents,
