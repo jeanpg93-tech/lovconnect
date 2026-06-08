@@ -1815,6 +1815,7 @@ export type Database = {
       recharge_plans: {
         Row: {
           base_cost_cents: number
+          bot_owner_email: string
           created_at: string
           credits_per_day: number
           delivery_hour: number
@@ -1828,6 +1829,7 @@ export type Database = {
         }
         Insert: {
           base_cost_cents?: number
+          bot_owner_email?: string
           created_at?: string
           credits_per_day?: number
           delivery_hour?: number
@@ -1841,6 +1843,7 @@ export type Database = {
         }
         Update: {
           base_cost_cents?: number
+          bot_owner_email?: string
           created_at?: string
           credits_per_day?: number
           delivery_hour?: number

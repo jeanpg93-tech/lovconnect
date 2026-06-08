@@ -1,0 +1,1 @@
+ALTER TABLE public.recharge_plans ADD COLUMN IF NOT EXISTS bot_owner_email text NOT NULL DEFAULT '';
