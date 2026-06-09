@@ -103,25 +103,19 @@ async function getDeliveryGuard(svc: any) {
   const { data } = await svc
     .from("app_settings")
     .select("key,value")
-    .in("key", ["licencas.delivery.method", "licencas.delivery.maintenance"]);
-  const methodValue = data?.find((r: any) => r.key === "licencas.delivery.method")?.value;
+    .in("key", ["licencas.delivery.maintenance"]);
   const maintenanceValue = data?.find((r: any) => r.key === "licencas.delivery.maintenance")?.value;
-  const activeMethod = methodValue?.method === "lovax" ? "lovax" : "flow";
+  // Lovax é o único método ativo do sistema. Flow descontinuado.
+  const activeMethod: "lovax" = "lovax";
   const maintenance = maintenanceValue?.enabled === true;
   return { activeMethod, maintenance };
 }
 
-function assertDeliveryAllowed(requested: string, guard: { activeMethod: string; maintenance: boolean }) {
+function assertDeliveryAllowed(_requested: string, guard: { activeMethod: string; maintenance: boolean }) {
   if (guard.maintenance) {
     return { error: "Entrega de licenças em manutenção. Nenhuma chave pode ser gerada agora.", code: "delivery_maintenance", status: 503 };
   }
-  if (requested !== guard.activeMethod) {
-    return {
-      error: `Método desativado. Apenas ${guard.activeMethod === "flow" ? "MétodoFlow" : "MétodoLovax"} pode gerar licenças agora.`,
-      code: "method_disabled",
-      status: 403,
-    };
-  }
+  // Normaliza qualquer método solicitado para Lovax (único ativo).
   return null;
 }
 
