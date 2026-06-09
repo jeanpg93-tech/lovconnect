@@ -439,10 +439,10 @@ Deno.serve(async (req) => {
     const { data: deliverySettings } = await svc
       .from("app_settings")
       .select("key,value")
-      .in("key", ["licencas.delivery.method", "licencas.delivery.maintenance"]);
-    const methodVal = (deliverySettings ?? []).find((r: any) => r.key === "licencas.delivery.method")?.value as any;
+      .in("key", ["licencas.delivery.maintenance"]);
     const maintenanceVal = (deliverySettings ?? []).find((r: any) => r.key === "licencas.delivery.maintenance")?.value as any;
-    const activeMethod: "flow" | "lovax" = methodVal?.method === "lovax" ? "lovax" : "flow";
+    // Lovax é o único método ativo. Flow descontinuado.
+    const activeMethod: "lovax" = "lovax";
     const maintenance = maintenanceVal?.enabled === true;
 
     const refund = async (reason: string, providerResp?: unknown) => {
@@ -476,7 +476,7 @@ Deno.serve(async (req) => {
 
     let providerData: any = null;
     try {
-      if (activeMethod === "lovax") {
+      {
         const { data: settings } = await svc
           .from("app_settings")
           .select("key,value")
@@ -488,8 +488,11 @@ Deno.serve(async (req) => {
           await refund("MétodoLovax não configurado pelo gerente");
           return json({ error: "MétodoLovax não configurado pelo gerente" }, 500);
         }
+        const trialName = (final_display_name && final_display_name.length >= 2)
+          ? final_display_name
+          : "Cliente Teste";
         const payload: Record<string, unknown> = is_test
-          ? { days: 0, hours: 0, minutes: 15, max_devices: 1 }
+          ? { customer_name: trialName, days: 0, hours: 0, minutes: 15, max_devices: 1 }
           : {
               customer_name: final_display_name,
               days: typeToLovaxDays(license_type),
@@ -500,37 +503,13 @@ Deno.serve(async (req) => {
         const r = await fetch(bs, {
           method: "POST",
           headers: { Authorization: `Bearer ${tk}`, "x-api-key": tk, "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "generate_license", payload }),
+          body: JSON.stringify({ action: is_test ? "generate_trial" : "generate_license", payload }),
         });
         const text = await r.text();
         try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
         if (!r.ok || !providerData?.success) {
           await refund(providerData?.error ?? `Lovax retornou ${r.status}`, providerData);
           return json({ error: "Falha no MétodoLovax", details: providerData }, 502);
-        }
-      } else {
-        const { data: cfg } = await svc.from("provider_settings")
-          .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
-        const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
-        const base = cfg?.base_url ?? DEFAULT_BASE;
-        if (!apiKey) {
-          await refund("MétodoFlow não configurado pelo gerente");
-          return json({ error: "MétodoFlow não configurado pelo gerente" }, 500);
-        }
-        const endpoint = is_test ? `${base}/generate-trial` : `${base}/generate-license`;
-        const payload: Record<string, unknown> = is_test
-          ? { display_name: final_display_name, minutes: 15, seconds: 0, ...(method ? { method, extension: method } : {}) }
-          : { ...mapTypeToProviderBody(license_type), display_name: final_display_name };
-        const r = await fetch(endpoint, {
-          method: "POST",
-          headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const text = await r.text();
-        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
-        if (!r.ok) {
-          await refund(`MétodoFlow retornou ${r.status}`, providerData);
-          return json({ error: "Falha no MétodoFlow", details: providerData }, 502);
         }
       }
     } catch (e) {

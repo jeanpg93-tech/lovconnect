@@ -55,23 +55,16 @@ Deno.serve(async (req) => {
     if (!store || !store.is_enabled) return json({ error: "Loja desativada" }, 404);
     if (!store.show_free_trial) return json({ error: "Chave teste indisponível nesta loja" }, 403);
 
-    let method: "flow" | "lovax" =
-      (store as any).extension_method === "lovax" ? "lovax" : "flow";
-
-    // Override global: respeita o método ativo definido pelo gerente
-    // (Gerente → Licenças → Método de entrega). Também respeita manutenção.
+    // Lovax é o único método ativo. Flow descontinuado.
+    const method: "lovax" = "lovax";
     {
       const { data: deliverySettings } = await svc
         .from("app_settings")
         .select("key,value")
-        .in("key", ["licencas.delivery.method", "licencas.delivery.maintenance"]);
-      const methodVal = deliverySettings?.find((r: any) => r.key === "licencas.delivery.method")?.value as any;
+        .in("key", ["licencas.delivery.maintenance"]);
       const maintenanceVal = deliverySettings?.find((r: any) => r.key === "licencas.delivery.maintenance")?.value as any;
       if (maintenanceVal?.enabled === true) {
         return json({ error: "Geração de chaves temporariamente em manutenção. Tente novamente em alguns minutos." }, 503);
-      }
-      if (methodVal?.method === "lovax" || methodVal?.method === "flow") {
-        method = methodVal.method;
       }
     }
 
@@ -152,11 +145,11 @@ Deno.serve(async (req) => {
     }).select().single();
     if (ordErr || !order) return json({ error: "Falha ao criar pedido" }, 500);
 
-    // chama provedor de acordo com o método escolhido pela loja
+    // chama provedor Lovax (único ativo)
     let providerData: any = null;
     let license_key: string | null = null;
     try {
-      if (method === "lovax") {
+      {
         const { data: settings } = await svc
           .from("app_settings")
           .select("key, value")
@@ -168,12 +161,13 @@ Deno.serve(async (req) => {
           await svc.from("orders").update({ status: "failed", error_message: "MétodoLovax não configurado" }).eq("id", order.id);
           return json({ error: "MétodoLovax não configurado pelo gerente" }, 500);
         }
+        const trialName = (final_display_name && final_display_name.length >= 2) ? final_display_name : "Cliente Teste";
         const r = await fetch(bs, {
           method: "POST",
           headers: { Authorization: `Bearer ${tk}`, "x-api-key": tk, "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "generate_trial",
-            payload: { customer_name: final_display_name, minutes: 15, max_devices: 1 },
+            payload: { customer_name: trialName, minutes: 15, max_devices: 1 },
           }),
         });
         const text = await r.text();
@@ -187,35 +181,6 @@ Deno.serve(async (req) => {
           return json({ error: "Falha no MétodoLovax", details: providerData }, 502);
         }
         license_key = providerData?.license?.license_key ?? providerData?.license_key ?? providerData?.key ?? null;
-      } else {
-        const { data: cfg } = await svc
-          .from("provider_settings")
-          .select("api_key,base_url")
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
-        const base = cfg?.base_url ?? DEFAULT_BASE;
-        if (!apiKey) {
-          await svc.from("orders").update({ status: "failed", error_message: "MétodoFlow não configurado" }).eq("id", order.id);
-          return json({ error: "MétodoFlow não configurado pelo gerente" }, 500);
-        }
-        const r = await fetch(`${base}/generate-trial`, {
-          method: "POST",
-          headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
-          body: JSON.stringify({ display_name: final_display_name, minutes: 15, seconds: 0 }),
-        });
-        const text = await r.text();
-        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
-        if (!r.ok) {
-          await svc.from("orders").update({
-            status: "failed",
-            error_message: `MétodoFlow retornou ${r.status}`,
-            provider_response: providerData,
-          }).eq("id", order.id);
-          return json({ error: "Falha no MétodoFlow", details: providerData }, 502);
-        }
-        license_key = providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
       }
     } catch (e) {
       await svc.from("orders").update({

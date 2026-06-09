@@ -170,13 +170,11 @@ Deno.serve(async (req) => {
       .in("key", ["licencas.delivery.method", "licencas.delivery.maintenance"]);
     const methodVal = (settingsRows ?? []).find((r: any) => r.key === "licencas.delivery.method")?.value as any;
     const maintenanceVal = (settingsRows ?? []).find((r: any) => r.key === "licencas.delivery.maintenance")?.value as any;
-    const activeMethod: "flow" | "lovax" =
-      methodVal?.method === "lovax" ? "lovax" : "flow";
+    // Lovax é o único método ativo no sistema. Flow foi descontinuado.
+    const activeMethod: "lovax" = "lovax";
+    void methodVal;
     if (maintenanceVal?.enabled === true) {
       return json({ error: "Entrega de licenças em manutenção. Tente novamente em instantes.", code: "delivery_maintenance" }, 503);
-    }
-    if (activeMethod === "flow" && !FLOW_ALLOWED.has(type)) {
-      return json({ error: "Pacote indisponível para o método ativo." }, 400);
     }
 
     // Cria pedido pendente
@@ -214,11 +212,11 @@ Deno.serve(async (req) => {
       }).eq("id", order.id);
     };
 
-    // Chama provedor
+    // Chama provedor Lovax (único ativo).
     let providerData: any = null;
     let license_key: string | null = null;
     try {
-      if (activeMethod === "lovax") {
+      {
         const { data: settings } = await svc
           .from("app_settings")
           .select("key,value")
@@ -229,13 +227,14 @@ Deno.serve(async (req) => {
           await markFailed("MétodoLovax não configurado pelo gerente");
           return json({ error: "MétodoLovax não configurado pelo gerente" }, 500);
         }
+        const trialName = display_name && display_name.length >= 2 ? display_name : "Cliente Teste";
         const payload: Record<string, unknown> = isTrial
-          ? { days: 0, hours: 0, minutes: 15, max_devices: 1 }
+          ? { customer_name: trialName, days: 0, hours: 0, minutes: 15, max_devices: 1 }
           : { customer_name: display_name, days: packToDays(type), hours: 0, minutes: 0, max_devices: 1 };
         const r = await fetch(bs, {
           method: "POST",
           headers: { Authorization: `Bearer ${tk}`, "x-api-key": tk, "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "generate_license", payload }),
+          body: JSON.stringify({ action: isTrial ? "generate_trial" : "generate_license", payload }),
         });
         const text = await r.text();
         try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
@@ -244,35 +243,6 @@ Deno.serve(async (req) => {
           return json({ error: "Falha no MétodoLovax", details: providerData }, 502);
         }
         license_key = providerData?.license?.license_key ?? providerData?.license_key ?? providerData?.key ?? null;
-      } else {
-        const { data: cfg } = await svc
-          .from("provider_settings")
-          .select("api_key,base_url")
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const apiKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
-        const base = cfg?.base_url ?? DEFAULT_FLOW_BASE;
-        if (!apiKey) {
-          await markFailed("MétodoFlow não configurado pelo gerente");
-          return json({ error: "MétodoFlow não configurado pelo gerente" }, 500);
-        }
-        const path = isTrial ? "/generate-trial" : "/generate-license";
-        const bodyOut: Record<string, unknown> = isTrial
-          ? {}
-          : { display_name, ...(type === "lifetime" ? { lifetime: true } : { days: packToDays(type) }) };
-        const r = await fetch(`${base}${path}`, {
-          method: "POST",
-          headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
-          body: JSON.stringify(bodyOut),
-        });
-        const text = await r.text();
-        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
-        if (!r.ok) {
-          await markFailed(`MétodoFlow retornou ${r.status}`, providerData);
-          return json({ error: "Falha no MétodoFlow", details: providerData }, 502);
-        }
-        license_key = providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
       }
     } catch (e) {
       await markFailed(e instanceof Error ? e.message : "Erro no provedor");
