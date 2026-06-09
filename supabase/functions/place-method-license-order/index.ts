@@ -97,16 +97,15 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     const body = await req.json().catch(() => ({}));
-    const method = String(body.method ?? "").toLowerCase();
+    let method = String(body.method ?? "").toLowerCase();
     const pack_id = String(body.pack_id ?? "").toLowerCase();
     const display_name = String(body.display_name ?? "").trim();
     const whatsapp = onlyDigits(body.whatsapp ?? "");
     const client_id = body.client_id ? String(body.client_id) : null;
 
-    let methodEff = method;
-    if (!ALLOWED_METHODS.includes(methodEff)) return json({ error: "Método inválido" }, 400);
+    if (!ALLOWED_METHODS.includes(method)) return json({ error: "Método inválido" }, 400);
     // Lovax é o único método ativo. Roteia qualquer escolha para Lovax.
-    methodEff = "lovax";
+    method = "lovax";
     if (!ALLOWED_PACKS.includes(pack_id)) return json({ error: "Pacote inválido" }, 400);
 
 
