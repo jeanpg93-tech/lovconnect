@@ -114,6 +114,73 @@ function assertDeliveryAllowed(requested: string, guard: { activeMethod: string;
   return null;
 }
 
+const brl = (c: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((c || 0) / 100);
+
+/**
+ * Notifica o gerente (Telegram do sistema + dashboard/sino) sempre que uma
+ * venda via API pública sofre estorno automático por falha do provedor.
+ * Falhas aqui nunca devem quebrar o fluxo principal de refund.
+ */
+async function notifyManagerApiRefund(svc: any, args: {
+  resellerId: string;
+  orderId: string;
+  priceCents: number;
+  source: "pack" | "balance";
+  product: string;
+  reason: string;
+}) {
+  try {
+    const { data: reseller } = await svc
+      .from("resellers")
+      .select("display_name")
+      .eq("id", args.resellerId)
+      .maybeSingle();
+    const name = reseller?.display_name ?? args.resellerId.slice(0, 8);
+    const sourceLabel = args.source === "pack" ? "1 licença devolvida ao pacote" : `${brl(args.priceCents)} devolvido ao saldo`;
+    const reasonShort = (args.reason ?? "").slice(0, 220);
+
+    const text =
+      "⚠️ <b>Estorno automático (API)</b>\n" +
+      "👤 Revendedor: <b>" + name + "</b>\n" +
+      "📦 Produto: " + args.product + "\n" +
+      "💸 Estorno: " + sourceLabel + "\n" +
+      "🧾 Pedido: <code>" + args.orderId + "</code>\n" +
+      "❌ Motivo: " + reasonShort;
+
+    await svc.from("telegram_outbox").insert({
+      text,
+      reference_kind: "api_sale_refund",
+      reference_id: args.orderId,
+    });
+
+    const { data: managers } = await svc
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "gerente");
+
+    if (managers?.length) {
+      const rows = managers.map((m: any) => ({
+        user_id: m.user_id,
+        type: "api_sale_refund",
+        title: `Estorno API · ${name}`,
+        body: `${args.product} · ${sourceLabel}. Motivo: ${reasonShort}`,
+        link: `/painel/gerente/revendedores/${args.resellerId}/pacote`,
+        metadata: {
+          reseller_id: args.resellerId,
+          order_id: args.orderId,
+          source: args.source,
+          price_cents: args.priceCents,
+          reason: reasonShort,
+        },
+      }));
+      await svc.from("notifications").insert(rows);
+    }
+  } catch (e) {
+    console.warn("notifyManagerApiRefund failed", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
