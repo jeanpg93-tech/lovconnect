@@ -68,7 +68,6 @@ Deno.serve(async (req) => {
       const methodVal = deliverySettings?.find((r: any) => r.key === "licencas.delivery.method")?.value as any;
       const maintenanceVal = deliverySettings?.find((r: any) => r.key === "licencas.delivery.maintenance")?.value as any;
       if (maintenanceVal?.enabled === true) {
-        await svc.from("orders").update({ status: "failed", error_message: "Entrega em manutenção" }).eq("id", null);
         return json({ error: "Geração de chaves temporariamente em manutenção. Tente novamente em alguns minutos." }, 503);
       }
       if (methodVal?.method === "lovax" || methodVal?.method === "flow") {
