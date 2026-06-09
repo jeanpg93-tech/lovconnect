@@ -76,6 +76,17 @@ function mapTypeToProviderBody(type: string): Record<string, unknown> {
   }
 }
 
+function legacyTypeToLovaxDays(type: string): number {
+  switch (type) {
+    case "pro_1d": return 1;
+    case "pro_7d": return 7;
+    case "pro_15d": return 15;
+    case "pro_30d": return 30;
+    case "lifetime": return 36500;
+    default: return 30;
+  }
+}
+
 async function sha256Hex(s: string) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
