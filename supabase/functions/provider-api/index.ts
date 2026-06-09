@@ -4,6 +4,15 @@ import { corsHeaders } from "jsr:@supabase/supabase-js@2/cors";
 // corsHeaders imported from SDK
 
 const DEFAULT_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+const FLOW_REMOTE_ACTIONS = new Set([
+  "status",
+  "usage",
+  "usage-all",
+  "pricing",
+  "reset-hwid",
+  "revoke-license",
+  "delete-license",
+]);
 
 // Mapeia tipos internos de licença para o body do novo provedor
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
@@ -206,6 +215,20 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.error("[create-pix] error", e);
         return json({ error: "Falha na comunicação com MisticPay" }, 502);
+      }
+    }
+
+    // MétodoFlow está temporariamente desativado. Enquanto o método ativo for
+    // LovaX, não consultamos a URL antiga do Flow para evitar 500/DNS no painel.
+    if (FLOW_REMOTE_ACTIONS.has(action)) {
+      const { data: activeDelivery } = await serviceClient
+        .from("app_settings")
+        .select("value")
+        .eq("key", "licencas.delivery.method")
+        .maybeSingle();
+      const activeMethod = (activeDelivery?.value as any)?.method;
+      if (activeMethod === "lovax") {
+        return json(disabledFlowResponse(action), 200);
       }
     }
 
@@ -510,6 +533,13 @@ function json(data: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+function disabledFlowResponse(action: string) {
+  const provider_error = "MétodoFlow está desativado temporariamente. O método ativo é LovaX.";
+  if (action === "usage" || action === "usage-all") return { usage: [], provider_error, disabled: true };
+  if (action === "pricing") return { prices: [], provider_error, disabled: true };
+  if (action === "status") return { used: 0, max: 0, remaining: 0, provider_error, disabled: true };
+  return { ok: false, provider_error, disabled: true };
 }
 async function safeJson(r: Response) {
   const text = await r.text();
