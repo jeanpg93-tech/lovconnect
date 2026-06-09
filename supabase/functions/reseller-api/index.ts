@@ -534,6 +534,14 @@ Deno.serve(async (req) => {
       await svc.from("orders").update({
         status: "refunded", error_message: reason, provider_response: providerResp ?? null,
       }).eq("id", order.id);
+      await notifyManagerApiRefund(svc, {
+        resellerId: reseller.id,
+        orderId: order.id,
+        priceCents: price_cents,
+        source: usedPack ? "pack" : "balance",
+        product: `Licença ${order.license_type ?? "—"}`,
+        reason,
+      });
     };
 
     if (!provKey) {
