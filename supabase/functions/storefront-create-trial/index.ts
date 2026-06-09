@@ -55,8 +55,26 @@ Deno.serve(async (req) => {
     if (!store || !store.is_enabled) return json({ error: "Loja desativada" }, 404);
     if (!store.show_free_trial) return json({ error: "Chave teste indisponível nesta loja" }, 403);
 
-    const method: "flow" | "lovax" =
+    let method: "flow" | "lovax" =
       (store as any).extension_method === "lovax" ? "lovax" : "flow";
+
+    // Override global: respeita o método ativo definido pelo gerente
+    // (Gerente → Licenças → Método de entrega). Também respeita manutenção.
+    {
+      const { data: deliverySettings } = await svc
+        .from("app_settings")
+        .select("key,value")
+        .in("key", ["licencas.delivery.method", "licencas.delivery.maintenance"]);
+      const methodVal = deliverySettings?.find((r: any) => r.key === "licencas.delivery.method")?.value as any;
+      const maintenanceVal = deliverySettings?.find((r: any) => r.key === "licencas.delivery.maintenance")?.value as any;
+      if (maintenanceVal?.enabled === true) {
+        await svc.from("orders").update({ status: "failed", error_message: "Entrega em manutenção" }).eq("id", null);
+        return json({ error: "Geração de chaves temporariamente em manutenção. Tente novamente em alguns minutos." }, 503);
+      }
+      if (methodVal?.method === "lovax" || methodVal?.method === "flow") {
+        method = methodVal.method;
+      }
+    }
 
     // Limite diário: override específico do revendedor ou tier padrão
     let dailyLimit = 10;
