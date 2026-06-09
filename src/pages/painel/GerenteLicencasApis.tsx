@@ -22,6 +22,7 @@ const METHODS = [
     color: "from-blue-500/20 to-cyan-500/10",
     ring: "border-blue-500/40",
     docsUrl: "https://docs.metodoflow.com",
+    disabled: true,
   },
   {
     id: "lovax" as Method,
@@ -31,20 +32,21 @@ const METHODS = [
     color: "from-violet-500/20 to-fuchsia-500/10",
     ring: "border-violet-500/40",
     docsUrl: "https://docs.metodolovax.com",
+    disabled: false,
   },
 ];
 
 export default function GerenteLicencasApis() {
-  const [active, setActive] = useState<Method>("flow");
+  const [active, setActive] = useState<Method>("lovax");
   const [open, setOpen] = useState<Method | null>(null);
   const [conn, setConn] = useState<Record<Method, "checking" | "connected" | "disconnected">>({
-    flow: "checking",
+    flow: "disconnected",
     lovax: "checking",
   });
 
   const readActive = () => {
     const m = localStorage.getItem(METHOD_KEY) as Method | null;
-    setActive(m === "lovax" ? "lovax" : "flow");
+    setActive(m === "lovax" ? "lovax" : "lovax");
   };
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export default function GerenteLicencasApis() {
         .eq("key", SETTING_KEY)
         .maybeSingle();
       const v = (data?.value as any)?.method;
-      if (v === "flow" || v === "lovax") {
+      if (v === "lovax") {
         setActive(v);
         localStorage.setItem(METHOD_KEY, v);
       }
@@ -76,22 +78,6 @@ export default function GerenteLicencasApis() {
   useEffect(() => {
     let cancelled = false;
 
-    const checkFlow = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("provider-api?action=get-settings", { method: "GET" });
-        if (cancelled) return;
-        if (error || !data?.configured) {
-          setConn((c) => ({ ...c, flow: "disconnected" }));
-          return;
-        }
-        const { data: st, error: stErr } = await supabase.functions.invoke("provider-api?action=status", { method: "GET" });
-        if (cancelled) return;
-        setConn((c) => ({ ...c, flow: !stErr && st && !st.error ? "connected" : "disconnected" }));
-      } catch {
-        if (!cancelled) setConn((c) => ({ ...c, flow: "disconnected" }));
-      }
-    };
-
     const checkLovax = () => {
       (async () => {
         try {
@@ -106,13 +92,16 @@ export default function GerenteLicencasApis() {
       })();
     };
 
-    const run = () => { checkFlow(); checkLovax(); };
-    run();
-    const id = setInterval(run, 10000);
+    checkLovax();
+    const id = setInterval(checkLovax, 10000);
     return () => { cancelled = true; clearInterval(id); };
   }, []);
 
   const setAsActive = (m: Method) => {
+    if (m === "flow") {
+      toast.info("MétodoFlow está desativado temporariamente.");
+      return;
+    }
     localStorage.setItem(METHOD_KEY, m);
     setActive(m);
     (async () => {
@@ -120,7 +109,7 @@ export default function GerenteLicencasApis() {
         .from("app_settings")
         .upsert({ key: SETTING_KEY, value: { method: m } as any }, { onConflict: "key" });
       if (error) toast.error(`Falha ao salvar: ${error.message}`);
-      else toast.success(`Método ativo: ${m === "flow" ? "MétodoFlow" : "MétodoLovax"}`);
+      else toast.success(`Método ativo: ${m === "lovax" ? "MétodoLovax" : "MétodoFlow"}`);
     })();
   };
 
@@ -132,13 +121,13 @@ export default function GerenteLicencasApis() {
           Método ativo atualmente: <span className="text-primary">{active === "flow" ? "MétodoFlow" : "MétodoLovax"}</span>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Toda licença gerada usará a API do método ativo. Você pode alternar pela Dashboard ou pelos botões abaixo.
+          Toda licença gerada usará a API do método ativo. O MétodoFlow está desativado temporariamente.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {METHODS.map((m) => {
-          const isActive = active === m.id;
+          const isActive = active === m.id && !m.disabled;
           const isOpen = open === m.id;
           const Icon = m.icon;
           return (
@@ -147,7 +136,8 @@ export default function GerenteLicencasApis() {
               className={cn(
                 "overflow-hidden transition-all bg-gradient-to-br",
                 m.color,
-                isActive ? `${m.ring} shadow-[0_0_24px_-8px_hsl(var(--primary)/0.4)]` : "border-border"
+                isActive ? `${m.ring} shadow-[0_0_24px_-8px_hsl(var(--primary)/0.4)]` : "border-border",
+                m.disabled && "opacity-60"
               )}
             >
               <CardHeader className="flex flex-row items-start justify-between gap-3 pb-3">
@@ -161,12 +151,17 @@ export default function GerenteLicencasApis() {
                   <div>
                     <CardTitle className="text-base font-bold flex items-center gap-2">
                       {m.label}
-                      {isActive && (
+                      {m.disabled && (
+                        <Badge variant="outline" className="h-5 text-[9px] uppercase tracking-wider">
+                          Desativado
+                        </Badge>
+                      )}
+                      {isActive && !m.disabled && (
                         <Badge className="h-5 bg-primary text-primary-foreground text-[9px] uppercase tracking-wider">
                           Ativo
                         </Badge>
                       )}
-                      <ConnBadge state={conn[m.id]} />
+                      {!m.disabled && <ConnBadge state={conn[m.id]} />}
                     </CardTitle>
                     <p className="text-xs text-muted-foreground mt-0.5">{m.desc}</p>
                   </div>
@@ -183,6 +178,16 @@ export default function GerenteLicencasApis() {
                     {isOpen ? "Fechar" : "Abrir API e documentação"}
                     <ChevronDown className={cn("ml-1 h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} />
                   </Button>
+                  {!m.disabled && (
+                    <Button
+                      size="sm"
+                      variant={isActive ? "default" : "outline"}
+                      onClick={() => setAsActive(m.id)}
+                      disabled={m.disabled}
+                    >
+                      {isActive ? "Ativo" : "Definir como ativo"}
+                    </Button>
+                  )}
                   <a href={m.docsUrl} target="_blank" rel="noreferrer">
                     <Button size="sm" variant="ghost">
                       <BookOpen className="mr-1.5 h-3.5 w-3.5" />
