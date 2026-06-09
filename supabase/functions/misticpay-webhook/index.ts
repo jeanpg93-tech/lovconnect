@@ -1215,6 +1215,13 @@ Deno.serve(async (req) => {
               _reference_id: storeOrder.id,
             });
           }
+          if (usedPack) {
+            await admin.rpc("pack_refund_credit", {
+              _reseller_id: storeOrder.reseller_id,
+              _order_id: storeOrder.id,
+              _description: `Estorno pack (Lovax não configurado): ${storeOrder.id}`,
+            });
+          }
           return json({ ok: false, error: "lovax not configured" }, 500);
         }
         const mapped = mapTypeToProviderBody(storeOrder.license_type);
@@ -1247,6 +1254,13 @@ Deno.serve(async (req) => {
               _kind: "order_refund",
               _description: `Estorno (falha Lovax): ${storeOrder.id}`,
               _reference_id: storeOrder.id,
+            });
+          }
+          if (usedPack) {
+            await admin.rpc("pack_refund_credit", {
+              _reseller_id: storeOrder.reseller_id,
+              _order_id: storeOrder.id,
+              _description: `Estorno pack (falha Lovax): ${storeOrder.id}`,
             });
           }
           return json({ ok: false, error: "lovax failed" }, 502);
