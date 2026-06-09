@@ -109,7 +109,7 @@ export default function GerenteLicencasApis() {
         .from("app_settings")
         .upsert({ key: SETTING_KEY, value: { method: m } as any }, { onConflict: "key" });
       if (error) toast.error(`Falha ao salvar: ${error.message}`);
-      else toast.success(`Método ativo: ${m === "flow" ? "MétodoFlow" : "MétodoLovax"}`);
+      else toast.success(`Método ativo: ${m === "lovax" ? "MétodoLovax" : "MétodoFlow"}`);
     })();
   };
 
