@@ -76,6 +76,17 @@ function mapTypeToProviderBody(type: string): Record<string, unknown> {
   }
 }
 
+function legacyTypeToLovaxDays(type: string): number {
+  switch (type) {
+    case "pro_1d": return 1;
+    case "pro_7d": return 7;
+    case "pro_15d": return 15;
+    case "pro_30d": return 30;
+    case "lifetime": return 36500;
+    default: return 30;
+  }
+}
+
 async function sha256Hex(s: string) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -508,11 +519,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Provedor
-    const { data: cfg } = await svc.from("provider_settings")
-      .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
-    const provKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
-    const base = cfg?.base_url ?? DEFAULT_BASE;
+    // Provedor — respeita método ativo (Flow ou Lovax)
+    const { activeMethod: legacyActiveMethod, maintenance: legacyMaintenance } = await getDeliveryGuard(svc);
 
     const refund = async (reason: string, providerResp?: unknown) => {
       if (!isSubscription && !usedPack) {
@@ -544,10 +552,10 @@ Deno.serve(async (req) => {
       });
     };
 
-    if (!provKey) {
-      await refund("Provedor não configurado");
-      await logUsage(500, { error_message: "Provedor offline" });
-      return json({ error: "Provedor não configurado" }, 500);
+    if (legacyMaintenance) {
+      await refund("Entrega de licenças em manutenção");
+      await logUsage(503, { error_message: "Manutenção" });
+      return json({ error: "Entrega de licenças em manutenção. Tente novamente em instantes." }, 503);
     }
 
     let providerData: any = null;
@@ -559,17 +567,62 @@ Deno.serve(async (req) => {
         creator_email = userData?.user?.email ?? null;
       }
 
-      const r = await fetch(`${base}/generate-license`, {
-        method: "POST",
-        headers: { "x-api-token": provKey, "x-api-key": provKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ ...mapTypeToProviderBody(license_type), display_name, creator_email }),
-      });
-      const text = await r.text();
-      try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
-      if (!r.ok) {
-        await refund(`Provedor ${r.status}`, providerData);
-        await logUsage(502, { error_message: `Provedor ${r.status}` });
-        return json({ error: "Provedor falhou", details: providerData }, 502);
+      if (legacyActiveMethod === "lovax") {
+        const { data: settings } = await svc
+          .from("app_settings")
+          .select("key,value")
+          .in("key", ["lovax_api_token", "lovax_base_url"]);
+        const tk = settings?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined;
+        const bs = (settings?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined)
+          || DEFAULT_LOVAX_BASE;
+        if (!tk) {
+          await refund("MétodoLovax não configurado pelo gerente");
+          await logUsage(500, { error_message: "MétodoLovax não configurado" });
+          return json({ error: "MétodoLovax não configurado pelo gerente" }, 500);
+        }
+        const r = await fetch(bs, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tk}`, "x-api-key": tk, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "generate_license",
+            payload: {
+              customer_name: display_name,
+              days: legacyTypeToLovaxDays(license_type),
+              hours: 0,
+              minutes: 0,
+              max_devices: 1,
+            },
+          }),
+        });
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        if (!r.ok || !providerData?.success) {
+          await refund(providerData?.error ?? `Lovax retornou ${r.status}`, providerData);
+          await logUsage(502, { error_message: "Falha Lovax" });
+          return json({ error: "Falha no MétodoLovax", details: providerData }, 502);
+        }
+      } else {
+        const { data: cfg } = await svc.from("provider_settings")
+          .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+        const provKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
+        const base = cfg?.base_url ?? DEFAULT_BASE;
+        if (!provKey) {
+          await refund("MétodoFlow não configurado pelo gerente");
+          await logUsage(500, { error_message: "MétodoFlow não configurado" });
+          return json({ error: "MétodoFlow não configurado pelo gerente" }, 500);
+        }
+        const r = await fetch(`${base}/generate-license`, {
+          method: "POST",
+          headers: { "x-api-token": provKey, "x-api-key": provKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ ...mapTypeToProviderBody(license_type), display_name, creator_email }),
+        });
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        if (!r.ok) {
+          await refund(`MétodoFlow retornou ${r.status}`, providerData);
+          await logUsage(502, { error_message: `Provedor ${r.status}` });
+          return json({ error: "Falha no MétodoFlow", details: providerData }, 502);
+        }
       }
     } catch (e) {
       await refund(e instanceof Error ? e.message : "fetch error");
@@ -577,7 +630,12 @@ Deno.serve(async (req) => {
       return json({ error: "Erro ao chamar provedor" }, 502);
     }
 
-    const license_key = providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
+    const license_key =
+      providerData?.license?.license_key ??
+      providerData?.license_key ??
+      providerData?.key ??
+      providerData?.license ??
+      null;
     await svc.from("orders").update({
       status: "completed", license_key, provider_response: providerData,
       notes: JSON.stringify({
