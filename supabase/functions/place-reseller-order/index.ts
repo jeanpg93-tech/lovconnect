@@ -9,6 +9,7 @@ const corsHeaders = {
 
 const ALLOWED_TYPES = ["pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
 const DEFAULT_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+const DEFAULT_LOVAX_BASE = "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
 
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
   switch (type) {
@@ -18,6 +19,17 @@ function mapTypeToProviderBody(type: string): Record<string, unknown> {
     case "pro_30d": return { days: 30 };
     case "lifetime": return { lifetime: true };
     default: return { days: 30 };
+  }
+}
+
+function typeToLovaxDays(type: string): number {
+  switch (type) {
+    case "pro_1d": return 1;
+    case "pro_7d": return 7;
+    case "pro_15d": return 15;
+    case "pro_30d": return 30;
+    case "lifetime": return 36500;
+    default: return 30;
   }
 }
 
