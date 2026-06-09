@@ -821,7 +821,7 @@ Deno.serve(async (req) => {
   // Endpoint unificado: { metodo: "flow"|"lovax", pacote, display_name, whatsapp?, client_id? }
   if (req.method === "POST" && (action === "licencas" || action === "licenses")) {
     const body = await req.json().catch(() => ({}));
-    const metodo = String(body.metodo ?? body.method ?? "").toLowerCase();
+    let metodo = String(body.metodo ?? body.method ?? "").toLowerCase();
     const pacote = String(body.pacote ?? body.pack_id ?? body.pack ?? "").toLowerCase();
     const display_name = typeof body.display_name === "string" ? body.display_name.trim().slice(0, 100) : "";
     const whatsapp = (typeof body.whatsapp === "string" ? body.whatsapp : "").replace(/\D+/g, "").slice(0, 15);
@@ -831,16 +831,11 @@ Deno.serve(async (req) => {
       await logUsage(400, { error_message: "metodo inválido" });
       return json({ error: "metodo inválido", permitidos: UNIFIED_METHODS }, 400);
     }
+    // Lovax é o único método ativo. Aceita 'flow' do cliente mas roteia para Lovax.
+    metodo = "lovax";
     if (!UNIFIED_PACKS.includes(pacote)) {
       await logUsage(400, { error_message: "pacote inválido" });
       return json({ error: "pacote inválido", permitidos: UNIFIED_PACKS }, 400);
-    }
-    if (metodo === "flow" && !FLOW_ALLOWED_PACKS.has(pacote)) {
-      await logUsage(400, { error_message: "pacote indisponível para MétodoFlow" });
-      return json({
-        error: "Pacote indisponível para MétodoFlow. O provedor entrega no máximo 30 dias ou vitalício.",
-        permitidos: Array.from(FLOW_ALLOWED_PACKS),
-      }, 400);
     }
     const guard = await getDeliveryGuard(svc);
     const denied = assertDeliveryAllowed(metodo, guard);
@@ -1122,13 +1117,15 @@ Deno.serve(async (req) => {
   // Body: { metodo, display_name } — trial 15min vinculado ao método escolhido
   if (req.method === "POST" && (action === "licencas-trial" || action === "trial")) {
     const body = await req.json().catch(() => ({}));
-    const metodo = String(body.metodo ?? body.method ?? "").toLowerCase();
+    let metodo = String(body.metodo ?? body.method ?? "").toLowerCase();
     const display_name = typeof body.display_name === "string" ? body.display_name.trim().slice(0, 100) : "Cliente Teste";
 
     if (!UNIFIED_METHODS.includes(metodo)) {
       await logUsage(400, { error_message: "metodo inválido" });
       return json({ error: "metodo inválido", permitidos: UNIFIED_METHODS }, 400);
     }
+    // Lovax é o único método ativo. Roteia qualquer escolha para Lovax.
+    metodo = "lovax";
     const guard = await getDeliveryGuard(svc);
     const denied = assertDeliveryAllowed(metodo, guard);
     if (denied) {

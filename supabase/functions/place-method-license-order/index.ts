@@ -103,30 +103,12 @@ Deno.serve(async (req) => {
     const whatsapp = onlyDigits(body.whatsapp ?? "");
     const client_id = body.client_id ? String(body.client_id) : null;
 
-    if (!ALLOWED_METHODS.includes(method)) return json({ error: "Método inválido" }, 400);
+    let methodEff = method;
+    if (!ALLOWED_METHODS.includes(methodEff)) return json({ error: "Método inválido" }, 400);
+    // Lovax é o único método ativo. Roteia qualquer escolha para Lovax.
+    methodEff = "lovax";
     if (!ALLOWED_PACKS.includes(pack_id)) return json({ error: "Pacote inválido" }, 400);
-    if (method === "flow" && !FLOW_ALLOWED_PACKS.has(pack_id)) {
-      return json({
-        error: "Pacote indisponível para MétodoFlow. Disponíveis: 1d, 7d, 30d, vitalício.",
-        permitidos: Array.from(FLOW_ALLOWED_PACKS),
-      }, 400);
-    }
 
-    // Enforce: only the method enabled by the manager can be sold.
-    {
-      const { data: enabledRow } = await svc
-        .from("app_settings")
-        .select("value")
-        .eq("key", "licencas.delivery.method")
-        .maybeSingle();
-      const enabled = String(((enabledRow?.value as any)?.method ?? "flow")).toLowerCase();
-      if ((enabled === "flow" || enabled === "lovax") && enabled !== method) {
-        return json({
-          error: `O método "${method}" está desabilitado pelo gerente. Apenas "${enabled}" pode gerar licenças no momento.`,
-          code: "method_disabled",
-        }, 403);
-      }
-    }
 
     if (display_name.length < 2) return json({ error: "Nome obrigatório" }, 400);
     if (whatsapp && (whatsapp.length < 10 || whatsapp.length > 13)) {
