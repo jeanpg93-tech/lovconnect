@@ -1168,28 +1168,52 @@ Deno.serve(async (req) => {
       return json({ error: `Limite de ${dailyLimit} trial(s)/dia atingido` }, 429);
     }
 
-    // Chama provedor
-    const { data: cfg } = await svc.from("provider_settings")
-      .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
-    const provKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
-    const base = cfg?.base_url ?? DEFAULT_BASE;
-    if (!provKey) {
-      await logUsage(500, { error_message: "Provedor offline" });
-      return json({ error: "Provedor não configurado" }, 500);
-    }
-
+    // Chama provedor — respeita método ativo do gerente (flow/lovax)
     let providerData: any = null;
     try {
-      const r = await fetch(`${base}/generate-trial`, {
-        method: "POST",
-        headers: { "x-api-token": provKey, "x-api-key": provKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ display_name, minutes: 15, seconds: 0, method: metodo, extension: metodo }),
-      });
-      const text = await r.text();
-      try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
-      if (!r.ok) {
-        await logUsage(502, { error_message: `Provedor ${r.status}` });
-        return json({ error: "Provedor falhou", details: providerData }, 502);
+      if (guard.activeMethod === "lovax") {
+        const { data: settings } = await svc.from("app_settings")
+          .select("key,value").in("key", ["lovax_api_token", "lovax_base_url"]);
+        const tk = settings?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined;
+        const bs = (settings?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined)
+          || DEFAULT_LOVAX_BASE;
+        if (!tk) {
+          await logUsage(500, { error_message: "Lovax não configurado" });
+          return json({ error: "MétodoLovax não configurado pelo gerente" }, 500);
+        }
+        const r = await fetch(bs, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tk}`, "x-api-key": tk, "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "generate_trial", payload: { customer_name: display_name, minutes: 15, max_devices: 1 } }),
+        });
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        if (!r.ok || !providerData?.success) {
+          await logUsage(502, { error_message: `Lovax ${r.status}` });
+          return json({ error: "Provedor falhou", details: providerData }, 502);
+        }
+        const lk = providerData?.license?.license_key ?? providerData?.license_key ?? providerData?.key ?? null;
+        providerData = { ...providerData, license_key: lk };
+      } else {
+        const { data: cfg } = await svc.from("provider_settings")
+          .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+        const provKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
+        const base = cfg?.base_url ?? DEFAULT_BASE;
+        if (!provKey) {
+          await logUsage(500, { error_message: "Provedor offline" });
+          return json({ error: "Provedor não configurado" }, 500);
+        }
+        const r = await fetch(`${base}/generate-trial`, {
+          method: "POST",
+          headers: { "x-api-token": provKey, "x-api-key": provKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ display_name, minutes: 15, seconds: 0, method: metodo, extension: metodo }),
+        });
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        if (!r.ok) {
+          await logUsage(502, { error_message: `Provedor ${r.status}` });
+          return json({ error: "Provedor falhou", details: providerData }, 502);
+        }
       }
     } catch (e) {
       await logUsage(502, { error_message: e instanceof Error ? e.message : "fetch error" });
