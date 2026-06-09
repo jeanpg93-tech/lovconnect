@@ -885,6 +885,14 @@ Deno.serve(async (req) => {
         error_message: reason,
         provider_response: providerResp ?? null,
       }).eq("id", order.id);
+      await notifyManagerApiRefund(svc, {
+        resellerId: reseller.id,
+        orderId: order.id,
+        priceCents: price_cents,
+        source: usedPack2 ? "pack" : "balance",
+        product: `${(metodo ?? "").toUpperCase()} ${PACK_LABEL[pacote] ?? pacote}`,
+        reason,
+      });
     };
 
     // Chama o provedor REAL (igual place-method-license-order) — não gera chave local
