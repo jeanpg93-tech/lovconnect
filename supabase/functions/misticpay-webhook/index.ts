@@ -1272,6 +1272,13 @@ Deno.serve(async (req) => {
               _reference_id: storeOrder.id,
             });
           }
+          if (usedPack) {
+            await admin.rpc("pack_refund_credit", {
+              _reseller_id: storeOrder.reseller_id,
+              _order_id: storeOrder.id,
+              _description: `Estorno pack (Flow não configurado): ${storeOrder.id}`,
+            });
+          }
           return json({ ok: false, error: "no provider api key" }, 500);
         }
         if (FLOW_DISALLOWED_TYPES.has(storeOrder.license_type)) {
@@ -1286,6 +1293,13 @@ Deno.serve(async (req) => {
               _kind: "order_refund",
               _description: `Estorno (pacote ${storeOrder.license_type} indisponível no Flow): ${storeOrder.id}`,
               _reference_id: storeOrder.id,
+            });
+          }
+          if (usedPack) {
+            await admin.rpc("pack_refund_credit", {
+              _reseller_id: storeOrder.reseller_id,
+              _order_id: storeOrder.id,
+              _description: `Estorno pack (pacote ${storeOrder.license_type} indisponível): ${storeOrder.id}`,
             });
           }
           return json({ ok: false, error: "pack not supported by flow" }, 400);
@@ -1315,6 +1329,13 @@ Deno.serve(async (req) => {
               _reference_id: storeOrder.id,
             });
           }
+          if (usedPack) {
+            await admin.rpc("pack_refund_credit", {
+              _reseller_id: storeOrder.reseller_id,
+              _order_id: storeOrder.id,
+              _description: `Estorno pack (falha Flow ${r.status}): ${storeOrder.id}`,
+            });
+          }
           return json({ ok: false, error: "provider failed" }, 502);
         }
         license_key = providerData?.key ?? providerData?.license_key ?? providerData?.license ?? null;
@@ -1324,6 +1345,21 @@ Deno.serve(async (req) => {
         status: "failed",
         error_message: e instanceof Error ? e.message : "erro provedor",
       }).eq("id", storeOrder.id);
+      if (usedPack) {
+        await admin.rpc("pack_refund_credit", {
+          _reseller_id: storeOrder.reseller_id,
+          _order_id: storeOrder.id,
+          _description: `Estorno pack (exceção provedor): ${storeOrder.id}`,
+        });
+      } else if (cost_cents > 0) {
+        await admin.rpc("credit_reseller_balance", {
+          _reseller_id: storeOrder.reseller_id,
+          _amount_cents: cost_cents,
+          _kind: "order_refund",
+          _description: `Estorno (exceção provedor): ${storeOrder.id}`,
+          _reference_id: storeOrder.id,
+        });
+      }
       return json({ ok: false, error: "provider error" }, 502);
     }
 
