@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const DEFAULT_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+const DEFAULT_LOVAX_BASE = "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
 const ALLOWED_ACTIONS = ["reset-hwid", "revoke-license", "delete-license"];
 
 function json(d: unknown, status = 200) {
@@ -78,24 +78,37 @@ Deno.serve(async (req) => {
     }, 409);
   }
 
-  // Provedor
-  const { data: cfg } = await svc.from("provider_settings")
-    .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
-  const provKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
-  const base = cfg?.base_url ?? DEFAULT_BASE;
-  if (!provKey) return json({ error: "Provedor não configurado" }, 502);
+  // Provedor Lovax (único ativo).
+  const { data: settings } = await svc
+    .from("app_settings")
+    .select("key,value")
+    .in("key", ["lovax_api_token", "lovax_base_url"]);
+  const provKey = settings?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined;
+  const base = (settings?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined)
+    || DEFAULT_LOVAX_BASE;
+  if (!provKey) return json({ error: "MétodoLovax não configurado pelo gerente" }, 502);
+
+  // Mapeia ação do painel para a action do Lovax.
+  const lovaxAction =
+    action === "reset-hwid" ? "reset_hwid"
+    : action === "delete-license" ? "delete_license"
+    : action === "revoke-license" ? "delete_license"
+    : action;
 
   let providerData: any = null;
   let providerStatus = 0;
   try {
-    const r = await fetch(`${base}/${action}`, {
+    const r = await fetch(base, {
       method: "POST",
-      headers: { "x-api-token": provKey, "x-api-key": provKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ license_key }),
+      headers: { Authorization: `Bearer ${provKey}`, "x-api-key": provKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ action: lovaxAction, payload: { license_key } }),
     });
     providerStatus = r.status;
     const text = await r.text();
     try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+    if (r.ok && providerData?.success === false) {
+      providerStatus = 502;
+    }
   } catch (e) {
     return json({ error: "Erro ao chamar provedor", details: e instanceof Error ? e.message : null }, 502);
   }

@@ -975,32 +975,8 @@ Deno.serve(async (req) => {
       raw_response: payload,
     }).eq("id", storeOrder.id);
 
-    // Resolve método da loja (flow|lovax)
-    const { data: storeCfg } = await admin
-      .from("reseller_storefronts")
-      .select("extension_method")
-      .eq("reseller_id", storeOrder.reseller_id)
-      .maybeSingle();
-    let method: "flow" | "lovax" =
-      (storeCfg as any)?.extension_method === "lovax" ? "lovax" : "flow";
-    // Override global: se o gerente definiu um método padrão do sistema
-    // (app_settings.licencas.delivery.method), respeita isso. Evita que lojas
-    // antigas ainda apontando para um provedor "flow" desativado quebrem vendas.
-    try {
-      const { data: globalMethod } = await admin
-        .from("app_settings")
-        .select("value")
-        .eq("key", "licencas.delivery.method")
-        .maybeSingle();
-      const gm =
-        (globalMethod as any)?.value?.method ??
-        ((typeof (globalMethod as any)?.value === "string")
-          ? (globalMethod as any)?.value
-          : null);
-      if (gm === "lovax" || gm === "flow") method = gm;
-    } catch (e) {
-      console.warn("[webhook] resolve global delivery method failed", e);
-    }
+    // Lovax é o único método ativo. Flow descontinuado — toda entrega vai por Lovax.
+    const method: "lovax" = "lovax";
 
     // Modo de venda do revendedor (pack/saldo) — Loja Integrada
     const { data: resellerCfg } = await admin
