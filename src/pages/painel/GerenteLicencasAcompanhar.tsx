@@ -999,9 +999,18 @@ export default function GerenteLicencasAcompanhar() {
                                     </div>
                                     <div className="flex flex-col"><span className="opacity-50 text-[10px]">ID Provedor</span><span className="font-mono">{o.license_id || "—"}</span></div>
                                     <div className="flex flex-col"><span className="opacity-50 text-[10px]">Responsável</span>
-                                      <span className={cn(o.creator_email ? "text-primary font-bold" : "text-muted-foreground italic")}>
-                                        {o.creator_email || "Gerado no provedor"}
-                                      </span>
+                                      {(() => {
+                                        const r = getResponsavel(o);
+                                        return (
+                                          <span className={cn(
+                                            r.kind === "reseller" && "text-primary font-bold",
+                                            r.kind === "provider" && "text-emerald-300 font-bold",
+                                            r.kind === "orphan" && "text-muted-foreground italic"
+                                          )}>
+                                            {r.label}{r.sub ? ` (${r.sub})` : ""}
+                                          </span>
+                                        );
+                                      })()}
                                     </div>
                                     <div className="flex flex-col"><span className="opacity-50 text-[10px]">Plano</span><span>{LABEL[o.license_type] || o.license_type}</span></div>
                                     <div className="flex flex-col"><span className="opacity-50 text-[10px]">Criada em</span><span>{formatDate(o.created_at)}</span></div>
