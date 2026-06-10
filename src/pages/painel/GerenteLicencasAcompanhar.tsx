@@ -434,7 +434,7 @@ export default function GerenteLicencasAcompanhar() {
           cancellation_status: o.cancellation_status ?? null,
           license_id: o.id,
           license_key: o.license_key,
-          display_name: undefined,
+          display_name: (o.customer_id ? customerMap[o.customer_id] : undefined) || undefined,
           license_type: o.license_type,
           status: o.status,
           created_at: o.created_at,
