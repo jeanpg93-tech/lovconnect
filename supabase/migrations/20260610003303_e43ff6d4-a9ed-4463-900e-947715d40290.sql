@@ -1,0 +1,1 @@
+REVOKE SELECT (platform_cost_cents) ON public.recharge_plans FROM authenticated, anon, PUBLIC;
