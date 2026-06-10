@@ -1051,7 +1051,7 @@ export default function GerenteLicencasAcompanhar() {
             </div>
 
             <div className="md:hidden grid gap-4">
-              {filtered.map((o) => {
+              {paginated.map((o) => {
                 const exp = getExpiry(o);
                 const isExpanded = mobileExpandedRow === o.id;
                 const gen = getGenerationType(o);
@@ -1260,6 +1260,30 @@ export default function GerenteLicencasAcompanhar() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]">
+            <div className="text-muted-foreground">
+              Página <b className="text-foreground">{currentPage}</b> de <b className="text-foreground">{totalPages}</b> · <b className="text-foreground">{filtered.length}</b> licença(s)
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                <SelectTrigger className="h-8 w-[100px] bg-white/5 border-white/10 rounded-lg text-[11px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25 / pág</SelectItem>
+                  <SelectItem value="50">50 / pág</SelectItem>
+                  <SelectItem value="100">100 / pág</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" className="h-8 px-3" disabled={currentPage <= 1} onClick={() => setPage(1)}>«</Button>
+              <Button variant="outline" size="sm" className="h-8 px-3" disabled={currentPage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹ Anterior</Button>
+              <Button variant="outline" size="sm" className="h-8 px-3" disabled={currentPage >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Próxima ›</Button>
+              <Button variant="outline" size="sm" className="h-8 px-3" disabled={currentPage >= totalPages} onClick={() => setPage(totalPages)}>»</Button>
             </div>
           </div>
         )}
