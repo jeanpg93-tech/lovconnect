@@ -653,11 +653,34 @@ export default function GerenteLicencasAcompanhar() {
         (o.license_key ?? "").toLowerCase().includes(q) ||
         (o.display_name ?? "").toLowerCase().includes(q) ||
         (o.creator_email ?? "").toLowerCase().includes(q) ||
+        (o.provider_user_name ?? "").toLowerCase().includes(q) ||
         reseller.toLowerCase().includes(q) ||
         apiKeyLabel.toLowerCase().includes(q)
       );
     });
   }, [orders, search, planFilter, showExpired, resellers, apiKeys]);
+
+  // Reset paginação ao mudar filtros
+  useEffect(() => { setPage(1); }, [search, planFilter, showExpired, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = useMemo(
+    () => filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [filtered, currentPage, pageSize]
+  );
+
+  // Responsável exibido: revendedor (display_name + email) -> nome do provedor -> "Órfã"
+  const getResponsavel = (o: OrderRow): { label: string; sub?: string; kind: "reseller" | "provider" | "orphan" } => {
+    const resellerName = o.reseller_id ? resellers[o.reseller_id] : null;
+    if (resellerName || o.creator_email) {
+      return { label: resellerName || o.creator_email || "—", sub: resellerName && o.creator_email ? o.creator_email : undefined, kind: "reseller" };
+    }
+    if (o.provider_user_name) {
+      return { label: o.provider_user_name, sub: "via provedor", kind: "provider" };
+    }
+    return { label: "Órfã (sem registro)", kind: "orphan" };
+  };
 
   const stats = useMemo(() => {
     const active = orders.filter((o) => {
