@@ -275,11 +275,16 @@ Deno.serve(async (req) => {
         discount_pct = 0;
       } else {
       // Busca preço customizado do revendedor (global ou por extensão)
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const safeExtId = extension_id && UUID_RE.test(extension_id) ? extension_id : null;
+      if (extension_id && !safeExtId) {
+        return json({ error: "extension_id inválido" }, 400);
+      }
       const { data: overrideRow } = await svc.from("reseller_extension_prices")
         .select("price_cents,is_active")
         .eq("reseller_id", reseller.id)
         .eq("license_type", license_type)
-        .or(extension_id ? `extension_id.eq.${extension_id},extension_id.is.null` : 'extension_id.is.null')
+        .or(safeExtId ? `extension_id.eq.${safeExtId},extension_id.is.null` : 'extension_id.is.null')
         .eq("is_active", true)
         .order("extension_id", { ascending: false }); // Prioriza o que tem extension_id preenchido
 
