@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import RefundSaleDialog, { type RefundSaleData } from "@/components/painel/RefundSaleDialog";
 import { CancelSaleDialog, type CancelSaleTarget } from "@/components/painel/CancelSaleDialog";
 import MarkAsTestButton from "@/components/painel/MarkAsTestButton";
+import LicenseCountdown from "@/components/painel/LicenseCountdown";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const PLAN_DAYS: Record<string, number | null> = {
   pro_1d: 1,
@@ -77,6 +79,7 @@ type OrderRow = {
   license_id?: string;
   display_name?: string;
   creator_email?: string | null;
+  provider_user_name?: string | null;
   source?: GenSource;
   method?: DeliveryMethod;
   full_data?: any;
@@ -153,6 +156,8 @@ export default function GerenteLicencasAcompanhar() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [mobileExpandedRow, setMobileExpandedRow] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(50);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     type: "revoke" | "delete" | "reset";
@@ -169,11 +174,6 @@ export default function GerenteLicencasAcompanhar() {
     description: "",
   });
 
-  const [now, setNow] = useState<number>(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -343,6 +343,7 @@ export default function GerenteLicencasAcompanhar() {
           client_id: null,
           price_cents: null,
           creator_email: email,
+          provider_user_name: u.user_name ?? u.customer_name ?? null,
           source,
           method: "flow" as DeliveryMethod,
           full_data: u,
@@ -397,6 +398,7 @@ export default function GerenteLicencasAcompanhar() {
           client_id: null,
           price_cents: null,
           creator_email: email,
+          provider_user_name: u.user_name ?? u.customer_name ?? null,
           source,
           method: "lovax" as DeliveryMethod,
           full_data: u,
@@ -651,11 +653,34 @@ export default function GerenteLicencasAcompanhar() {
         (o.license_key ?? "").toLowerCase().includes(q) ||
         (o.display_name ?? "").toLowerCase().includes(q) ||
         (o.creator_email ?? "").toLowerCase().includes(q) ||
+        (o.provider_user_name ?? "").toLowerCase().includes(q) ||
         reseller.toLowerCase().includes(q) ||
         apiKeyLabel.toLowerCase().includes(q)
       );
     });
   }, [orders, search, planFilter, showExpired, resellers, apiKeys]);
+
+  // Reset paginação ao mudar filtros
+  useEffect(() => { setPage(1); }, [search, planFilter, showExpired, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = useMemo(
+    () => filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [filtered, currentPage, pageSize]
+  );
+
+  // Responsável exibido: revendedor (display_name + email) -> nome do provedor -> "Órfã"
+  const getResponsavel = (o: OrderRow): { label: string; sub?: string; kind: "reseller" | "provider" | "orphan" } => {
+    const resellerName = o.reseller_id ? resellers[o.reseller_id] : null;
+    if (resellerName || o.creator_email) {
+      return { label: resellerName || o.creator_email || "—", sub: resellerName && o.creator_email ? o.creator_email : undefined, kind: "reseller" };
+    }
+    if (o.provider_user_name) {
+      return { label: o.provider_user_name, sub: "via provedor", kind: "provider" };
+    }
+    return { label: "Órfã (sem registro)", kind: "orphan" };
+  };
 
   const stats = useMemo(() => {
     const active = orders.filter((o) => {
@@ -744,12 +769,28 @@ export default function GerenteLicencasAcompanhar() {
           </div>
         ) : (
           <div className="grid gap-3">
-            <div className="hidden md:block overflow-hidden rounded-2xl border border-white/5 bg-black/40 shadow-inner">
-              <Table>
+            <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/5 bg-black/40 shadow-inner">
+              <Table className="min-w-[1180px]">
                 <TableHeader>
                   <TableRow className="border-b border-white/5 hover:bg-transparent bg-white/[0.02]">
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60 pl-6">Nome / Provedor</TableHead>
-                    <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Geração</TableHead>
+                    <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1 cursor-help">Geração <Info className="h-3 w-3 opacity-60" /></span>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="max-w-[320px] text-[11px] leading-relaxed">
+                            <div className="space-y-1">
+                              <div><b className="text-sky-300">API</b>: gerada via API pública do revendedor (bot/site externo).</div>
+                              <div><b className="text-fuchsia-300">Loja do Cliente</b>: compra feita por cliente final na storefront pública.</div>
+                              <div><b className="text-amber-300">Painel</b>: gerada manualmente pelo revendedor no painel.</div>
+                              <div><b className="text-emerald-300">Provedor</b>: existe no MétodoLovax mas não tem registro nosso (gerada fora do sistema).</div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Data</TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Método</TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Responsável</TableHead>
@@ -759,13 +800,14 @@ export default function GerenteLicencasAcompanhar() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((o) => {
+                  {paginated.map((o) => {
                     const exp = getExpiry(o);
                     const isExpanded = expandedRow === o.id;
                     const gen = getGenerationType(o);
                     const method = getDeliveryMethod(o);
                     const st = computeStatus(o, exp);
                     const isActive = st.kind === "active";
+                    const resp = getResponsavel(o);
 
                     return (
                       <Fragment key={o.id}>
@@ -818,17 +860,23 @@ export default function GerenteLicencasAcompanhar() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {o.creator_email ? (
+                            <div className="flex flex-col leading-tight max-w-[220px]">
                               <button
-                                onClick={() => copy(o.creator_email!)}
-                                className="text-[11px] font-mono text-foreground/80 hover:text-primary transition-colors max-w-[200px] truncate inline-block"
-                                title={o.creator_email}
+                                onClick={() => copy(resp.label)}
+                                className={cn(
+                                  "text-[11px] font-mono truncate text-left transition-colors hover:text-primary",
+                                  resp.kind === "reseller" && "text-foreground/90 font-semibold",
+                                  resp.kind === "provider" && "text-emerald-300/90",
+                                  resp.kind === "orphan" && "text-muted-foreground italic"
+                                )}
+                                title={resp.label}
                               >
-                                {o.creator_email}
+                                {resp.label}
                               </button>
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground italic">—</span>
-                            )}
+                              {resp.sub && (
+                                <span className="text-[9px] text-muted-foreground/70 truncate">{resp.sub}</span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
                             <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full", st.className)}>
@@ -844,7 +892,7 @@ export default function GerenteLicencasAcompanhar() {
                                 <span className="text-[10px] font-black text-destructive uppercase tracking-tighter bg-destructive/10 px-2 py-0.5 rounded-md">{st.kind === "revoked" ? "Revogada" : "Expirada"}</span>
                               ) : exp.date ? (
                                 <>
-                                  <span className="text-[11px] font-black tabular-nums text-emerald-400">{formatCountdown(exp.date, now)}</span>
+                                  <span className="text-[11px] font-black tabular-nums text-emerald-400"><LicenseCountdown target={exp.date} /></span>
                                   <span className="text-[9px] text-muted-foreground">{exp.label}</span>
                                 </>
                               ) : (
@@ -951,9 +999,18 @@ export default function GerenteLicencasAcompanhar() {
                                     </div>
                                     <div className="flex flex-col"><span className="opacity-50 text-[10px]">ID Provedor</span><span className="font-mono">{o.license_id || "—"}</span></div>
                                     <div className="flex flex-col"><span className="opacity-50 text-[10px]">Responsável</span>
-                                      <span className={cn(o.creator_email ? "text-primary font-bold" : "text-muted-foreground italic")}>
-                                        {o.creator_email || "Gerado no provedor"}
-                                      </span>
+                                      {(() => {
+                                        const r = getResponsavel(o);
+                                        return (
+                                          <span className={cn(
+                                            r.kind === "reseller" && "text-primary font-bold",
+                                            r.kind === "provider" && "text-emerald-300 font-bold",
+                                            r.kind === "orphan" && "text-muted-foreground italic"
+                                          )}>
+                                            {r.label}{r.sub ? ` (${r.sub})` : ""}
+                                          </span>
+                                        );
+                                      })()}
                                     </div>
                                     <div className="flex flex-col"><span className="opacity-50 text-[10px]">Plano</span><span>{LABEL[o.license_type] || o.license_type}</span></div>
                                     <div className="flex flex-col"><span className="opacity-50 text-[10px]">Criada em</span><span>{formatDate(o.created_at)}</span></div>
@@ -1003,7 +1060,7 @@ export default function GerenteLicencasAcompanhar() {
             </div>
 
             <div className="md:hidden grid gap-4">
-              {filtered.map((o) => {
+              {paginated.map((o) => {
                 const exp = getExpiry(o);
                 const isExpanded = mobileExpandedRow === o.id;
                 const gen = getGenerationType(o);
@@ -1062,7 +1119,7 @@ export default function GerenteLicencasAcompanhar() {
                             <span className="text-[10px] font-black uppercase tracking-tighter text-right px-2 py-0.5 rounded border text-destructive bg-destructive/10 border-destructive/20">{st.kind === "revoked" ? "Revogada" : "Expirada"}</span>
                           ) : exp.date ? (
                             <div className="text-right">
-                              <div className="text-[11px] font-black tabular-nums text-emerald-400">{formatCountdown(exp.date, now)}</div>
+                              <div className="text-[11px] font-black tabular-nums text-emerald-400"><LicenseCountdown target={exp.date} /></div>
                               <div className="text-[8px] text-muted-foreground">{exp.label}</div>
                             </div>
                           ) : (
@@ -1071,7 +1128,17 @@ export default function GerenteLicencasAcompanhar() {
                         </div>
                         <div className="flex flex-col gap-1 col-span-2">
                           <span className="text-[9px] opacity-50 uppercase font-mono">Responsável</span>
-                          <span className={cn("text-[10px] font-mono truncate", o.creator_email ? "text-foreground/80" : "text-muted-foreground italic")}>{o.creator_email || "—"}</span>
+                          {(() => {
+                            const r = getResponsavel(o);
+                            return (
+                              <span className={cn(
+                                "text-[10px] font-mono truncate",
+                                r.kind === "reseller" && "text-foreground/90 font-semibold",
+                                r.kind === "provider" && "text-emerald-300/90",
+                                r.kind === "orphan" && "text-muted-foreground italic"
+                              )}>{r.label}{r.sub ? ` · ${r.sub}` : ""}</span>
+                            );
+                          })()}
                         </div>
                         <div className="flex flex-col gap-1 col-span-2">
                           <span className="text-[9px] opacity-50 uppercase font-mono">Data da Geração</span>
@@ -1177,9 +1244,19 @@ export default function GerenteLicencasAcompanhar() {
                             <div className="flex justify-between"><span className="opacity-50">ID Provedor</span><span className="font-mono">{o.license_id || "—"}</span></div>
                             <div className="flex justify-between">
                               <span className="opacity-50">Responsável</span>
-                              <span className={cn("font-medium", o.creator_email ? "text-primary" : "italic")}>
-                                {o.creator_email || "Gerado no provedor"}
-                              </span>
+                              {(() => {
+                                const r = getResponsavel(o);
+                                return (
+                                  <span className={cn(
+                                    "font-medium",
+                                    r.kind === "reseller" && "text-primary",
+                                    r.kind === "provider" && "text-emerald-300",
+                                    r.kind === "orphan" && "italic text-muted-foreground"
+                                  )}>
+                                    {r.label}
+                                  </span>
+                                );
+                              })()}
                             </div>
                             <div className="flex justify-between"><span className="opacity-50">Plano</span><span>{LABEL[o.license_type] || o.license_type}</span></div>
                             <div className="flex justify-between"><span className="opacity-50">Criada em</span><span>{formatDate(o.created_at)}</span></div>
@@ -1212,6 +1289,30 @@ export default function GerenteLicencasAcompanhar() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]">
+            <div className="text-muted-foreground">
+              Página <b className="text-foreground">{currentPage}</b> de <b className="text-foreground">{totalPages}</b> · <b className="text-foreground">{filtered.length}</b> licença(s)
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                <SelectTrigger className="h-8 w-[100px] bg-white/5 border-white/10 rounded-lg text-[11px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25 / pág</SelectItem>
+                  <SelectItem value="50">50 / pág</SelectItem>
+                  <SelectItem value="100">100 / pág</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" className="h-8 px-3" disabled={currentPage <= 1} onClick={() => setPage(1)}>«</Button>
+              <Button variant="outline" size="sm" className="h-8 px-3" disabled={currentPage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹ Anterior</Button>
+              <Button variant="outline" size="sm" className="h-8 px-3" disabled={currentPage >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Próxima ›</Button>
+              <Button variant="outline" size="sm" className="h-8 px-3" disabled={currentPage >= totalPages} onClick={() => setPage(totalPages)}>»</Button>
             </div>
           </div>
         )}

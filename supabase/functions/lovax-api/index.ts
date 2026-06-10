@@ -106,6 +106,8 @@ Deno.serve(async (req) => {
         license_type: l.status === "trial" ? "trial" : "active",
         license_key: l.license_key, status: l.status,
         created_at: l.created_at ?? null, expires_at: l.expires_at ?? null,
+        user_name: l.user_name ?? l.customer_name ?? null,
+        email: l.email ?? null,
       }));
       return json({ usage }, 200);
     }
