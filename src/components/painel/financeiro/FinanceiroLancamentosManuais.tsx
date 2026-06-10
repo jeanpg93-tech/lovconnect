@@ -221,6 +221,16 @@ function Row({ entry: e, onEdit, onDuplicate, onDelete, dragHandle }: RowProps) 
               · lucro <span className={`font-mono font-bold ${profit >= 0 ? "text-emerald-500" : "text-red-500"}`}>{brl(profit)}</span>
             </p>
           )}
+          {isMisticFee && e.reference_meta?.origin_label && (
+            <p className="text-[10px] text-muted-foreground">
+              · ref. <span className="font-mono text-amber-500">{e.reference_meta.origin_label}</span>
+            </p>
+          )}
+          {isMisticFee && e.reference_meta?.tx_id && (
+            <p className="text-[10px] text-muted-foreground font-mono">
+              · tx <span className="text-foreground/70">#{String(e.reference_meta.tx_id).slice(0, 12)}</span>
+            </p>
+          )}
         </div>
       </div>
       <div className={`font-mono font-black text-sm tabular-nums shrink-0 ${isRev ? "text-emerald-500" : "text-red-500"}`}>
