@@ -101,6 +101,7 @@ export default function RevendedorMinhaLoja() {
 
   const [showExtensions, setShowExtensions] = useState(true);
   const [extensionMethod, setExtensionMethod] = useState<"flow" | "lovax">("flow");
+  const [activeMethod, setActiveMethod] = useState<"flow" | "lovax" | null>(null);
   const [showProducts, setShowProducts] = useState(true);
   const [showFreeTrial, setShowFreeTrial] = useState(true);
   const [showCredits, setShowCredits] = useState(true);
