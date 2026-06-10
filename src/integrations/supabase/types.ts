@@ -2313,6 +2313,7 @@ export type Database = {
           email_conta_lovable: string | null
           error_message: string | null
           id: string
+          is_test: boolean
           price_cents: number
           promotion_discount_cents: number
           promotion_id: string | null
@@ -2349,6 +2350,7 @@ export type Database = {
           email_conta_lovable?: string | null
           error_message?: string | null
           id?: string
+          is_test?: boolean
           price_cents: number
           promotion_discount_cents?: number
           promotion_id?: string | null
@@ -2385,6 +2387,7 @@ export type Database = {
           email_conta_lovable?: string | null
           error_message?: string | null
           id?: string
+          is_test?: boolean
           price_cents?: number
           promotion_discount_cents?: number
           promotion_id?: string | null
@@ -3524,6 +3527,7 @@ export type Database = {
           id: string
           invite_link: string | null
           is_legacy: boolean
+          is_test: boolean
           key_revoke_error: string | null
           key_revoked_at: string | null
           license_key: string | null
@@ -3569,6 +3573,7 @@ export type Database = {
           id?: string
           invite_link?: string | null
           is_legacy?: boolean
+          is_test?: boolean
           key_revoke_error?: string | null
           key_revoked_at?: string | null
           license_key?: string | null
@@ -3614,6 +3619,7 @@ export type Database = {
           id?: string
           invite_link?: string | null
           is_legacy?: boolean
+          is_test?: boolean
           key_revoke_error?: string | null
           key_revoked_at?: string | null
           license_key?: string | null
@@ -4584,6 +4590,10 @@ export type Database = {
       set_reseller_delivery_source: {
         Args: { _source: string }
         Returns: string
+      }
+      set_sale_test_flag: {
+        Args: { _id: string; _is_test: boolean; _table: string }
+        Returns: undefined
       }
       telegram_enqueue: { Args: { _text: string }; Returns: undefined }
       telegram_enqueue_edit: {
