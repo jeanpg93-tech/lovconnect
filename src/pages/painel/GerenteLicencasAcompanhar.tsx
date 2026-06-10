@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import RefundSaleDialog, { type RefundSaleData } from "@/components/painel/RefundSaleDialog";
 import { CancelSaleDialog, type CancelSaleTarget } from "@/components/painel/CancelSaleDialog";
+import MarkAsTestButton from "@/components/painel/MarkAsTestButton";
 
 const PLAN_DAYS: Record<string, number | null> = {
   pro_1d: 1,
