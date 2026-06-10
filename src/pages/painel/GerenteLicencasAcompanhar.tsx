@@ -769,12 +769,28 @@ export default function GerenteLicencasAcompanhar() {
           </div>
         ) : (
           <div className="grid gap-3">
-            <div className="hidden md:block overflow-hidden rounded-2xl border border-white/5 bg-black/40 shadow-inner">
-              <Table>
+            <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/5 bg-black/40 shadow-inner">
+              <Table className="min-w-[1180px]">
                 <TableHeader>
                   <TableRow className="border-b border-white/5 hover:bg-transparent bg-white/[0.02]">
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60 pl-6">Nome / Provedor</TableHead>
-                    <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Geração</TableHead>
+                    <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1 cursor-help">Geração <Info className="h-3 w-3 opacity-60" /></span>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="max-w-[320px] text-[11px] leading-relaxed">
+                            <div className="space-y-1">
+                              <div><b className="text-sky-300">API</b>: gerada via API pública do revendedor (bot/site externo).</div>
+                              <div><b className="text-fuchsia-300">Loja do Cliente</b>: compra feita por cliente final na storefront pública.</div>
+                              <div><b className="text-amber-300">Painel</b>: gerada manualmente pelo revendedor no painel.</div>
+                              <div><b className="text-emerald-300">Provedor</b>: existe no MétodoLovax mas não tem registro nosso (gerada fora do sistema).</div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Data</TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Método</TableHead>
                     <TableHead className="text-[10px] font-mono uppercase tracking-[0.2em] py-5 text-muted-foreground/60">Responsável</TableHead>
@@ -784,13 +800,14 @@ export default function GerenteLicencasAcompanhar() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((o) => {
+                  {paginated.map((o) => {
                     const exp = getExpiry(o);
                     const isExpanded = expandedRow === o.id;
                     const gen = getGenerationType(o);
                     const method = getDeliveryMethod(o);
                     const st = computeStatus(o, exp);
                     const isActive = st.kind === "active";
+                    const resp = getResponsavel(o);
 
                     return (
                       <Fragment key={o.id}>
