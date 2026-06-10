@@ -143,6 +143,16 @@ export default function RevendedorMinhaLoja() {
     (async () => {
       if (!user) return;
       setLoading(true);
+      // Carrega o método ativo definido pelo gerente (somente esse pode ser usado)
+      const { data: settingRow } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "licencas.delivery.method")
+        .maybeSingle();
+      const rawMethod = (settingRow?.value as any)?.method;
+      const active: "flow" | "lovax" =
+        rawMethod === "flow" || rawMethod === "promptflow" ? "flow" : "lovax";
+      setActiveMethod(active);
       const { data: r } = await supabase
         .from("resellers")
         .select("id, slug")
