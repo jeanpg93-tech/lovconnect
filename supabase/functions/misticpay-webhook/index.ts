@@ -320,6 +320,8 @@ Deno.serve(async (req) => {
             raw_response: payload,
           }).eq("id", actPay.id);
 
+          await recordMisticPayFee(admin, txId, "activation_payment", actPay.id, `Ativação de painel #${String(actPay.id).slice(0,8)}`);
+
           const { error: actErr } = await admin.rpc("activate_reseller", {
             _reseller_id: actPay.reseller_id,
             _payment_id: actPay.id,
@@ -402,6 +404,7 @@ Deno.serve(async (req) => {
           console.error("credit error", credErr);
           return json({ ok: false, error: credErr.message }, 500);
         }
+        await recordMisticPayFee(admin, txId, "recharge", intent.id, `Recarga R$ ${(Number(intent.amount_cents)/100).toFixed(2)}`);
         // Se a recarga foi parte de uma promoção ativa, marca a transação com o promotion_id
         if (intent.promotion_id) {
           try {
@@ -551,7 +554,8 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
             raw_response: payload
           }).eq("id", directSale.id);
-          
+
+          await recordMisticPayFee(admin, txId, "direct_sale", directSale.id, `Venda direta #${String(directSale.id).slice(0,8)}`);
           console.log(`[webhook] Venda direta ${directSale.id} marcada como paga`);
           return json({ ok: true, kind: "direct_sale" });
         }
@@ -585,6 +589,8 @@ Deno.serve(async (req) => {
             paid_at: new Date().toISOString(),
           };
           await admin.from("reseller_subscription_charges").update(updates).eq("id", subCharge.id);
+
+          await recordMisticPayFee(admin, txId, "subscription_charge", subCharge.id, `Mensalidade #${String(subCharge.id).slice(0,8)}`);
 
           // If onboarding charge, mark onboarding completed and unblock reseller
           if (subCharge.is_onboarding) {
@@ -665,6 +671,8 @@ Deno.serve(async (req) => {
             status: "paid",
             paid_at: new Date().toISOString(),
           }).eq("id", (packPurchase as any).id);
+
+          await recordMisticPayFee(admin, txId, "pack_purchase", (packPurchase as any).id, `Pack: ${(packPurchase as any).pack_name ?? "—"}`);
 
           const { data: newBal, error: credErr } = await admin.rpc("pack_credit_balance", {
             _reseller_id: (packPurchase as any).reseller_id,
