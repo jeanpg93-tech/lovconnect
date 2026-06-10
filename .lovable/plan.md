@@ -1,65 +1,71 @@
-# Plano
+## O que vou fazer
 
-## 1) Toggle "Marcar como teste" nas vendas
+### 1. Investigar as chaves "fantasma" (TS-3BC11D…, TS-65E0…, TS-E77F…, TS-67745D…)
 
-**Banco (migração)**
-- Adicionar `is_test BOOLEAN NOT NULL DEFAULT false` em `reseller_credit_purchases` e `storefront_orders` (já existe em `orders`).
-- Criar RPC `set_sale_test_flag(_table text, _id uuid, _is_test boolean)` SECURITY DEFINER, restrito a `has_role(auth.uid(),'gerente')`. Aceita as 3 tabelas (`orders`, `reseller_credit_purchases`, `storefront_orders`) por whitelist.
-- Atualizar agregações que ainda não filtram `is_test=false`:
-  - `useFinancialOverview` precisa filtrar `is_test=false` em `storeOrders`, `rcpArr`.
-  - `FinanceiroTransacoes` (lista MisticPay) — sem mudança, é API externa.
+Confirmei que essas chaves **não existem** em `orders`, `storefront_orders` nem `trial_registrations` do seu banco. Porém aparecem na lista porque elas **vêm do endpoint `lovax-api?action=usage`** (consulta `list_licenses` no MétodoLovax/provedor). Ou seja, é o provedor MétodoLovax que está respondendo essas chaves no `list_licenses`, mesmo você dizendo que não existem.
 
-**UI**
-- Novo componente reutilizável `MarkAsTestButton` (botão pequeno tipo "🧪 Marcar/Desmarcar teste") que chama o RPC.
-- Adicionar nos listagens onde o gerente já vê vendas: `GerenteLicencasAcompanhar`, `GerenteTodasLicencas`, `GerenteAcompanharRecargas`, `GerenteVendasLoja`. Botão fica numa coluna de ações (ou dentro do menu existente).
-- Vendas marcadas como teste ganham um badge discreto "TESTE".
+Investigação proposta:
+- Adicionar log temporário em `lovax-api` (action=usage) para registrar o raw payload do provedor por chave (especialmente os campos `owner`, `api_key_id`, `metadata`) e descobrir de onde elas vêm. Suspeitas:
+  - O token do MétodoLovax está apontando para uma conta compartilhada que vê chaves de outros tenants.
+  - Existe um cache no provedor que retorna chaves já deletadas.
+  - As chaves foram geradas por algum job/teste que falhou antes de gravar no nosso `orders` (rollback do nosso lado, mas chamada ao provedor já tinha ido).
+- Verificar `function_edge_logs` em `place-reseller-order`, `storefront-create-trial`, `pack-generate-key`, `subscription-generate-key`, `lovax-api?action=generate` nos timestamps das chaves para detectar geração órfã.
+- Depois de identificar a origem, decidir: (a) corrigir token, (b) deletar/ocultar essas chaves no provedor, ou (c) filtrar chaves sem dono no painel.
 
-## 2) Expandir detalhes das vendas por revendedor
+Vou anexar o resultado da investigação na resposta após a execução — não vou alterar nada do provedor sem te avisar.
 
-**`FinanceiroVisaoGeral.tsx`**
-- Linha do revendedor vira `<Collapsible>` (clique para expandir).
-- Ao abrir: tabela interna com cada venda do período — data, tipo (extensão/créditos/plano), descrição (extensão ou Nº créditos), receita do dono, custo do dono, lucro.
-- Os dados já estão no hook (`soArr`, `rcpArr`, `planSubsArr`, `packArr`), só faltava agruparmos por revendedor. Vou adicionar `resellerSalesDetails: Record<resellerId, Array<{...}>>` ao retorno do hook.
+### 2. Coluna "Responsável" — melhorar quando vier vazia
 
-## 3) Taxa MisticPay R$0,50 — lançamento real
+- Para chaves geradas há poucos minutos, fazer 1 retry automático da carga (delay 1s) caso `reseller_id` venha nulo mas a chave esteja em `orders` (corrige race condition pós-geração).
+- Quando a chave **não tem dono em lugar nenhum** (caso "fantasma"): em vez de mostrar `—`, mostrar etiqueta `Órfã (provedor)` com tooltip explicando "Esta chave foi retornada pelo MétodoLovax mas não existe nos nossos registros. Provavelmente criada fora do painel."
+- Quando a chave tem `reseller_id` mas o email do perfil falhou: mostrar pelo menos o `display_name` do revendedor (hoje só mostra o email).
 
-**Banco (migração — mesma da #1)**
-- Constraint UNIQUE em `manual_financial_entries(reference_kind, (reference_meta->>'tx_id'))` quando `reference_kind='misticpay_fee'` (índice único parcial). Garante idempotência: webhook reentrante não duplica taxa.
+### 3. Etiquetas da coluna "Geração" — documentação visível
 
-**Webhook `misticpay-webhook`**
-- Nova função helper `recordMisticPayFee(admin, txId, originKind, originRefId, originLabel)` que insere em `manual_financial_entries`:
-  - `entry_type='expense'`, `amount_cents=50`
-  - `description='Taxa MisticPay — '+originLabel`
-  - `category='gateway_fee'`
-  - `reference_kind='misticpay_fee'`
-  - `reference_meta={tx_id, origin_kind, origin_id, origin_label}`
-  - Ignora erro de duplicate-key (idempotente).
-- Chamar essa função em todos os pontos de confirmação de ENTRADA `COMPLETO`:
-  - `activation_payments` (R$200 ativação)
-  - `recharge_intents` (recarga de saldo)
-  - `direct_sales` (checkout do gerente)
-  - `reseller_subscription_charges` (mensalidade)
-  - `reseller_pack_purchases` (pack pago)
-  - `storefront_orders` (recharge_plan + credits)
-- NÃO chamar em saída/retirada (já filtrado, webhook só trata `transactionType=DEPOSITO`).
+Adicionar ícone de info no cabeçalho da coluna com tooltip explicando cada etiqueta:
 
-**Frontend `useFinancialOverview.ts`**
-- Mudar `GATEWAY_FEE_CENTS_PER_RECHARGE = 50` → `0` (remover simulação). O cálculo de `gatewayFeeCents` passa a vir 100% dos lançamentos reais via `manualMisticFeeCents` (que já existe!).
-- A composição do custo na UI continua mostrando "Taxa gateway", mas agora vem dos lançamentos.
+- **API** (azul): Chave gerada por integração externa usando uma chave de API do revendedor (`reseller_api_keys`). Origem típica: bot/site do revendedor consumindo nossa API pública.
+- **Loja do Cliente** (rosa): Compra feita por um cliente final na storefront pública do revendedor (`/u/<slug>`). Registrada em `storefront_orders`.
+- **Painel** (âmbar): Gerada manualmente pelo revendedor dentro do painel (botão "Gerar chave"). Registrada em `orders` sem `api_key_id`.
+- **Provedor** (verde): Chave que existe no MétodoLovax mas **não tem registro nosso** — gerada fora do nosso sistema (direto no painel do provedor, ou pelas chaves "fantasma" que estamos investigando).
 
-**`FinanceiroLancamentosManuais.tsx`**
-- Já lista os manuais; as taxas vão aparecer com a descrição e o `reference_meta` (tx_id, origem). Adicionar uma seção de "detalhes" expansível mostrando esses metadados nas entradas de `reference_kind='misticpay_fee'`.
+### 4. Layout da tabela — corrigir scroll lateral travado
+
+Hoje a tabela está dentro de `overflow-hidden`, então conteúdos largos (chave + badge "marcar teste" + email longo) cortam sem permitir rolagem.
+
+- Trocar wrapper `overflow-hidden` por `overflow-x-auto` com `min-width` na `<Table>` para garantir que cabeçalho/linhas acompanhem.
+- Reduzir largura mínima das colunas com `whitespace-nowrap` controlado e truncamento explícito no email (já existe, mas a célula da chave também precisa de `max-width`).
+- Garantir que o scroll horizontal apareça apenas quando necessário (sem barra dupla).
+
+### 5. Performance da página
+
+Hoje a página:
+- Carrega TODAS as orders + TODAS storefront_orders + TODAS chaves do provedor + lovax sem limite.
+- Renderiza tudo em uma única tabela (centenas de linhas + countdown atualizando a cada 1s re-renderiza tudo).
+
+Otimizações:
+- **Paginação cliente-side de 50 por página** (item 6 abaixo) — corta o custo de render.
+- Mover o `now` (tick de 1s) para um componente filho `<Countdown />` que só re-renderiza a célula de validade, não a tabela inteira.
+- Memoizar `getExpiry` / `computeStatus` por linha.
+- Limitar consulta de `orders`/`storefront_orders` ao mesmo recorte que o provedor devolve (últimas 500), já que chaves muito antigas raramente aparecem no `usage` atual.
+
+### 6. Paginação — 50 por página
+
+Adicionar controle de paginação abaixo da tabela:
+- 50 itens por página (configurável: 25/50/100).
+- Indicador "Página X de Y · Z licenças".
+- Botões anterior/próxima + saltos rápidos.
+- Reset para página 1 ao mudar filtro/busca.
+
+---
 
 ## Arquivos afetados
-- Migração nova: cria colunas `is_test`, RPC `set_sale_test_flag`, índice único parcial em `manual_financial_entries`.
-- `supabase/functions/misticpay-webhook/index.ts`: adicionar `recordMisticPayFee` e 6 chamadas.
-- `src/hooks/useFinancialOverview.ts`: zerar simulação; adicionar `resellerSalesDetails`.
-- `src/components/painel/financeiro/FinanceiroVisaoGeral.tsx`: linhas expansíveis.
-- `src/components/painel/financeiro/FinanceiroLancamentosManuais.tsx`: mostrar `reference_meta` de taxas.
-- Novo `src/components/painel/MarkAsTestButton.tsx`.
-- 4 páginas de listagem do gerente: adicionar o botão + badge.
 
-## Observações
-- Tudo idempotente: re-execução do webhook não duplica taxa nem afeta saldo.
-- Não toca em saldo/receita do revendedor (taxa fica 100% no lado do gerente).
-- A simulação atual já contabilizava R$0,50 — então o "Lucro Líquido" não vai mudar de magnitude, só passa a refletir lançamentos reais e auditáveis.
+- `src/pages/painel/GerenteLicencasAcompanhar.tsx` — layout, paginação, performance, tooltip de geração, retry da coluna responsável, etiqueta "Órfã".
+- `supabase/functions/lovax-api/index.ts` — log temporário do raw provider payload para investigação.
+- (possivelmente) novo componente `src/components/painel/LicenseCountdown.tsx` para isolar o tick de 1s.
+
+## O que NÃO vou fazer agora
+
+- Não vou alterar/deletar chaves no provedor sem você confirmar após a investigação.
+- Não vou mexer no fluxo de geração de chaves (não há indício de bug nele ainda).
