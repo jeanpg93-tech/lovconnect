@@ -193,8 +193,8 @@ export default function GerenteGeracaoManual() {
     const whatsappDigits = genWhatsapp.replace(/\D+/g, "");
     if (!isTrial) {
       if (name.length < 2) return toast.error("Informe o nome de exibição da licença");
-      if (whatsappDigits.length < 10 || whatsappDigits.length > 13) {
-        return toast.error("Informe um WhatsApp válido (com DDD)");
+      if (whatsappDigits.length > 0 && (whatsappDigits.length < 10 || whatsappDigits.length > 13)) {
+        return toast.error("WhatsApp inválido (deixe em branco ou informe com DDD)");
       }
     }
     setGenerating(true);
@@ -203,7 +203,7 @@ export default function GerenteGeracaoManual() {
       const body: Record<string, unknown> = {};
       if (!isTrial) {
         body.display_name = name.slice(0, 100);
-        body.whatsapp = whatsappDigits;
+        if (whatsappDigits) body.whatsapp = whatsappDigits;
       }
       if (method === "lovax") {
         // lovax-api expects days/minutes, not type
@@ -394,7 +394,7 @@ export default function GerenteGeracaoManual() {
                     </p>
                   </div>
                   <div className="space-y-1.5">
-                    <Label>WhatsApp do cliente</Label>
+                    <Label>WhatsApp do cliente <span className="text-muted-foreground font-normal">(opcional)</span></Label>
                     <div className="relative">
                       <MessageCircle className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
@@ -403,11 +403,10 @@ export default function GerenteGeracaoManual() {
                         placeholder="(11) 91234-5678"
                         inputMode="tel"
                         className="pl-9"
-                        required
                       />
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      Inclua DDD. Será usado para enviar a chave pelo WhatsApp.
+                      Opcional. Se informado, será usado para enviar a chave pelo WhatsApp.
                     </p>
                   </div>
                 </>
