@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import RefundSaleDialog, { type RefundSaleData } from "@/components/painel/RefundSaleDialog";
 import { CancelSaleDialog, type CancelSaleTarget } from "@/components/painel/CancelSaleDialog";
 import MarkAsTestButton from "@/components/painel/MarkAsTestButton";
+import LicenseCountdown from "@/components/painel/LicenseCountdown";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const PLAN_DAYS: Record<string, number | null> = {
   pro_1d: 1,
@@ -77,6 +79,7 @@ type OrderRow = {
   license_id?: string;
   display_name?: string;
   creator_email?: string | null;
+  provider_user_name?: string | null;
   source?: GenSource;
   method?: DeliveryMethod;
   full_data?: any;
