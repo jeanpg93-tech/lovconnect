@@ -156,6 +156,8 @@ export default function GerenteLicencasAcompanhar() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [mobileExpandedRow, setMobileExpandedRow] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(50);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     type: "revoke" | "delete" | "reset";
@@ -172,11 +174,6 @@ export default function GerenteLicencasAcompanhar() {
     description: "",
   });
 
-  const [now, setNow] = useState<number>(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   const load = async () => {
     setLoading(true);
