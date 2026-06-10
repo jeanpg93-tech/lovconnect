@@ -222,7 +222,7 @@ export default function GerenteLicencasAcompanhar() {
         supabase.from("resellers").select("id, display_name, user_id"),
         supabase.from("reseller_api_keys").select("id, label, reseller_id"),
         supabase.from("orders")
-          .select("id, license_key, reseller_id, api_key_id, price_cents, license_type, status, created_at, is_test, cancellation_status")
+          .select("id, license_key, reseller_id, api_key_id, customer_id, price_cents, license_type, status, created_at, is_test, cancellation_status")
           .not("license_key", "is", null)
           .order("created_at", { ascending: false }),
         supabase.from("storefront_orders")
@@ -281,6 +281,21 @@ export default function GerenteLicencasAcompanhar() {
         storefrontMap[o.license_key] = o;
       });
 
+      // Carrega nomes dos clientes (reseller_customers) referenciados pelas orders
+      const customerIds = Array.from(new Set(
+        (dbOrdersData ?? []).map((o: any) => o.customer_id).filter(Boolean)
+      ));
+      const customerMap: Record<string, string> = {};
+      if (customerIds.length > 0) {
+        const { data: customersData } = await supabase
+          .from("reseller_customers")
+          .select("id, display_name")
+          .in("id", customerIds);
+        (customersData ?? []).forEach((c: any) => {
+          if (c.id && c.display_name) customerMap[c.id] = c.display_name;
+        });
+      }
+
       // Carrega quais orders já foram estornados (kind license_purchase_refund)
       const orderIds = (dbOrdersData ?? []).map((o: any) => o.id);
       const refundedSet = new Set<string>();
@@ -329,7 +344,7 @@ export default function GerenteLicencasAcompanhar() {
           cancellation_status: local?.cancellation_status ?? sf?.cancellation_status ?? null,
           license_id: u.id,
           license_key: u.license_key,
-          display_name: u.display_name,
+          display_name: u.display_name || (local?.customer_id ? customerMap[local.customer_id] : null) || sf?.buyer_name || u.user_name || null,
           license_type: u.license_type,
           status: u.status,
           created_at: u.created_at,
@@ -384,7 +399,7 @@ export default function GerenteLicencasAcompanhar() {
           cancellation_status: local?.cancellation_status ?? sf?.cancellation_status ?? null,
           license_id: u.id,
           license_key: u.license_key,
-          display_name: u.display_name || u.customer_name,
+          display_name: u.display_name || u.customer_name || (local?.customer_id ? customerMap[local.customer_id] : null) || sf?.buyer_name || u.user_name || null,
           license_type,
           status: u.status,
           created_at: u.created_at,
@@ -419,7 +434,7 @@ export default function GerenteLicencasAcompanhar() {
           cancellation_status: o.cancellation_status ?? null,
           license_id: o.id,
           license_key: o.license_key,
-          display_name: undefined,
+          display_name: (o.customer_id ? customerMap[o.customer_id] : undefined) || undefined,
           license_type: o.license_type,
           status: o.status,
           created_at: o.created_at,
