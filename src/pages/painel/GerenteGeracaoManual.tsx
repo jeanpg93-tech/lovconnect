@@ -193,8 +193,8 @@ export default function GerenteGeracaoManual() {
     const whatsappDigits = genWhatsapp.replace(/\D+/g, "");
     if (!isTrial) {
       if (name.length < 2) return toast.error("Informe o nome de exibição da licença");
-      if (whatsappDigits.length < 10 || whatsappDigits.length > 13) {
-        return toast.error("Informe um WhatsApp válido (com DDD)");
+      if (whatsappDigits.length > 0 && (whatsappDigits.length < 10 || whatsappDigits.length > 13)) {
+        return toast.error("WhatsApp inválido (deixe em branco ou informe com DDD)");
       }
     }
     setGenerating(true);
@@ -203,7 +203,7 @@ export default function GerenteGeracaoManual() {
       const body: Record<string, unknown> = {};
       if (!isTrial) {
         body.display_name = name.slice(0, 100);
-        body.whatsapp = whatsappDigits;
+        if (whatsappDigits) body.whatsapp = whatsappDigits;
       }
       if (method === "lovax") {
         // lovax-api expects days/minutes, not type
