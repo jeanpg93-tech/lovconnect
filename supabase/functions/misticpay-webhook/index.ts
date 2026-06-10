@@ -9,6 +9,45 @@ const MISTIC_BASE = "https://api.misticpay.com/api";
 // MétodoFlow tem teto de 60 dias no provedor — bloqueia 90d/365d como defesa adicional.
 const FLOW_DISALLOWED_TYPES = new Set(["90d", "365d"]);
 
+// Taxa por transação cobrada pela MisticPay sobre cada DEPOSITO recebido.
+const MISTICPAY_FEE_CENTS = 50;
+
+/**
+ * Registra automaticamente a taxa MisticPay (R$0,50) como despesa no Financeiro do gerente,
+ * referenciando a transação que originou a cobrança. Idempotente (índice único parcial em
+ * manual_financial_entries por reference_meta->>'tx_id' quando reference_kind='misticpay_fee').
+ */
+async function recordMisticPayFee(
+  admin: any,
+  txId: string,
+  originKind: string,
+  originId: string | null,
+  originLabel: string,
+) {
+  if (!txId) return;
+  try {
+    const { error } = await admin.from("manual_financial_entries").insert({
+      entry_type: "expense",
+      amount_cents: MISTICPAY_FEE_CENTS,
+      description: `Taxa MisticPay — ${originLabel}`,
+      category: "gateway_fee",
+      reference_kind: "misticpay_fee",
+      reference_meta: {
+        tx_id: txId,
+        origin_kind: originKind,
+        origin_id: originId,
+        origin_label: originLabel,
+      },
+      entry_date: new Date().toISOString(),
+    });
+    if (error && !String(error.message ?? "").toLowerCase().includes("duplicate")) {
+      console.warn("[recordMisticPayFee] insert failed", error);
+    }
+  } catch (e) {
+    console.warn("[recordMisticPayFee] exception", e);
+  }
+}
+
 /**
  * Confirma com a API da MisticPay que a transação realmente está paga (status COMPLETO).
  * Protege o webhook contra POSTs forjados que tentam creditar saldo sem pagamento real.

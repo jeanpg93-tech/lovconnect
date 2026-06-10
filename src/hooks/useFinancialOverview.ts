@@ -5,7 +5,10 @@ import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 export type DateRange = "all" | "today" | "week" | "month" | "custom";
 export type CustomRange = { from: Date; to: Date };
 
-const GATEWAY_FEE_CENTS_PER_RECHARGE = 50;
+// A taxa MisticPay agora é lançada AUTOMATICAMENTE no Financeiro pelo webhook
+// (manual_financial_entries com reference_kind='misticpay_fee'). Mantemos a constante
+// em 0 para evitar dupla contagem — o cálculo real vem de `manualMisticFeeCents`.
+const GATEWAY_FEE_CENTS_PER_RECHARGE = 0;
 
 function rangeWindow(
   range: DateRange,
@@ -94,7 +97,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const rechargesArr = recharges || [];
     const rechargesRevenueCents = rechargesArr.reduce((s, r: any) => s + Number(r.amount_cents || 0), 0);
     const rechargesCount = rechargesArr.length;
-    const gatewayFeeCents = rechargesCount * GATEWAY_FEE_CENTS_PER_RECHARGE;
+    const gatewayFeeCents = 0; // taxa real vem de manualMisticFeeCents
 
     // Receita: activation_payments (ativação do painel pelos novos revendedores)
     let apQ = supabase
