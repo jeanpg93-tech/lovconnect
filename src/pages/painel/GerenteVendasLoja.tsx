@@ -13,6 +13,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { PromotionAppliedBadge } from "@/components/PromotionAppliedBadge";
 import OriginBadge, { readOriginFromRow, type OrderOrigin } from "@/components/painel/OriginBadge";
+import MarkAsTestButton from "@/components/painel/MarkAsTestButton";
 
 type Row = {
   id: string;
@@ -34,6 +35,7 @@ type Row = {
   promotion_discount_cents?: number | null;
   delivery_source?: string | null;
   fallback_from_pack?: boolean | null;
+  is_test?: boolean | null;
 };
 
 const statusMap: Record<string, { label: string; color: string; icon: any }> = {
@@ -267,6 +269,7 @@ export default function GerenteVendasLoja() {
                           </span>
                           <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{r.license_type}</span>
                           <OriginBadge origin={readOriginFromRow(r)} size="xs" />
+                          <MarkAsTestButton table="storefront_orders" id={r.id} isTest={!!r.is_test} />
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                           <span>📞 {r.buyer_whatsapp}</span>

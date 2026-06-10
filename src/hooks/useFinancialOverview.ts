@@ -5,7 +5,10 @@ import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 export type DateRange = "all" | "today" | "week" | "month" | "custom";
 export type CustomRange = { from: Date; to: Date };
 
-const GATEWAY_FEE_CENTS_PER_RECHARGE = 50;
+// A taxa MisticPay agora é lançada AUTOMATICAMENTE no Financeiro pelo webhook
+// (manual_financial_entries com reference_kind='misticpay_fee'). Mantemos a constante
+// em 0 para evitar dupla contagem — o cálculo real vem de `manualMisticFeeCents`.
+const GATEWAY_FEE_CENTS_PER_RECHARGE = 0;
 
 function rangeWindow(
   range: DateRange,
@@ -64,6 +67,15 @@ export type FinancialOverview = {
     profit_cents: number;
     sales_count: number;
   }>;
+  resellerSalesDetails: Record<string, Array<{
+    id: string;
+    date: string;
+    kind: "credits_storefront" | "credits_api" | "license_storefront" | "recharge" | "pack" | "recharge_plan";
+    description: string;
+    revenue_cents: number;
+    cost_cents: number;
+    profit_cents: number;
+  }>>;
 };
 
 export function useFinancialOverview(range: DateRange, customRange?: CustomRange) {
@@ -94,7 +106,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const rechargesArr = recharges || [];
     const rechargesRevenueCents = rechargesArr.reduce((s, r: any) => s + Number(r.amount_cents || 0), 0);
     const rechargesCount = rechargesArr.length;
-    const gatewayFeeCents = rechargesCount * GATEWAY_FEE_CENTS_PER_RECHARGE;
+    const gatewayFeeCents = 0; // taxa real vem de manualMisticFeeCents
 
     // Receita: activation_payments (ativação do painel pelos novos revendedores)
     let apQ = supabase
@@ -164,8 +176,9 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     // Custo: storefront_orders pagos
     let soQ = supabase
       .from("storefront_orders")
-      .select("cost_cents, paid_at, created_at, reseller_id, status, product_type, credit_amount")
+      .select("id, cost_cents, paid_at, created_at, reseller_id, status, product_type, credit_amount, license_type, buyer_name, short_code, price_cents")
       .in("status", ["paid", "completed", "delivered", "manual_concluido", "manual_aceito"]);
+    soQ = soQ.eq("is_test", false);
     if (startIso) soQ = soQ.gte("paid_at", startIso);
     if (endIso) soQ = soQ.lte("paid_at", endIso);
     soQ = excludeDemos(soQ);
@@ -175,8 +188,9 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     // Custo: reseller_credit_purchases bem-sucedidas
     let rcpQ = supabase
       .from("reseller_credit_purchases")
-      .select("cost_cents, created_at, reseller_id, status, credits")
+      .select("id, cost_cents, created_at, reseller_id, status, credits, customer_name, price_cents")
       .in("status", ["sucesso", "manual_aceito", "manual_concluido"]);
+    rcpQ = rcpQ.eq("is_test", false);
     if (startIso) rcpQ = rcpQ.gte("created_at", startIso);
     if (endIso) rcpQ = rcpQ.lte("created_at", endIso);
     rcpQ = excludeDemos(rcpQ);
@@ -386,6 +400,78 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       perReseller[id].cost += ownerCostForRcpItem(o);
       perReseller[id].sales += 1;
     });
+    // Detalhes por revendedor (para expandir cada linha)
+    type Detail = FinancialOverview["resellerSalesDetails"][string][number];
+    const perResellerDetails: Record<string, Detail[]> = {};
+    const pushDetail = (id: string | null | undefined, d: Detail) => {
+      if (!id) return;
+      (perResellerDetails[id] ||= []).push(d);
+    };
+    rechargesArr.forEach((r: any) => {
+      pushDetail(r.reseller_id, {
+        id: `recharge-${r.paid_at}-${r.amount_cents}`,
+        date: r.paid_at,
+        kind: "recharge",
+        description: `Recarga de saldo`,
+        revenue_cents: Number(r.amount_cents || 0),
+        cost_cents: GATEWAY_FEE_CENTS_PER_RECHARGE,
+        profit_cents: Number(r.amount_cents || 0) - GATEWAY_FEE_CENTS_PER_RECHARGE,
+      });
+    });
+    packArr.forEach((p: any) => {
+      pushDetail(p.reseller_id, {
+        id: `pack-${p.paid_at}-${p.price_cents}`,
+        date: p.paid_at,
+        kind: "pack",
+        description: `Compra de Pack`,
+        revenue_cents: Number(p.price_cents || 0),
+        cost_cents: 0,
+        profit_cents: Number(p.price_cents || 0),
+      });
+    });
+    planSubsArr.forEach((p: any) => {
+      const cost = platformCostByPlan[p.plan_id] ?? 0;
+      pushDetail(p.reseller_id, {
+        id: `plan-${p.id ?? p.created_at}`,
+        date: p.started_at || p.created_at,
+        kind: "recharge_plan",
+        description: `Plano de recarga`,
+        revenue_cents: Number(p.cost_cents || 0),
+        cost_cents: cost,
+        profit_cents: Number(p.cost_cents || 0) - cost,
+      });
+    });
+    soArr.forEach((o: any) => {
+      const cost = ownerCostForSoItem(o);
+      const isCredits = o.product_type === "credits";
+      pushDetail(o.reseller_id, {
+        id: `so-${o.id}`,
+        date: o.paid_at || o.created_at,
+        kind: isCredits ? "credits_storefront" : "license_storefront",
+        description: isCredits
+          ? `Loja: ${o.credit_amount ?? 0} créditos${o.buyer_name ? ` — ${o.buyer_name}` : ""}`
+          : `Loja: ${o.license_type ?? "licença"}${o.buyer_name ? ` — ${o.buyer_name}` : ""}`,
+        revenue_cents: Number(o.cost_cents || 0), // o que o revendedor pagou em saldo = receita do dono
+        cost_cents: cost,
+        profit_cents: Number(o.cost_cents || 0) - cost,
+      });
+    });
+    rcpArr.forEach((o: any) => {
+      const cost = ownerCostForRcpItem(o);
+      pushDetail(o.reseller_id, {
+        id: `rcp-${o.id}`,
+        date: o.created_at,
+        kind: "credits_api",
+        description: `Créditos via API: ${o.credits ?? 0}${o.customer_name ? ` — ${o.customer_name}` : ""}`,
+        revenue_cents: Number(o.cost_cents || 0),
+        cost_cents: cost,
+        profit_cents: Number(o.cost_cents || 0) - cost,
+      });
+    });
+    Object.values(perResellerDetails).forEach((arr) =>
+      arr.sort((a, b) => (a.date < b.date ? 1 : -1)),
+    );
+
     const allEntries = Object.entries(perReseller).map(([id, v]) => ({
       id,
       revenue: v.revenue,
@@ -447,6 +533,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       series,
       topResellers,
       resellerSales,
+      resellerSalesDetails: perResellerDetails,
     });
     setLoading(false);
   }, [range, customRange?.from?.getTime(), customRange?.to?.getTime()]);

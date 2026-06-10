@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useFinancialOverview, type DateRange, type CustomRange } from "@/hooks/useFinancialOverview";
 import {
   Wallet,
@@ -10,7 +11,11 @@ import {
   Rocket,
   Repeat,
   Package,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   AreaChart,
   Area,
@@ -40,6 +45,7 @@ const COLOR_PROFIT = "#0ea5e9"; // sky-500
 
 export default function FinanceiroVisaoGeral({ range, customRange }: { range: DateRange; customRange?: CustomRange }) {
   const { data, loading } = useFinancialOverview(range, customRange);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   if (loading || !data) {
     return (
@@ -223,15 +229,70 @@ export default function FinanceiroVisaoGeral({ range, customRange }: { range: Da
               <tbody>
                 {data.resellerSales.map((r) => {
                   const margin = r.revenue_cents > 0 ? (r.profit_cents / r.revenue_cents) * 100 : 0;
+                  const details = data.resellerSalesDetails[r.reseller_id] || [];
+                  const isOpen = !!expanded[r.reseller_id];
                   return (
-                    <tr key={r.reseller_id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                      <td className="py-2.5 px-2 font-semibold truncate max-w-[200px]">{r.display_name}</td>
+                    <>
+                    <tr
+                      key={r.reseller_id}
+                      className="border-b border-border/30 hover:bg-muted/20 transition-colors cursor-pointer"
+                      onClick={() => setExpanded((s) => ({ ...s, [r.reseller_id]: !s[r.reseller_id] }))}
+                    >
+                      <td className="py-2.5 px-2 font-semibold truncate max-w-[200px]">
+                        <span className="inline-flex items-center gap-1.5">
+                          {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                          {r.display_name}
+                        </span>
+                      </td>
                       <td className="py-2.5 px-2 text-right font-mono tabular-nums text-muted-foreground">{r.sales_count}</td>
                       <td className="py-2.5 px-2 text-right font-mono tabular-nums text-emerald-500">{brlSigned(r.revenue_cents, "+")}</td>
                       <td className="py-2.5 px-2 text-right font-mono tabular-nums text-red-500">{brlSigned(r.cost_cents, "-")}</td>
                       <td className={`py-2.5 px-2 text-right font-mono font-black tabular-nums ${r.profit_cents >= 0 ? "text-sky-500" : "text-red-500"}`}>{brlSigned(r.profit_cents, r.profit_cents >= 0 ? "+" : "-")}</td>
                       <td className="py-2.5 px-2 text-right font-mono tabular-nums text-muted-foreground">{margin.toFixed(1)}%</td>
                     </tr>
+                    {isOpen && (
+                      <tr key={r.reseller_id + "-details"} className="bg-muted/10 border-b border-border/30">
+                        <td colSpan={6} className="px-2 py-3">
+                          {details.length === 0 ? (
+                            <div className="text-[11px] text-muted-foreground italic px-2">Sem transações detalhadas no período.</div>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="text-[9px] uppercase tracking-wider text-muted-foreground">
+                                    <th className="text-left font-bold py-1.5 px-2">Data</th>
+                                    <th className="text-left font-bold py-1.5 px-2">Tipo</th>
+                                    <th className="text-left font-bold py-1.5 px-2">Descrição</th>
+                                    <th className="text-right font-bold py-1.5 px-2">Receita</th>
+                                    <th className="text-right font-bold py-1.5 px-2">Custo</th>
+                                    <th className="text-right font-bold py-1.5 px-2">Lucro</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {details.map((d) => (
+                                    <tr key={d.id} className="border-t border-border/20">
+                                      <td className="py-1.5 px-2 text-muted-foreground tabular-nums">
+                                        {d.date ? format(new Date(d.date), "dd/MM HH:mm", { locale: ptBR }) : "—"}
+                                      </td>
+                                      <td className="py-1.5 px-2">
+                                        <span className="inline-flex items-center rounded-md border border-border bg-muted/40 px-1.5 py-0.5 text-[9px] font-bold uppercase">
+                                          {kindLabel(d.kind)}
+                                        </span>
+                                      </td>
+                                      <td className="py-1.5 px-2 truncate max-w-[280px]" title={d.description}>{d.description}</td>
+                                      <td className="py-1.5 px-2 text-right font-mono tabular-nums text-emerald-500">{brlSigned(d.revenue_cents, "+")}</td>
+                                      <td className="py-1.5 px-2 text-right font-mono tabular-nums text-red-500">{d.cost_cents > 0 ? brlSigned(d.cost_cents, "-") : "—"}</td>
+                                      <td className={`py-1.5 px-2 text-right font-mono font-bold tabular-nums ${d.profit_cents >= 0 ? "text-sky-500" : "text-red-500"}`}>{brlSigned(d.profit_cents, d.profit_cents >= 0 ? "+" : "-")}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                    </>
                   );
                 })}
               </tbody>
@@ -241,6 +302,18 @@ export default function FinanceiroVisaoGeral({ range, customRange }: { range: Da
       </div>
     </div>
   );
+}
+
+function kindLabel(k: string): string {
+  switch (k) {
+    case "recharge": return "Recarga";
+    case "pack": return "Pack";
+    case "recharge_plan": return "Plano";
+    case "credits_storefront": return "Créditos (Loja)";
+    case "credits_api": return "Créditos (API)";
+    case "license_storefront": return "Licença (Loja)";
+    default: return k;
+  }
 }
 
 function DonutCard({

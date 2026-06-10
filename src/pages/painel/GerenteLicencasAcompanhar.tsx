@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import RefundSaleDialog, { type RefundSaleData } from "@/components/painel/RefundSaleDialog";
 import { CancelSaleDialog, type CancelSaleTarget } from "@/components/painel/CancelSaleDialog";
+import MarkAsTestButton from "@/components/painel/MarkAsTestButton";
 
 const PLAN_DAYS: Record<string, number | null> = {
   pro_1d: 1,
@@ -784,6 +785,14 @@ export default function GerenteLicencasAcompanhar() {
                                   <FlaskConical className="h-3 w-3" /> teste
                                 </Badge>
                               )}
+                              {o.license_type !== "trial" && (
+                                <MarkAsTestButton
+                                  table="orders"
+                                  id={o.id}
+                                  isTest={!!o.is_test}
+                                  showBadge={false}
+                                />
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -1016,6 +1025,14 @@ export default function GerenteLicencasAcompanhar() {
                               <Badge variant="outline" className="h-4 gap-0.5 px-1.5 text-[8px] uppercase font-black border-amber-500/30 bg-amber-500/10 text-amber-500">
                                 <FlaskConical className="h-2.5 w-2.5" /> teste
                               </Badge>
+                            )}
+                            {o.license_type !== "trial" && (
+                              <MarkAsTestButton
+                                table="orders"
+                                id={o.id}
+                                isTest={!!o.is_test}
+                                showBadge={false}
+                              />
                             )}
                           </div>
                         </div>

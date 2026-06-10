@@ -9,6 +9,45 @@ const MISTIC_BASE = "https://api.misticpay.com/api";
 // MétodoFlow tem teto de 60 dias no provedor — bloqueia 90d/365d como defesa adicional.
 const FLOW_DISALLOWED_TYPES = new Set(["90d", "365d"]);
 
+// Taxa por transação cobrada pela MisticPay sobre cada DEPOSITO recebido.
+const MISTICPAY_FEE_CENTS = 50;
+
+/**
+ * Registra automaticamente a taxa MisticPay (R$0,50) como despesa no Financeiro do gerente,
+ * referenciando a transação que originou a cobrança. Idempotente (índice único parcial em
+ * manual_financial_entries por reference_meta->>'tx_id' quando reference_kind='misticpay_fee').
+ */
+async function recordMisticPayFee(
+  admin: any,
+  txId: string,
+  originKind: string,
+  originId: string | null,
+  originLabel: string,
+) {
+  if (!txId) return;
+  try {
+    const { error } = await admin.from("manual_financial_entries").insert({
+      entry_type: "expense",
+      amount_cents: MISTICPAY_FEE_CENTS,
+      description: `Taxa MisticPay — ${originLabel}`,
+      category: "gateway_fee",
+      reference_kind: "misticpay_fee",
+      reference_meta: {
+        tx_id: txId,
+        origin_kind: originKind,
+        origin_id: originId,
+        origin_label: originLabel,
+      },
+      entry_date: new Date().toISOString(),
+    });
+    if (error && !String(error.message ?? "").toLowerCase().includes("duplicate")) {
+      console.warn("[recordMisticPayFee] insert failed", error);
+    }
+  } catch (e) {
+    console.warn("[recordMisticPayFee] exception", e);
+  }
+}
+
 /**
  * Confirma com a API da MisticPay que a transação realmente está paga (status COMPLETO).
  * Protege o webhook contra POSTs forjados que tentam creditar saldo sem pagamento real.
@@ -281,6 +320,8 @@ Deno.serve(async (req) => {
             raw_response: payload,
           }).eq("id", actPay.id);
 
+          await recordMisticPayFee(admin, txId, "activation_payment", actPay.id, `Ativação de painel #${String(actPay.id).slice(0,8)}`);
+
           const { error: actErr } = await admin.rpc("activate_reseller", {
             _reseller_id: actPay.reseller_id,
             _payment_id: actPay.id,
@@ -363,6 +404,7 @@ Deno.serve(async (req) => {
           console.error("credit error", credErr);
           return json({ ok: false, error: credErr.message }, 500);
         }
+        await recordMisticPayFee(admin, txId, "recharge", intent.id, `Recarga R$ ${(Number(intent.amount_cents)/100).toFixed(2)}`);
         // Se a recarga foi parte de uma promoção ativa, marca a transação com o promotion_id
         if (intent.promotion_id) {
           try {
@@ -512,7 +554,8 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
             raw_response: payload
           }).eq("id", directSale.id);
-          
+
+          await recordMisticPayFee(admin, txId, "direct_sale", directSale.id, `Venda direta #${String(directSale.id).slice(0,8)}`);
           console.log(`[webhook] Venda direta ${directSale.id} marcada como paga`);
           return json({ ok: true, kind: "direct_sale" });
         }
@@ -546,6 +589,8 @@ Deno.serve(async (req) => {
             paid_at: new Date().toISOString(),
           };
           await admin.from("reseller_subscription_charges").update(updates).eq("id", subCharge.id);
+
+          await recordMisticPayFee(admin, txId, "subscription_charge", subCharge.id, `Mensalidade #${String(subCharge.id).slice(0,8)}`);
 
           // If onboarding charge, mark onboarding completed and unblock reseller
           if (subCharge.is_onboarding) {
@@ -626,6 +671,8 @@ Deno.serve(async (req) => {
             status: "paid",
             paid_at: new Date().toISOString(),
           }).eq("id", (packPurchase as any).id);
+
+          await recordMisticPayFee(admin, txId, "pack_purchase", (packPurchase as any).id, `Pack: ${(packPurchase as any).pack_name ?? "—"}`);
 
           const { data: newBal, error: credErr } = await admin.rpc("pack_credit_balance", {
             _reseller_id: (packPurchase as any).reseller_id,
@@ -737,6 +784,8 @@ Deno.serve(async (req) => {
         raw_response: payload,
       }).eq("id", storeOrder.id);
 
+      await recordMisticPayFee(admin, txId, "storefront_recharge_plan", storeOrder.id, `Loja: Plano de Recarga #${storeOrder.short_code ?? String(storeOrder.id).slice(0,8)}`);
+
       const planId = storeOrder.recharge_plan_id;
       if (!planId) {
         console.error("[webhook] recharge_plan order without plan_id", storeOrder.id);
@@ -843,6 +892,8 @@ Deno.serve(async (req) => {
         paid_at: new Date().toISOString(),
         raw_response: payload,
       }).eq("id", storeOrder.id);
+
+      await recordMisticPayFee(admin, txId, "storefront_credits", storeOrder.id, `Loja: ${storeOrder.credit_amount ?? 0} créditos #${storeOrder.short_code ?? String(storeOrder.id).slice(0,8)}`);
 
       // Calcula custo do pacote para o revendedor
       let credits_cost = 0;
@@ -974,6 +1025,8 @@ Deno.serve(async (req) => {
       paid_at: new Date().toISOString(),
       raw_response: payload,
     }).eq("id", storeOrder.id);
+
+    await recordMisticPayFee(admin, txId, "storefront_license", storeOrder.id, `Loja: ${storeOrder.license_type ?? "licença"} #${storeOrder.short_code ?? String(storeOrder.id).slice(0,8)}`);
 
     // Lovax é o único método ativo. Flow descontinuado — toda entrega vai por Lovax.
     const method: "lovax" = "lovax";
