@@ -97,8 +97,6 @@ const LOVAX_LICENSE_TYPES: LicenseDef[] = [
   { key: "pro_1d", label: "1 Dia", short: "24 horas", icon: Clock, gradient: "from-sky-500/20 via-sky-500/5 to-transparent" },
   { key: "pro_7d", label: "7 Dias", short: "1 semana", icon: Calendar, gradient: "from-blue-500/20 via-blue-500/5 to-transparent" },
   { key: "pro_30d", label: "30 Dias", short: "Mensal", icon: Zap, badge: "Popular", badgeClass: "bg-primary/15 text-primary border-primary/30", gradient: "from-primary/25 via-primary/5 to-transparent" },
-  { key: "pro_90d", label: "90 Dias", short: "Trimestral", icon: Calendar, gradient: "from-violet-500/20 via-violet-500/5 to-transparent" },
-  { key: "pro_365d", label: "365 Dias", short: "Anual", icon: Calendar, gradient: "from-indigo-500/20 via-indigo-500/5 to-transparent" },
   {
     key: "lifetime",
     label: "Vitalícia",
@@ -114,8 +112,6 @@ const LOVAX_DAYS: Record<string, number> = {
   pro_1d: 1,
   pro_7d: 7,
   pro_30d: 30,
-  pro_90d: 90,
-  pro_365d: 365,
   lifetime: 36500,
 };
 
@@ -125,7 +121,8 @@ const TYPE_LABEL: Record<string, string> = Object.fromEntries(
 
 export default function GerenteGeracaoManual() {
   const [configured, setConfigured] = useState<boolean | null>(null);
-  const [method, setMethod] = useState<"promptflow" | "lovax">("promptflow");
+  const [method, setMethod] = useState<"promptflow" | "lovax">("lovax");
+  const [activeMethod, setActiveMethod] = useState<"promptflow" | "lovax" | null>(null);
   const [genType, setGenType] = useState<string>("pro_30d");
   const [genName, setGenName] = useState("");
   const [genWhatsapp, setGenWhatsapp] = useState("");
@@ -150,6 +147,20 @@ export default function GerenteGeracaoManual() {
     // Reset selection when switching method to avoid invalid types
     setGenType("pro_30d");
   }, [method]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "licencas.delivery.method")
+        .maybeSingle();
+      const v = (data?.value as any)?.method;
+      const m: "promptflow" | "lovax" = v === "flow" || v === "promptflow" ? "promptflow" : "lovax";
+      setActiveMethod(m);
+      setMethod(m);
+    })();
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -250,16 +261,22 @@ export default function GerenteGeracaoManual() {
         description="Crie chaves de extensão na hora — direto pelo provedor"
       />
 
-      <Tabs value={method} onValueChange={(v) => setMethod(v as "promptflow" | "lovax")} className="mt-6">
-        <TabsList className="w-full justify-start">
-          <TabsTrigger value="promptflow" className="gap-2">
-            <Zap className="h-4 w-4" /> Método - PromptFlow
-          </TabsTrigger>
-          <TabsTrigger value="lovax" className="gap-2">
-            <Sparkles className="h-4 w-4" /> Método - LovaX
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {activeMethod && (
+        <Tabs value={method} onValueChange={(v) => setMethod(v as "promptflow" | "lovax")} className="mt-6">
+          <TabsList className="w-full justify-start">
+            {activeMethod === "promptflow" && (
+              <TabsTrigger value="promptflow" className="gap-2">
+                <Zap className="h-4 w-4" /> Método - PromptFlow
+              </TabsTrigger>
+            )}
+            {activeMethod === "lovax" && (
+              <TabsTrigger value="lovax" className="gap-2">
+                <Sparkles className="h-4 w-4" /> Método - LovaX
+              </TabsTrigger>
+            )}
+          </TabsList>
+        </Tabs>
+      )}
 
       {/* Hero */}
       <div className="mt-6 relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/15 via-card/80 to-card/40 p-6 backdrop-blur-sm">
