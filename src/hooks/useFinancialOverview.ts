@@ -67,6 +67,15 @@ export type FinancialOverview = {
     profit_cents: number;
     sales_count: number;
   }>;
+  resellerSalesDetails: Record<string, Array<{
+    id: string;
+    date: string;
+    kind: "credits_storefront" | "credits_api" | "license_storefront" | "recharge" | "pack" | "recharge_plan";
+    description: string;
+    revenue_cents: number;
+    cost_cents: number;
+    profit_cents: number;
+  }>>;
 };
 
 export function useFinancialOverview(range: DateRange, customRange?: CustomRange) {
@@ -167,8 +176,9 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     // Custo: storefront_orders pagos
     let soQ = supabase
       .from("storefront_orders")
-      .select("cost_cents, paid_at, created_at, reseller_id, status, product_type, credit_amount")
+      .select("id, cost_cents, paid_at, created_at, reseller_id, status, product_type, credit_amount, license_type, buyer_name, short_code, price_cents")
       .in("status", ["paid", "completed", "delivered", "manual_concluido", "manual_aceito"]);
+    soQ = soQ.eq("is_test", false);
     if (startIso) soQ = soQ.gte("paid_at", startIso);
     if (endIso) soQ = soQ.lte("paid_at", endIso);
     soQ = excludeDemos(soQ);
@@ -178,8 +188,9 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     // Custo: reseller_credit_purchases bem-sucedidas
     let rcpQ = supabase
       .from("reseller_credit_purchases")
-      .select("cost_cents, created_at, reseller_id, status, credits")
+      .select("id, cost_cents, created_at, reseller_id, status, credits, customer_name, price_cents")
       .in("status", ["sucesso", "manual_aceito", "manual_concluido"]);
+    rcpQ = rcpQ.eq("is_test", false);
     if (startIso) rcpQ = rcpQ.gte("created_at", startIso);
     if (endIso) rcpQ = rcpQ.lte("created_at", endIso);
     rcpQ = excludeDemos(rcpQ);
