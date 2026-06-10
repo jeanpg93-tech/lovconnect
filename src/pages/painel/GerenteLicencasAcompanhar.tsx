@@ -860,17 +860,23 @@ export default function GerenteLicencasAcompanhar() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {o.creator_email ? (
+                            <div className="flex flex-col leading-tight max-w-[220px]">
                               <button
-                                onClick={() => copy(o.creator_email!)}
-                                className="text-[11px] font-mono text-foreground/80 hover:text-primary transition-colors max-w-[200px] truncate inline-block"
-                                title={o.creator_email}
+                                onClick={() => copy(resp.label)}
+                                className={cn(
+                                  "text-[11px] font-mono truncate text-left transition-colors hover:text-primary",
+                                  resp.kind === "reseller" && "text-foreground/90 font-semibold",
+                                  resp.kind === "provider" && "text-emerald-300/90",
+                                  resp.kind === "orphan" && "text-muted-foreground italic"
+                                )}
+                                title={resp.label}
                               >
-                                {o.creator_email}
+                                {resp.label}
                               </button>
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground italic">—</span>
-                            )}
+                              {resp.sub && (
+                                <span className="text-[9px] text-muted-foreground/70 truncate">{resp.sub}</span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
                             <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full", st.className)}>
