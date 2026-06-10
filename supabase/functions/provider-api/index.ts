@@ -461,15 +461,21 @@ Deno.serve(async (req) => {
     if (req.method === "POST" && action === "public-generate-trial") {
       const body = await req.json().catch(() => ({}));
       const { name, phone } = body;
-      const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "0.0.0.0";
-
       if (!name || !phone) return json({ error: "Nome e telefone são obrigatórios" }, 400);
+
+      const phoneDigits = String(phone).replace(/\D+/g, "").slice(0, 20);
+      if (!phoneDigits) return json({ error: "Telefone inválido" }, 400);
+
+      const rawIp = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "0.0.0.0";
+      const IPV4_RE = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+      const IPV6_RE = /^[0-9a-fA-F:]+$/;
+      const ip = IPV4_RE.test(rawIp) || IPV6_RE.test(rawIp) ? rawIp : "0.0.0.0";
 
       const today = new Date().toISOString().split("T")[0];
       const { data: existing } = await serviceClient
         .from("trial_registrations")
         .select("id")
-        .or(`phone.eq.${phone},ip_address.eq.${ip}`)
+        .or(`phone.eq.${phoneDigits},ip_address.eq.${ip}`)
         .gte("created_at", today)
         .limit(1)
         .maybeSingle();
