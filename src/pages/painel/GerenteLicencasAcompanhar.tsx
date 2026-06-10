@@ -1119,7 +1119,17 @@ export default function GerenteLicencasAcompanhar() {
                         </div>
                         <div className="flex flex-col gap-1 col-span-2">
                           <span className="text-[9px] opacity-50 uppercase font-mono">Responsável</span>
-                          <span className={cn("text-[10px] font-mono truncate", o.creator_email ? "text-foreground/80" : "text-muted-foreground italic")}>{o.creator_email || "—"}</span>
+                          {(() => {
+                            const r = getResponsavel(o);
+                            return (
+                              <span className={cn(
+                                "text-[10px] font-mono truncate",
+                                r.kind === "reseller" && "text-foreground/90 font-semibold",
+                                r.kind === "provider" && "text-emerald-300/90",
+                                r.kind === "orphan" && "text-muted-foreground italic"
+                              )}>{r.label}{r.sub ? ` · ${r.sub}` : ""}</span>
+                            );
+                          })()}
                         </div>
                         <div className="flex flex-col gap-1 col-span-2">
                           <span className="text-[9px] opacity-50 uppercase font-mono">Data da Geração</span>
