@@ -844,7 +844,7 @@ export default function GerenteLicencasAcompanhar() {
                                 <span className="text-[10px] font-black text-destructive uppercase tracking-tighter bg-destructive/10 px-2 py-0.5 rounded-md">{st.kind === "revoked" ? "Revogada" : "Expirada"}</span>
                               ) : exp.date ? (
                                 <>
-                                  <span className="text-[11px] font-black tabular-nums text-emerald-400">{formatCountdown(exp.date, now)}</span>
+                                  <span className="text-[11px] font-black tabular-nums text-emerald-400"><LicenseCountdown target={exp.date} /></span>
                                   <span className="text-[9px] text-muted-foreground">{exp.label}</span>
                                 </>
                               ) : (
@@ -1062,7 +1062,7 @@ export default function GerenteLicencasAcompanhar() {
                             <span className="text-[10px] font-black uppercase tracking-tighter text-right px-2 py-0.5 rounded border text-destructive bg-destructive/10 border-destructive/20">{st.kind === "revoked" ? "Revogada" : "Expirada"}</span>
                           ) : exp.date ? (
                             <div className="text-right">
-                              <div className="text-[11px] font-black tabular-nums text-emerald-400">{formatCountdown(exp.date, now)}</div>
+                              <div className="text-[11px] font-black tabular-nums text-emerald-400"><LicenseCountdown target={exp.date} /></div>
                               <div className="text-[8px] text-muted-foreground">{exp.label}</div>
                             </div>
                           ) : (
