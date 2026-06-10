@@ -829,10 +829,15 @@ export default function GerenteLicencasAcompanhar() {
                         <TableRow className="border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors group">
                           <TableCell className="pl-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="relative">
+                              <div className="relative flex flex-col gap-0.5">
                                 <span className="rounded-lg bg-primary/10 px-3 py-1.5 font-display text-xs text-primary font-black border border-primary/20 block whitespace-nowrap">
-                                  {o.display_name || o.license_key}
+                                  {o.license_key}
                                 </span>
+                                {o.display_name && o.display_name !== o.license_key && (
+                                  <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[180px]">
+                                    {o.display_name}
+                                  </span>
+                                )}
                                 <button onClick={() => o.license_key && copy(o.license_key)} className="absolute -right-2 -top-2 h-5 w-5 rounded-full bg-background border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary">
                                   <Copy className="h-2.5 w-2.5" />
                                 </button>
@@ -1089,10 +1094,17 @@ export default function GerenteLicencasAcompanhar() {
                     <div className="relative z-10 space-y-4">
                       <div className="flex items-start justify-between">
                         <div className="space-y-2">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="rounded-lg bg-primary/10 px-2.5 py-1 font-display text-[11px] text-primary font-black border border-primary/20 block w-fit">
+                              {o.license_key}
+                            </span>
+                            {o.display_name && o.display_name !== o.license_key && (
+                              <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[200px]">
+                                {o.display_name}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2">
-                          <span className="rounded-lg bg-primary/10 px-2.5 py-1 font-display text-[11px] text-primary font-black border border-primary/20 block w-fit">
-                            {o.display_name || o.license_key}
-                          </span>
                             {(o.is_test || o.license_type === "trial") && (
                               <Badge variant="outline" className="h-4 gap-0.5 px-1.5 text-[8px] uppercase font-black border-amber-500/30 bg-amber-500/10 text-amber-500">
                                 <FlaskConical className="h-2.5 w-2.5" /> teste
