@@ -784,6 +784,8 @@ Deno.serve(async (req) => {
         raw_response: payload,
       }).eq("id", storeOrder.id);
 
+      await recordMisticPayFee(admin, txId, "storefront_recharge_plan", storeOrder.id, `Loja: Plano de Recarga #${storeOrder.short_code ?? String(storeOrder.id).slice(0,8)}`);
+
       const planId = storeOrder.recharge_plan_id;
       if (!planId) {
         console.error("[webhook] recharge_plan order without plan_id", storeOrder.id);
@@ -890,6 +892,8 @@ Deno.serve(async (req) => {
         paid_at: new Date().toISOString(),
         raw_response: payload,
       }).eq("id", storeOrder.id);
+
+      await recordMisticPayFee(admin, txId, "storefront_credits", storeOrder.id, `Loja: ${storeOrder.credit_amount ?? 0} créditos #${storeOrder.short_code ?? String(storeOrder.id).slice(0,8)}`);
 
       // Calcula custo do pacote para o revendedor
       let credits_cost = 0;
@@ -1021,6 +1025,8 @@ Deno.serve(async (req) => {
       paid_at: new Date().toISOString(),
       raw_response: payload,
     }).eq("id", storeOrder.id);
+
+    await recordMisticPayFee(admin, txId, "storefront_license", storeOrder.id, `Loja: ${storeOrder.license_type ?? "licença"} #${storeOrder.short_code ?? String(storeOrder.id).slice(0,8)}`);
 
     // Lovax é o único método ativo. Flow descontinuado — toda entrega vai por Lovax.
     const method: "lovax" = "lovax";
