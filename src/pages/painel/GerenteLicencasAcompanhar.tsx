@@ -399,7 +399,7 @@ export default function GerenteLicencasAcompanhar() {
           cancellation_status: local?.cancellation_status ?? sf?.cancellation_status ?? null,
           license_id: u.id,
           license_key: u.license_key,
-          display_name: u.display_name || u.customer_name,
+          display_name: u.display_name || u.customer_name || (local?.customer_id ? customerMap[local.customer_id] : null) || sf?.buyer_name || u.user_name || null,
           license_type,
           status: u.status,
           created_at: u.created_at,
