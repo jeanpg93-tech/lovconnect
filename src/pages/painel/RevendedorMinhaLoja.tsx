@@ -1024,42 +1024,35 @@ export default function RevendedorMinhaLoja() {
                   <div className="space-y-0.5">
                     <div className="text-sm font-bold">Método da extensão</div>
                     <div className="text-xs text-muted-foreground">
-                      Escolha apenas um método. A loja vai gerar as licenças (compra e teste) usando a API correspondente.
+                      O método ativo é definido pelo administrador. Sua loja gera as licenças (compra e teste) usando a API correspondente.
                     </div>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setExtensionMethod("flow")}
-                      className={`text-left rounded-xl border p-4 transition ${
-                        extensionMethod === "flow"
-                          ? "border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/40"
-                          : "border-border bg-background hover:border-violet-500/40"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 text-sm font-bold">
-                        <Sparkles className="h-4 w-4 text-violet-500" /> PromptFlow
+                  <div className="pt-1">
+                    {activeMethod === "flow" ? (
+                      <div className="rounded-xl border border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/40 p-4">
+                        <div className="flex items-center gap-2 text-sm font-bold">
+                          <Sparkles className="h-4 w-4 text-violet-500" /> PromptFlow
+                          <span className="ml-auto text-[10px] uppercase tracking-wide rounded-full bg-violet-500/20 text-violet-600 dark:text-violet-300 px-2 py-0.5">
+                            Ativo
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-1">
+                          Licenças geradas pela API do MétodoFlow.
+                        </div>
                       </div>
-                      <div className="text-[11px] text-muted-foreground mt-1">
-                        Licenças geradas pela API do MétodoFlow.
+                    ) : (
+                      <div className="rounded-xl border border-cyan-500 bg-cyan-500/10 ring-2 ring-cyan-500/40 p-4">
+                        <div className="flex items-center gap-2 text-sm font-bold">
+                          <Zap className="h-4 w-4 text-cyan-500" /> LovaX
+                          <span className="ml-auto text-[10px] uppercase tracking-wide rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 px-2 py-0.5">
+                            Ativo
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-1">
+                          Licenças geradas pela API do MétodoLovax.
+                        </div>
                       </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setExtensionMethod("lovax")}
-                      className={`text-left rounded-xl border p-4 transition ${
-                        extensionMethod === "lovax"
-                          ? "border-cyan-500 bg-cyan-500/10 ring-2 ring-cyan-500/40"
-                          : "border-border bg-background hover:border-cyan-500/40"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 text-sm font-bold">
-                        <Zap className="h-4 w-4 text-cyan-500" /> LovaX
-                      </div>
-                      <div className="text-[11px] text-muted-foreground mt-1">
-                        Licenças geradas pela API do MétodoLovax.
-                      </div>
-                    </button>
+                    )}
                   </div>
                 </div>
               </AccordionContent>
