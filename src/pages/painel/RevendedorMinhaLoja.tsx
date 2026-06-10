@@ -188,7 +188,8 @@ export default function RevendedorMinhaLoja() {
         setShowProducts(!!(store as any).show_products);
         setShowFreeTrial(!!(store as any).show_free_trial);
         setShowCredits(!!(store as any).show_credits);
-        setExtensionMethod(((store as any).extension_method === "lovax" ? "lovax" : "flow"));
+        const storedMethod = (store as any).extension_method === "lovax" ? "lovax" : "flow";
+        setExtensionMethod(active === storedMethod ? storedMethod : active);
         setAccessExtEnabled(!!(store as any).access_extension_enabled);
         setAccessExtMode((((store as any).access_extension_mode) ?? "native") as "native" | "custom");
         setAccessExtCustomUrl((store as any).access_extension_custom_url ?? "");
