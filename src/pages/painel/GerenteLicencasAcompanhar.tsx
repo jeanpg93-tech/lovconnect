@@ -1244,9 +1244,19 @@ export default function GerenteLicencasAcompanhar() {
                             <div className="flex justify-between"><span className="opacity-50">ID Provedor</span><span className="font-mono">{o.license_id || "—"}</span></div>
                             <div className="flex justify-between">
                               <span className="opacity-50">Responsável</span>
-                              <span className={cn("font-medium", o.creator_email ? "text-primary" : "italic")}>
-                                {o.creator_email || "Gerado no provedor"}
-                              </span>
+                              {(() => {
+                                const r = getResponsavel(o);
+                                return (
+                                  <span className={cn(
+                                    "font-medium",
+                                    r.kind === "reseller" && "text-primary",
+                                    r.kind === "provider" && "text-emerald-300",
+                                    r.kind === "orphan" && "italic text-muted-foreground"
+                                  )}>
+                                    {r.label}
+                                  </span>
+                                );
+                              })()}
                             </div>
                             <div className="flex justify-between"><span className="opacity-50">Plano</span><span>{LABEL[o.license_type] || o.license_type}</span></div>
                             <div className="flex justify-between"><span className="opacity-50">Criada em</span><span>{formatDate(o.created_at)}</span></div>
