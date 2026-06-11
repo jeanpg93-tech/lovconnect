@@ -631,7 +631,7 @@ function DocsManual() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { n: 1, t: "Crie o pedido", d: "POST /pedidos-manual com recargas e tipo de entrega. Saldo é debitado na hora." },
-            { n: 2, t: "Convide o bot", d: "Adicione recarga@lovconnect.store como editor do workspace Lovable." },
+            { n: 2, t: "Convide o bot", d: "Adicione recarga@lovconnect.store como Owner do workspace Lovable." },
             { n: 3, t: "Confirme o convite", d: "POST /pedidos-manual/{id}/convite com workspace_name e status=sent." },
             { n: 4, t: "Aguarde a entrega", d: "Equipe processa em até 24h. Acompanhe via GET /pedidos-manual/{id}." },
           ].map(s => (
