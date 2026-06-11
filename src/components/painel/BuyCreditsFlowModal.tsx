@@ -790,20 +790,23 @@ export function BuyCreditsFlowModal({
                   </div>
 
                   {/* Workspace name input */}
-                  <div className="rounded-xl border border-border bg-card/40 p-4 space-y-2">
-                    <Label htmlFor="workspaceName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Nome do workspace do cliente
+                  <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40 p-5 space-y-3">
+                    <Label htmlFor="workspaceName" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                      <Terminal className="h-3.5 w-3.5 text-primary" />
+                      Nome do Workspace Lovable
                     </Label>
                     <Input
                       id="workspaceName"
                       value={workspaceName}
                       onChange={(e) => setWorkspaceName(e.target.value)}
-                      placeholder="Ex.: Loja do João"
+                      placeholder="Ex.: Meu Projeto Incrível"
                       maxLength={120}
+                      className="h-12 bg-zinc-950 border-zinc-800 text-lg focus:ring-primary/50"
                     />
-                    <p className="text-[11px] text-muted-foreground">
-                      O gerente usa esse nome para localizar e entregar o Lovable.
-                    </p>
+                    <div className="flex items-start gap-2 text-[11px] text-muted-foreground leading-tight">
+                      <Sparkles className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                      <span>Digite o nome exato que aparece no <strong>canto superior esquerdo</strong> do painel Lovable do cliente.</span>
+                    </div>
                   </div>
 
                   {/* Step-by-step instructions */}
