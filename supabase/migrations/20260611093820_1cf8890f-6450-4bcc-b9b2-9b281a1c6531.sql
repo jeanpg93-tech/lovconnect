@@ -1,0 +1,1 @@
+REVOKE SELECT (cost_cents, markup_percent) ON public.pricing_plans FROM anon, authenticated;
