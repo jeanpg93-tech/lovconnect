@@ -408,7 +408,7 @@ export default function PublicPlano() {
               <code className="font-mono text-violet-200"> {data.workspace_name}</code>.
               <br /><br />
               Assim que confirmarmos, as entregas dos créditos começam{" "}
-              <strong>hoje mesmo às {String(data.delivery_hour).padStart(2, "0")}h (BRT)</strong>.
+              <strong>{deliveryDayText} às {String(data.delivery_hour).padStart(2, "0")}h (BRT)</strong>.
               Você não precisa fazer nada agora — basta aguardar.
             </div>
 
