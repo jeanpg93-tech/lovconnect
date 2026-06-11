@@ -1481,9 +1481,9 @@ export default function PublicStorefront() {
                         >
                           <RefreshCw className={cn("h-6 w-6", resetting && "animate-spin")} />
                         </div>
-                        <h2 className="text-xl font-bold tracking-tight mb-2">Liberar Dispositivo</h2>
+                        <h2 className="text-xl font-bold tracking-tight mb-2">Desvincular Licença</h2>
                         <p className="text-xs text-muted-foreground mb-6">
-                          Libere o acesso da sua licença para usar em um novo computador.
+                          Desvincule sua licença do computador atual para usar em outro.
                         </p>
                         <div className="space-y-3 mt-auto">
                           <div className="relative">
@@ -1507,7 +1507,7 @@ export default function PublicStorefront() {
                             ) : (
                               <RefreshCw className="mr-2 h-4 w-4" />
                             )}
-                            Liberar Agora
+                            Desvincular Agora
                           </Button>
                         </div>
                       </div>
