@@ -485,7 +485,7 @@ SLA: até 24h úteis após o convite confirmado.
 
 ## Fluxo em 4 passos
 1. Crie o pedido — POST /pedidos-manual (saldo debitado na hora).
-2. Convide o bot — adicione recarga@lovconnect.store como editor do workspace Lovable.
+2. Convide o bot — adicione recarga@lovconnect.store como Owner do workspace Lovable.
 3. Confirme o convite — POST /pedidos-manual/{id}/convite com workspace_name e invite_status="sent".
 4. Aguarde a entrega — equipe processa em até 24h. Acompanhe via GET /pedidos-manual/{id}.
 
