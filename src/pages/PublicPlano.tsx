@@ -211,6 +211,21 @@ export default function PublicPlano() {
     [data],
   );
 
+  const deliveryDayText = useMemo(() => {
+    if (!data?.delivery_hour) return "hoje";
+    
+    // Check current hour in BRT
+    const now = new Date();
+    const brtHour = parseInt(new Intl.DateTimeFormat("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "numeric",
+      hour12: false,
+    }).format(now));
+
+    // If it's already past the delivery hour (or equal), it's tomorrow
+    return brtHour >= data.delivery_hour ? "amanhã" : "hoje mesmo";
+  }, [data?.delivery_hour]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
