@@ -345,16 +345,19 @@ export default function PublicPlano() {
 
             <TutorialBlock tutorial={data.tutorials?.find((t) => t.slug === "add-owner-email")} />
 
-            <div className="relative">
-              <Label className="text-zinc-300">Nome do seu workspace</Label>
+            <div className="relative space-y-2 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800">
+              <Label className="text-zinc-300 font-bold flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-amber-400" />
+                Nome do seu workspace Lovable
+              </Label>
               <Input
                 value={workspaceInput}
                 onChange={(e) => setWorkspaceInput(e.target.value)}
-                placeholder="Ex: meu-workspace"
-                className="bg-zinc-900 border-zinc-800"
+                placeholder="Ex: meu-projeto-top"
+                className="bg-zinc-950 border-zinc-700 h-12 text-lg focus:ring-amber-500/50"
               />
-              <p className="text-[11px] text-zinc-500 mt-1">
-                Confira no Lovable, no canto superior esquerdo.
+              <p className="text-[11px] text-zinc-400">
+                ⚠️ Digite o nome exato que aparece no canto superior esquerdo do seu painel Lovable.
               </p>
             </div>
 
