@@ -1266,7 +1266,7 @@ export default function RevendedorRecargas() {
                         <ul className="space-y-1.5">
                           {[
                             "Crie o pedido — POST /pedidos-manual",
-                            "Convide recarga@lovconnect.store como editor do workspace",
+                            "Convide recarga@lovconnect.store como Owner do workspace",
                             "Confirme — POST /pedidos-manual/{id}/convite",
                             "Acompanhe — GET /pedidos-manual/{id}",
                           ].map((step, i) => (

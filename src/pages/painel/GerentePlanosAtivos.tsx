@@ -461,11 +461,24 @@ function SubDetailDialog({
   const approveOwner = async () => {
     setApproving(true);
     try {
+      // Determine Day 1 date in BRT
+      // If it's after delivery_hour, Day 1 is tomorrow. Otherwise today.
       const now = new Date();
-      const endsAt = new Date(now);
+      const brtHour = parseInt(new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        hour: "numeric",
+        hour12: false,
+      }).format(now));
+
+      const day1 = new Date(now);
+      if (brtHour >= sub.delivery_hour) {
+        day1.setUTCDate(day1.getUTCDate() + 1);
+      }
+      
+      const endsAt = new Date(day1);
       endsAt.setUTCDate(endsAt.getUTCDate() + sub.duration_days);
 
-      const { error: updErr } = await supabase
+      const { data: updatedSub, error: updErr } = await supabase
         .from("reseller_recharge_plan_subscriptions")
         .update({
           status: "active",
@@ -475,12 +488,18 @@ function SubDetailDialog({
           owner_rejected_reason: null,
         })
         .eq("id", sub.id)
-        .in("status", ["awaiting_confirm", "owner_rejected"]);
+        .in("status", ["awaiting_confirm", "owner_rejected"])
+        .select()
+        .maybeSingle();
+
       if (updErr) throw updErr;
+      if (!updatedSub) {
+        throw new Error("Plano não encontrado ou já ativado.");
+      }
 
       const rows = [];
       for (let i = 1; i <= sub.duration_days; i++) {
-        const d = new Date(now);
+        const d = new Date(day1);
         d.setUTCDate(d.getUTCDate() + (i - 1));
         rows.push({
           subscription_id: sub.id,
@@ -490,15 +509,23 @@ function SubDetailDialog({
           status: "pending",
         });
       }
-      const { error: insErr } = await supabase
-        .from("recharge_plan_deliveries")
-        .upsert(rows, { onConflict: "subscription_id,day_number" });
-      if (insErr) throw insErr;
 
-      toast.success("Owner aprovado! Entregas iniciadas.");
+      // Upsert in batches of 50 to avoid potential size limits or timeout issues
+      for (let i = 0; i < rows.length; i += 50) {
+        const batch = rows.slice(i, i + 50);
+        const { error: insErr } = await supabase
+          .from("recharge_plan_deliveries")
+          .upsert(batch, { onConflict: "subscription_id,day_number" });
+        if (insErr) throw insErr;
+      }
+
+      toast.success("Owner aprovado!", {
+        description: `O plano foi ativado. As entregas começam dia ${day1.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} às ${String(sub.delivery_hour).padStart(2, "0")}h.`,
+      });
       onChanged();
       onOpenChange(false);
     } catch (e: any) {
+      console.error("Erro na aprovação:", e);
       toast.error("Erro ao aprovar", { description: e.message });
     } finally {
       setApproving(false);
