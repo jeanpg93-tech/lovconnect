@@ -317,22 +317,30 @@ export default function PublicPlano() {
 
             <div className="relative text-sm text-zinc-300 leading-relaxed">
               Para que possamos entregar os créditos no seu workspace do Lovable,
-              adicione o email abaixo como <strong>Owner</strong> do workspace
-              que vai receber a recarga:
+              adicione o email abaixo como <strong>Owner</strong> do workspace:
             </div>
 
-            <div className="relative rounded-lg bg-zinc-900 border border-amber-400/20 px-3 py-2 flex items-center justify-between gap-2 shadow-inner shadow-amber-500/5">
-              <span className="font-mono text-sm text-violet-200 truncate">
-                {data.owner_email_required || "(não configurado pelo gerente)"}
-              </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={copyEmail}
-                disabled={!data.owner_email_required}
-              >
-                {emailCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              </Button>
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+              <div className="relative rounded-xl bg-zinc-900 border border-violet-500/30 p-4 flex flex-col gap-3 shadow-2xl shadow-violet-500/10">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-1 overflow-hidden">
+                    <span className="text-[10px] uppercase tracking-widest text-violet-400 font-bold">Email do Bot (Copiar)</span>
+                    <p className="font-mono text-lg sm:text-xl text-white truncate selection:bg-violet-500/30">
+                      {data.owner_email_required || "recarga@lovconnect.store"}
+                    </p>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-12 w-12 rounded-lg bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-600/20 shrink-0"
+                    onClick={copyEmail}
+                    disabled={!data.owner_email_required}
+                  >
+                    {emailCopied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <TutorialBlock tutorial={data.tutorials?.find((t) => t.slug === "add-owner-email")} />
