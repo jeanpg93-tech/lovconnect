@@ -890,11 +890,7 @@ export default function PublicStorefront() {
                     <div className="pt-3 border-t mt-3">
                       {/* Botão TESTE: liberar PIX manualmente — restrito ao Jean + plano 3.000 créditos */}
                       {reseller?.slug === "jean-carlo" &&
-                       order.product_type === "recharge_plan" &&
-                       (() => {
-                         const plan = sellablePlans.find((p) => p.plan_id === selPlan);
-                         return plan?.total_credits_cap === 3000;
-                       })() && (
+                       order.product_type === "recharge_plan" && (
                         <Button
                           type="button"
                           size="sm"
