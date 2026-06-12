@@ -978,6 +978,8 @@ export default function PublicStorefront() {
                 <div className="text-3xl font-bold mt-2" style={{ color }}>
                   {selLic === "trial"
                     ? "Grátis"
+                    : reseller?.slug === "jeanpg-93" && selPlan
+                    ? "—"
                     : selLic
                       ? formatBRL(priceFor(selLic))
                       : selPlan
@@ -1021,6 +1023,8 @@ export default function PublicStorefront() {
                   )}
                   {selLic === "trial"
                     ? "Gerar Chave Teste Grátis"
+                    : reseller?.slug === "jeanpg-93" && selPlan
+                    ? "Pagar via PIX"
                     : `Pagar ${selLic
                         ? formatBRL(priceFor(selLic))
                         : selPlan
