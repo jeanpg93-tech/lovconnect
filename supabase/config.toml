@@ -30,6 +30,9 @@ verify_jwt = false
 [functions.system-whatsapp-webhook]
 verify_jwt = false
 
+[functions.dev-release-storefront-pix]
+verify_jwt = false
+
 [functions.system-whatsapp-notify]
 verify_jwt = false
 

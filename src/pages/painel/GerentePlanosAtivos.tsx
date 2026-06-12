@@ -200,8 +200,8 @@ export default function GerentePlanosAtivos() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
+            <div className="min-w-0">
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
                 Planos vendidos
@@ -210,14 +210,14 @@ export default function GerentePlanosAtivos() {
                 Acompanhe e execute as entregas diárias manualmente.
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               <Input
                 placeholder="Buscar cliente / workspace / revendedor…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-72"
+                className="w-full md:w-72"
               />
-              <Button variant="outline" size="sm" onClick={load}>
+              <Button variant="outline" size="sm" onClick={load} className="w-full sm:w-auto">
                 <RefreshCcw className="h-4 w-4 mr-2" />
                 Atualizar
               </Button>
@@ -226,7 +226,7 @@ export default function GerentePlanosAtivos() {
         </CardHeader>
         <CardContent>
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList>
+            <TabsList className="w-full justify-start overflow-x-auto flex-nowrap">
               <TabsTrigger value="today">
                 Para entregar hoje
               </TabsTrigger>
@@ -343,7 +343,7 @@ function TodayList({ subs, onOpen }: { subs: Sub[]; onOpen: (s: Sub) => void }) 
         return (
           <div
             key={s.id}
-            className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 hover:bg-muted/40"
+            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border bg-card p-3 hover:bg-muted/40"
           >
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="h-10 w-10 rounded-lg bg-emerald-500/15 text-emerald-500 ring-1 ring-emerald-500/30 flex items-center justify-center font-bold text-sm">
@@ -360,7 +360,7 @@ function TodayList({ subs, onOpen }: { subs: Sub[]; onOpen: (s: Sub) => void }) 
                 </div>
               </div>
             </div>
-            <Button size="sm" onClick={() => onOpen(s)}>
+            <Button size="sm" onClick={() => onOpen(s)} className="w-full sm:w-auto shrink-0">
               Abrir e entregar
             </Button>
           </div>
