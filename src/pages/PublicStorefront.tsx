@@ -1285,9 +1285,15 @@ export default function PublicStorefront() {
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <div className="font-extrabold text-lg leading-none" style={{ color }}>
-                                {formatBRL(p.sale_price_cents)}
-                              </div>
+                              {reseller?.slug === "jeanpg-93" ? (
+                                <div className="font-extrabold text-lg leading-none" style={{ color }}>
+                                  —
+                                </div>
+                              ) : (
+                                <div className="font-extrabold text-lg leading-none" style={{ color }}>
+                                  {formatBRL(p.sale_price_cents)}
+                                </div>
+                              )}
                               <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
                                 Plano
                               </div>
