@@ -1,5 +1,5 @@
 // Edge function de TESTE: libera/marca como pago um pedido PIX da loja pública
-// EXCLUSIVAMENTE para o revendedor jeanpg.93 e para o plano de 3.000 créditos.
+// EXCLUSIVAMENTE para o revendedor jean-carlo e para o plano de 3.000 créditos.
 // Replica o fluxo do webhook MisticPay para product_type = 'recharge_plan'.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
@@ -10,7 +10,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const ALLOWED_RESELLER_SLUG = "jeanpg-93";
+const ALLOWED_RESELLER_SLUG = "jean-carlo";
 const ALLOWED_PLAN_TOTAL_CREDITS = 3000;
 
 Deno.serve(async (req) => {
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!order) return json({ error: "Pedido não encontrado" }, 404);
 
-    // Allow-list: somente jeanpg-93
+    // Allow-list: somente jean-carlo
     const { data: reseller } = await admin
       .from("resellers")
       .select("id, slug")
