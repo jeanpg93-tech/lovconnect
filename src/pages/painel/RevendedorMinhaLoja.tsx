@@ -1329,8 +1329,9 @@ export default function RevendedorMinhaLoja() {
         </div>
       </div>
       
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button onClick={save} disabled={saving} size="lg" className="h-14 px-8 shadow-2xl shadow-primary/30 rounded-2xl bg-primary text-white hover:scale-105 active:scale-95 transition-all font-black uppercase tracking-widest text-xs">
+      <div className="h-28 md:h-0" aria-hidden />
+      <div className="fixed right-4 left-4 md:left-auto md:right-6 bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 z-50">
+        <Button onClick={save} disabled={saving} size="lg" className="w-full md:w-auto h-14 px-8 shadow-2xl shadow-primary/30 rounded-2xl bg-primary text-white hover:scale-105 active:scale-95 transition-all font-black uppercase tracking-widest text-xs">
           {saving ? <Loader2 className="h-5 w-5 mr-3 animate-spin" /> : <Save className="h-5 w-5 mr-3" />}
           Salvar Configurações
         </Button>
