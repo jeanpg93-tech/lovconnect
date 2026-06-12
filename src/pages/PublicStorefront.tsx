@@ -888,6 +888,33 @@ export default function PublicStorefront() {
                       Aguardando confirmação… {order.product_type === "credits" ? "A recargas será processada após o pagamento." : "A chave será enviada no seu WhatsApp."}
                     </div>
                     <div className="pt-3 border-t mt-3">
+                      {/* Botão TESTE: liberar PIX manualmente — restrito ao Jean + plano 3.000 créditos */}
+                      {reseller?.slug === "jeanpg-93" &&
+                       order.product_type === "recharge_plan" &&
+                       (() => {
+                         const plan = sellablePlans.find((p) => p.plan_id === selPlan);
+                         return plan?.total_credits_cap === 3000;
+                       })() && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="w-full mb-2 bg-emerald-600 hover:bg-emerald-500 text-white"
+                          onClick={async () => {
+                            if (!order?.id) return;
+                            const { data, error } = await supabase.functions.invoke(
+                              "dev-release-storefront-pix",
+                              { body: { order_id: order.id } },
+                            );
+                            if (error || (data as any)?.error) {
+                              toast.error((data as any)?.error ?? error?.message ?? "Falha ao liberar PIX");
+                              return;
+                            }
+                            toast.success("PIX liberado (teste)");
+                          }}
+                        >
+                          ⚡ Liberar PIX (teste)
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="ghost"
