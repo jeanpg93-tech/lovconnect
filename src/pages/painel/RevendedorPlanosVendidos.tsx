@@ -39,6 +39,8 @@ import {
   Clock,
 } from "lucide-react";
 import { toast } from "sonner";
+import GerarVendaPlanoDialog from "@/components/painel/planos/GerarVendaPlanoDialog";
+import { Link } from "react-router-dom";
 
 type Sub = {
   id: string;
@@ -62,6 +64,17 @@ type Sub = {
   cancelled_reason: string | null;
   completed_at: string | null;
   created_at: string;
+};
+
+type PlanForSale = {
+  id: string;
+  name: string;
+  duration_days: number;
+  credits_per_day: number;
+  total_credits_cap: number;
+  bot_owner_email: string;
+  base_cost_cents: number;
+  sale_price_cents: number | null;
 };
 
 type Delivery = {
@@ -105,6 +118,8 @@ export default function RevendedorPlanosVendidos() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("active");
   const [selected, setSelected] = useState<Sub | null>(null);
+  const [planForSale, setPlanForSale] = useState<PlanForSale | null>(null);
+  const [vendaOpen, setVendaOpen] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -121,6 +136,26 @@ export default function RevendedorPlanosVendidos() {
         return;
       }
       setResellerId(r.id);
+
+      const { data: planRows } = await supabase
+        .from("recharge_plans")
+        .select("id,name,duration_days,credits_per_day,total_credits_cap,bot_owner_email,base_cost_cents")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true })
+        .limit(1);
+      const p = planRows?.[0] as any;
+      if (p) {
+        const { data: priceRow } = await supabase
+          .from("reseller_recharge_plan_prices")
+          .select("sale_price_cents")
+          .eq("reseller_id", r.id)
+          .eq("plan_id", p.id)
+          .maybeSingle();
+        setPlanForSale({ ...p, sale_price_cents: (priceRow as any)?.sale_price_cents ?? null });
+      } else {
+        setPlanForSale(null);
+      }
+
       const { data, error } = await supabase
         .from("reseller_recharge_plan_subscriptions")
         .select("*")
@@ -236,7 +271,20 @@ export default function RevendedorPlanosVendidos() {
                 Suas vendas de plano de recargas em todos os canais.
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {planForSale && planForSale.sale_price_cents ? (
+                <Button size="sm" onClick={() => setVendaOpen(true)}>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Gerar venda
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" asChild>
+                  <Link to="/painel/revendedor/plano-precos">
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Definir preço para vender
+                  </Link>
+                </Button>
+              )}
               <Input
                 placeholder="Buscar cliente, workspace, email…"
                 value={search}
@@ -287,6 +335,27 @@ export default function RevendedorPlanosVendidos() {
           sub={selected}
           open={!!selected}
           onOpenChange={(v) => !v && setSelected(null)}
+        />
+      )}
+
+      {planForSale && resellerId && planForSale.sale_price_cents && (
+        <GerarVendaPlanoDialog
+          open={vendaOpen}
+          onOpenChange={(v) => {
+            setVendaOpen(v);
+            if (!v) load();
+          }}
+          resellerId={resellerId}
+          plan={{
+            id: planForSale.id,
+            name: planForSale.name,
+            duration_days: planForSale.duration_days,
+            credits_per_day: planForSale.credits_per_day,
+            total_credits_cap: planForSale.total_credits_cap,
+            bot_owner_email: planForSale.bot_owner_email,
+          }}
+          cost_cents={planForSale.base_cost_cents}
+          sale_price_cents={planForSale.sale_price_cents}
         />
       )}
     </div>
