@@ -5,9 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, CalendarClock, Sparkles, Store } from "lucide-react";
+import { Loader2, Save, CalendarClock, Store } from "lucide-react";
 import { toast } from "sonner";
-import GerarVendaPlanoDialog from "@/components/painel/planos/GerarVendaPlanoDialog";
 
 type RechargePlan = {
   id: string;
