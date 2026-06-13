@@ -12,6 +12,44 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+async function enqueuePlanWebhook(
+  db: any,
+  sub: any,
+  event: string,
+  extra: Record<string, unknown> = {},
+) {
+  try {
+    const apiKeyId = sub?.source === "api" ? sub?.source_reference_id : null;
+    if (!apiKeyId) return;
+    const { data: key } = await db
+      .from("reseller_api_keys")
+      .select("id, webhook_url, webhook_events, is_active, revoked_at")
+      .eq("id", apiKeyId)
+      .maybeSingle();
+    if (!key || key.revoked_at || !key.is_active || !key.webhook_url) return;
+    const defaults = ["plan.sold", "plan.completed", "plan.cancelled"];
+    const list: string[] | null = Array.isArray(key.webhook_events) ? key.webhook_events : null;
+    if (list && list.length > 0) {
+      if (!list.includes(event)) return;
+    } else if (!defaults.includes(event)) return;
+    await db.from("reseller_api_webhook_deliveries").insert({
+      api_key_id: key.id,
+      reseller_id: sub.reseller_id,
+      event,
+      target_url: key.webhook_url,
+      payload: {
+        event,
+        subscription_id: sub.id,
+        reseller_id: sub.reseller_id,
+        occurred_at: new Date().toISOString(),
+        ...extra,
+      },
+    });
+  } catch (e) {
+    console.error("enqueuePlanWebhook failed", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -61,7 +99,23 @@ Deno.serve(async (req) => {
         })
         .eq("id", d.id)
         .eq("status", "pending");
-      if (!error) autoDelivered.push(d.id);
+      if (!error) {
+        autoDelivered.push(d.id);
+        // Webhook opt-in plan.delivery.completed
+        const { data: subRow } = await db
+          .from("reseller_recharge_plan_subscriptions")
+          .select("id, reseller_id, source, source_reference_id, duration_days, credits_per_day")
+          .eq("id", d.subscription_id)
+          .maybeSingle();
+        if (subRow) {
+          await enqueuePlanWebhook(db, subRow, "plan.delivery.completed", {
+            day_number: d.day_number,
+            scheduled_date: d.scheduled_date,
+            credits: subRow.credits_per_day,
+            duration_days: subRow.duration_days,
+          });
+        }
+      }
     }
 
     // 2) Auto-completar: assinaturas active cujas TODAS entregas são delivered ou skipped.
@@ -90,7 +144,23 @@ Deno.serve(async (req) => {
         })
         .eq("id", s.id)
         .eq("status", "active");
-      if (!error) completed.push(s.id);
+      if (!error) {
+        completed.push(s.id);
+        const { data: subRow } = await db
+          .from("reseller_recharge_plan_subscriptions")
+          .select("id, reseller_id, source, source_reference_id, duration_days, credits_per_day, total_credits_cap, cost_cents, sale_price_cents")
+          .eq("id", s.id)
+          .maybeSingle();
+        if (subRow) {
+          await enqueuePlanWebhook(db, subRow, "plan.completed", {
+            duration_days: subRow.duration_days,
+            credits_per_day: subRow.credits_per_day,
+            total_credits: subRow.total_credits_cap,
+            cost_cents: subRow.cost_cents,
+            sale_price_cents: subRow.sale_price_cents,
+          });
+        }
+      }
     }
 
     // 3) Expirar: ends_at < now e ainda active → expired.
