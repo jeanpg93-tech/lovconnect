@@ -632,6 +632,29 @@ Deno.serve(async (req) => {
         .eq("reseller_id", resellerId)
         .maybeSingle();
 
+      // Dispara webhook plan.sold (best-effort)
+      await enqueuePlanWebhook(
+        admin,
+        {
+          id: sub.id,
+          reseller_id: resellerId,
+          source: "api",
+          source_reference_id: keyRow?.id ?? null,
+        },
+        "plan.sold",
+        {
+          plan_id: plan.id,
+          plan_name: plan.name,
+          customer: { name: nome, whatsapp: whatsapp || null },
+          duration_days: plan.duration_days,
+          credits_per_day: plan.credits_per_day,
+          total_credits: plan.total_credits_cap,
+          cost_cents: costCents,
+          sale_price_cents: Number(price.sale_price_cents),
+          order_token: sub.order_token,
+        },
+      );
+
       return json({
         success: true,
         data: {
