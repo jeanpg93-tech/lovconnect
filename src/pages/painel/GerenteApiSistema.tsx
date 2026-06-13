@@ -218,7 +218,7 @@ echo $res["license_key"];`} />
 
           <Tabs defaultValue="sell" className="mt-4">
             <TabsList>
-              <TabsTrigger value="sell">Vender plano</TabsTrigger>
+              <TabsTrigger value="sell">Vender Plano 3K</TabsTrigger>
               <TabsTrigger value="status">Consultar status</TabsTrigger>
               <TabsTrigger value="webhook">Webhook</TabsTrigger>
             </TabsList>
