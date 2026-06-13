@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/reseller-api`;
+const PLANS_BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/reseller-recharge-api`;
 
 const Snippet = ({ code, lang = "bash" }: { code: string; lang?: string }) => {
   const [copied, setCopied] = useState(false);
@@ -189,6 +190,121 @@ echo $res["license_key"];`} />
   "created_at": "2026-..."
 }`} />
           </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-center gap-2">
+            <KeyRound className="h-5 w-5 text-primary" />
+            <h2 className="font-display text-lg font-semibold">Planos de Recarga (3.000 créditos)</h2>
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Endpoints dedicados para revendedores que vendem o <strong>plano de recarga</strong> (100 créditos/dia
+            durante 30 dias) em sites ou sistemas próprios. Mesma autenticação <code className="font-mono">x-api-key</code>.
+            O <strong>custo do plano é debitado do saldo do painel</strong> assim que a venda é confirmada — exatamente
+            como acontece quando uma licença é gerada.
+          </p>
+          <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-3 text-xs">
+            <span className="font-mono text-muted-foreground">Base URL</span>
+            <div className="mt-1 font-mono text-sm break-all">{PLANS_BASE_URL}</div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <Endpoint method="GET" path="/planos/catalogo" desc="Lista planos disponíveis com custo, preço de venda e duração." />
+            <Endpoint method="POST" path="/planos" desc="Cria uma venda manual do plano e debita o custo do saldo. Retorna o token + link público." />
+            <Endpoint method="GET" path="/planos" desc="Lista paginada das assinaturas vendidas pela chave (limit, offset, status)." />
+            <Endpoint method="GET" path="/planos/{token}" desc="Detalhes da assinatura + cronograma das entregas." />
+            <Endpoint method="POST" path="/planos/{token}/cancelar" desc="Cancela e estorna — só permitido enquanto o cliente ainda não confirmou o início." />
+          </div>
+
+          <Tabs defaultValue="sell" className="mt-4">
+            <TabsList>
+              <TabsTrigger value="sell">Vender plano</TabsTrigger>
+              <TabsTrigger value="status">Consultar status</TabsTrigger>
+              <TabsTrigger value="webhook">Webhook</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="sell" className="space-y-3">
+              <div>
+                <div className="mb-1 text-xs font-semibold text-muted-foreground">cURL</div>
+                <Snippet code={`curl -X POST -H "x-api-key: SUA_CHAVE" \\\n  -H "Content-Type: application/json" \\\n  -d '{"planoId":"UUID_DO_PLANO","cliente":{"nome":"Cliente X","whatsapp":"5511999999999"}}' \\\n  ${PLANS_BASE_URL}/planos`} />
+              </div>
+              <div>
+                <div className="mb-1 text-xs font-semibold text-muted-foreground">Resposta</div>
+                <Snippet lang="json" code={`{
+  "success": true,
+  "data": {
+    "assinaturaId": "uuid",
+    "token": "abc123...",
+    "status": "awaiting_owner",
+    "linkCliente": "https://lovconnect.store/plano/abc123...",
+    "custoCentavos": 12000,
+    "precoVendaCentavos": 18000,
+    "novoSaldoCentavos": 88000
+  }
+}`} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Erros: <code>402 INSUFFICIENT_BALANCE</code> · <code>400 SALE_PRICE_MISSING</code> ·
+                <code>404 PLAN_NOT_FOUND</code> · <code>503 PLAN_NOT_READY</code>.
+              </p>
+            </TabsContent>
+
+            <TabsContent value="status">
+              <Snippet code={`curl -H "x-api-key: SUA_CHAVE" ${PLANS_BASE_URL}/planos/TOKEN`} />
+              <p className="mt-2 text-xs text-muted-foreground">
+                Retorna a assinatura + array <code>entregas[]</code> com <code>dia</code>,
+                <code>dataAgendada</code>, <code>creditos</code>, <code>status</code>,
+                <code>entregueEm</code>.
+              </p>
+            </TabsContent>
+
+            <TabsContent value="webhook" className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Configure a URL de webhook na chave. Eventos enviados por padrão:
+                <code className="ml-1">plan.sold</code>, <code>plan.completed</code>,
+                <code>plan.cancelled</code>. O evento diário
+                <code className="ml-1">plan.delivery.completed</code> é <strong>opt-in</strong> —
+                inclua-o em <code>webhook_events</code> da chave para receber 30 eventos por
+                assinatura (um por dia entregue).
+              </p>
+              <Snippet lang="json" code={`{
+  "event": "plan.sold",
+  "subscription_id": "uuid",
+  "reseller_id": "uuid",
+  "plan_id": "uuid",
+  "plan_name": "Plano 3.000 créditos",
+  "customer": { "name": "Cliente X", "whatsapp": "5511..." },
+  "duration_days": 30,
+  "credits_per_day": 100,
+  "total_credits": 3000,
+  "cost_cents": 12000,
+  "sale_price_cents": 18000,
+  "order_token": "abc123...",
+  "occurred_at": "2026-..."
+}`} />
+              <Snippet lang="json" code={`{
+  "event": "plan.delivery.completed",
+  "subscription_id": "uuid",
+  "day_number": 7,
+  "scheduled_date": "2026-06-20",
+  "credits": 100,
+  "duration_days": 30,
+  "occurred_at": "2026-..."
+}`} />
+              <Snippet lang="json" code={`{
+  "event": "plan.completed",
+  "subscription_id": "uuid",
+  "duration_days": 30,
+  "credits_per_day": 100,
+  "total_credits": 3000,
+  "occurred_at": "2026-..."
+}`} />
+              <p className="text-xs text-muted-foreground">
+                A assinatura HMAC-SHA256 vai no header <code className="font-mono">X-Webhook-Signature</code>
+                (mesma chave secreta usada nos webhooks de licença).
+              </p>
+            </TabsContent>
+          </Tabs>
         </Card>
       </div>
     </PageContainer>
