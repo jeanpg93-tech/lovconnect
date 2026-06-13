@@ -515,32 +515,43 @@ export default function PublicPlano() {
 
         {/* ESTADO 3: ATIVO */}
         {status === "active" && (
-          <div className="rounded-2xl p-[1.5px] bg-gradient-to-br from-emerald-400/50 via-teal-400/20 to-emerald-400/50 shadow-xl shadow-emerald-900/20">
+          <div className="group relative rounded-2xl p-[1.5px] bg-[length:200%_200%] bg-gradient-to-br from-emerald-400/60 via-teal-400/30 to-emerald-400/60 shadow-xl shadow-emerald-900/30 animate-gradient-shift">
           <div className="relative overflow-hidden rounded-[calc(1rem-1.5px)] border border-emerald-400/10 bg-zinc-950/85 backdrop-blur-xl p-5 space-y-4">
-            <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-emerald-500/20 blur-3xl animate-pulse" />
+            {/* Blobs animados de fundo */}
+            <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-emerald-500/25 blur-3xl animate-blob-slow" />
+            <div className="pointer-events-none absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-teal-400/15 blur-3xl animate-blob-medium" />
+            {/* Brilho varrendo o card */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div className="absolute -inset-y-4 -left-1/2 w-1/2 rotate-12 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent animate-shimmer" />
+            </div>
             <div className="relative flex items-center gap-3">
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/30">
-                <span className="absolute inset-0 rounded-lg bg-emerald-400/30 blur-md animate-pulse" />
-                <Zap className="relative h-5 w-5" />
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40 shadow-[0_0_20px_rgba(52,211,153,0.5)]">
+                <span className="absolute inset-0 rounded-lg bg-emerald-400/40 blur-md animate-pulse" />
+                <span className="absolute -inset-1 rounded-lg ring-1 ring-emerald-400/30 animate-ping" />
+                <Zap className="relative h-5 w-5 drop-shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
               </div>
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
                   Plano ativo
                 </div>
-                <div className="text-base font-bold">
+                <div className="text-base font-bold bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient-shift">
                   {deliveredCount} de {data.duration_days} entregas concluídas
                 </div>
               </div>
             </div>
 
             <div className="relative">
-              <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-900">
+              <div className="relative h-2 w-full overflow-hidden rounded-full bg-zinc-900 ring-1 ring-emerald-500/10">
                 <div
-                  className="h-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all shadow-[0_0_12px_rgba(52,211,153,0.7)]"
+                  className="relative h-full bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 bg-[length:200%_100%] animate-gradient-shift transition-all shadow-[0_0_14px_rgba(52,211,153,0.8)]"
                   style={{
                     width: `${Math.round((deliveredCount / Math.max(1, data.duration_days)) * 100)}%`,
                   }}
-                />
+                >
+                  <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer" />
+                  </div>
+                </div>
               </div>
               <div className="mt-1 flex justify-between text-[10px] text-zinc-500">
                 <span>Início: {fmtDate(data.started_at)}</span>
@@ -563,17 +574,17 @@ export default function PublicPlano() {
                   {data.deliveries.slice(0, 30).map((d) => {
                     const cls =
                       d.status === "delivered"
-                        ? "bg-emerald-500/30 ring-emerald-400/50 text-emerald-100"
+                        ? "bg-emerald-500/30 ring-emerald-400/60 text-emerald-100 shadow-[0_0_12px_rgba(52,211,153,0.55)] animate-pulse"
                         : d.status === "failed"
                           ? "bg-rose-500/20 ring-rose-400/40 text-rose-200"
                           : d.status === "skipped"
                             ? "bg-zinc-700/30 ring-zinc-600/40 text-zinc-500"
-                            : "bg-zinc-900 ring-zinc-800 text-zinc-500";
+                            : "bg-zinc-900 ring-zinc-800 text-zinc-500 hover:ring-emerald-500/40 hover:text-emerald-200 transition-all";
                     return (
                       <div
                         key={d.day_number}
                         title={`Dia ${d.day_number} • ${d.scheduled_date} • ${d.status}`}
-                        className={`aspect-square rounded text-[10px] font-bold flex items-center justify-center ring-1 ${cls}`}
+                        className={`aspect-square rounded text-[10px] font-bold flex items-center justify-center ring-1 transition-transform hover:scale-110 ${cls}`}
                       >
                         {d.day_number}
                       </div>
