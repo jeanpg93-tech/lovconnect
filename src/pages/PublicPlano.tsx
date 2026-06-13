@@ -276,7 +276,7 @@ export default function PublicPlano() {
         }}
       />
 
-      <div className="relative mx-auto max-w-xl space-y-5">
+      <div className="relative mx-auto max-w-md space-y-4">
         {/* Header */}
         <div className="text-center space-y-2">
           <span className="relative inline-flex items-center gap-1.5 rounded-full border border-violet-400/40 bg-violet-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-violet-200 shadow-lg shadow-violet-500/30">
