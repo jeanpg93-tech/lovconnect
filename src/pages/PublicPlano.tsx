@@ -570,7 +570,7 @@ export default function PublicPlano() {
                 <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
                   Próximas entregas
                 </div>
-                <div className="grid grid-cols-7 gap-1.5">
+                <div className="grid grid-cols-5 sm:grid-cols-7 gap-1.5">
                   {data.deliveries.slice(0, 30).map((d) => {
                     const cls =
                       d.status === "delivered"
@@ -580,13 +580,18 @@ export default function PublicPlano() {
                           : d.status === "skipped"
                             ? "bg-zinc-700/30 ring-zinc-600/40 text-zinc-500"
                             : "bg-zinc-900 ring-zinc-800 text-zinc-500 hover:ring-emerald-500/40 hover:text-emerald-200 transition-all";
+                    const dt = d.scheduled_date ? new Date(`${d.scheduled_date}T12:00:00`) : null;
+                    const dateLabel = dt
+                      ? dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" })
+                      : "";
                     return (
                       <div
                         key={d.day_number}
                         title={`Dia ${d.day_number} • ${d.scheduled_date} • ${d.status}`}
-                        className={`aspect-square rounded text-[10px] font-bold flex items-center justify-center ring-1 transition-transform hover:scale-110 ${cls}`}
+                        className={`aspect-square rounded flex flex-col items-center justify-center gap-0.5 ring-1 transition-transform hover:scale-110 ${cls}`}
                       >
-                        {d.day_number}
+                        <span className="text-[11px] sm:text-xs font-bold leading-none">{d.day_number}</span>
+                        <span className="text-[8px] sm:text-[9px] font-mono leading-none opacity-70">{dateLabel}</span>
                       </div>
                     );
                   })}
