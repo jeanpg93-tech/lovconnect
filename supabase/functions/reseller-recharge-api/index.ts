@@ -24,6 +24,55 @@ async function sha256Hex(s: string) {
     .join("");
 }
 
+/**
+ * Enfileira um webhook de plano para a chave API que originou a assinatura.
+ * Padrão de eventos:
+ *   - plan.sold, plan.completed, plan.cancelled → enviados por padrão
+ *   - plan.delivery.completed → opt-in (precisa estar em webhook_events)
+ */
+async function enqueuePlanWebhook(
+  admin: any,
+  sub: any,
+  event: string,
+  extra: Record<string, unknown> = {},
+) {
+  try {
+    const apiKeyId = sub?.source === "api" ? sub?.source_reference_id : null;
+    if (!apiKeyId) return;
+    const { data: key } = await admin
+      .from("reseller_api_keys")
+      .select("id, webhook_url, webhook_events, is_active, revoked_at")
+      .eq("id", apiKeyId)
+      .maybeSingle();
+    if (!key || key.revoked_at || !key.is_active || !key.webhook_url) return;
+
+    const defaults = ["plan.sold", "plan.completed", "plan.cancelled"];
+    const list: string[] | null = Array.isArray(key.webhook_events) ? key.webhook_events : null;
+    if (list && list.length > 0) {
+      if (!list.includes(event)) return;
+    } else {
+      if (!defaults.includes(event)) return;
+    }
+
+    const payload = {
+      event,
+      subscription_id: sub.id,
+      reseller_id: sub.reseller_id,
+      occurred_at: new Date().toISOString(),
+      ...extra,
+    };
+    await admin.from("reseller_api_webhook_deliveries").insert({
+      api_key_id: key.id,
+      reseller_id: sub.reseller_id,
+      event,
+      target_url: key.webhook_url,
+      payload,
+    });
+  } catch (e) {
+    console.error("enqueuePlanWebhook failed", e);
+  }
+}
+
 async function callProvider(
   path: string,
   method: string,
