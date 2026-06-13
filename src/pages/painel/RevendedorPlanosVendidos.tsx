@@ -185,7 +185,7 @@ export default function RevendedorPlanosVendidos() {
   return (
     <div>
       <PageHeader
-        title="Vendas de Plano"
+        title="Vendas Plano 3k"
         description="Acompanhe todas as assinaturas de plano de recargas vendidas — manuais, via API ou pela loja."
       />
 
