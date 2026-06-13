@@ -195,7 +195,7 @@ echo $res["license_key"];`} />
         <Card className="p-5">
           <div className="flex items-center gap-2">
             <KeyRound className="h-5 w-5 text-primary" />
-            <h2 className="font-display text-lg font-semibold">Planos de Recarga (3.000 créditos)</h2>
+            <h2 className="font-display text-lg font-semibold">Plano 3K (3.000 créditos)</h2>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
             Endpoints dedicados para revendedores que vendem o <strong>plano de recarga</strong> (100 créditos/dia
