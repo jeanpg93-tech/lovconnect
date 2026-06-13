@@ -119,6 +119,43 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Webhook plan.cancelled (best-effort, apenas se origem foi API)
+    try {
+      if (sub.source === "api" && sub.source_reference_id) {
+        const { data: key } = await admin
+          .from("reseller_api_keys")
+          .select("id, webhook_url, webhook_events, is_active, revoked_at")
+          .eq("id", sub.source_reference_id)
+          .maybeSingle();
+        if (key && !key.revoked_at && key.is_active && key.webhook_url) {
+          const list: string[] | null = Array.isArray(key.webhook_events) ? key.webhook_events : null;
+          const allowed = (list && list.length > 0)
+            ? list.includes("plan.cancelled")
+            : true;
+          if (allowed) {
+            await admin.from("reseller_api_webhook_deliveries").insert({
+              api_key_id: key.id,
+              reseller_id: sub.reseller_id,
+              event: "plan.cancelled",
+              target_url: key.webhook_url,
+              payload: {
+                event: "plan.cancelled",
+                subscription_id: subscriptionId,
+                reseller_id: sub.reseller_id,
+                reason,
+                refund_cents: refundCents,
+                refundable_days: refundableCount,
+                duration_days: durationDays,
+                occurred_at: now,
+              },
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("plan.cancelled webhook enqueue failed", e);
+    }
+
     return json({
       ok: true,
       subscription_id: subscriptionId,
