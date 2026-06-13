@@ -27,6 +27,43 @@ Deno.serve(async (req) => {
     // e o gerente é quem decide manualmente se precisa cancelar/reembolsar.
     const cancelled: string[] = [];
 
+    // 1) AUTO-ENTREGA: marca como "delivered" toda entrega pendente cuja
+    //    data agendada (em BRT) já chegou e cuja hora atual (BRT) já passou
+    //    do delivery_hour da assinatura.
+    //    BRT = UTC-3 (sem horário de verão desde 2019).
+    const brtNow = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    const todayBRT = brtNow.toISOString().slice(0, 10);
+    const hourBRT = brtNow.getUTCHours();
+
+    const { data: pendingRows } = await db
+      .from("recharge_plan_deliveries")
+      .select(
+        "id, day_number, subscription_id, scheduled_date, reseller_recharge_plan_subscriptions!inner(status, delivery_hour)",
+      )
+      .eq("status", "pending")
+      .lte("scheduled_date", todayBRT)
+      .eq("reseller_recharge_plan_subscriptions.status", "active");
+
+    const autoDelivered: string[] = [];
+    for (const d of (pendingRows ?? []) as any[]) {
+      const sub = d.reseller_recharge_plan_subscriptions;
+      const deliveryHour = Number(sub?.delivery_hour ?? 21);
+      // Se for um dia anterior, entrega independente da hora atual.
+      // Se for hoje, só entrega quando hora BRT >= delivery_hour.
+      const isToday = d.scheduled_date === todayBRT;
+      if (isToday && hourBRT < deliveryHour) continue;
+      const { error } = await db
+        .from("recharge_plan_deliveries")
+        .update({
+          status: "delivered",
+          delivered_at: new Date().toISOString(),
+          notes: "Entrega automática",
+        })
+        .eq("id", d.id)
+        .eq("status", "pending");
+      if (!error) autoDelivered.push(d.id);
+    }
+
     // 2) Auto-completar: assinaturas active cujas TODAS entregas são delivered ou skipped.
     const { data: actives } = await db
       .from("reseller_recharge_plan_subscriptions")
@@ -67,6 +104,7 @@ Deno.serve(async (req) => {
     return json({
       ok: true,
       now: now.toISOString(),
+      auto_delivered_count: autoDelivered.length,
       cancelled_count: cancelled.length,
       completed_count: completed.length,
       expired_count: (expiredRows ?? []).length,
