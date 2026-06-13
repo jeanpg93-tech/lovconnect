@@ -49,7 +49,6 @@ export default function RevendedorPlanoPreco() {
   const [showStore, setShowStore] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [vendaOpen, setVendaOpen] = useState(false);
   const [featureEnabled, setFeatureEnabled] = useState<boolean>(true);
 
   const load = async () => {
@@ -127,8 +126,6 @@ export default function RevendedorPlanoPreco() {
   }, [cost, saleCents]);
 
   const canSave = !!plan;
-  const canSell =
-    !!price && !!price.sale_price_cents && !!plan?.bot_owner_email;
 
   const save = async () => {
     if (!plan || !resellerId) return;
