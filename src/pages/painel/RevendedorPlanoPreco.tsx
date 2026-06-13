@@ -261,16 +261,6 @@ export default function RevendedorPlanoPreco() {
         </div>
 
         <div className="flex justify-end">
-          <Button
-            variant="outline"
-            className="mr-2"
-            onClick={() => setVendaOpen(true)}
-            disabled={!canSell}
-            title={!canSell ? "Defina e ative o preço de venda primeiro" : ""}
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            Gerar venda
-          </Button>
           <Button onClick={save} disabled={!canSave || saving}>
             {saving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -281,23 +271,6 @@ export default function RevendedorPlanoPreco() {
           </Button>
         </div>
       </CardContent>
-      {plan && resellerId && price && price.sale_price_cents && (
-        <GerarVendaPlanoDialog
-          open={vendaOpen}
-          onOpenChange={setVendaOpen}
-          resellerId={resellerId}
-          plan={{
-            id: plan.id,
-            name: plan.name,
-            duration_days: plan.duration_days,
-            credits_per_day: plan.credits_per_day,
-            total_credits_cap: plan.total_credits_cap,
-            bot_owner_email: plan.bot_owner_email,
-          }}
-          cost_cents={plan.base_cost_cents}
-          sale_price_cents={price.sale_price_cents}
-        />
-      )}
     </Card>
   );
 }
