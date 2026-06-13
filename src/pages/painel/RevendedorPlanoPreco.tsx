@@ -5,9 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, CalendarClock, Sparkles, Store } from "lucide-react";
+import { Loader2, Save, CalendarClock, Store } from "lucide-react";
 import { toast } from "sonner";
-import GerarVendaPlanoDialog from "@/components/painel/planos/GerarVendaPlanoDialog";
 
 type RechargePlan = {
   id: string;
@@ -50,7 +49,6 @@ export default function RevendedorPlanoPreco() {
   const [showStore, setShowStore] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [vendaOpen, setVendaOpen] = useState(false);
   const [featureEnabled, setFeatureEnabled] = useState<boolean>(true);
 
   const load = async () => {
@@ -128,8 +126,6 @@ export default function RevendedorPlanoPreco() {
   }, [cost, saleCents]);
 
   const canSave = !!plan;
-  const canSell =
-    !!price && !!price.sale_price_cents && !!plan?.bot_owner_email;
 
   const save = async () => {
     if (!plan || !resellerId) return;
@@ -261,16 +257,6 @@ export default function RevendedorPlanoPreco() {
         </div>
 
         <div className="flex justify-end">
-          <Button
-            variant="outline"
-            className="mr-2"
-            onClick={() => setVendaOpen(true)}
-            disabled={!canSell}
-            title={!canSell ? "Defina e ative o preço de venda primeiro" : ""}
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            Gerar venda
-          </Button>
           <Button onClick={save} disabled={!canSave || saving}>
             {saving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -281,23 +267,6 @@ export default function RevendedorPlanoPreco() {
           </Button>
         </div>
       </CardContent>
-      {plan && resellerId && price && price.sale_price_cents && (
-        <GerarVendaPlanoDialog
-          open={vendaOpen}
-          onOpenChange={setVendaOpen}
-          resellerId={resellerId}
-          plan={{
-            id: plan.id,
-            name: plan.name,
-            duration_days: plan.duration_days,
-            credits_per_day: plan.credits_per_day,
-            total_credits_cap: plan.total_credits_cap,
-            bot_owner_email: plan.bot_owner_email,
-          }}
-          cost_cents={plan.base_cost_cents}
-          sale_price_cents={price.sale_price_cents}
-        />
-      )}
     </Card>
   );
 }
