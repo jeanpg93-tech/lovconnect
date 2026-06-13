@@ -450,6 +450,191 @@ curl -X POST "${BASE_URL}/pedidos/UUID_DO_PEDIDO/reembolso" \\
 }`}
       />
 
+      {/* ==================== PLANO 3K ==================== */}
+      <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+        <h3 className="font-display text-base font-semibold flex items-center gap-2">
+          <Zap className="h-4 w-4 text-primary" /> Plano 3K (assinatura de recarga)
+        </h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Endpoints para vender o <strong>Plano 3K</strong> (assinatura que entrega recargas
+          diariamente por X dias). O fluxo gera um <strong>link de checkout</strong> único
+          (<code className="font-mono">linkCliente</code>) que o seu cliente abre para confirmar
+          os dados e iniciar a entrega. O custo é debitado do seu saldo no momento da venda.
+        </p>
+      </div>
+
+      <DocBlock
+        title="GET /planos/catalogo — Catálogo de planos disponíveis"
+        body={`# Lista todos os planos ativos com SEU preço de venda configurado.
+# Use para popular sua loja/checkout antes de criar uma venda.
+
+curl -X GET "${BASE_URL}/planos/catalogo" \\
+  -H "X-API-Key: SUA_API_KEY"
+
+# Resposta
+{
+  "success": true,
+  "data": {
+    "planos": [
+      {
+        "planoId": "uuid-do-plano",
+        "nome": "Plano 3K Créditos",
+        "descricao": "...",
+        "duracaoDias": 30,
+        "creditosPorDia": 100,
+        "capTotal": 3000,
+        "horarioEntregaBRT": 9,
+        "custoCentavos": 12000,
+        "precoVendaCentavos": 19900,
+        "disponivel": true
+      }
+    ]
+  }
+}
+
+# disponivel = true somente quando você definiu sale_price_cents > 0
+# em /painel/revendedor/plano-precos e ativou o plano.`}
+      />
+
+      <DocBlock
+        title="POST /planos — Gerar venda (debita custo do saldo)"
+        body={`# Cria a assinatura, debita o custo do seu saldo e devolve o
+# link de checkout que você envia para o cliente.
+
+curl -X POST "${BASE_URL}/planos" \\
+  -H "X-API-Key: SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -H "x-app-origin: https://sualoja.com.br" \\
+  -d '{
+    "planoId": "uuid-do-plano",
+    "cliente": {
+      "nome": "João da Silva",
+      "whatsapp": "+5511999998888"
+    },
+    "notas": "Venda realizada via site da loja"
+  }'
+
+# Body
+#   planoId*           string  UUID retornado em /planos/catalogo
+#   cliente.nome*      string  2-120 caracteres
+#   cliente.whatsapp   string  Opcional, até 32 caracteres
+#   notas              string  Opcional, até 500 caracteres
+
+# Header opcional
+#   x-app-origin       Domínio que será usado para montar o linkCliente
+#                      (ex.: https://sualoja.com.br). Se omitido, é usado
+#                      o domínio padrão da API.
+
+# Resposta
+{
+  "success": true,
+  "data": {
+    "assinaturaId": "uuid-da-assinatura",
+    "token": "token-de-32-chars",
+    "status": "awaiting_owner",
+    "linkCliente": "https://sualoja.com.br/plano/TOKEN",
+    "custoCentavos": 12000,
+    "precoVendaCentavos": 19900,
+    "novoSaldoCentavos": 50000,
+    "novoSaldoReais": "500.00"
+  }
+}
+
+# Fluxo recomendado para integrar no site:
+#   1. Cliente escolhe o Plano 3K na sua loja e paga você (Pix, cartão etc).
+#   2. Após confirmar o pagamento, seu backend chama POST /planos.
+#   3. Redirecione o cliente para o linkCliente — ele preenche o email
+#      Lovable e o bot inicia as entregas diárias automaticamente.`}
+      />
+
+      <DocBlock
+        title="GET /planos — Listar assinaturas (paginado)"
+        body={`curl -X GET "${BASE_URL}/planos?limit=50&offset=0" \\
+  -H "X-API-Key: SUA_API_KEY"
+
+# Query params
+#   limit   number   Padrão 50, máximo 200
+#   offset  number   Padrão 0
+#   status  string   awaiting_owner | awaiting_confirm | active |
+#                    completed | cancelled | failed
+
+# Resposta resumida — use GET /planos/{token} para detalhes + entregas.`}
+      />
+
+      <DocBlock
+        title="GET /planos/{token} — Detalhes da assinatura + entregas"
+        body={`curl -X GET "${BASE_URL}/planos/TOKEN_DE_32_CHARS" \\
+  -H "X-API-Key: SUA_API_KEY"
+
+# Resposta
+{
+  "success": true,
+  "data": {
+    "assinaturaId": "uuid",
+    "token": "...",
+    "status": "active",
+    "cliente": { "nome": "João", "whatsapp": "+5511..." },
+    "workspaceName": "Meu Workspace",
+    "emailBotOwner": "bot-xyz@lovable.dev",
+    "inicio": "2026-06-13T12:00:00Z",
+    "fim": "2026-07-13T12:00:00Z",
+    "duracaoDias": 30,
+    "creditosPorDia": 100,
+    "custoCentavos": 12000,
+    "precoVendaCentavos": 19900,
+    "entregas": [
+      { "dia": 1, "dataAgendada": "2026-06-13", "creditos": 100,
+        "status": "delivered", "entregueEm": "2026-06-13T09:02:11Z" }
+    ]
+  }
+}`}
+      />
+
+      <DocBlock
+        title="POST /planos/{token}/cancelar — Cancelar antes do início"
+        body={`# Só funciona enquanto o cliente AINDA NÃO confirmou o início
+# (status awaiting_owner ou awaiting_confirm). O custo debitado é
+# integralmente estornado para o seu saldo.
+
+curl -X POST "${BASE_URL}/planos/TOKEN_DE_32_CHARS/cancelar" \\
+  -H "X-API-Key: SUA_API_KEY"
+
+# Resposta
+{
+  "success": true,
+  "data": { "cancelado": true }
+}`}
+      />
+
+      <DocBlock
+        title="Webhooks de Plano 3K (opcional)"
+        body={`# Se sua API key tiver webhook_url configurado, eventos do Plano 3K
+# são enviados automaticamente. Eventos padrão:
+#   plan.sold       → venda criada com sucesso
+#   plan.completed  → todas as entregas foram concluídas
+#   plan.cancelled  → assinatura cancelada (manual ou falha)
+#
+# Opt-in (precisa estar listado em webhook_events da key):
+#   plan.delivery.completed → cada entrega diária concluída
+
+# Payload exemplo (plan.sold)
+{
+  "event": "plan.sold",
+  "subscription_id": "uuid",
+  "reseller_id": "uuid",
+  "occurred_at": "2026-06-13T12:00:00Z",
+  "plan_id": "uuid",
+  "plan_name": "Plano 3K Créditos",
+  "customer": { "name": "João", "whatsapp": "+5511..." },
+  "duration_days": 30,
+  "credits_per_day": 100,
+  "total_credits": 3000,
+  "cost_cents": 12000,
+  "sale_price_cents": 19900,
+  "order_token": "token-32-chars"
+}`}
+      />
+
       {/* STATUS */}
       <div className="rounded-xl border border-border bg-card/60 p-4 text-xs leading-relaxed">
         <h4 className="text-sm font-semibold">Estados (status) de um pedido</h4>
