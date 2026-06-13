@@ -36,7 +36,7 @@ export default function RevendedorPrecos() {
             <Zap className="h-3.5 w-3.5" /> Recargas
           </TabsTrigger>
           <TabsTrigger value="plano" className="gap-1.5">
-            <CalendarClock className="h-3.5 w-3.5" /> Plano
+            <CalendarClock className="h-3.5 w-3.5" /> Plano 3K
           </TabsTrigger>
         </TabsList>
 
