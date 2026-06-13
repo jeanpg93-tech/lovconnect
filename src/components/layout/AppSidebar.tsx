@@ -125,7 +125,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
     ]},
     { label: "Minhas vendas", items: [
       { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
-      { title: "Planos", url: "/painel/revendedor/planos-vendidos", icon: CalendarClock },
+      { title: "Plano 3K", url: "/painel/revendedor/planos-vendidos", icon: CalendarClock },
       { title: "Licenças", url: "/painel/revendedor/licencas", icon: Puzzle },
     ]},
     { label: "Configurarações", items: [
