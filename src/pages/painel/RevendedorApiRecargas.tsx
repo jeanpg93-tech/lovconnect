@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   KeyRound, Copy, BookOpen, Shield, Zap, AlertTriangle, ArrowRight,
-  Eye, EyeOff, RefreshCw, Terminal, GitBranch, Code2, CircleAlert,
+  RefreshCw, Terminal, GitBranch, Code2, CircleAlert,
   Loader2, CheckCircle2, Webhook, Send, History, Save, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -94,7 +94,6 @@ function ApiKeyCard({
   const { user } = useAuth();
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [keyRow, setKeyRow] = useState<{ id: string; key_prefix: string; is_active: boolean } | null>(null);
-  const [reveal, setReveal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
@@ -152,10 +151,7 @@ function ApiKeyCard({
     }
   };
 
-  const masked = "•".repeat(56);
-  const display = reveal && keyRow
-    ? `${keyRow.key_prefix}${"•".repeat(48)}`
-    : masked;
+  const display = keyRow ? `${keyRow.key_prefix}…` : "Nenhuma chave ativa — clique em Gerar chave";
 
   return (
     <>
@@ -205,21 +201,14 @@ function ApiKeyCard({
 
           <div className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-background/60 px-3 py-2.5">
             <code className="flex-1 truncate font-mono text-xs">
-              {loading ? "Carregando…" : keyRow ? display : "Nenhuma chave ativa — clique em Gerar chave"}
+              {loading ? "Carregando…" : display}
             </code>
-            {keyRow && (
-              <>
-                <Button size="sm" variant="ghost" onClick={() => setReveal((v) => !v)} className="h-7 w-7 p-0">
-                  {reveal ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                </Button>
-              </>
-            )}
           </div>
 
           <p className="mt-3 flex items-start gap-2 text-[11px] text-muted-foreground">
             <Shield className="mt-0.5 h-3 w-3 shrink-0 text-amber-500" />
-            Mantenha sua API key em segredo. Nunca a compartilhe ou exponha em código público.
-            A chave completa só é exibida uma vez na criação.
+            Este é apenas o prefixo da chave ativa. A chave completa só aparece uma vez ao gerar/resetar;
+            se você não copiou naquele momento, clique em “Resetar chave” e use a nova chave completa.
           </p>
         </div>
       </Card>
