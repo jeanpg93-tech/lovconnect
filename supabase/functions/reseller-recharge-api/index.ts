@@ -24,6 +24,15 @@ async function sha256Hex(s: string) {
     .join("");
 }
 
+function normalizeApiKey(raw: string) {
+  return raw
+    .trim()
+    .replace(/^Bearer\s+/i, "")
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .trim();
+}
+
 /**
  * Enfileira um webhook de plano para a chave API que originou a assinatura.
  * Padrão de eventos:
@@ -101,7 +110,8 @@ Deno.serve(async (req) => {
 
   try {
     // ---------- Auth: X-API-Key ----------
-    const apiKey = req.headers.get("x-api-key") ?? req.headers.get("X-API-Key");
+    const rawApiKey = req.headers.get("x-api-key") ?? req.headers.get("X-API-Key");
+    const apiKey = rawApiKey ? normalizeApiKey(rawApiKey) : "";
     if (!apiKey) {
       return errResp(401, "MISSING_API_KEY", "Header X-API-Key não fornecido");
     }
@@ -119,6 +129,10 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!keyRow || !keyRow.is_active) {
+      console.warn("[reseller-recharge-api] INVALID_API_KEY", {
+        prefix: apiKey.slice(0, 12),
+        length: apiKey.length,
+      });
       return errResp(401, "INVALID_API_KEY", "API key inválida ou inexistente");
     }
     if (keyRow.scope && keyRow.scope !== "recharges") {
