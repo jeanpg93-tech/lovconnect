@@ -1411,7 +1411,7 @@ export default function RevendedorApiRecargas() {
             <Code2 className="h-3.5 w-3.5" /> Exemplos
           </TabsTrigger>
           <TabsTrigger value="implantar" className="gap-1.5">
-            <Rocket className="h-3.5 w-3.5" /> Implantar no site
+            <Rocket className="h-3.5 w-3.5" /> Prompt para Implantar API
           </TabsTrigger>
         </TabsList>
 
