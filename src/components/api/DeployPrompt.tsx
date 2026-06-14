@@ -12,6 +12,15 @@ function buildPrompt(baseUrl: string) {
 
 Você é um engenheiro sênior. Implemente a integração abaixo no projeto **sem remover, renomear ou quebrar nenhuma rota, página, tabela, função ou componente existente**. Apenas **adicione** o que for necessário. Mantenha o estilo visual atual (design tokens, sidebar, layout).
 
+## ⚠️ Regra de ouro — fonte única da verdade
+**Toda a lógica de saldo, preços, níveis, tipos de licença, geração de chave e histórico DEVE vir da API do fornecedor descrita abaixo.** É proibido:
+- Inventar tipos de licença, preços ou descontos locais (sempre buscar via \`GET /pricing\`).
+- Recriar o gerador de licenças, a engine de débito de saldo ou o cálculo de nível no banco da loja.
+- Hardcodar valores (preço, saldo, expiração) — sempre buscar via API no momento do uso.
+- Criar tabelas que dupliquem dados do fornecedor; se persistir algo, salve **apenas referências** (\`order_id\`, \`license_key\`, \`cost_cents\` em cache) e refaça \`GET /usage\` para a fonte autoritativa.
+
+Em resumo: o painel do cliente é uma **UI + proxy seguro**. Toda decisão de negócio é delegada à API do fornecedor.
+
 ## 🎯 Objetivo
 Integrar a API de licenças do meu provedor para que meu painel possa:
 1. Consultar meu saldo e nível.
