@@ -194,6 +194,21 @@ export const DeployRechargePrompt = () => {
 
   return (
     <div className="grid gap-6">
+      <Card className="border-primary/30 bg-primary/5 p-5">
+        <div className="flex items-start gap-3">
+          <Rocket className="mt-0.5 h-5 w-5 text-primary shrink-0" />
+          <div>
+            <h2 className="font-display text-base font-semibold">Para que serve este prompt</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Este prompt é para você implantar a <strong>API do Plano 3K (Recargas)</strong> no
+              seu próprio <strong>site, sistema ou loja</strong>. Basta colar em qualquer
+              assistente de código (Lovable, ChatGPT, Claude, Cursor, Base44, Codex, etc.) e ele
+              gera toda a vitrine + checkout — sem alterar nada do que já existe no seu projeto.
+            </p>
+          </div>
+        </div>
+      </Card>
+
       <Card className="p-5">
         <div className="flex items-center gap-2">
           <Lightbulb className="h-5 w-5 text-primary" />
