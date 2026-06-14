@@ -1410,6 +1410,9 @@ export default function RevendedorApiRecargas() {
           <TabsTrigger value="exemplos" className="gap-1.5">
             <Code2 className="h-3.5 w-3.5" /> Exemplos
           </TabsTrigger>
+          <TabsTrigger value="implantar" className="gap-1.5">
+            <Rocket className="h-3.5 w-3.5" /> Implantar no site
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="inicio"><TabInicio /></TabsContent>
