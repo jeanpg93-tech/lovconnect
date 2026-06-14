@@ -36,6 +36,8 @@ Integrar a API de planos de recarga (Plano 3K) do provedor para que a loja/site 
 - **Base URL:** \`${baseUrl}\`
 - **Autenticação:** header \`X-API-Key: <MINHA_CHAVE>\` em **todas** as requisições.
 - A chave deve ser armazenada como **segredo do backend** (nunca exposta no frontend). Crie o secret \`LOVMAIN_RECHARGE_API_KEY\` e peça ao usuário para preenchê-lo.
+- Use a chave da aba **API Automática / Plano 3K**. Não use a chave da **API Manual** nem chaves do painel principal de créditos/licenças.
+- Ao salvar o secret, remova espaços, aspas e quebras de linha. A chave completa começa com \`lov_live_\` e só aparece uma vez quando é gerada/resetada.
 - **Importante:** antes de vender, o revendedor deve configurar o preço de venda em \`/painel/revendedor/plano-precos\`.
 
 ## 📚 Endpoints disponíveis
@@ -136,7 +138,8 @@ Disparados automaticamente quando a chave tem \`webhook_url\` configurado.
 ### 1. Backend (edge function ou servidor)
 Crie uma edge function **\`lovmain-recharge-proxy\`** (em projetos com Supabase: \`supabase/functions/lovmain-recharge-proxy/index.ts\`) que:
 - Aceite \`GET /planos/catalogo\`, \`POST /planos\`, \`GET /planos\`, \`GET /planos/:token\` e \`POST /planos/:token/cancelar\`.
-- Leia a chave com \`Deno.env.get("LOVMAIN_RECHARGE_API_KEY")\` e injete no header \`X-API-Key\` ao chamar \`${baseUrl}\`.
+- Leia a chave com \`Deno.env.get("LOVMAIN_RECHARGE_API_KEY")\`, aplique \`.trim()\` e injete no header \`X-API-Key\` ao chamar \`${baseUrl}\`.
+- Se receber \`401 INVALID_API_KEY\`, retorne essa mensagem: "A chave salva em LOVMAIN_RECHARGE_API_KEY não confere com a chave ativa da API Automática / Plano 3K. Resete a chave no fornecedor, copie a chave completa no momento em que aparecer e atualize o secret sem espaços/aspas.".
 - Encaminhe o \`x-app-origin\` recebido (ou use \`req.headers.get("origin")\`) para o upstream.
 - Retorne o JSON do upstream com o mesmo \`status\` HTTP.
 - Implemente **CORS** com \`Access-Control-Allow-Origin: *\` e responda \`OPTIONS\`.
@@ -218,8 +221,8 @@ export const DeployRechargePrompt = () => {
         </div>
         <ol className="mt-3 space-y-2 text-sm text-muted-foreground list-decimal pl-5">
           <li>
-            Crie (ou abra) sua chave de API na aba <strong>Chaves &amp; uso</strong> e copie o valor —
-            ela só é exibida uma vez.
+            Crie ou resete a chave na aba <strong>API Automática / Plano 3K</strong> e copie o valor completo —
+            ela só é exibida uma vez. Não use a chave da API Manual.
           </li>
           <li>
             Abra o painel do <strong>cliente</strong> (no Lovable, ChatGPT, Claude, Cursor, etc.) e
