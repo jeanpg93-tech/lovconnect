@@ -15,6 +15,15 @@ Você é um engenheiro sênior. Implemente a integração abaixo no projeto do c
 ## 🧰 Stack alvo
 Este prompt assume um projeto padrão **React + Vite + TypeScript + Tailwind + shadcn/ui** no frontend e **Edge Functions (Deno/Supabase)** no backend. Se o projeto usar outra stack (Next.js, Nuxt, Laravel, Node/Express, etc.), **adapte os caminhos e o runtime do proxy** mantendo a mesma arquitetura (frontend → proxy backend com a chave em segredo → API do provedor).
 
+## ⚠️ Regra de ouro — fonte única da verdade
+**Toda a lógica de planos, preços, status, cliente, datas e entregas DEVE ser obtida da API do fornecedor descrita abaixo.** É proibido:
+- Inventar planos, preços ou regras de negócio locais.
+- Recriar a engine de entrega diária, cálculo de cap, geração de token ou status no banco da loja.
+- Usar valores hardcoded (preço, duração, créditos/dia) — sempre buscar via \`GET /planos/catalogo\`.
+- Criar tabelas que duplicam dados que já existem no fornecedor; se precisar persistir algo, salve **apenas referências** (\`assinaturaId\`, \`token\`, \`status\` em cache) e refaça \`GET /planos/:token\` para a fonte autoritativa.
+
+Em resumo: a loja é uma **vitrine + checkout**. Toda decisão de negócio é delegada à API do fornecedor.
+
 ## 🎯 Objetivo
 Integrar a API de planos de recarga (Plano 3K) do provedor para que a loja/site do cliente possa:
 1. Listar os planos disponíveis com preço de venda configurado.
