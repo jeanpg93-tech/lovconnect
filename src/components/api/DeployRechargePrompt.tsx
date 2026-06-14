@@ -13,7 +13,7 @@ function buildPrompt(baseUrl: string) {
 Você é um engenheiro sênior. Implemente a integração abaixo no projeto do cliente **sem remover, renomear ou quebrar nenhuma rota, página, tabela, função ou componente existente**. Apenas **adicione** o que for necessário. Mantenha o estilo visual atual (design tokens, sidebar, layout).
 
 ## 🧰 Stack alvo
-Este prompt foi escrito para projetos no padrão **Lovable / React 18 + Vite + TypeScript + Tailwind + shadcn/ui + Supabase (Edge Functions)**. Se o projeto usar outra stack (Next.js, Nuxt, Laravel, Node/Express, etc.), **adapte os caminhos e o runtime do proxy** mantendo a mesma arquitetura (frontend → proxy backend com a chave em segredo → API do provedor).
+Este prompt assume um projeto padrão **React + Vite + TypeScript + Tailwind + shadcn/ui** no frontend e **Edge Functions (Deno/Supabase)** no backend. Se o projeto usar outra stack (Next.js, Nuxt, Laravel, Node/Express, etc.), **adapte os caminhos e o runtime do proxy** mantendo a mesma arquitetura (frontend → proxy backend com a chave em segredo → API do provedor).
 
 ## 🎯 Objetivo
 Integrar a API de planos de recarga (Plano 3K) do provedor para que a loja/site do cliente possa:
@@ -125,7 +125,7 @@ Disparados automaticamente quando a chave tem \`webhook_url\` configurado.
 ## 🧱 O que adicionar no projeto (sem remover nada do que já existe)
 
 ### 1. Backend (edge function ou servidor)
-Em projetos Lovable/Supabase, crie a edge function **\`supabase/functions/lovmain-recharge-proxy/index.ts\`** que:
+Crie uma edge function **\`lovmain-recharge-proxy\`** (em projetos com Supabase: \`supabase/functions/lovmain-recharge-proxy/index.ts\`) que:
 - Aceite \`GET /planos/catalogo\`, \`POST /planos\`, \`GET /planos\`, \`GET /planos/:token\` e \`POST /planos/:token/cancelar\`.
 - Leia a chave com \`Deno.env.get("LOVMAIN_RECHARGE_API_KEY")\` e injete no header \`X-API-Key\` ao chamar \`${baseUrl}\`.
 - Encaminhe o \`x-app-origin\` recebido (ou use \`req.headers.get("origin")\`) para o upstream.
@@ -139,7 +139,7 @@ Em outras stacks, crie a rota equivalente (ex.: \`/api/plano-3k/*\`) seguindo a 
 Crie \`src/integrations/lovmain-recharge/client.ts\` com funções: \`getCatalogo()\`, \`criarVenda(input)\`, \`listarAssinaturas(params)\`, \`getAssinatura(token)\`, \`cancelarAssinatura(token)\`. Todas chamando a edge function \`lovmain-recharge-proxy\` via \`supabase.functions.invoke\` (ou \`fetch\` para a URL da function). Nunca chame o upstream direto.
 
 ### 3. Página/Componente "Plano 3K" na loja
-- Crie \`src/pages/Plano3K.tsx\` (ou similar) e registre a rota em \`src/App.tsx\` **sem remover rotas existentes**.
+- Crie a página (ex.: \`src/pages/Plano3K.tsx\`) e registre a rota no roteador do projeto **sem remover rotas existentes**.
 - Consulte \`getCatalogo()\` e exiba o plano disponível (nome, duração, créditos/dia, cap total, preço de venda).
 - Botão "Comprar" que leva o cliente final ao checkout do site (Pix, cartão, etc.) — **isso é responsabilidade da loja do revendedor**.
 - Após confirmar o pagamento na loja, o backend chama \`criarVenda()\` e recebe o \`linkCliente\`.
