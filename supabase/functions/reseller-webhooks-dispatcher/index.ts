@@ -29,9 +29,18 @@ async function hmacSha256Hex(secret: string, message: string) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "method_not_allowed" }), {
+      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  if (req.headers.get("Authorization") !== `Bearer ${SERVICE_ROLE}`) {
+  const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const auth = req.headers.get("Authorization") ?? "";
+  const apikey = req.headers.get("apikey") ?? "";
+  const authorized = auth === `Bearer ${SERVICE_ROLE}` || auth === `Bearer ${ANON_KEY}` || apikey === ANON_KEY;
+  if (!authorized) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

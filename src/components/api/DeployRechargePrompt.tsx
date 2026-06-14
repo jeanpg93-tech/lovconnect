@@ -167,6 +167,8 @@ Crie a edge function pública \`lovmain-recharge-webhook\` (ou rota \`/webhooks/
 - Recebe POST do payload acima.
 - Valide a assinatura HMAC \`X-Webhook-Signature\` usando o secret configurado no painel.
 - Atualize o status da assinatura no banco da loja (ex: marcando como "ativa", "concluída" ou "cancelada"). Em Supabase, crie a tabela com **RLS habilitada** e \`GRANT\`s adequados.
+- Depois de publicar/deployar essa função, copie a **URL pública do receiver** e cadastre no painel do fornecedor em **API Recargas → Webhooks**.
+- Não use a Base URL da API como webhook. O webhook precisa apontar para o endpoint do sistema do revendedor, exemplo: \`https://ID-DO-PROJETO.supabase.co/functions/v1/lovmain-recharge-webhook\`.
 
 ## ✅ Critérios de aceite
 - Build passa sem erros e sem warnings novos.
@@ -228,8 +230,8 @@ export const DeployRechargePrompt = () => {
             (nunca no frontend).
           </li>
           <li>
-            Opcional: configure também o <strong>webhook</strong> apontando para o endpoint que
-            o prompt cria, para receber eventos em tempo real.
+            Opcional: depois que a IA criar/publicar o receiver, copie a <strong>URL pública do webhook</strong>
+            gerada no sistema do cliente e cole na aba Webhooks daqui. Não use a Base URL da API.
           </li>
           <li>
             Pronto — a loja do cliente terá o Plano 3K integrado, sem alterar nada do
