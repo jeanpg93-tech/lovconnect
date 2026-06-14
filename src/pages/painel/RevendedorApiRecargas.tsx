@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   KeyRound, Copy, BookOpen, Shield, Zap, AlertTriangle, ArrowRight,
   Eye, EyeOff, RefreshCw, Terminal, GitBranch, Code2, CircleAlert,
-  Loader2, CheckCircle2, Webhook, Send, History, Save,
+  Loader2, CheckCircle2, Webhook, Send, History, Save, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
