@@ -1421,6 +1421,7 @@ export default function RevendedorApiRecargas() {
         <TabsContent value="fluxo"><TabFluxoProprio /></TabsContent>
         <TabsContent value="webhooks"><TabWebhooks /></TabsContent>
         <TabsContent value="exemplos"><TabExemplos /></TabsContent>
+        <TabsContent value="implantar"><DeployRechargePrompt /></TabsContent>
       </Tabs>
 
       {/* Hidden mirror used by "Copiar documentação completa" para coletar
