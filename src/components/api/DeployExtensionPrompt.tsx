@@ -15,6 +15,15 @@ Você é um engenheiro sênior. Implemente a integração abaixo no projeto **se
 ## 🧰 Stack alvo
 Este prompt assume um projeto padrão **React + Vite + TypeScript + Tailwind + shadcn/ui** no frontend e **Edge Functions (Deno/Supabase)** no backend. Se o projeto usar outra stack (Next.js, Nuxt, Laravel, Node/Express, etc.), **adapte os caminhos e o runtime do proxy** mantendo a mesma arquitetura (frontend → proxy backend → API do provedor).
 
+## ⚠️ Regra de ouro — fonte única da verdade
+**O arquivo .zip da extensão, o nome real, a versão e o tamanho DEVEM vir SEMPRE da API do fornecedor.** É proibido:
+- Hospedar o .zip da extensão no próprio servidor/CDN da loja.
+- Hardcodar versão, tamanho ou link de download — sempre chamar \`GET ?slug=<slug>\` no momento do clique.
+- Armazenar ou reutilizar o \`download_url\` retornado (ele é assinado e expira em ~10 min).
+- Inventar metadados (changelog, descrição definitiva) sem buscar do fornecedor.
+
+A loja é apenas uma **vitrine + disparador de download**. Toda atualização de versão é automática porque vem do fornecedor.
+
 ## 🎯 Objetivo
 Permitir que o site/painel do cliente:
 1. Liste as extensões disponíveis do provedor (nome, versão, descrição, changelog, tamanho).
