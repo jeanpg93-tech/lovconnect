@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { DeployRechargePrompt } from "@/components/api/DeployRechargePrompt";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import CopyAllDocsButton from "@/components/api/CopyAllDocsButton";
 import { Button } from "@/components/ui/button";
