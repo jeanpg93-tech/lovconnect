@@ -22,6 +22,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
 const ALL_EVENTS = [
+  "plan.sold",
+  "plan.completed",
+  "plan.cancelled",
+  "plan.delivery.completed",
   "order.completed",
   "order.failed",
   "order.refunded",
@@ -747,9 +751,13 @@ function WebhookConfigCard({
             <Input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://meusistema.com/webhooks/lovmain"
+              placeholder="https://meusistema.com/webhooks/plano-3k"
               className="mt-1 font-mono text-xs"
             />
+            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+              Cole aqui a <strong>URL pública do receiver criado no sistema/loja do revendedor</strong>, não a Base URL da API.
+              Em um projeto Lovable/Supabase normalmente fica assim: <code className="font-mono">https://ID-DO-PROJETO.supabase.co/functions/v1/lovmain-recharge-webhook</code>.
+            </p>
           </div>
 
           <div>
@@ -833,7 +841,7 @@ function TabWebhooks() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
-        <WebhookConfigCard scope="recharges" title="Webhook — API Automática" accent="primary" />
+        <WebhookConfigCard scope="recharges" title="Webhook — API Automática / Plano 3K" accent="primary" />
         <WebhookConfigCard scope="recharges_manual" title="Webhook — API Manual" accent="amber" />
       </div>
 
@@ -881,6 +889,10 @@ def hook():
         <table className="w-full text-xs">
           <tbody className="divide-y divide-border">
             {[
+              ["plan.sold", "Plano 3K vendido/criado pela API"],
+              ["plan.completed", "Plano 3K concluído ao final das entregas"],
+              ["plan.cancelled", "Plano 3K cancelado/estornado"],
+              ["plan.delivery.completed", "Entrega diária do Plano 3K concluída (opcional)"],
               ["order.completed", "Pedido (automático ou manual) entrou em status sucesso"],
               ["order.failed", "Pedido entrou em falha ou erro"],
               ["order.refunded", "Pedido cancelado/estornado com reembolso no saldo"],
