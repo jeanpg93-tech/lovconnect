@@ -110,7 +110,9 @@ function mapTypeToProviderBody(type: string): Record<string, unknown> {
     case "pro_7d": return { days: 7 };
     case "pro_15d": return { days: 15 };
     case "pro_30d": return { days: 30 };
-    case "lifetime": return { lifetime: true };
+    // Vitalício no Lovax = 36500 dias (~100 anos). O Lovax não entende `lifetime: true`,
+    // só aceita `days`. Sem isso, o fallback abaixo entregaria 30 dias para vitalício.
+    case "lifetime": return { days: 36500, lifetime: true };
     default: return { days: 30 };
   }
 }
