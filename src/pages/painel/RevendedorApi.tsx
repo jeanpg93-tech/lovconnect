@@ -12,13 +12,12 @@ import {
 import {
   KeyRound, Copy, Shield, Zap, AlertTriangle, Terminal, Code2,
   Loader2, CheckCircle2, CircleAlert, Plus, Trash2, Webhook, Activity,
-  BookOpen, ArrowRight, Rocket, Puzzle,
+  BookOpen, ArrowRight, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { DeployPrompt } from "@/components/api/DeployPrompt";
-import { DeployExtensionPrompt } from "@/components/api/DeployExtensionPrompt";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/reseller-api`;
@@ -679,8 +678,7 @@ export default function RevendedorApi() {
           <TabsTrigger value="erros"><AlertTriangle className="mr-1.5 h-3.5 w-3.5" /> Erros</TabsTrigger>
           <TabsTrigger value="exemplos"><BookOpen className="mr-1.5 h-3.5 w-3.5" /> Exemplos</TabsTrigger>
           <TabsTrigger value="historico"><Activity className="mr-1.5 h-3.5 w-3.5" /> Histórico</TabsTrigger>
-          <TabsTrigger value="implantar"><Rocket className="mr-1.5 h-3.5 w-3.5" /> Implantar</TabsTrigger>
-          <TabsTrigger value="extensoes"><Puzzle className="mr-1.5 h-3.5 w-3.5" /> Implantar Extensão</TabsTrigger>
+          <TabsTrigger value="implantar"><Rocket className="mr-1.5 h-3.5 w-3.5" /> Prompt para Implantar API</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inicio"><TabInicio /></TabsContent>
@@ -689,7 +687,6 @@ export default function RevendedorApi() {
         <TabsContent value="exemplos"><TabExemplos /></TabsContent>
         <TabsContent value="historico"><TabHistorico usage={usage} /></TabsContent>
         <TabsContent value="implantar"><DeployPrompt /></TabsContent>
-        <TabsContent value="extensoes"><DeployExtensionPrompt /></TabsContent>
       </Tabs>
 
       {/* Espelho oculto usado pelo "Copiar documentação completa" para
