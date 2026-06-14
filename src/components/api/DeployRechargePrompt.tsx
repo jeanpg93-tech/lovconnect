@@ -12,6 +12,9 @@ function buildPrompt(baseUrl: string) {
 
 Você é um engenheiro sênior. Implemente a integração abaixo no projeto do cliente **sem remover, renomear ou quebrar nenhuma rota, página, tabela, função ou componente existente**. Apenas **adicione** o que for necessário. Mantenha o estilo visual atual (design tokens, sidebar, layout).
 
+## 🧰 Stack alvo
+Este prompt foi escrito para projetos no padrão **Lovable / React 18 + Vite + TypeScript + Tailwind + shadcn/ui + Supabase (Edge Functions)**. Se o projeto usar outra stack (Next.js, Nuxt, Laravel, Node/Express, etc.), **adapte os caminhos e o runtime do proxy** mantendo a mesma arquitetura (frontend → proxy backend com a chave em segredo → API do provedor).
+
 ## 🎯 Objetivo
 Integrar a API de planos de recarga (Plano 3K) do provedor para que a loja/site do cliente possa:
 1. Listar os planos disponíveis com preço de venda configurado.
@@ -122,29 +125,39 @@ Disparados automaticamente quando a chave tem \`webhook_url\` configurado.
 ## 🧱 O que adicionar no projeto (sem remover nada do que já existe)
 
 ### 1. Backend (edge function ou servidor)
-Crie uma rota/proxy no backend que:
-- Aceite \`GET /planos/catalogo\` (proxy para o upstream).
-- Aceite \`POST /planos\` (proxy para o upstream, injetando \`X-API-Key\` a partir do segredo \`LOVMAIN_RECHARGE_API_KEY\`).
-- Aceite \`GET /planos\` e \`GET /planos/:token\` (proxy).
-- Aceite \`POST /planos/:token/cancelar\` (proxy).
-- Implemente CORS liberado para o domínio do app.
-- **Nunca exponha a chave no frontend.**
+Em projetos Lovable/Supabase, crie a edge function **\`supabase/functions/lovmain-recharge-proxy/index.ts\`** que:
+- Aceite \`GET /planos/catalogo\`, \`POST /planos\`, \`GET /planos\`, \`GET /planos/:token\` e \`POST /planos/:token/cancelar\`.
+- Leia a chave com \`Deno.env.get("LOVMAIN_RECHARGE_API_KEY")\` e injete no header \`X-API-Key\` ao chamar \`${baseUrl}\`.
+- Encaminhe o \`x-app-origin\` recebido (ou use \`req.headers.get("origin")\`) para o upstream.
+- Retorne o JSON do upstream com o mesmo \`status\` HTTP.
+- Implemente **CORS** com \`Access-Control-Allow-Origin: *\` e responda \`OPTIONS\`.
+- **Nunca exponha a chave no frontend.** Cadastre o segredo \`LOVMAIN_RECHARGE_API_KEY\` no painel de secrets do backend.
 
-### 2. Página/Componente "Plano 3K" na loja
-- Consulte \`GET /planos/catalogo\` no backend e exiba o plano disponível (nome, duração, créditos/dia, cap total, preço de venda).
+Em outras stacks, crie a rota equivalente (ex.: \`/api/plano-3k/*\`) seguindo a mesma lógica.
+
+### 2. Cliente TypeScript tipado
+Crie \`src/integrations/lovmain-recharge/client.ts\` com funções: \`getCatalogo()\`, \`criarVenda(input)\`, \`listarAssinaturas(params)\`, \`getAssinatura(token)\`, \`cancelarAssinatura(token)\`. Todas chamando a edge function \`lovmain-recharge-proxy\` via \`supabase.functions.invoke\` (ou \`fetch\` para a URL da function). Nunca chame o upstream direto.
+
+### 3. Página/Componente "Plano 3K" na loja
+- Crie \`src/pages/Plano3K.tsx\` (ou similar) e registre a rota em \`src/App.tsx\` **sem remover rotas existentes**.
+- Consulte \`getCatalogo()\` e exiba o plano disponível (nome, duração, créditos/dia, cap total, preço de venda).
 - Botão "Comprar" que leva o cliente final ao checkout do site (Pix, cartão, etc.) — **isso é responsabilidade da loja do revendedor**.
-- Após confirmar o pagamento na loja, o backend chama \`POST /planos\` e recebe o \`linkCliente\`.
+- Após confirmar o pagamento na loja, o backend chama \`criarVenda()\` e recebe o \`linkCliente\`.
 - Redirecione o cliente final para o \`linkCliente\` (ou exiba como QR code / botão "Configurar minha entrega").
+- Use **tokens de design do projeto** (sem cores hardcoded — \`bg-primary\`, \`text-foreground\`, etc.).
 
-### 3. Página/Componente "Minhas Assinaturas" (opcional)
-- Liste as vendas do Plano 3K com \`GET /planos\`.
+### 4. Página/Componente "Minhas Assinaturas" (opcional)
+- Liste as vendas do Plano 3K com \`listarAssinaturas()\`.
 - Exiba status, cliente, datas, token e botão "Cancelar" (quando status = awaiting_owner / awaiting_confirm).
 
-### 4. Webhook receiver (opcional, recomendado)
-Crie um endpoint público \`/webhooks/plano-3k\` que:
+### 5. Sidebar / Menu
+Adicione um **novo item de menu** (ou um novo grupo "Integrações") apontando para a página criada. ⚠️ **Não remover nem renomear** itens já existentes.
+
+### 6. Webhook receiver (opcional, recomendado)
+Crie a edge function pública \`lovmain-recharge-webhook\` (ou rota \`/webhooks/plano-3k\`) que:
 - Recebe POST do payload acima.
 - Valide a assinatura HMAC \`X-Webhook-Signature\` usando o secret configurado no painel.
-- Atualize o status da assinatura no banco da loja (ex: marcando como "ativa", "concluída" ou "cancelada").
+- Atualize o status da assinatura no banco da loja (ex: marcando como "ativa", "concluída" ou "cancelada"). Em Supabase, crie a tabela com **RLS habilitada** e \`GRANT\`s adequados.
 
 ## ✅ Critérios de aceite
 - Build passa sem erros e sem warnings novos.
@@ -152,6 +165,7 @@ Crie um endpoint público \`/webhooks/plano-3k\` que:
 - O cliente final pode ver o Plano 3K na loja, comprar, e receber o \`linkCliente\` para configurar a entrega.
 - A chave \`LOVMAIN_RECHARGE_API_KEY\` nunca aparece no bundle do frontend.
 - O design segue os tokens do projeto (sem cores hardcoded).
+- A edge function tem CORS configurado e responde \`OPTIONS\`.
 
 ## 🧪 Pós-implementação
 Me explique em 5 linhas como o revendedor obtém a \`LOVMAIN_RECHARGE_API_KEY\` no painel e como configurar o webhook.
