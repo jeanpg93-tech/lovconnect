@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { DeployRechargePrompt } from "@/components/api/DeployRechargePrompt";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import CopyAllDocsButton from "@/components/api/CopyAllDocsButton";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   KeyRound, Copy, BookOpen, Shield, Zap, AlertTriangle, ArrowRight,
   Eye, EyeOff, RefreshCw, Terminal, GitBranch, Code2, CircleAlert,
-  Loader2, CheckCircle2, Webhook, Send, History, Save,
+  Loader2, CheckCircle2, Webhook, Send, History, Save, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -1409,6 +1410,9 @@ export default function RevendedorApiRecargas() {
           <TabsTrigger value="exemplos" className="gap-1.5">
             <Code2 className="h-3.5 w-3.5" /> Exemplos
           </TabsTrigger>
+          <TabsTrigger value="implantar" className="gap-1.5">
+            <Rocket className="h-3.5 w-3.5" /> Implantar no site
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="inicio"><TabInicio /></TabsContent>
@@ -1417,6 +1421,7 @@ export default function RevendedorApiRecargas() {
         <TabsContent value="fluxo"><TabFluxoProprio /></TabsContent>
         <TabsContent value="webhooks"><TabWebhooks /></TabsContent>
         <TabsContent value="exemplos"><TabExemplos /></TabsContent>
+        <TabsContent value="implantar"><DeployRechargePrompt /></TabsContent>
       </Tabs>
 
       {/* Hidden mirror used by "Copiar documentação completa" para coletar
