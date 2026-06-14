@@ -755,7 +755,37 @@ Deno.serve(async (req) => {
     }
 
     const license_key = providerData?.license_key ?? providerData?.key ?? null;
-    
+
+    // Registra pedido (is_test) vinculado ao revendedor — assim aparece em
+    // "Chaves Teste" do gerente com o nome da loja correta, e também conta
+    // para o limite diário de trials.
+    try {
+      await svc.from("orders").insert({
+        reseller_id: reseller.id,
+        license_type: "trial",
+        price_cents: 0,
+        status: license_key ? "completed" : "failed",
+        is_test: true,
+        license_key,
+        api_key_id: keyRow.id,
+        product_type: "extension",
+        notes: JSON.stringify({ source: "reseller_api.generate-trial", display_name, webhook_url }),
+        client_ip: ip,
+      });
+    } catch (_) { /* não bloqueia retorno se log falhar */ }
+
+    // Espelha em trial_registrations para aparecer junto das chaves de loja
+    if (license_key) {
+      try {
+        await svc.from("trial_registrations").insert({
+          name: display_name,
+          phone: "",
+          ip_address: ip ?? "0.0.0.0",
+          license_key,
+        });
+      } catch (_) { /* idem */ }
+    }
+
     // Log trial creation (no cost)
     await logUsage(200, { license_type: "trial", license_key: license_key ?? undefined });
 
