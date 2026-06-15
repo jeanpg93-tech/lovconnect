@@ -17,7 +17,7 @@ Toda a stack é padrão e portável:
 1. **Código** → conectar repo GitHub (menu **+** → GitHub → Connect).
 2. **Banco** → criar projeto Supabase próprio e rodar todas as migrations de `supabase/migrations/`.
 3. **Dados** → exportar tabelas como CSV (Cloud → Database → Tables → Export) e importar no novo banco. Usuários de `auth.users` migram via admin API do Supabase (hashes bcrypt são portáveis).
-4. **Edge Functions** → `supabase functions deploy <nome>` para cada uma das 74 funções em `supabase/functions/`.
+4. **Edge Functions** → `supabase functions deploy <nome>` para cada uma das 73 funções em `supabase/functions/` (o `_shared` é apenas código compartilhado).
 5. **Secrets** → recriar no novo projeto (MisticPay, Telegram, Evolution, etc.).
 6. **Storage** → baixar buckets e re-upload no novo.
 7. **Webhooks externos** → atualizar URLs (MisticPay, Telegram, Evolution).
@@ -29,14 +29,59 @@ Toda a stack é padrão e portável:
 
 ## 2. Arquivos prontos para migração
 
-Até agora **não foi gerado nenhum script de migração automatizado**. O que existe pronto:
-
 - ✅ `supabase/migrations/*.sql` — todo o schema do banco (executável em qualquer Postgres/Supabase).
-- ✅ `supabase/functions/*` — código-fonte completo das 74 edge functions.
+- ✅ `supabase/functions/*` — código-fonte completo das 73 edge functions.
 - ✅ `supabase/config.toml` — configuração de JWT por função.
+- ✅ `scripts/export-all-csv.sh` — exporta as 75 tabelas em CSV via psql (precisa de acesso direto ao Postgres — não funciona dentro do Cloud).
+- ✅ `scripts/redeploy-all-functions.sh` — deploy em lote das 73 functions com os flags corretos de `verify_jwt`.
+- ✅ `scripts/seed-secrets.sh` — configura todos os secrets de Edge Functions no projeto novo.
+- ✅ `scripts/migrate-auth-users.ts` — copia `auth.users` preservando hashes bcrypt (precisa de service role).
 - ✅ Este `MIGRATION.md`.
 
-Posso gerar quando você pedir: script de export CSV em lote, script de import, checklist de secrets, script para redeploy de todas as functions.
+---
+
+## 2.1 Inventário atual do banco (snapshot)
+
+### Tabelas (75 no schema `public`) — ordem por volume
+
+**Alto volume (>100 linhas) — exportar primeiro:**
+orders (1.387) · telegram_outbox (1.006) · reseller_api_usage (772) · reseller_pack_ledger (426) · balance_transactions (375) · trial_registrations (330) · reseller_customers (327) · system_whatsapp_log (235) · storefront_orders (172)
+
+**Médio (10–100):** notifications · recharge_plan_deliveries · manual_financial_entries · reseller_license_prices · reseller_credit_purchases · recharge_intents · tier_credit_prices · activation_logs · affiliate_codes · user_roles · profiles · resellers · reseller_credit_cost_overrides · reseller_credit_prices · tier_license_prices · reseller_api_keys · system_whatsapp_events · refund_requests · user_presence · reseller_balances · reseller_referrals · reseller_pack_purchases · storefront_testimonials · blocked_sale_attempts · app_settings · activation_payments · reseller_storefronts
+
+**Baixo (1–9):** credit_pricing_plans · reseller_tier_state · hwid_reset_logs · license_base_costs · reseller_integrations · license_packs · extension_versions · reseller_pack_balances · reseller_tiers · pending_storefront_charges · reseller_recharge_plan_subscriptions · promotion_logs · reseller_recharge_plan_prices · storefront_reports · reseller_extension_price_overrides · reseller_license_cost_overrides · provider_credit_orders · extensions · promotions · reseller_subscription_charges · recharge_plan_tutorial_media · admin_audit_logs · recharge_plans · telegram_settings · recharge_schedule · reseller_api_webhook_deliveries · system_whatsapp_settings · provider_settings · manual_recharge_metadata · global_settings
+
+**Vazias (schema só):** reseller_extensions · reseller_api_idempotency · announcement_reads · extension_customizations · direct_sales · client_extensions · partner_price_history · announcements · ranking_prizes · reseller_subscription_recurrences · reseller_extension_prices · tier_extension_prices · telegram_notification_failures
+
+### Buckets de Storage (8)
+
+| Bucket | Público |
+|---|---|
+| storefront-assets | sim |
+| extension-files | não |
+| extension-assets | sim |
+| extension-builds | não |
+| extension-customizations | sim |
+| avatars | sim |
+| activation-proofs | não |
+| plan-tutorials | não |
+
+### Edge Functions com `verify_jwt = false` (reaplicar no novo projeto)
+
+generate-testimonials-ai · expire-pending-storefront-orders · telegram-webhook · telegram-dispatch · telegram-balance-check · evolution-send-sale · telegram-delivery-progress · apply-recharge-schedule · subscription-create-charge · system-whatsapp-webhook · dev-release-storefront-pix · system-whatsapp-notify · recharge-plan-public · recharge-plan-cron
+
+### Secrets configurados (7)
+
+EVOLUTION_API_KEY · EVOLUTION_BASE_URL · EXTENSION_PROVIDER_API_KEY · LOVABLE_API_KEY (substituir por OpenAI/Anthropic fora do Lovable) · MISTICPAY_CLIENT_ID · MISTICPAY_CLIENT_SECRET · TELEGRAM_API_KEY
+
+### Webhooks externos a reapontar
+
+| Serviço | URL atual | Onde alterar no novo projeto |
+|---|---|---|
+| Telegram bot | `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/telegram-webhook` | `setWebhook` da Bot API |
+| MisticPay | `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/misticpay-webhook` | Painel MisticPay |
+| Evolution (WhatsApp do sistema) | `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/system-whatsapp-webhook?secret=<webhook_secret>` | Painel Evolution. `webhook_secret` está em `system_whatsapp_settings` |
+| Provedor de licenças (Lovax) | `base_url` em `provider_settings` aponta para `https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api` (sem webhook reverso) | n/a |
 
 ---
 
