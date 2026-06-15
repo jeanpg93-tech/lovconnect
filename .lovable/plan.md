@@ -1,71 +1,135 @@
-## O que vou fazer
 
-### 1. Investigar as chaves "fantasma" (TS-3BC11D…, TS-65E0…, TS-E77F…, TS-67745D…)
+# Inventário de migração — LovConnect
 
-Confirmei que essas chaves **não existem** em `orders`, `storefront_orders` nem `trial_registrations` do seu banco. Porém aparecem na lista porque elas **vêm do endpoint `lovax-api?action=usage`** (consulta `list_licenses` no MétodoLovax/provedor). Ou seja, é o provedor MétodoLovax que está respondendo essas chaves no `list_licenses`, mesmo você dizendo que não existem.
-
-Investigação proposta:
-- Adicionar log temporário em `lovax-api` (action=usage) para registrar o raw payload do provedor por chave (especialmente os campos `owner`, `api_key_id`, `metadata`) e descobrir de onde elas vêm. Suspeitas:
-  - O token do MétodoLovax está apontando para uma conta compartilhada que vê chaves de outros tenants.
-  - Existe um cache no provedor que retorna chaves já deletadas.
-  - As chaves foram geradas por algum job/teste que falhou antes de gravar no nosso `orders` (rollback do nosso lado, mas chamada ao provedor já tinha ido).
-- Verificar `function_edge_logs` em `place-reseller-order`, `storefront-create-trial`, `pack-generate-key`, `subscription-generate-key`, `lovax-api?action=generate` nos timestamps das chaves para detectar geração órfã.
-- Depois de identificar a origem, decidir: (a) corrigir token, (b) deletar/ocultar essas chaves no provedor, ou (c) filtrar chaves sem dono no painel.
-
-Vou anexar o resultado da investigação na resposta após a execução — não vou alterar nada do provedor sem te avisar.
-
-### 2. Coluna "Responsável" — melhorar quando vier vazia
-
-- Para chaves geradas há poucos minutos, fazer 1 retry automático da carga (delay 1s) caso `reseller_id` venha nulo mas a chave esteja em `orders` (corrige race condition pós-geração).
-- Quando a chave **não tem dono em lugar nenhum** (caso "fantasma"): em vez de mostrar `—`, mostrar etiqueta `Órfã (provedor)` com tooltip explicando "Esta chave foi retornada pelo MétodoLovax mas não existe nos nossos registros. Provavelmente criada fora do painel."
-- Quando a chave tem `reseller_id` mas o email do perfil falhou: mostrar pelo menos o `display_name` do revendedor (hoje só mostra o email).
-
-### 3. Etiquetas da coluna "Geração" — documentação visível
-
-Adicionar ícone de info no cabeçalho da coluna com tooltip explicando cada etiqueta:
-
-- **API** (azul): Chave gerada por integração externa usando uma chave de API do revendedor (`reseller_api_keys`). Origem típica: bot/site do revendedor consumindo nossa API pública.
-- **Loja do Cliente** (rosa): Compra feita por um cliente final na storefront pública do revendedor (`/u/<slug>`). Registrada em `storefront_orders`.
-- **Painel** (âmbar): Gerada manualmente pelo revendedor dentro do painel (botão "Gerar chave"). Registrada em `orders` sem `api_key_id`.
-- **Provedor** (verde): Chave que existe no MétodoLovax mas **não tem registro nosso** — gerada fora do nosso sistema (direto no painel do provedor, ou pelas chaves "fantasma" que estamos investigando).
-
-### 4. Layout da tabela — corrigir scroll lateral travado
-
-Hoje a tabela está dentro de `overflow-hidden`, então conteúdos largos (chave + badge "marcar teste" + email longo) cortam sem permitir rolagem.
-
-- Trocar wrapper `overflow-hidden` por `overflow-x-auto` com `min-width` na `<Table>` para garantir que cabeçalho/linhas acompanhem.
-- Reduzir largura mínima das colunas com `whitespace-nowrap` controlado e truncamento explícito no email (já existe, mas a célula da chave também precisa de `max-width`).
-- Garantir que o scroll horizontal apareça apenas quando necessário (sem barra dupla).
-
-### 5. Performance da página
-
-Hoje a página:
-- Carrega TODAS as orders + TODAS storefront_orders + TODAS chaves do provedor + lovax sem limite.
-- Renderiza tudo em uma única tabela (centenas de linhas + countdown atualizando a cada 1s re-renderiza tudo).
-
-Otimizações:
-- **Paginação cliente-side de 50 por página** (item 6 abaixo) — corta o custo de render.
-- Mover o `now` (tick de 1s) para um componente filho `<Countdown />` que só re-renderiza a célula de validade, não a tabela inteira.
-- Memoizar `getExpiry` / `computeStatus` por linha.
-- Limitar consulta de `orders`/`storefront_orders` ao mesmo recorte que o provedor devolve (últimas 500), já que chaves muito antigas raramente aparecem no `usage` atual.
-
-### 6. Paginação — 50 por página
-
-Adicionar controle de paginação abaixo da tabela:
-- 50 itens por página (configurável: 25/50/100).
-- Indicador "Página X de Y · Z licenças".
-- Botões anterior/próxima + saltos rápidos.
-- Reset para página 1 ao mudar filtro/busca.
+Dados coletados agora do banco/Storage/Functions para você planejar a migração.
 
 ---
 
-## Arquivos afetados
+## 1 + 2. Tabelas do schema `public` com contagem de linhas
 
-- `src/pages/painel/GerenteLicencasAcompanhar.tsx` — layout, paginação, performance, tooltip de geração, retry da coluna responsável, etiqueta "Órfã".
-- `supabase/functions/lovax-api/index.ts` — log temporário do raw provider payload para investigação.
-- (possivelmente) novo componente `src/components/painel/LicenseCountdown.tsx` para isolar o tick de 1s.
+Total: **75 tabelas** (uma a mais do que constava no `MIGRATION.md`). Ordenadas por volume — priorize as do topo na exportação CSV.
 
-## O que NÃO vou fazer agora
+### Alto volume (>100 linhas) — exportar primeiro
+| # | Tabela | Linhas |
+|---|---|---|
+| 1 | orders | 1.387 |
+| 2 | telegram_outbox | 1.006 |
+| 3 | reseller_api_usage | 772 |
+| 4 | reseller_pack_ledger | 426 |
+| 5 | balance_transactions | 375 |
+| 6 | trial_registrations | 330 |
+| 7 | reseller_customers | 327 |
+| 8 | system_whatsapp_log | 235 |
+| 9 | storefront_orders | 172 |
 
-- Não vou alterar/deletar chaves no provedor sem você confirmar após a investigação.
-- Não vou mexer no fluxo de geração de chaves (não há indício de bug nele ainda).
+### Médio (10–100)
+notifications 71 · recharge_plan_deliveries 60 · manual_financial_entries 53 · reseller_license_prices 49 · reseller_credit_purchases 47 · recharge_intents 39 · tier_credit_prices 36 · activation_logs 34 · affiliate_codes 33 · user_roles 32 · profiles 32 · resellers 31 · reseller_credit_cost_overrides 27 · reseller_credit_prices 26 · tier_license_prices 24 · reseller_api_keys 22 · system_whatsapp_events 21 · refund_requests 17 · user_presence 16 · reseller_balances 16 · reseller_referrals 15 · reseller_pack_purchases 15 · storefront_testimonials 15 · blocked_sale_attempts 13 · app_settings 13 · activation_payments 11 · reseller_storefronts 10
+
+### Baixo (1–9)
+credit_pricing_plans 9 · reseller_tier_state 9 · hwid_reset_logs 8 · license_base_costs 6 · reseller_integrations 6 · license_packs 6 · extension_versions 5 · reseller_pack_balances 5 · reseller_tiers 4 · pending_storefront_charges 3 · reseller_recharge_plan_subscriptions 3 · promotion_logs 3 · reseller_recharge_plan_prices 3 · storefront_reports 2 · reseller_extension_price_overrides 2 · reseller_license_cost_overrides 2 · provider_credit_orders 2 · extensions 2 · promotions 2 · reseller_subscription_charges 2 · recharge_plan_tutorial_media 2 · admin_audit_logs 2 · recharge_plans 1 · telegram_settings 1 · recharge_schedule 1 · reseller_api_webhook_deliveries 1 · system_whatsapp_settings 1 · provider_settings 1 · manual_recharge_metadata 1 · global_settings 1
+
+### Vazias (esquema só) — não precisa exportar
+reseller_extensions · reseller_api_idempotency · announcement_reads · extension_customizations · direct_sales · client_extensions · partner_price_history · announcements · ranking_prizes · reseller_subscription_recurrences · reseller_extension_prices · tier_extension_prices · telegram_notification_failures
+
+> Observação: o schema é recriado integralmente rodando `supabase/migrations/*.sql` no novo projeto. CSV serve só para os dados.
+
+---
+
+## 3. Buckets de Storage (8)
+
+| Bucket | Público | Observação |
+|---|---|---|
+| storefront-assets | sim | Imagens das lojas dos revendedores |
+| extension-files | não | Builds internos |
+| extension-assets | sim | Ícones/logos da extensão |
+| extension-builds | não | ZIPs gerados |
+| extension-customizations | sim | Imagens personalizadas |
+| avatars | sim | Avatares de usuários |
+| activation-proofs | não | Comprovantes de pagamento |
+| plan-tutorials | não | Mídia dos tutoriais de plano |
+
+Baixe via Lovable Cloud → Storage → cada bucket → download em massa, depois faça re-upload no novo projeto preservando os caminhos.
+
+---
+
+## 4. Edge Functions deployadas (73)
+
+activation-create-pix, activation-review, activation-submit-proof, activation-waive, admin-create-demo-account, admin-create-monthly-reseller, admin-delete-demo-account, apply-promotion-schedule, apply-recharge-schedule, audit-cancelled-purchases, cancel-credit-purchase, cancel-credit-recharge, cancel-sale, cancel-storefront-order, check-misticpay-withdraw, dev-release-storefront-pix, evolution-api, evolution-send-sale, expire-pending-storefront-orders, extension-build-zip, extension-config, generate-testimonials-ai, gerente-estornar-venda, get-my-misticpay-credentials, license-reset-device, list-available-packs, lovable-credits-api, lovable-credits-public, lovax-api, mark-provider-refund-manual, misticpay-create-recharge, misticpay-list-transactions, misticpay-webhook, pack-admin-adjust, pack-create-purchase, pack-generate-key, place-method-license-order, place-reseller-order, pricing-issues, provider-api, public-extension-download, recharge-plan-cancel, recharge-plan-cron, recharge-plan-manual-sale, recharge-plan-public, refund-credit-recharge-balance, refund-sale-balance, release-pending-order, request-refund, reseller-api, reseller-credit-costs, reseller-credits-api, reseller-license-action, reseller-recharge-api, reseller-webhooks-dispatcher, reset-demo-account, retry-provider-refund, storefront-create-order, storefront-create-trial, storefront-order-status, subscription-cancel-charge, subscription-create-charge, subscription-cron-tick, subscription-generate-key, sync-credit-purchase-status, system-whatsapp-api, system-whatsapp-notify, system-whatsapp-webhook, telegram-balance-check, telegram-delivery-progress, telegram-dispatch, telegram-webhook, test-evolution-connection, test-misticpay-connection
+
+(`_shared` é só código compartilhado, não é função deployada.)
+
+Configurações especiais (de `supabase/config.toml`) com `verify_jwt=false` que você precisa reproduzir no novo projeto:
+generate-testimonials-ai, expire-pending-storefront-orders, telegram-webhook, telegram-dispatch, telegram-balance-check, evolution-send-sale, telegram-delivery-progress, apply-recharge-schedule, subscription-create-charge, system-whatsapp-webhook, dev-release-storefront-pix, system-whatsapp-notify, recharge-plan-public, recharge-plan-cron.
+
+---
+
+## 5. Secrets configurados (7)
+
+Recriar todos no novo projeto (Functions → Secrets):
+
+- EVOLUTION_API_KEY
+- EVOLUTION_BASE_URL
+- EXTENSION_PROVIDER_API_KEY
+- LOVABLE_API_KEY (gerar nova no painel novo — é o gateway de IA do Lovable; fora do Lovable, troque por chave OpenAI/Anthropic equivalente nas funções que usam)
+- MISTICPAY_CLIENT_ID
+- MISTICPAY_CLIENT_SECRET
+- TELEGRAM_API_KEY (no Lovable era via connector; no novo Supabase é secret comum)
+
+Os automáticos `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL` já vêm preenchidos pelo novo projeto.
+
+---
+
+## 6. Webhooks / URLs externos a atualizar
+
+### Telegram
+- Chat ID atual: `970755762`
+- Bot token: vive em `TELEGRAM_API_KEY` (secret)
+- Webhook do bot que precisa ser reapontado (via `setWebhook`):
+  - Atual: `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/telegram-webhook`
+  - Novo: `https://<novo-projeto>.supabase.co/functions/v1/telegram-webhook`
+
+### Evolution API (WhatsApp do sistema)
+- Base URL salva em secret `EVOLUTION_BASE_URL`
+- Webhook do sistema (configurado no painel da Evolution para receber eventos):
+  - Atual: `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/system-whatsapp-webhook?secret=<webhook_secret>`
+  - Novo: `https://<novo-projeto>.supabase.co/functions/v1/system-whatsapp-webhook?secret=<webhook_secret>`
+  - O `webhook_secret` está em `system_whatsapp_settings.webhook_secret` — exporte junto com a tabela.
+- Instância: `system` · Status atual: `connected`
+- Revendedores com Evolution própria têm webhook em `reseller_integrations` (já está incluso nos 6 registros da tabela).
+
+### MisticPay (gateway de pagamento)
+- Credenciais globais em secrets `MISTICPAY_CLIENT_ID` / `MISTICPAY_CLIENT_SECRET`
+- Webhook a reconfigurar no painel da MisticPay:
+  - Atual: `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/misticpay-webhook`
+  - Novo: `https://<novo-projeto>.supabase.co/functions/v1/misticpay-webhook`
+- Revendedores que conectaram MisticPay próprio têm credenciais em `reseller_integrations` (vão junto na exportação).
+
+### Provedor de licenças externo (Lovax)
+- Tabela `provider_settings` (1 registro):
+  - `base_url`: `https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api`
+  - `api_key`: armazenado na própria linha (exporte a tabela)
+  - `webhook_url`: NULL (não há webhook reverso configurado)
+
+### Provedor de recargas (Lovable Credits)
+- Chave em `reseller_integrations.lovable_credits_api_key` por revendedor — exporte a tabela.
+
+---
+
+## Project ref e URLs do Lovable Cloud atual (para anotar)
+
+- Project ref: `qoemkofkeleuhjifvauh`
+- URL base das functions: `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/<nome>`
+- Domínios do frontend: `lovconnect.store`, `www.lovconnect.store`, `lovconnect.lovable.app`
+
+---
+
+## Próximos passos sugeridos (para você aprovar ou ajustar)
+
+1. Confirme se quer que eu gere agora **scripts auxiliares** (apenas planejar; eu só crio depois que sair do plan mode):
+   - `scripts/export-all-csv.sh` — exporta as 75 tabelas em CSV de uma vez via psql (precisa rodar fora do Cloud, já que aqui não temos `SERVICE_ROLE_KEY`).
+   - `scripts/redeploy-all-functions.sh` — `supabase functions deploy` para as 73 funções com os flags certos de `verify_jwt`.
+   - `scripts/seed-secrets.sh` — `supabase secrets set` para todos os 7 secrets.
+   - `scripts/migrate-auth-users.ts` — usa Admin API para recriar `auth.users` preservando hashes bcrypt.
+2. Se preferir, posso só atualizar o `MIGRATION.md` com esse inventário consolidado.
+
+Me diga quais desses arquivos quer que eu prepare e eu monto o pacote completo.
