@@ -13,7 +13,7 @@ const json = (data: unknown, status = 200) =>
   });
 
 type Method = "flow" | "lovax";
-type PackId = "1d" | "7d" | "30d" | "90d" | "365d" | "lifetime";
+type PackId = "1d" | "7d" | "30d" | "lifetime";
 
 const PACKS_BY_METHOD: Record<Method, { id: PackId; label: string }[]> = {
   flow: [
@@ -26,8 +26,6 @@ const PACKS_BY_METHOD: Record<Method, { id: PackId; label: string }[]> = {
     { id: "1d", label: "1 dia" },
     { id: "7d", label: "7 dias" },
     { id: "30d", label: "30 dias" },
-    { id: "90d", label: "90 dias" },
-    { id: "365d", label: "365 dias" },
     { id: "lifetime", label: "Vitalício" },
   ],
 };

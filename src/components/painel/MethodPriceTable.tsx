@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { usePricingIssues, issueKey } from "@/hooks/usePricingIssues";
 
 type Method = "flow" | "lovax";
-type PackId = "1d" | "7d" | "30d" | "90d" | "365d" | "lifetime";
+type PackId = "1d" | "7d" | "30d" | "lifetime";
 
 type Pack = { id: PackId; label: string; desc: string; icon: any };
 
@@ -22,14 +22,7 @@ const BASE_PACKAGES: Pack[] = [
 
 const PACKAGES_BY_METHOD: Record<Method, Pack[]> = {
   flow: BASE_PACKAGES,
-  lovax: [
-    { id: "1d", label: "1 dia", desc: "Acesso por 24 horas", icon: Calendar },
-    { id: "7d", label: "7 dias", desc: "Acesso semanal", icon: Calendar },
-    { id: "30d", label: "30 dias", desc: "Acesso mensal", icon: Calendar },
-    { id: "90d", label: "90 dias", desc: "Acesso trimestral", icon: Calendar },
-    { id: "365d", label: "365 dias", desc: "Acesso anual", icon: Calendar },
-    { id: "lifetime", label: "Vitalício", desc: "Acesso permanente", icon: InfinityIcon },
-  ],
+  lovax: BASE_PACKAGES,
 };
 
 type PriceMap = Record<Method, Partial<Record<PackId, Record<string, number>>>>;

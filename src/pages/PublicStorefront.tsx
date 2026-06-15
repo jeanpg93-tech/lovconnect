@@ -86,7 +86,8 @@ const FALLBACK_DESC: Record<string, string> = {
   "365d": "Acesso anual",
   lifetime: "Acesso permanente",
 };
-const ORDER = ["1d", "7d", "30d", "90d", "365d", "pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
+const ORDER = ["1d", "7d", "30d", "pro_1d", "pro_7d", "pro_15d", "pro_30d", "lifetime"];
+const HIDDEN_LICENSE_TYPES = new Set(["90d", "365d"]);
 
 
 
