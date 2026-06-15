@@ -54,13 +54,13 @@ Deno.serve(async (req) => {
   if (!reseller || !reseller.is_active) return json({ error: "Reseller inativo" }, 403);
 
   let q = svc.from("orders")
-    .select("id, reseller_id, license_key, status, is_legacy")
+    .select("id, reseller_id, license_key, status, is_legacy, is_test, license_type")
     .eq("license_key", license_key)
     .eq("reseller_id", reseller.id)
     .order("created_at", { ascending: false })
     .limit(1);
   if (order_id) q = svc.from("orders")
-    .select("id, reseller_id, license_key, status, is_legacy")
+    .select("id, reseller_id, license_key, status, is_legacy, is_test, license_type")
     .eq("id", order_id)
     .eq("reseller_id", reseller.id)
     .limit(1);
@@ -69,6 +69,9 @@ Deno.serve(async (req) => {
   const order = rows?.[0];
   if (!order) return json({ error: "Licença não encontrada" }, 404);
   const prevStatus = String((order as any).status ?? "").toLowerCase();
+  const isTrialOrder =
+    (order as any).is_test === true ||
+    String((order as any).license_type ?? "").toLowerCase() === "trial";
   if (order.license_key !== license_key) {
     return json({ error: "Licença não confere com o pedido" }, 400);
   }
@@ -159,6 +162,7 @@ Deno.serve(async (req) => {
     const isPack = (rInfoForRefund as any)?.billing_mode === "pack";
     if (
       isPack &&
+      !isTrialOrder &&
       (action === "revoke-license" || action === "delete-license") &&
       prevStatus === "completed"
     ) {
@@ -198,8 +202,9 @@ Deno.serve(async (req) => {
       action === "revoke-license" ? "🚫" :
       "🗑️";
     const prefix = isPack ? "Pack — " : "";
+    const testTag = isTrialOrder ? " 🧪 <i>TESTE</i>" : "";
     const txt =
-      `${emoji} <b>${prefix}${actionLabel}</b>\n` +
+      `${emoji} <b>${prefix}${actionLabel}</b>${testTag}\n` +
       `👨‍💼 Revendedor: ${resellerName}\n` +
       `🔑 Chave: <code>${license_key}</code>\n` +
       `🆔 Pedido: <code>${order.id}</code>` +
