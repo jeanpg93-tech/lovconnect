@@ -275,6 +275,7 @@ export default function PublicStorefront() {
         .gt("price_cents", 0);
 
       const list = ((licensePrices ?? []) as any[])
+        .filter((row) => !HIDDEN_LICENSE_TYPES.has(row.pack_id))
         .map((row) => ({
           license_type: row.pack_id,
           price_cents: row.price_cents,
