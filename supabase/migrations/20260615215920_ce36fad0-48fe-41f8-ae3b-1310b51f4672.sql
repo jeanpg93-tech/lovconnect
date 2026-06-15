@@ -1,0 +1,1 @@
+DELETE FROM public.reseller_license_prices WHERE pack_id IN ('90d','365d');
