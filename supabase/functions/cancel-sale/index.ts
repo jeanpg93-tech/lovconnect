@@ -13,7 +13,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const MISTIC_BASE = "https://api.misticpay.com/api";
-const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+const DEFAULT_PROVIDER_BASE = "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
 
 function json(b: unknown, status = 200) {
   return new Response(JSON.stringify(b), {
@@ -123,10 +123,18 @@ Deno.serve(async (req) => {
 
   // 1) REVOGAÇÃO DA CHAVE — pré-requisito absoluto.
   if (license_key) {
-    const { data: cfg } = await svc.from("provider_settings")
-      .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
-    const provKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
-    const base = cfg?.base_url ?? DEFAULT_PROVIDER_BASE;
+    // Usa a mesma fonte que reseller-license-action (Lovax unificado).
+    const { data: settings } = await svc
+      .from("app_settings")
+      .select("key,value")
+      .in("key", ["lovax_api_token", "lovax_base_url"]);
+    const provKey =
+      (settings?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined) ||
+      Deno.env.get("EXTENSION_PROVIDER_API_KEY") ||
+      "";
+    const base =
+      (settings?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined) ||
+      DEFAULT_PROVIDER_BASE;
     if (!provKey) {
       await svc.from(table).update({
         cancellation_status: "failed",
@@ -138,14 +146,23 @@ Deno.serve(async (req) => {
     let provStatus = 0;
     let provData: any = null;
     try {
-      const r = await fetch(`${base}/revoke-license`, {
+      // Lovax: POST {base} com { action, payload } e Bearer token.
+      const r = await fetch(base, {
         method: "POST",
-        headers: { "x-api-token": provKey, "x-api-key": provKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ license_key }),
+        headers: {
+          Authorization: `Bearer ${provKey}`,
+          "x-api-key": provKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "delete_license", payload: { license_key } }),
       });
       provStatus = r.status;
       const txt = await r.text();
       try { provData = JSON.parse(txt); } catch { provData = { raw: txt }; }
+      // Lovax responde 200 com { success:false } em alguns erros lógicos.
+      if (provStatus >= 200 && provStatus < 300 && provData && provData.success === false) {
+        provStatus = 502;
+      }
     } catch (e) {
       provData = { error: e instanceof Error ? e.message : "network" };
     }
