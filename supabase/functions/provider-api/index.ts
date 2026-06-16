@@ -272,6 +272,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Atalho: reset-hwid via LovaX (autenticado) — não depende de credenciais do Flow
+    if (req.method === "POST" && action === "reset-hwid") {
+      const activeMethod = await getActiveDeliveryMethod(serviceClient);
+      if (activeMethod === "lovax") {
+        const body = await req.json().catch(() => ({}));
+        const license_key = typeof body?.license_key === "string" ? body.license_key.trim() : "";
+        if (!license_key) return json({ ok: false, error: "license_key obrigatório" }, 200);
+        console.log(`[reset-hwid] (lovax/early) key=${license_key}`);
+        const r = await callLovaxResetHwid(serviceClient, license_key);
+        if (!r.ok) {
+          return json({ ok: false, provider_error: r.data?.error || `HTTP ${r.status}`, status: r.status, license_key }, 200);
+        }
+        return json({ ok: true, ...r.data, license_key }, 200);
+      }
+    }
+
     // ---- Recupera credenciais (DB primeiro, fallback para secret) ----
     const { data: cfg } = await serviceClient
       .from("provider_settings")
