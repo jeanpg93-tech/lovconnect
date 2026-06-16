@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 type Integ = {
   evolution_enabled: boolean;
+  evolution_send_on_api: boolean;
   evolution_instance: string | null;
   evolution_message_template: string;
   evolution_template_recharge: string | null;
@@ -41,6 +42,7 @@ export default function RevendedorIntegracaoWhatsApp() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  const [sendOnApi, setSendOnApi] = useState(true);
   const [tplLicense, setTplLicense] = useState("");
   const [tplRecharge, setTplRecharge] = useState("");
   const [tplStorefront, setTplStorefront] = useState("");
@@ -67,7 +69,7 @@ export default function RevendedorIntegracaoWhatsApp() {
     const [{ data: row }, { data: appS }] = await Promise.all([
       supabase
         .from("reseller_integrations")
-        .select("evolution_enabled, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, connection_status, last_connected_at, profile_name, profile_number, profile_picture_url, messages_sent_count")
+        .select("evolution_enabled, evolution_send_on_api, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, connection_status, last_connected_at, profile_name, profile_number, profile_picture_url, messages_sent_count")
         .eq("reseller_id", r.id).maybeSingle(),
       supabase
         .from("app_settings")
@@ -86,6 +88,7 @@ export default function RevendedorIntegracaoWhatsApp() {
     if (row) {
       setInteg(row as any);
       setEnabled(!!row.evolution_enabled);
+      setSendOnApi((row as any).evolution_send_on_api !== false);
       setTplLicense(row.evolution_message_template ?? defs.license);
       setTplRecharge((row as any).evolution_template_recharge ?? defs.recharge);
       setTplStorefront((row as any).evolution_template_storefront ?? defs.storefront);
@@ -110,6 +113,7 @@ export default function RevendedorIntegracaoWhatsApp() {
     const { error } = await supabase.from("reseller_integrations").upsert({
       reseller_id: resellerId,
       evolution_enabled: enabled,
+      evolution_send_on_api: sendOnApi,
       evolution_message_template: tplLicense,
       evolution_template_recharge: tplRecharge,
       evolution_template_storefront: tplStorefront,
