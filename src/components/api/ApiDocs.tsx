@@ -70,6 +70,9 @@ Body:
 }
 \`\`\`
 Tipos aceitos: \`pro_1d\`, \`pro_7d\`, \`pro_15d\`, \`pro_30d\`, \`lifetime\`.
+
+**WhatsApp automático:** se o campo \`whatsapp\` (DDD + número, com ou sem DDI 55) for enviado **e** você tiver o WhatsApp conectado em *Integração WhatsApp* com o toggle "Disparar nas vendas via API" ligado, enviamos a mensagem ao cliente automaticamente. O template usado é o "Mensagem para vendas via API" (ou o de licença, como fallback).
+
 Resposta:
 \`\`\`json
 {

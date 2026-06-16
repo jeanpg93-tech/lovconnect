@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
 
     const { data: integ } = await svc
       .from("reseller_integrations")
-      .select("evolution_enabled, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, connection_status")
+      .select("evolution_enabled, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, evolution_template_api, connection_status")
       .eq("reseller_id", reseller_id)
       .maybeSingle();
 
@@ -123,6 +123,13 @@ Deno.serve(async (req) => {
     } else if (kind === "storefront") {
       template = (integ as any).evolution_template_storefront ?? null;
       defaultKey = "evolution_template_storefront";
+    } else if (kind === "api") {
+      // Template dedicado para vendas via API (loja própria).
+      // Fallback em cascata: template_api → template_license do revendedor → default global.
+      template = (integ as any).evolution_template_api
+        ?? integ.evolution_message_template
+        ?? null;
+      defaultKey = "evolution_template_license";
     }
 
     if (!template) {
