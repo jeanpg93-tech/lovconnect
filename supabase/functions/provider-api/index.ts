@@ -559,6 +559,16 @@ Deno.serve(async (req) => {
 
       if (!license_key) return json({ error: "Chave de licença é obrigatória" }, 400);
 
+      // Roteia conforme o método de entrega ativo (MétodoFlow desativado → LovaX)
+      const activeMethod = await getActiveDeliveryMethod(serviceClient);
+      if (activeMethod === "lovax") {
+        const r = await callLovaxResetHwid(serviceClient, license_key);
+        if (!r.ok) {
+          return json({ error: r.data?.error ?? "Erro ao resetar device no provedor" }, r.status || 502);
+        }
+        return json({ success: true, message: "Device desvinculado com sucesso!" });
+      }
+
       const r = await fetch(`${base}/reset-hwid`, {
         method: "POST",
         headers: { "x-api-token": apiKey, "x-api-key": apiKey, "Content-Type": "application/json" },
