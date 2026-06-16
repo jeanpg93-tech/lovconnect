@@ -1132,6 +1132,43 @@ Deno.serve(async (req) => {
     await svc.rpc("add_reseller_spent", { _reseller_id: reseller.id, _amount_cents: price_cents });
     await logUsage(200, { cost_cents: price_cents, license_type, license_key });
 
+    // WhatsApp ao cliente (loja própria via API unificada) — best-effort
+    if (license_key && whatsapp) {
+      try {
+        const { data: integ } = await svc
+          .from("reseller_integrations")
+          .select("evolution_enabled, evolution_send_on_api, connection_status")
+          .eq("reseller_id", reseller.id)
+          .maybeSingle();
+        if (
+          integ?.evolution_enabled &&
+          (integ as any).evolution_send_on_api !== false &&
+          integ?.connection_status === "connected"
+        ) {
+          fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/evolution-send-sale`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
+            },
+            body: JSON.stringify({
+              reseller_id: reseller.id,
+              kind: "license",
+              to: whatsapp,
+              vars: {
+                nome: display_name || "",
+                chave: license_key,
+                tipo: license_type,
+                valor_cents: String(price_cents ?? 0),
+              },
+            }),
+          }).catch((e) => console.warn("evolution-send-sale (api unified) failed", e));
+        }
+      } catch (e) {
+        console.warn("evolution-send-sale lookup (unified) failed", e);
+      }
+    }
+
     // Webhook (best-effort)
     if (keyRow.webhook_url) {
       const payload = {
