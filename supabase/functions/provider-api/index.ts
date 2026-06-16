@@ -9,10 +9,50 @@ const FLOW_REMOTE_ACTIONS = new Set([
   "usage",
   "usage-all",
   "pricing",
-  "reset-hwid",
   "revoke-license",
   "delete-license",
 ]);
+
+const LOVAX_DEFAULT_BASE = "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
+
+async function getActiveDeliveryMethod(serviceClient: any): Promise<"flow" | "lovax"> {
+  const { data } = await serviceClient
+    .from("app_settings")
+    .select("value")
+    .eq("key", "licencas.delivery.method")
+    .maybeSingle();
+  const m = (data?.value as any)?.method;
+  return m === "lovax" ? "lovax" : "flow";
+}
+
+async function getLovaxCreds(serviceClient: any): Promise<{ apiKey: string; base: string } | null> {
+  const { data } = await serviceClient
+    .from("app_settings")
+    .select("key, value")
+    .in("key", ["lovax_api_token", "lovax_base_url"]);
+  const tk = data?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined;
+  const bs = (data?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined) || LOVAX_DEFAULT_BASE;
+  if (!tk) return null;
+  return { apiKey: tk, base: bs };
+}
+
+async function callLovaxResetHwid(serviceClient: any, license_key: string) {
+  const creds = await getLovaxCreds(serviceClient);
+  if (!creds) {
+    return { ok: false, status: 400, data: { error: "MétodoLovax não configurado" } };
+  }
+  const r = await fetch(creds.base, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${creds.apiKey}`,
+      "x-api-key": creds.apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action: "reset_hwid", payload: { license_key } }),
+  });
+  const data = await safeJson(r);
+  return { ok: r.ok && data?.success !== false, status: r.status, data };
+}
 
 // Mapeia tipos internos de licença para o body do novo provedor
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
