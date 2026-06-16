@@ -450,6 +450,17 @@ Deno.serve(async (req) => {
         const { license_key } = body;
         if (!license_key) return json({ ok: false, error: "license_key obrigatório" }, 200);
 
+        // Roteia conforme o método de entrega ativo
+        const activeMethod = await getActiveDeliveryMethod(serviceClient);
+        if (activeMethod === "lovax") {
+          console.log(`[reset-hwid] (lovax) key=${license_key}`);
+          const r = await callLovaxResetHwid(serviceClient, license_key);
+          if (!r.ok) {
+            return json({ ok: false, provider_error: r.data?.error || `HTTP ${r.status}`, status: r.status, license_key }, 200);
+          }
+          return json({ ok: true, ...r.data, license_key }, 200);
+        }
+
         console.log(`[reset-hwid] Requesting for key: ${license_key} to ${base}/reset-hwid`);
         const r = await fetch(`${base}/reset-hwid`, {
           method: "POST",
