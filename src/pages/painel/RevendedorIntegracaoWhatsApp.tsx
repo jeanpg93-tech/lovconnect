@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 type Integ = {
   evolution_enabled: boolean;
+  evolution_send_on_api: boolean;
   evolution_instance: string | null;
   evolution_message_template: string;
   evolution_template_recharge: string | null;
@@ -41,6 +42,7 @@ export default function RevendedorIntegracaoWhatsApp() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  const [sendOnApi, setSendOnApi] = useState(true);
   const [tplLicense, setTplLicense] = useState("");
   const [tplRecharge, setTplRecharge] = useState("");
   const [tplStorefront, setTplStorefront] = useState("");
@@ -67,7 +69,7 @@ export default function RevendedorIntegracaoWhatsApp() {
     const [{ data: row }, { data: appS }] = await Promise.all([
       supabase
         .from("reseller_integrations")
-        .select("evolution_enabled, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, connection_status, last_connected_at, profile_name, profile_number, profile_picture_url, messages_sent_count")
+        .select("evolution_enabled, evolution_send_on_api, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, connection_status, last_connected_at, profile_name, profile_number, profile_picture_url, messages_sent_count")
         .eq("reseller_id", r.id).maybeSingle(),
       supabase
         .from("app_settings")
@@ -86,6 +88,7 @@ export default function RevendedorIntegracaoWhatsApp() {
     if (row) {
       setInteg(row as any);
       setEnabled(!!row.evolution_enabled);
+      setSendOnApi((row as any).evolution_send_on_api !== false);
       setTplLicense(row.evolution_message_template ?? defs.license);
       setTplRecharge((row as any).evolution_template_recharge ?? defs.recharge);
       setTplStorefront((row as any).evolution_template_storefront ?? defs.storefront);
@@ -110,6 +113,7 @@ export default function RevendedorIntegracaoWhatsApp() {
     const { error } = await supabase.from("reseller_integrations").upsert({
       reseller_id: resellerId,
       evolution_enabled: enabled,
+      evolution_send_on_api: sendOnApi,
       evolution_message_template: tplLicense,
       evolution_template_recharge: tplRecharge,
       evolution_template_storefront: tplStorefront,
@@ -275,6 +279,27 @@ export default function RevendedorIntegracaoWhatsApp() {
         </div>
         {!connected && (
           <p className="mt-3 text-[11px] text-amber-500">Conecte o WhatsApp antes de ativar o envio automático.</p>
+        )}
+      </section>
+
+      {/* Envio em vendas via API (loja própria) */}
+      <section className="rounded-xl border border-border bg-card/60 p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <Plug className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-display text-base font-semibold">Disparar nas vendas via API (loja própria)</h3>
+              <p className="text-xs text-muted-foreground">
+                Quando você gera licenças pela nossa API no seu próprio site, enviamos a mensagem ao cliente automaticamente — desde que o pedido inclua o campo <code>whatsapp</code>.
+              </p>
+            </div>
+          </div>
+          <Switch checked={sendOnApi} onCheckedChange={setSendOnApi} disabled={!connected || !enabled} />
+        </div>
+        {(!connected || !enabled) && (
+          <p className="mt-3 text-[11px] text-amber-500">Ative o envio automático acima para liberar o disparo via API.</p>
         )}
       </section>
 
