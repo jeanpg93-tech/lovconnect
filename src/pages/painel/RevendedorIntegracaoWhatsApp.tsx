@@ -22,6 +22,7 @@ type Integ = {
   evolution_message_template: string;
   evolution_template_recharge: string | null;
   evolution_template_storefront: string | null;
+  evolution_template_api: string | null;
   connection_status: string;
   last_connected_at: string | null;
   profile_name: string | null;
@@ -46,6 +47,7 @@ export default function RevendedorIntegracaoWhatsApp() {
   const [tplLicense, setTplLicense] = useState("");
   const [tplRecharge, setTplRecharge] = useState("");
   const [tplStorefront, setTplStorefront] = useState("");
+  const [tplApi, setTplApi] = useState("");
   const [integ, setInteg] = useState<Integ | null>(null);
   const [defaults, setDefaults] = useState<Defaults>({ license: "", recharge: "", storefront: "" });
 
@@ -69,7 +71,7 @@ export default function RevendedorIntegracaoWhatsApp() {
     const [{ data: row }, { data: appS }] = await Promise.all([
       supabase
         .from("reseller_integrations")
-        .select("evolution_enabled, evolution_send_on_api, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, connection_status, last_connected_at, profile_name, profile_number, profile_picture_url, messages_sent_count")
+        .select("evolution_enabled, evolution_send_on_api, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, evolution_template_api, connection_status, last_connected_at, profile_name, profile_number, profile_picture_url, messages_sent_count")
         .eq("reseller_id", r.id).maybeSingle(),
       supabase
         .from("app_settings")
@@ -92,10 +94,12 @@ export default function RevendedorIntegracaoWhatsApp() {
       setTplLicense(row.evolution_message_template ?? defs.license);
       setTplRecharge((row as any).evolution_template_recharge ?? defs.recharge);
       setTplStorefront((row as any).evolution_template_storefront ?? defs.storefront);
+      setTplApi((row as any).evolution_template_api ?? "");
     } else {
       setTplLicense(defs.license);
       setTplRecharge(defs.recharge);
       setTplStorefront(defs.storefront);
+      setTplApi("");
     }
     setLoading(false);
   };
@@ -117,6 +121,7 @@ export default function RevendedorIntegracaoWhatsApp() {
       evolution_message_template: tplLicense,
       evolution_template_recharge: tplRecharge,
       evolution_template_storefront: tplStorefront,
+      evolution_template_api: tplApi.trim() ? tplApi : null,
     } as any, { onConflict: "reseller_id" });
     setSaving(false);
     if (error) toast.error(error.message);
