@@ -9,10 +9,50 @@ const FLOW_REMOTE_ACTIONS = new Set([
   "usage",
   "usage-all",
   "pricing",
-  "reset-hwid",
   "revoke-license",
   "delete-license",
 ]);
+
+const LOVAX_DEFAULT_BASE = "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
+
+async function getActiveDeliveryMethod(serviceClient: any): Promise<"flow" | "lovax"> {
+  const { data } = await serviceClient
+    .from("app_settings")
+    .select("value")
+    .eq("key", "licencas.delivery.method")
+    .maybeSingle();
+  const m = (data?.value as any)?.method;
+  return m === "lovax" ? "lovax" : "flow";
+}
+
+async function getLovaxCreds(serviceClient: any): Promise<{ apiKey: string; base: string } | null> {
+  const { data } = await serviceClient
+    .from("app_settings")
+    .select("key, value")
+    .in("key", ["lovax_api_token", "lovax_base_url"]);
+  const tk = data?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined;
+  const bs = (data?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined) || LOVAX_DEFAULT_BASE;
+  if (!tk) return null;
+  return { apiKey: tk, base: bs };
+}
+
+async function callLovaxResetHwid(serviceClient: any, license_key: string) {
+  const creds = await getLovaxCreds(serviceClient);
+  if (!creds) {
+    return { ok: false, status: 400, data: { error: "MétodoLovax não configurado" } };
+  }
+  const r = await fetch(creds.base, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${creds.apiKey}`,
+      "x-api-key": creds.apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action: "reset_hwid", payload: { license_key } }),
+  });
+  const data = await safeJson(r);
+  return { ok: r.ok && data?.success !== false, status: r.status, data };
+}
 
 // Mapeia tipos internos de licença para o body do novo provedor
 function mapTypeToProviderBody(type: string): Record<string, unknown> {
@@ -232,6 +272,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Atalho: reset-hwid via LovaX (autenticado) — não depende de credenciais do Flow
+    if (req.method === "POST" && action === "reset-hwid") {
+      const activeMethod = await getActiveDeliveryMethod(serviceClient);
+      if (activeMethod === "lovax") {
+        const body = await req.json().catch(() => ({}));
+        const license_key = typeof body?.license_key === "string" ? body.license_key.trim() : "";
+        if (!license_key) return json({ ok: false, error: "license_key obrigatório" }, 200);
+        console.log(`[reset-hwid] (lovax/early) key=${license_key}`);
+        const r = await callLovaxResetHwid(serviceClient, license_key);
+        if (!r.ok) {
+          return json({ ok: false, provider_error: r.data?.error || `HTTP ${r.status}`, status: r.status, license_key }, 200);
+        }
+        return json({ ok: true, ...r.data, license_key }, 200);
+      }
+    }
+
     // ---- Recupera credenciais (DB primeiro, fallback para secret) ----
     const { data: cfg } = await serviceClient
       .from("provider_settings")
@@ -410,6 +466,17 @@ Deno.serve(async (req) => {
         const { license_key } = body;
         if (!license_key) return json({ ok: false, error: "license_key obrigatório" }, 200);
 
+        // Roteia conforme o método de entrega ativo
+        const activeMethod = await getActiveDeliveryMethod(serviceClient);
+        if (activeMethod === "lovax") {
+          console.log(`[reset-hwid] (lovax) key=${license_key}`);
+          const r = await callLovaxResetHwid(serviceClient, license_key);
+          if (!r.ok) {
+            return json({ ok: false, provider_error: r.data?.error || `HTTP ${r.status}`, status: r.status, license_key }, 200);
+          }
+          return json({ ok: true, ...r.data, license_key }, 200);
+        }
+
         console.log(`[reset-hwid] Requesting for key: ${license_key} to ${base}/reset-hwid`);
         const r = await fetch(`${base}/reset-hwid`, {
           method: "POST",
@@ -507,6 +574,16 @@ Deno.serve(async (req) => {
       const license_key = typeof body.license_key === "string" ? body.license_key.trim() : "";
 
       if (!license_key) return json({ error: "Chave de licença é obrigatória" }, 400);
+
+      // Roteia conforme o método de entrega ativo (MétodoFlow desativado → LovaX)
+      const activeMethod = await getActiveDeliveryMethod(serviceClient);
+      if (activeMethod === "lovax") {
+        const r = await callLovaxResetHwid(serviceClient, license_key);
+        if (!r.ok) {
+          return json({ error: r.data?.error ?? "Erro ao resetar device no provedor" }, r.status || 502);
+        }
+        return json({ success: true, message: "Device desvinculado com sucesso!" });
+      }
 
       const r = await fetch(`${base}/reset-hwid`, {
         method: "POST",
