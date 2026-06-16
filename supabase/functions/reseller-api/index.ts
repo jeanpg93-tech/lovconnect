@@ -665,7 +665,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               reseller_id: reseller.id,
-              kind: "license",
+              kind: "api",
               to: whatsapp,
               vars: {
                 nome: display_name || "",
@@ -1153,7 +1153,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               reseller_id: reseller.id,
-              kind: "license",
+              kind: "api",
               to: whatsapp,
               vars: {
                 nome: display_name || "",
