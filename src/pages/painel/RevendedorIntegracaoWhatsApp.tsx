@@ -282,6 +282,27 @@ export default function RevendedorIntegracaoWhatsApp() {
         )}
       </section>
 
+      {/* Envio em vendas via API (loja própria) */}
+      <section className="rounded-xl border border-border bg-card/60 p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <Plug className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-display text-base font-semibold">Disparar nas vendas via API (loja própria)</h3>
+              <p className="text-xs text-muted-foreground">
+                Quando você gera licenças pela nossa API no seu próprio site, enviamos a mensagem ao cliente automaticamente — desde que o pedido inclua o campo <code>whatsapp</code>.
+              </p>
+            </div>
+          </div>
+          <Switch checked={sendOnApi} onCheckedChange={setSendOnApi} disabled={!connected || !enabled} />
+        </div>
+        {(!connected || !enabled) && (
+          <p className="mt-3 text-[11px] text-amber-500">Ative o envio automático acima para liberar o disparo via API.</p>
+        )}
+      </section>
+
       {/* Templates */}
       <section className="rounded-xl border border-border bg-card/60 p-5 space-y-5">
         <div>
