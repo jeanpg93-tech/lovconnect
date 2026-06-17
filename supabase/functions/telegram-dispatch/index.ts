@@ -31,9 +31,7 @@ Deno.serve(async (req) => {
   }
 
   const { data: pending, error: pendingErr } = await supabase
-    .from('telegram_outbox').select('*')
-    .is('sent_at', null)
-    .order('created_at', { ascending: true }).limit(50)
+    .rpc('claim_telegram_outbox', { _limit: 50 })
 
   if (pendingErr) {
     console.error('[telegram-dispatch] failed to fetch pending', pendingErr)

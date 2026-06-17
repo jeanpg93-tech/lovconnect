@@ -3930,6 +3930,7 @@ export type Database = {
       telegram_outbox: {
         Row: {
           attempts: number
+          claimed_at: string | null
           created_at: string
           edit_message_id: number | null
           id: string
@@ -3944,6 +3945,7 @@ export type Database = {
         }
         Insert: {
           attempts?: number
+          claimed_at?: string | null
           created_at?: string
           edit_message_id?: number | null
           id?: string
@@ -3958,6 +3960,7 @@ export type Database = {
         }
         Update: {
           attempts?: number
+          claimed_at?: string | null
           created_at?: string
           edit_message_id?: number | null
           id?: string
@@ -4290,6 +4293,30 @@ export type Database = {
       build_storefront_credit_sale_text: {
         Args: { _order_id: string }
         Returns: string
+      }
+      claim_telegram_outbox: {
+        Args: { _limit?: number }
+        Returns: {
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          edit_message_id: number | null
+          id: string
+          is_edit: boolean
+          last_error: string | null
+          message_id: number | null
+          parse_mode: string | null
+          reference_id: string | null
+          reference_kind: string | null
+          sent_at: string | null
+          text: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "telegram_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       cleanup_old_trial_registrations: {
         Args: { _days?: number }
