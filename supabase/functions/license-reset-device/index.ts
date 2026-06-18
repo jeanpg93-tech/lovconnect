@@ -2,12 +2,34 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const DEFAULT_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
+const LOVAX_DEFAULT_BASE = "https://wogunbzijppmeuleitjq.supabase.co/functions/v1/reseller-api";
 
 function json(d: unknown, status = 200) {
   return new Response(JSON.stringify(d), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function getActiveDeliveryMethod(svc: any): Promise<"flow" | "lovax"> {
+  const { data } = await svc
+    .from("app_settings")
+    .select("value")
+    .eq("key", "licencas.delivery.method")
+    .maybeSingle();
+  const m = (data?.value as any)?.method;
+  return m === "lovax" ? "lovax" : "flow";
+}
+
+async function getLovaxCreds(svc: any): Promise<{ apiKey: string; base: string } | null> {
+  const { data } = await svc
+    .from("app_settings")
+    .select("key, value")
+    .in("key", ["lovax_api_token", "lovax_base_url"]);
+  const tk = data?.find((r: any) => r.key === "lovax_api_token")?.value as string | undefined;
+  const bs = (data?.find((r: any) => r.key === "lovax_base_url")?.value as string | undefined) || LOVAX_DEFAULT_BASE;
+  if (!tk) return null;
+  return { apiKey: tk, base: bs };
 }
 
 Deno.serve(async (req) => {
@@ -71,25 +93,50 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Provedor
-    const { data: cfg } = await svc.from("provider_settings")
-      .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
-    const provKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
-    const base = cfg?.base_url ?? DEFAULT_BASE;
-    if (!provKey) return json({ error: "Provedor não configurado" }, 502);
+    // Roteia conforme o método de entrega ativo (Flow ou Lovax).
+    // Chaves TS- (trial) e qualquer chave gerada enquanto o método ativo for Lovax
+    // precisam ser resetadas no upstream Lovax — chamar o Flow retorna 404.
+    const activeMethod = await getActiveDeliveryMethod(svc);
 
     let providerData: any = null;
     let providerStatus = 0;
     try {
-      const r = await fetch(`${base}/reset-hwid`, {
-        method: "POST",
-        headers: { "x-api-token": provKey, "x-api-key": provKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ license_key }),
-      });
-      providerStatus = r.status;
-      const text = await r.text();
-      try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+      if (activeMethod === "lovax") {
+        const creds = await getLovaxCreds(svc);
+        if (!creds) return json({ error: "MétodoLovax não configurado" }, 502);
+        const r = await fetch(creds.base, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${creds.apiKey}`,
+            "x-api-key": creds.apiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ action: "reset_hwid", payload: { license_key } }),
+        });
+        providerStatus = r.status;
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+        // Lovax retorna 200 com success:false em alguns erros
+        if (r.ok && providerData?.success === false) {
+          providerStatus = 409;
+        }
+      } else {
+        const { data: cfg } = await svc.from("provider_settings")
+          .select("api_key,base_url").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+        const provKey = cfg?.api_key ?? Deno.env.get("EXTENSION_PROVIDER_API_KEY") ?? "";
+        const base = cfg?.base_url ?? DEFAULT_BASE;
+        if (!provKey) return json({ error: "Provedor não configurado" }, 502);
+        const r = await fetch(`${base}/reset-hwid`, {
+          method: "POST",
+          headers: { "x-api-token": provKey, "x-api-key": provKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ license_key }),
+        });
+        providerStatus = r.status;
+        const text = await r.text();
+        try { providerData = JSON.parse(text); } catch { providerData = { raw: text }; }
+      }
     } catch (e) {
+      console.error("[license-reset-device] provider call failed", e);
       return json({ error: "Erro ao chamar provedor", details: e instanceof Error ? e.message : null }, 502);
     }
 
