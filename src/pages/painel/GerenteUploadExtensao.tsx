@@ -72,8 +72,20 @@ const bumpPatch = (v: string) => {
   return parts.join(".");
 };
 
+const METHOD_STORAGE_KEY = "gerente_upload_extensao_method";
+
 export default function GerenteUploadExtensao() {
-  const [method, setMethod] = useState<Method>("flow");
+  const [method, setMethodState] = useState<Method>(() => {
+    if (typeof window === "undefined") return "flow";
+    const saved = window.localStorage.getItem(METHOD_STORAGE_KEY);
+    return saved === "lovax" || saved === "flow" ? saved : "flow";
+  });
+  const setMethod = (m: Method) => {
+    setMethodState(m);
+    try {
+      window.localStorage.setItem(METHOD_STORAGE_KEY, m);
+    } catch {}
+  };
   const [ext, setExt] = useState<Ext | null>(null);
   const [loading, setLoading] = useState(true);
   const [versions, setVersions] = useState<Version[]>([]);
