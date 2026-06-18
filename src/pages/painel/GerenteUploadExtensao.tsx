@@ -11,7 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 import {
   Upload,
   Download,
@@ -369,12 +370,11 @@ export default function GerenteUploadExtensao() {
                 {logs.length}/{MAX_LOG_LEN}
               </span>
             </div>
-            <Textarea
+            <RichTextEditor
               value={logs}
-              onChange={(e) => setLogs(e.target.value.slice(0, MAX_LOG_LEN))}
-              rows={7}
-              placeholder={"- Corrigido erro X\n- Adicionada função Y\n- Melhoria de performance"}
-              className="font-mono text-xs"
+              onChange={setLogs}
+              maxLength={MAX_LOG_LEN}
+              placeholder="Descreva o que mudou nesta versão..."
             />
             <p className="text-[10px] text-muted-foreground">
               Será exibido a revendedores e clientes no histórico.
@@ -430,9 +430,10 @@ export default function GerenteUploadExtensao() {
                         </span>
                       </div>
                       {v.changelog && (
-                        <pre className="mt-1.5 whitespace-pre-wrap font-sans text-[11px] text-muted-foreground">
-                          {v.changelog}
-                        </pre>
+                        <div
+                          className="prose-sm mt-1.5 max-w-none text-[11px] text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
+                          dangerouslySetInnerHTML={{ __html: sanitizeRichText(v.changelog) }}
+                        />
                       )}
                       {v.file_name && (
                         <Button

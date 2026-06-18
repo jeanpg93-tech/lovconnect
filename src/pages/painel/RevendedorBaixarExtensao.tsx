@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/painel/PageHeader";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -265,9 +266,10 @@ export default function RevendedorBaixarExtensao() {
                         </span>
                       </div>
                       {v.changelog && (
-                        <pre className="mt-2 whitespace-pre-wrap font-sans text-xs text-muted-foreground">
-                          {v.changelog}
-                        </pre>
+                        <div
+                          className="prose-sm mt-2 max-w-none text-xs text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
+                          dangerouslySetInnerHTML={{ __html: sanitizeRichText(v.changelog) }}
+                        />
                       )}
                       <div className="mt-2 text-[11px] text-muted-foreground">
                         Última atualização: {fmtDate(v.created_at)}
