@@ -316,7 +316,7 @@ export default function PublicStorefront() {
         ? await supabase
         .from("reseller_recharge_plan_prices")
         .select(
-          "plan_id, sale_price_cents, recharge_plans!inner(id, name, duration_days, credits_per_day, total_credits_cap, is_active, bot_owner_email)",
+          "plan_id, sale_price_cents, recharge_plans!inner(id, name, duration_days, credits_per_day, total_credits_cap, is_active)",
         )
         .eq("reseller_id", r.id)
         .eq("is_active", true)
@@ -324,7 +324,7 @@ export default function PublicStorefront() {
         .gt("sale_price_cents", 0)
         : { data: [] as any[] };
       const sp: SellablePlan[] = ((rpp ?? []) as any[])
-        .filter((row) => row.recharge_plans?.is_active && row.recharge_plans?.bot_owner_email)
+        .filter((row) => row.recharge_plans?.is_active)
         .map((row) => ({
           plan_id: row.plan_id,
           name: row.recharge_plans.name,
