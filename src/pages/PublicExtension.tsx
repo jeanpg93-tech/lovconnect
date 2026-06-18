@@ -345,7 +345,7 @@ export default function PublicExtension({ slug: slugProp }: { slug?: string } = 
                     <div
                       className="prose-sm mt-2 max-w-none whitespace-pre-wrap rounded-lg border border-border/40 bg-background/40 p-3 text-xs leading-relaxed text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
                       dangerouslySetInnerHTML={{ __html: sanitizeRichText(v.changelog) }}
-                    </div>
+                    />
                   )}
                 </li>
               ))}
