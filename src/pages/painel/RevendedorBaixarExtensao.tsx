@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/painel/PageHeader";
 import { sanitizeRichText } from "@/lib/sanitize-html";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EssentialCustomizerForm } from "@/components/extension-customizer/EssentialCustomizerForm";
 import {
   Dialog,
   DialogContent,
@@ -61,6 +62,7 @@ export default function RevendedorBaixarExtensao() {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ExtRow[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [resellerId, setResellerId] = useState<string | null>(null);
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<ExtRow | null>(null);
@@ -72,17 +74,25 @@ export default function RevendedorBaixarExtensao() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      
-      const { data: extRes } = await supabase
-        .from("extensions")
-        .select("id,name,slug,version,description,changelog,file_path,file_name,file_size,updated_at")
-        .eq("is_active", true)
-        .order("name", { ascending: true });
+
+      const [{ data: extRes }, { data: rsl }] = await Promise.all([
+        supabase
+          .from("extensions")
+          .select("id,name,slug,version,description,changelog,file_path,file_name,file_size,updated_at")
+          .eq("is_active", true)
+          .order("name", { ascending: true }),
+        supabase
+          .from("resellers")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
 
       if (cancelled) return;
       if (extRes) {
         setItems(extRes as ExtRow[]);
       }
+      setResellerId(rsl?.id ?? null);
       
       setLoading(false);
     })();
@@ -220,6 +230,21 @@ export default function RevendedorBaixarExtensao() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {resellerId && (
+        <div className="space-y-3 pt-4">
+          <div className="px-1">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/60">
+              Personalização
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Deixe a extensão com a cara da sua marca. As alterações são
+              aplicadas automaticamente para os clientes ativos.
+            </p>
+          </div>
+          <EssentialCustomizerForm resellerId={resellerId} />
         </div>
       )}
 
