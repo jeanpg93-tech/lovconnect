@@ -312,27 +312,36 @@ export default function PublicStorefront() {
       const plansGloballyEnabled = (gFlag?.value as any) === true;
       const plansEnabledForReseller =
         plansGloballyEnabled || !!(r as any).recharge_plans_enabled;
-      const { data: rpp } = plansEnabledForReseller
-        ? await supabase
-        .from("reseller_recharge_plan_prices")
-        .select(
-          "plan_id, sale_price_cents, recharge_plans!inner(id, name, duration_days, credits_per_day, total_credits_cap, is_active, bot_owner_email)",
-        )
-        .eq("reseller_id", r.id)
-        .eq("is_active", true)
-        .eq("show_on_storefront", true)
-        .gt("sale_price_cents", 0)
-        : { data: [] as any[] };
-      const sp: SellablePlan[] = ((rpp ?? []) as any[])
-        .filter((row) => row.recharge_plans?.is_active && row.recharge_plans?.bot_owner_email)
-        .map((row) => ({
-          plan_id: row.plan_id,
-          name: row.recharge_plans.name,
-          duration_days: row.recharge_plans.duration_days,
-          credits_per_day: row.recharge_plans.credits_per_day,
-          total_credits_cap: row.recharge_plans.total_credits_cap,
-          sale_price_cents: Number(row.sale_price_cents),
-        }));
+      const [{ data: planPrices }, { data: publicPlans }] = plansEnabledForReseller
+        ? await Promise.all([
+          supabase
+            .from("reseller_recharge_plan_prices")
+            .select("plan_id, sale_price_cents")
+            .eq("reseller_id", r.id)
+            .eq("is_active", true)
+            .eq("show_on_storefront", true)
+            .gt("sale_price_cents", 0),
+          supabase
+            .from("recharge_plans")
+            .select("id, name, duration_days, credits_per_day, total_credits_cap, is_active")
+            .eq("is_active", true),
+        ])
+        : [{ data: [] as any[] }, { data: [] as any[] }];
+      const plansById = new Map(((publicPlans ?? []) as any[]).map((plan) => [plan.id, plan]));
+      const sp: SellablePlan[] = ((planPrices ?? []) as any[])
+        .map((row) => {
+          const plan = plansById.get(row.plan_id);
+          if (!plan) return null;
+          return {
+            plan_id: row.plan_id,
+            name: plan.name,
+            duration_days: plan.duration_days,
+            credits_per_day: plan.credits_per_day,
+            total_credits_cap: plan.total_credits_cap,
+            sale_price_cents: Number(row.sale_price_cents),
+          };
+        })
+        .filter(Boolean) as SellablePlan[];
       setSellablePlans(sp);
 
       const { data: rs } = await supabase

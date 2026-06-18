@@ -1,0 +1,1 @@
+GRANT SELECT (bot_owner_email) ON public.recharge_plans TO anon;
