@@ -80,13 +80,13 @@ export default function RevendedorPlanoPreco() {
         return;
       }
 
-      const { data: planRows } = await supabase
-        .from("recharge_plans")
-        .select("id,name,description,duration_days,credits_per_day,total_credits_cap,delivery_hour,base_cost_cents,is_active,bot_owner_email")
-        .eq("is_active", true)
-        .order("created_at", { ascending: true })
-        .limit(1);
-      const p = (planRows?.[0] ?? null) as RechargePlan | null;
+      const { data: planRows } = await supabase.rpc(
+        "reseller_list_recharge_plans" as any,
+      );
+      const activePlans = ((planRows ?? []) as any[]).filter(
+        (pl) => pl?.is_active,
+      );
+      const p = (activePlans[0] ?? null) as RechargePlan | null;
       setPlan(p);
 
       if (p) {
