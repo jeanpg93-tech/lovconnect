@@ -267,7 +267,7 @@ export default function RevendedorBaixarExtensao() {
                       </div>
                       {v.changelog && (
                         <div
-                          className="prose-sm mt-2 max-w-none text-xs text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
+                          className="prose-sm mt-2 max-w-none whitespace-pre-wrap text-xs text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
                           dangerouslySetInnerHTML={{ __html: sanitizeRichText(v.changelog) }}
                         />
                       )}
