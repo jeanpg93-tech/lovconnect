@@ -60,8 +60,6 @@ export function EssentialCustomizerForm({ resellerId }: Props) {
   const [separateLogos, setSeparateLogos] = useState(false);
   const [advancedKey, setAdvancedKey] = useState(0);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const uploadingRef = useRef<"single" | "rect" | "square" | null>(null);
-  const [, force] = useState(0);
 
   useEffect(() => {
     void load();
