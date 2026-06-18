@@ -137,13 +137,10 @@ export default function RevendedorPlanosVendidos() {
       }
       setResellerId(r.id);
 
-      const { data: planRows } = await supabase
-        .from("recharge_plans")
-        .select("id,name,duration_days,credits_per_day,total_credits_cap,bot_owner_email,base_cost_cents")
-        .eq("is_active", true)
-        .order("created_at", { ascending: true })
-        .limit(1);
-      const p = planRows?.[0] as any;
+      const { data: planRows } = await supabase.rpc(
+        "reseller_list_recharge_plans" as any,
+      );
+      const p = ((planRows ?? []) as any[]).find((pl) => pl?.is_active) ?? null;
       if (p) {
         const { data: priceRow } = await supabase
           .from("reseller_recharge_plan_prices")
