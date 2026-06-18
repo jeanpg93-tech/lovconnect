@@ -4618,6 +4618,23 @@ export type Database = {
         Returns: number
       }
       reject_user: { Args: { _user_id: string }; Returns: undefined }
+      reseller_list_recharge_plans: {
+        Args: never
+        Returns: {
+          base_cost_cents: number
+          bot_owner_email: string
+          created_at: string
+          credits_per_day: number
+          delivery_hour: number
+          description: string
+          duration_days: number
+          id: string
+          is_active: boolean
+          name: string
+          total_credits_cap: number
+          updated_at: string
+        }[]
+      }
       reset_daily_test_keys: { Args: never; Returns: undefined }
       scan_stuck_configurando_purchases: { Args: never; Returns: undefined }
       set_reseller_delivery_source: {
