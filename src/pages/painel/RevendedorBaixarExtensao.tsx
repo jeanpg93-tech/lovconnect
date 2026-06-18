@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/painel/PageHeader";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
