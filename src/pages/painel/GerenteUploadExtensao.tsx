@@ -443,7 +443,7 @@ export default function GerenteUploadExtensao() {
                       </div>
                       {v.changelog && (
                         <div
-                          className="prose-sm mt-1.5 max-w-none text-[11px] text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
+                          className="prose-sm mt-1.5 max-w-none whitespace-pre-wrap text-[11px] text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
                           dangerouslySetInnerHTML={{ __html: sanitizeRichText(v.changelog) }}
                         />
                       )}
