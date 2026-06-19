@@ -85,9 +85,46 @@ type Props = {
   extensionMethod?: "flow" | "lovax" | null;
 };
 
-function getExtensionDefaults(extensionName?: string | null, extensionVersion?: string | null): ExtCustomization {
+function getExtensionDefaults(
+  extensionName?: string | null,
+  extensionVersion?: string | null,
+  extensionMethod?: "flow" | "lovax" | null,
+): ExtCustomization {
   const name = extensionName?.trim();
   if (!name) return DEFAULTS;
+
+  if (extensionMethod === "lovax") {
+    return {
+      ...DEFAULTS,
+      brand_kicker: "",
+      brand_name: "LovConnect",
+      manifest_name: name,
+      window_title: `${name} - Painel Lateral`,
+      display_version: extensionVersion || DEFAULTS.display_version,
+      color_primary: "#ff1010",
+      color_primary_hover: "#d90000",
+      color_secondary: "#ff3b30",
+      color_bg: "#070707",
+      color_bg_elevated: "#141416",
+      color_bg_surface: "#1b1b1f",
+      color_success: "#20e6a0",
+      license_title: "Bem vindo a TS Community",
+      license_description: "Insira sua chave de licença para desbloquear.",
+      license_placeholder: "TS-XXXXXXXXXXXXXXXXXXXXXX",
+      license_button_text: "Validar Licença",
+      footer_text: "Desenvolvido por LovConnect",
+      shortcuts: [
+        { label: "Corrigir Bug", prompt: "Corrija bugs no projeto." },
+        { label: "Refatorar", prompt: "Refatore o código mantendo o comportamento." },
+        { label: "Melhorar UI", prompt: "Melhore a interface do usuário." },
+        { label: "Explicar Código", prompt: "Explique este código." },
+        { label: "Otimizar", prompt: "Otimize performance e legibilidade." },
+        { label: "Segurança", prompt: "Revise problemas de segurança." },
+        { label: "Criar Teste", prompt: "Crie testes para este fluxo." },
+        { label: "Responsividade", prompt: "Ajuste a responsividade da interface." },
+      ],
+    };
+  }
 
   return {
     ...DEFAULTS,
@@ -138,7 +175,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
 
   async function loadData() {
     setLoading(true);
-    const defaults = getExtensionDefaults(extensionName, extensionVersion);
+    const defaults = getExtensionDefaults(extensionName, extensionVersion, extensionMethod);
     setRecordId(null);
     setData(defaults);
     try {
