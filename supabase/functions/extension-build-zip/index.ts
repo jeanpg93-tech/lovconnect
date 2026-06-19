@@ -71,6 +71,24 @@ function cssValue(value: unknown, fallback: string) {
   return v;
 }
 
+function luminance(hex: string): number | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+}
+
+function darkThemeValue(value: unknown, fallback: string) {
+  const v = cssValue(value, fallback);
+  const lum = luminance(v);
+  return lum !== null && lum > 90 ? fallback : v;
+}
+
+function lightTextValue(value: unknown, fallback: string) {
+  const v = cssValue(value, fallback);
+  const lum = luminance(v);
+  return lum !== null && lum < 150 ? fallback : v;
+}
+
 function escapeJs(s: string) {
   return String(s).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n");
 }
