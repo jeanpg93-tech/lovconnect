@@ -60,9 +60,10 @@ type Props = {
   extensionId?: string | null;
   extensionName?: string | null;
   extensionVersion?: string | null;
+  extensionMethod?: "flow" | "lovax" | null;
 };
 
-export function EssentialCustomizerForm({ resellerId, extensionId, extensionName, extensionVersion }: Props) {
+export function EssentialCustomizerForm({ resellerId, extensionId, extensionName, extensionVersion, extensionMethod }: Props) {
   const EXTENSION_ID = extensionId || DEFAULT_EXTENSION_ID;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -498,6 +499,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
               extensionId={EXTENSION_ID}
               extensionName={extensionName}
               extensionVersion={extensionVersion}
+              extensionMethod={extensionMethod}
             />
           </Card>
         </CollapsibleContent>

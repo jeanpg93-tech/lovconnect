@@ -93,14 +93,18 @@ export function ExtensionPreview({
   c, 
   mode = "sidebar", 
   onModeChange,
-  showLicense = false
+  showLicense = false,
+  extensionMethod,
 }: { 
   c: ExtCustomization; 
   mode?: "sidebar" | "popup";
   onModeChange?: (mode: "sidebar" | "popup") => void;
   showLicense?: boolean;
+  extensionMethod?: "flow" | "lovax" | null;
 }) {
   const isPopup = mode === "popup";
+  const isLovax = extensionMethod === "lovax";
+  const shouldShowLicense = showLicense && !isLovax;
 
   // Use popup specific values if in popup mode and they exist, otherwise fall back to main values
   const brand_kicker = (isPopup && c.popup_brand_kicker) || c.brand_kicker;
@@ -249,7 +253,7 @@ export function ExtensionPreview({
 
         {/* Body */}
         <div className="flex-1 overflow-auto p-4 space-y-3 flex flex-col">
-          {showLicense ? (
+          {shouldShowLicense ? (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-6 py-10 animate-in fade-in zoom-in duration-300">
               {c.license_emoji && (
                 <div 

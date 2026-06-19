@@ -82,6 +82,7 @@ type Props = {
   extensionId?: string | null;
   extensionName?: string | null;
   extensionVersion?: string | null;
+  extensionMethod?: "flow" | "lovax" | null;
 };
 
 function getExtensionDefaults(extensionName?: string | null, extensionVersion?: string | null): ExtCustomization {
@@ -98,7 +99,7 @@ function getExtensionDefaults(extensionName?: string | null, extensionVersion?: 
   };
 }
 
-export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionName, extensionVersion }: Props) {
+export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionName, extensionVersion, extensionMethod }: Props) {
   const EXTENSION_ID = extensionId || DEFAULT_EXTENSION_ID;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -116,18 +117,24 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
     { id: "shortcuts", title: "Atalhos", icon: MousePointer2, description: "Ações rápidas" },
     { id: "license", title: "Ativação", icon: KeyRound, description: "Tela de licença" },
   ];
+  const visibleSteps = extensionMethod === "lovax" ? STEPS.filter((step) => step.id !== "license") : STEPS;
+  const activeStep = visibleSteps[currentStep] ?? visibleSteps[0];
 
   useEffect(() => {
     void loadData();
   }, [scope, resellerId, extensionId, extensionName, extensionVersion]);
 
   useEffect(() => {
-    if (currentStep === 5) {
+    if (currentStep >= visibleSteps.length) {
+      setCurrentStep(Math.max(0, visibleSteps.length - 1));
+      return;
+    }
+    if (activeStep?.id === "license") {
       setPreviewMode("license");
     } else {
       setPreviewMode("sidebar");
     }
-  }, [currentStep]);
+  }, [currentStep, extensionMethod, activeStep?.id, visibleSteps.length]);
 
   async function loadData() {
     setLoading(true);
@@ -336,7 +343,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
 
         {/* Stepper Header */}
         <div className="grid grid-cols-5 gap-2">
-          {STEPS.map((step, idx) => (
+          {visibleSteps.map((step, idx) => (
             <button
               key={step.id}
               onClick={() => setCurrentStep(idx)}
@@ -356,9 +363,9 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
         <Card className="p-6 relative overflow-hidden border-white/5 bg-card/30 backdrop-blur-xl">
           <div className="mb-6">
             <h3 className="text-lg font-bold flex items-center gap-2 text-white">
-              {STEPS[currentStep].title}
+              {activeStep.title}
             </h3>
-            <p className="text-xs text-muted-foreground">{STEPS[currentStep].description}</p>
+            <p className="text-xs text-muted-foreground">{activeStep.description}</p>
           </div>
 
           <div className="min-h-[350px]">
@@ -646,9 +653,9 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
                 Salvar
               </Button>
               
-              {currentStep < STEPS.length - 1 ? (
+              {currentStep < visibleSteps.length - 1 ? (
                 <Button 
-                  onClick={() => setCurrentStep(prev => Math.min(STEPS.length - 1, prev + 1))}
+                  onClick={() => setCurrentStep(prev => Math.min(visibleSteps.length - 1, prev + 1))}
                   className="rounded-xl px-8 shadow-lg shadow-primary/10"
                 >
                   Próximo <ChevronRight className="h-4 w-4 ml-2" />
@@ -684,12 +691,19 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
             <div className={cn("text-[10px] border border-emerald-500/20 px-3 py-1 rounded-full font-bold cursor-pointer transition-colors", previewMode === "sidebar" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground")} onClick={() => setPreviewMode("sidebar")}>
               Sidebar
             </div>
-            <div className={cn("text-[10px] border border-emerald-500/20 px-3 py-1 rounded-full font-bold cursor-pointer transition-colors", previewMode === "license" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground")} onClick={() => setPreviewMode("license")}>
-              Ativação
-            </div>
+            {extensionMethod !== "lovax" && (
+              <div className={cn("text-[10px] border border-emerald-500/20 px-3 py-1 rounded-full font-bold cursor-pointer transition-colors", previewMode === "license" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground")} onClick={() => setPreviewMode("license")}>
+                Ativação
+              </div>
+            )}
           </div>
         </div>
-        <ExtensionPreview c={data} mode={previewMode === "license" ? "sidebar" : previewMode} showLicense={previewMode === "license"} />
+        <ExtensionPreview
+          c={data}
+          mode={previewMode === "license" ? "sidebar" : previewMode}
+          showLicense={previewMode === "license"}
+          extensionMethod={extensionMethod}
+        />
         <Card className="p-4 bg-primary/5 border border-primary/10 rounded-2xl">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             <strong>Dica:</strong> As cores escolhidas no passo "Cores" são o coração do tema e serão aplicadas em toda a interface automaticamente.
