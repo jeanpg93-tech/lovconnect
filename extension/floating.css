@@ -1063,20 +1063,36 @@
 
 /* ===== LIGHT MODE ===== */
 #ql-floating.ql-light {
-  --ql-bg: #ffffff;
-  --ql-bg-elevated: #fafafa;
-  --ql-bg-surface: #f4f4f5;
-  --ql-bg-hover: #e4e4e7;
-  --ql-border: rgba(0,0,0,0.06);
-  --ql-border-hover: rgba(0,0,0,0.12);
-  --ql-text-primary: #18181b;
-  --ql-text-secondary: #52525b;
-  --ql-text-muted: #a1a1aa;
-  --ql-accent-subtle: rgba(124,90,255,0.06);
-  --ql-accent-glow: rgba(124,90,255,0.15);
+  --ql-bg: #f8fafc;
+  --ql-bg-elevated: #ffffff;
+  --ql-bg-surface: #ffffff;
+  --ql-bg-hover: #e5e7eb;
+  --ql-border: rgba(15,23,42,0.16);
+  --ql-border-hover: rgba(15,23,42,0.28);
+  --ql-text-primary: #0f172a;
+  --ql-text-secondary: #334155;
+  --ql-text-muted: #475569;
+  --ql-accent-subtle: rgba(239,68,68,0.10);
+  --ql-accent-glow: rgba(239,68,68,0.20);
   --ql-shadow: 0 24px 80px -12px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
   --ql-shadow-hover: 0 32px 100px -12px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06);
 }
+
+#ql-floating.ql-light .ql-icon-btn,
+#ql-floating.ql-light .ql-tool-btn,
+#ql-floating.ql-light .ql-attach-btn {
+  color: var(--ql-text-secondary);
+  border-color: var(--ql-border);
+}
+
+#ql-floating.ql-light .ql-icon-btn:hover,
+#ql-floating.ql-light .ql-tool-btn:hover,
+#ql-floating.ql-light .ql-attach-btn:hover {
+  color: var(--ql-text-primary);
+  background: var(--ql-bg-hover);
+}
+
+#ql-floating.ql-light .ql-chip:hover { color: var(--ql-accent); }
 
 /* ===== PAYMENT UI ===== */
 .ql-gate-divider {

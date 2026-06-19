@@ -127,13 +127,16 @@ function _buildFloatingUI(){
   box.style.left = initialLeft + "px";
   box.style.top = "80px";
 
-  chrome.storage.local.get(["ql_license_valid","ql_license_key","ql_minimized","ql_height","ql_dark_mode","ql_user_name","ql_expires_at","ql_activated_at","ql_license_status","ql_session_id"], async (res) => {
+  chrome.storage.local.get(["ql_license_valid","ql_license_key","ql_minimized","ql_height","ql_dark_mode","ql_theme_user_choice","ql_user_name","ql_expires_at","ql_activated_at","ql_license_status","ql_session_id"], async (res) => {
     qlMinimized = res.ql_minimized || false;
     qlHeight = res.ql_height || 520;
     qlDeviceId = await getDeviceId();
 
-    if(res.ql_dark_mode === false) {
+    if(res.ql_theme_user_choice === true && res.ql_dark_mode === false) {
       box.classList.add("ql-light");
+    } else {
+      box.classList.remove("ql-light");
+      chrome.storage.local.set({ ql_dark_mode: true });
     }
     if(qlMinimized) {
       box.classList.add("ql-minimized");
@@ -682,7 +685,7 @@ function setupDarkMode(){
     const box = document.getElementById("ql-floating");
     if(!box) return;
     const isLight = box.classList.toggle("ql-light");
-    chrome.storage.local.set({ ql_dark_mode: !isLight });
+    chrome.storage.local.set({ ql_dark_mode: !isLight, ql_theme_user_choice: true });
   });
 }
 

@@ -53,6 +53,42 @@ type Cust = {
 
 const TEMPLATE_PATH = "templates/master-lovable-base.zip";
 
+const DEFAULT_DARK_THEME = {
+  primary: "#ff1010",
+  hover: "#d90000",
+  secondary: "#ff3b30",
+  bg: "#070707",
+  elevated: "#141416",
+  surface: "#1b1b1f",
+  textPrimary: "#f4f4f5",
+  textSecondary: "#a1a1aa",
+  textMuted: "#71717a",
+};
+
+function cssValue(value: unknown, fallback: string) {
+  const v = String(value ?? "").trim();
+  if (!v || v === "null" || v === "undefined") return fallback;
+  return v;
+}
+
+function luminance(hex: string): number | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+}
+
+function darkThemeValue(value: unknown, fallback: string) {
+  const v = cssValue(value, fallback);
+  const lum = luminance(v);
+  return lum !== null && lum > 90 ? fallback : v;
+}
+
+function lightTextValue(value: unknown, fallback: string) {
+  const v = cssValue(value, fallback);
+  const lum = luminance(v);
+  return lum !== null && lum < 150 ? fallback : v;
+}
+
 function escapeJs(s: string) {
   return String(s).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n");
 }
@@ -264,13 +300,19 @@ Deno.serve(async (req) => {
       const isPopup = mode === "popup";
       
       const p = {
-        primary: (isPopup && cust.popup_color_primary) || cust.color_primary,
-        hover: (isPopup && cust.popup_color_primary_hover) || cust.color_primary_hover,
-        secondary: (isPopup && cust.popup_color_secondary) || cust.color_secondary,
-        bg: (isPopup && cust.popup_color_bg) || cust.color_bg,
-        elevated: (isPopup && cust.popup_color_bg_elevated) || cust.color_bg_elevated,
-        surface: (isPopup && cust.popup_color_bg_surface) || cust.color_bg_surface,
+        primary: cssValue((isPopup && cust.popup_color_primary) || cust.color_primary, DEFAULT_DARK_THEME.primary),
+        hover: cssValue((isPopup && cust.popup_color_primary_hover) || cust.color_primary_hover, DEFAULT_DARK_THEME.hover),
+        secondary: cssValue((isPopup && cust.popup_color_secondary) || cust.color_secondary, DEFAULT_DARK_THEME.secondary),
+        bg: darkThemeValue((isPopup && cust.popup_color_bg) || cust.color_bg, DEFAULT_DARK_THEME.bg),
+        elevated: darkThemeValue((isPopup && cust.popup_color_bg_elevated) || cust.color_bg_elevated, DEFAULT_DARK_THEME.elevated),
+        surface: darkThemeValue((isPopup && cust.popup_color_bg_surface) || cust.color_bg_surface, DEFAULT_DARK_THEME.surface),
       };
+
+      const cardBg = darkThemeValue((isPopup && cust.popup_card_bg_color) || cust.card_bg_color, p.surface);
+      const cardBorder = cssValue((isPopup && cust.popup_card_border_color) || cust.card_border_color, 'rgba(255,255,255,0.08)');
+      const cardBorderHover = cssValue((isPopup && cust.popup_card_border_hover_color) || cust.card_border_hover_color, 'rgba(255,255,255,0.14)');
+      const cardText = lightTextValue((isPopup && cust.popup_card_text_color) || cust.card_text_color, DEFAULT_DARK_THEME.textPrimary);
+      const cardMuted = lightTextValue((isPopup && cust.popup_card_muted_text_color) || cust.card_muted_text_color, DEFAULT_DARK_THEME.textSecondary);
 
       const w = {
         deep:  (isPopup && cust.popup_color_wave_deep) || wave.deep,
@@ -290,12 +332,13 @@ Deno.serve(async (req) => {
   --ql-secondary: ${p.secondary};
   --ql-bg: ${p.bg};
   --ql-bg-elevated: ${p.elevated};
-  --ql-bg-surface: ${(isPopup && cust.popup_card_bg_color) || cust.card_bg_color || p.surface};
-  --ql-bg-hover: ${(isPopup && cust.popup_card_bg_color) || cust.card_bg_color || p.surface};
-  --ql-border: ${(isPopup && cust.popup_card_border_color) || cust.card_border_color || 'rgba(255,255,255,0.06)'};
-  --ql-border-hover: ${(isPopup && cust.popup_card_border_hover_color) || cust.card_border_hover_color || 'rgba(255,255,255,0.12)'};
-  --ql-text-primary: ${(isPopup && cust.popup_card_text_color) || cust.card_text_color || '#f4f4f5'};
-  --ql-text-secondary: ${(isPopup && cust.popup_card_muted_text_color) || cust.card_muted_text_color || '#a1a1aa'};
+  --ql-bg-surface: ${cardBg};
+  --ql-bg-hover: ${cardBg};
+  --ql-border: ${cardBorder};
+  --ql-border-hover: ${cardBorderHover};
+  --ql-text-primary: ${cardText};
+  --ql-text-secondary: ${cardMuted};
+  --ql-text-muted: ${DEFAULT_DARK_THEME.textMuted};
   --ql-success: ${cust.color_success || '#34d399'};
   --ql-success-bg: ${(cust.color_success || '#34d399')}1a;
   --ml-deep: ${w.deep};
@@ -393,6 +436,63 @@ ${isPopup ? "#ql-body" : ".sp-container, .main-container"} { background: var(--q
 .ql-tab.ql-tab-active, .sp-tab.sp-tab-active { background: var(--ql-accent-subtle) !important; color: var(--ql-accent) !important; }
 .ql-send-btn, .sp-send-btn { background: linear-gradient(135deg, var(--ql-accent), var(--ql-secondary)) !important; }
 
+/* Dark is the downloaded extension default. Light mode receives a separate high-contrast palette. */
+#ql-floating.ql-light, body.sp-light {
+  --ql-bg: #f8fafc !important;
+  --ql-bg-elevated: #ffffff !important;
+  --ql-bg-surface: #ffffff !important;
+  --ql-bg-hover: #e5e7eb !important;
+  --ql-border: rgba(15,23,42,0.16) !important;
+  --ql-border-hover: rgba(15,23,42,0.28) !important;
+  --ql-text-primary: #0f172a !important;
+  --ql-text-secondary: #334155 !important;
+  --ql-text-muted: #475569 !important;
+  --ql-accent-subtle: color-mix(in srgb, var(--ql-accent) 12%, transparent) !important;
+  --ql-accent-glow: color-mix(in srgb, var(--ql-accent) 24%, transparent) !important;
+}
+#ql-floating.ql-light .ql-icon-btn,
+#ql-floating.ql-light .ql-tool-btn,
+#ql-floating.ql-light .ql-attach-btn,
+body.sp-light .sp-icon-btn,
+body.sp-light .sp-tool-btn,
+body.sp-light .sp-attach-btn,
+body.sp-light .sp-back-to-popup {
+  color: var(--ql-text-secondary) !important;
+  border-color: var(--ql-border) !important;
+}
+#ql-floating.ql-light .ql-icon-btn:hover,
+#ql-floating.ql-light .ql-tool-btn:hover,
+#ql-floating.ql-light .ql-attach-btn:hover,
+body.sp-light .sp-icon-btn:hover,
+body.sp-light .sp-tool-btn:hover,
+body.sp-light .sp-attach-btn:hover,
+body.sp-light .sp-back-to-popup:hover {
+  color: var(--ql-text-primary) !important;
+  background: var(--ql-bg-hover) !important;
+}
+#ql-floating.ql-light .ql-profile-name,
+#ql-floating.ql-light .ql-gate-title,
+#ql-floating.ql-light .ql-modal-title,
+#ql-floating.ql-light .ql-pkg-name,
+#ql-floating.ql-light strong,
+body.sp-light .sp-profile-name,
+body.sp-light .sp-gate-title,
+body.sp-light .sp-modal-title,
+body.sp-light strong {
+  color: var(--ql-text-primary) !important;
+}
+#ql-floating.ql-light .ql-chip:hover,
+body.sp-light .sp-chip:hover {
+  color: var(--ql-accent) !important;
+}
+#ql-floating.ql-light .ql-trial-countdown,
+#ql-floating.ql-light .ql-download-card,
+body.sp-light .sp-trial-countdown,
+body.sp-light .sp-download-card {
+  background: var(--ql-bg-surface) !important;
+  border-color: var(--ql-border) !important;
+}
+
 /* Hide logos if not provided */
 ${!cust.logo_rect_url ? ".sp-logo, .brand-logo, .ql-brand-logo, img[src*='logo1254'] { display: none !important; }" : ""}
 ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-square, img[src*='logo512'] { display: none !important; }" : ""}
@@ -483,6 +583,12 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
 
       // Strings inline em JS/HTML
       if (fileName.endsWith(".js") || fileName.endsWith(".html")) {
+        // Tema: escuro deve ser o padrão real. Valores antigos salvos como light não podem vencer
+        // até o usuário tocar de novo no botão de tema dentro da extensão personalizada.
+        content = content.replace(/chrome\.storage\.local\.get\(\["ql_license_valid","ql_license_key","ql_minimized","ql_height","ql_dark_mode","ql_user_name","ql_expires_at","ql_activated_at","ql_license_status","ql_session_id"\]/g, 'chrome.storage.local.get(["ql_license_valid","ql_license_key","ql_minimized","ql_height","ql_dark_mode","ql_theme_user_choice","ql_user_name","ql_expires_at","ql_activated_at","ql_license_status","ql_session_id"]');
+        content = content.replace(/if\(res\.ql_dark_mode === false\)\s*\{\s*box\.classList\.add\("ql-light"\);\s*\}/g, 'if(res.ql_theme_user_choice === true && res.ql_dark_mode === false) { box.classList.add("ql-light"); } else { box.classList.remove("ql-light"); chrome.storage.local.set({ ql_dark_mode: true }); }');
+        content = content.replace(/chrome\.storage\.local\.set\(\{ ql_dark_mode: !isLight \}\);/g, 'chrome.storage.local.set({ ql_dark_mode: !isLight, ql_theme_user_choice: true });');
+        content = content.replace(/chrome\.storage\.local\.get\(\["ql_dark_mode"\], r => \{ if\(r\.ql_dark_mode === false\) document\.body\.classList\.add\('sp-light'\); \}\);/g, 'chrome.storage.local.get(["ql_dark_mode","ql_theme_user_choice"], r => { if(r.ql_theme_user_choice === true && r.ql_dark_mode === false) document.body.classList.add(\'sp-light\'); else { document.body.classList.remove(\'sp-light\'); chrome.storage.local.set({ ql_dark_mode: true }); } });');
         // Suporte: substitui também dentro de strings JS (ex.: content-templates.js)
         content = content.replace(/href=\\"https:\/\/discord\.gg\/[^"]+\\"/g, `href=\\"${escapeJs(cust.support_url)}\\"`);
         content = content.replace(/href=\\"https:\/\/wa\.me\/[^"]+\\"/g, `href=\\"${escapeJs(cust.support_url)}\\"`);
