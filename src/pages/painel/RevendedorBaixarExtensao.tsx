@@ -153,7 +153,8 @@ export default function RevendedorBaixarExtensao() {
   };
 
   const visibleItems = items.filter((e) => (e.method ?? "flow") === activeMethod);
-  const activeExtensionId = visibleItems[0]?.id ?? null;
+  const activeExtension = visibleItems[0] ?? null;
+  const activeExtensionId = activeExtension?.id ?? null;
 
   const openHistory = async (e: ExtRow) => {
     setHistoryTarget(e);
@@ -276,7 +277,8 @@ export default function RevendedorBaixarExtensao() {
           <EssentialCustomizerForm
             resellerId={resellerId}
             extensionId={activeExtensionId}
-            filePath={visibleItems[0]?.file_path ?? null}
+            extensionName={activeExtension?.name ?? null}
+            extensionVersion={activeExtension?.version ?? null}
           />
         </div>
       )}
