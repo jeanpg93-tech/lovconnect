@@ -30,7 +30,7 @@ type Row = {
   error_message: string | null;
   paid_at: string | null;
   created_at: string;
-  raw_response: any;
+  raw_response?: any;
   promotion_id?: string | null;
   promotion_discount_cents?: number | null;
   delivery_source?: string | null;
