@@ -223,6 +223,12 @@ Deno.serve(async (req) => {
     // Read entries
     const reader = new ZipReader(new BlobReader(tplBlob));
     const entries = await reader.getEntries();
+    const baseName = (name: string) => name.split("/").pop() || name;
+    const manifestEntry = entries.find(e => baseName(e.filename) === "manifest.json");
+    const manifestDir = manifestEntry?.filename.includes("/")
+      ? manifestEntry.filename.replace(/manifest\.json$/, "")
+      : "";
+    const zipPath = (relativePath: string) => `${manifestDir}${relativePath}`;
 
     // Prepare custom assets
     const overrides = new Map<string, Uint8Array | string>();
@@ -248,9 +254,9 @@ Deno.serve(async (req) => {
       if (url && url.trim() !== "") {
         const bytes = await fetchBytes(url);
         if (bytes) {
-          overrides.set(newPath, bytes);
+          overrides.set(zipPath(newPath), bytes);
           if (oldPath !== newPath) {
-            entriesToRemove.add(oldPath);
+            entriesToRemove.add(zipPath(oldPath));
           }
           // Track icons for manifest
           const iconMatch = newPath.match(/icon(\d+)\.png/);
@@ -258,17 +264,14 @@ Deno.serve(async (req) => {
             availableIcons[iconMatch[1]] = newPath;
           }
         } else {
-          entriesToRemove.add(oldPath);
+          entriesToRemove.add(zipPath(oldPath));
         }
       } else {
-        entriesToRemove.add(oldPath);
+        entriesToRemove.add(zipPath(oldPath));
       }
     }
 
     // 1) manifest.json
-    const baseName = (name: string) => name.split("/").pop() || name;
-
-    const manifestEntry = entries.find(e => baseName(e.filename) === "manifest.json");
     if (manifestEntry?.getData) {
       const txt = await manifestEntry.getData(new TextWriter());
       try {
@@ -734,6 +737,8 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
     const outBlob = new BlobWriter("application/zip");
     const writer = new ZipWriter(outBlob);
 
+    const writtenEntries = new Set<string>();
+
     for (const entry of entries) {
       if (entry.directory) continue;
       if (entriesToRemove.has(entry.filename)) {
@@ -748,10 +753,20 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
         } else {
           await writer.add(entry.filename, new Uint8ArrayReader(override));
         }
+        writtenEntries.add(entry.filename);
       } else {
         // copy original bytes
         const data = await entry.getData!(new Uint8ArrayWriter()) as Uint8Array;
         await writer.add(entry.filename, new Uint8ArrayReader(data));
+        writtenEntries.add(entry.filename);
+      }
+    }
+    for (const [path, override] of overrides.entries()) {
+      if (writtenEntries.has(path)) continue;
+      if (typeof override === "string") {
+        await writer.add(path, new TextReader(override));
+      } else {
+        await writer.add(path, new Uint8ArrayReader(override));
       }
     }
     await reader.close();
