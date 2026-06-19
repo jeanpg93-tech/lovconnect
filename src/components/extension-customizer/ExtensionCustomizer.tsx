@@ -386,7 +386,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
         </div>
 
         {/* Stepper Header */}
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {visibleSteps.map((step, idx) => (
             <button
               key={step.id}
@@ -452,35 +452,12 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
 
             {currentStep === 1 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 max-w-md">
                   <ColorField label="Cor primária" value={data.color_primary ?? "#3b82f6"} onChange={(v) => update("color_primary", v)} />
-                  <ColorField label="Cor secundária (gradiente)" value={data.color_secondary ?? "#a78bfa"} onChange={(v) => update("color_secondary", v)} />
-                  <ColorField label="Fundo principal" value={data.color_bg ?? "#0a0a0b"} onChange={(v) => update("color_bg", v)} />
-                  <ColorField label="Fundo do Topo/Rodapé" value={data.color_bg_elevated ?? "#111113"} onChange={(v) => update("color_bg_elevated", v)} />
-                  <ColorField label="Cor de Sucesso" value={data.color_success ?? "#34d399"} onChange={(v) => update("color_success", v)} />
                 </div>
-                
-                <div className="pt-4 border-t border-white/5">
-                  <Label className="text-xs font-bold uppercase text-white mb-3 block tracking-widest">Cards Liquid Glass</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <ColorField label="Cor do fundo" value={data.card_bg_color ?? "#18181b"} onChange={(v) => update("card_bg_color", v)} />
-                    <ColorField label="Cor da letra" value={data.card_text_color ?? "#f4f4f5"} onChange={(v) => update("card_text_color", v)} />
-                    <ColorField label="Cor da borda normal" value={data.card_border_color ?? "rgba(255,255,255,0.06)"} onChange={(v) => update("card_border_color", v)} />
-                    <ColorField label="Cor da borda (Hover)" value={data.card_border_hover_color ?? "rgba(255,255,255,0.12)"} onChange={(v) => update("card_border_hover_color", v)} />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-white/5">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground mb-3 block tracking-widest">Efeitos e Brilhos (Wave)</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <ColorField label="Deep" value={data.color_wave_deep ?? "#041436"} onChange={(v) => update("color_wave_deep", v)} />
-                    <ColorField label="Navy" value={data.color_wave_navy ?? "#06205f"} onChange={(v) => update("color_wave_navy", v)} />
-                    <ColorField label="Azure" value={data.color_wave_azure ?? "#168cff"} onChange={(v) => update("color_wave_azure", v)} />
-                    <ColorField label="Cyan (Glow)" value={data.color_wave_cyan ?? "#4ddfff"} onChange={(v) => update("color_wave_cyan", v)} />
-                    <ColorField label="Blue" value={data.color_wave_blue ?? "#0b63ce"} onChange={(v) => update("color_wave_blue", v)} />
-                    <ColorField label="Ice" value={data.color_wave_ice ?? "#f8fbff"} onChange={(v) => update("color_wave_ice", v)} />
-                  </div>
-                </div>
+                <p className="text-[11px] text-muted-foreground italic">
+                  As demais cores (fundo, secundárias, efeitos) seguem o padrão do método ativo.
+                </p>
               </div>
             )}
 
