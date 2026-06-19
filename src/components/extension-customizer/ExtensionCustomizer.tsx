@@ -154,7 +154,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
     { id: "shortcuts", title: "Atalhos", icon: MousePointer2, description: "Ações rápidas" },
     { id: "license", title: "Ativação", icon: KeyRound, description: "Tela de licença" },
   ];
-  const visibleSteps = extensionMethod === "lovax" ? STEPS.filter((step) => step.id !== "license") : STEPS;
+  const visibleSteps = STEPS;
   const activeStep = visibleSteps[currentStep] ?? visibleSteps[0];
 
   useEffect(() => {
@@ -728,11 +728,9 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
             <div className={cn("text-[10px] border border-emerald-500/20 px-3 py-1 rounded-full font-bold cursor-pointer transition-colors", previewMode === "sidebar" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground")} onClick={() => setPreviewMode("sidebar")}>
               Sidebar
             </div>
-            {extensionMethod !== "lovax" && (
-              <div className={cn("text-[10px] border border-emerald-500/20 px-3 py-1 rounded-full font-bold cursor-pointer transition-colors", previewMode === "license" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground")} onClick={() => setPreviewMode("license")}>
-                Ativação
-              </div>
-            )}
+            <div className={cn("text-[10px] border border-emerald-500/20 px-3 py-1 rounded-full font-bold cursor-pointer transition-colors", previewMode === "license" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground")} onClick={() => setPreviewMode("license")}>
+              Ativação
+            </div>
           </div>
         </div>
         <ExtensionPreview
