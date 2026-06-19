@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ExtensionCustomizer } from "./ExtensionCustomizer";
-import { LiveExtensionPreview } from "./LiveExtensionPreview";
 import { extractPaletteFromImage, resizeImageToPng, type Swatch } from "@/lib/color-extract";
 import { cn } from "@/lib/utils";
 
@@ -59,10 +58,9 @@ const DEFAULTS: EssentialData = {
 type Props = {
   resellerId: string;
   extensionId?: string | null;
-  filePath?: string | null;
 };
 
-export function EssentialCustomizerForm({ resellerId, extensionId, filePath }: Props) {
+export function EssentialCustomizerForm({ resellerId, extensionId }: Props) {
   const EXTENSION_ID = extensionId || DEFAULT_EXTENSION_ID;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -297,21 +295,6 @@ export function EssentialCustomizerForm({ resellerId, extensionId, filePath }: P
 
   return (
     <div className="space-y-4">
-      {filePath && (
-        <div className="space-y-2">
-          <div className="px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-            Pré-visualização ao vivo (do arquivo enviado)
-          </div>
-          <LiveExtensionPreview
-            filePath={filePath}
-            brandName={data.brand_name}
-            primaryColor={data.color_primary}
-            logoUrl={data.logo_square_url || data.logo_rect_url}
-            height={560}
-          />
-        </div>
-      )}
-
       <Card className="border-border bg-card/50 p-5 space-y-5">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
