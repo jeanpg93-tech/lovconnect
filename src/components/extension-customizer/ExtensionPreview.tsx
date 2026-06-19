@@ -139,6 +139,7 @@ function LovaxPreview({
   showLicense?: boolean;
 }) {
   const accent = c.color_primary || "#ff1010";
+  const lovaxAccent = accent.toLowerCase() === "#3b82f6" ? "#ff1010" : accent;
   const version = c.display_version || "5.3";
   const logo = c.logo_square_url || c.logo_rect_url;
   const shortcuts = (c.shortcuts?.length ? c.shortcuts : []).slice(0, 8);
@@ -158,13 +159,13 @@ function LovaxPreview({
               <LovaxLogo src={logo} large />
             </div>
             <h3 className="text-[20px] font-black leading-tight text-white">
-              Bem vindo a <span style={{ color: accent }}>TS Community</span>
+              Bem vindo a <span style={{ color: lovaxAccent }}>TS Community</span>
             </h3>
             <p className="mt-2 text-[15px] text-slate-300">{c.license_description || "Insira sua chave de licença para desbloquear."}</p>
             <div className="mt-6 rounded-lg border border-white/10 bg-[#1b1b1f] px-4 py-3 text-left font-mono text-[15px] text-slate-400">
               {c.license_placeholder || "TS-XXXXXXXXXXXXXXXXXXXXXX"}
             </div>
-            <button className="mt-3 rounded-lg py-3 text-[15px] font-black text-white shadow-[0_0_26px_rgba(255,16,16,.32)]" style={{ background: accent }}>
+            <button className="mt-3 rounded-lg py-3 text-[15px] font-black text-white shadow-[0_0_26px_rgba(255,16,16,.32)]" style={{ background: lovaxAccent }}>
               {c.license_button_text || "Validar Licença"}
             </button>
             <div className="mt-5 space-y-3 text-left">
@@ -197,7 +198,7 @@ function LovaxPreview({
                   <div className="text-[16px] font-black">Jean <span className="rounded-md border border-emerald-500/50 bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-400">{badge}</span></div>
                   <div className="mt-3 truncate text-[14px] font-bold text-emerald-400">✅ Sincronizado! Projeto: 196668...</div>
                 </div>
-                <div className="flex gap-4 text-[16px]" style={{ color: accent }}><span>☾</span><span>?</span><span>▯</span><span>↗</span></div>
+                <div className="flex gap-4 text-[16px]" style={{ color: lovaxAccent }}><span>☾</span><span>?</span><span>▯</span><span>↗</span></div>
               </div>
               <div className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-900/35 px-5 py-5 text-center">
                 <div className="text-xl text-emerald-300">∞</div>
@@ -206,25 +207,25 @@ function LovaxPreview({
               </div>
             </div>
             <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-xl bg-[#151518] text-[14px] font-bold text-slate-500">
-              <div className="border-b-2 px-4 py-3" style={{ borderColor: accent, background: "rgba(255,16,16,.16)", color: accent }}>↯ Prompt</div>
+              <div className="border-b-2 px-4 py-3" style={{ borderColor: lovaxAccent, background: "rgba(255,16,16,.16)", color: lovaxAccent }}>↯ Prompt</div>
               <div className="px-4 py-3">☆ Skills</div>
               <div className="px-4 py-3">▱ Histórico <span className="rounded-full px-1.5 text-white" style={{ background: accent }}>7</span></div>
             </div>
             <div className="mt-4 grid grid-cols-4 gap-2">
               {shortcuts.map((s, i) => (
-                <button key={`${s.label}-${i}`} className="h-[84px] rounded-xl border bg-red-950/25 px-1 text-[11px] font-bold text-slate-200" style={{ borderColor: accent }}>
+                <button key={`${s.label}-${i}`} className="h-[84px] rounded-xl border bg-red-950/25 px-1 text-[11px] font-bold text-slate-200" style={{ borderColor: lovaxAccent }}>
                   <div className="mx-auto mb-2 grid h-8 w-8 place-items-center rounded-full bg-red-500/20 text-lg">{["🛠️", "♻️", "🎨", "🖥️", "⚡", "🛡️", "🧪", "🧮"][i] || "⚡"}</div>
                   {s.label}
                 </button>
               ))}
             </div>
-            <div className="mt-3 flex-1 rounded-t-2xl border border-b-0 bg-[#18181b] p-4" style={{ borderColor: accent }}>
+            <div className="mt-3 flex-1 rounded-t-2xl border border-b-0 bg-[#18181b] p-4" style={{ borderColor: lovaxAccent }}>
               <div className="text-[16px] text-slate-500">O que vamos criar hoje?</div>
               <div className="mt-auto flex h-full flex-col justify-end">
                 <div className="mb-8 border-t border-white/10 pt-3">
                   <div className="flex flex-wrap items-center gap-2 text-slate-400">
                     {['📎', '🎙️', '🛡️', '▱', '👁️', '⇩', '⚡'].map((i) => <span key={i} className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5">{i}</span>)}
-                    <button className="ml-auto grid h-12 w-12 place-items-center rounded-full text-2xl text-white shadow-[0_0_20px_rgba(255,16,16,.45)]" style={{ background: accent }}>➜</button>
+                    <button className="ml-auto grid h-12 w-12 place-items-center rounded-full text-2xl text-white shadow-[0_0_20px_rgba(255,16,16,.45)]" style={{ background: lovaxAccent }}>➜</button>
                   </div>
                 </div>
               </div>
@@ -235,7 +236,7 @@ function LovaxPreview({
         {!showLicense && (
           <div className="flex shrink-0 items-center justify-between border-t border-red-500/10 px-4 py-2 text-[10px] text-slate-400">
             <button onClick={() => onModeChange?.(mode === "popup" ? "sidebar" : "popup")}>◀ Popup</button>
-            <span style={{ color: accent }}>Suporte</span>
+            <span style={{ color: lovaxAccent }}>Suporte</span>
             <span>{version}</span>
           </div>
         )}
