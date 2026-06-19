@@ -617,6 +617,14 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
       if (fileName.endsWith(".html") || fileName.endsWith(".js") || fileName.endsWith(".css")) {
         content = content.replace(/Main Lovable/g, brand_name);
         content = content.replace(/Master Lovable/g, brand_name);
+        // Outras marcas conhecidas em ZIPs base herdados (ex.: "TS Community")
+        content = content.replace(/TS\s+Community/g, brand_name);
+        // Saudação "Bem-vindo a XXXX" / "Bem vindo ao YYY" → usa o brand atual.
+        // Aceita acento opcional, hífen opcional, "a"/"ao", e preserva o "Bem-vindo a ".
+        content = content.replace(
+          /(Bem[- ]?vindo[a]?\s+a[o]?\s+)([^<\n"'`\\]{1,60}?)(?=[<\n"'`\\]|\s*<\/|\s*\+)/gi,
+          (_m, p1) => `${p1}${brand_name}`,
+        );
       }
 
       return content;
