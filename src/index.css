@@ -4,40 +4,40 @@
 
 @layer base {
   :root {
-    /* Light Mode - Graphite & Blood Red Theme */
-    --background: 0 0% 98%;
-    --foreground: 220 15% 10%;
+    /* Light Mode - contraste reforçado para leitura */
+    --background: 220 14% 97%;
+    --foreground: 220 24% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 10%;
+    --card-foreground: 220 24% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 10%;
+    --popover-foreground: 220 24% 8%;
 
-    --primary: 0 75% 35%;
+    --primary: 0 82% 32%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 0 70% 60%;
+    --primary-glow: 0 78% 48%;
 
-    --secondary: 220 10% 95%;
-    --secondary-foreground: 220 15% 10%;
+    --secondary: 220 16% 91%;
+    --secondary-foreground: 220 24% 9%;
 
-    --muted: 220 10% 95%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 220 16% 92%;
+    --muted-foreground: 220 16% 28%;
 
-    --accent: 0 75% 96%;
-    --accent-foreground: 0 75% 30%;
+    --accent: 0 72% 94%;
+    --accent-foreground: 0 82% 24%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 10% 90%;
-    --input: 220 10% 90%;
-    --ring: 0 75% 35%;
+    --border: 220 15% 82%;
+    --input: 220 15% 82%;
+    --ring: 0 82% 32%;
 
     --radius: 0.875rem;
 
-    --grid-color: 220 10% 90%;
-    --red-glow: 0 75% 35%;
+    --grid-color: 220 15% 86%;
+    --red-glow: 0 82% 32%;
 
     --gradient-mystic: linear-gradient(135deg, hsl(0 75% 35%), hsl(0 85% 20%));
     --gradient-aurora: radial-gradient(ellipse at top, hsl(0 70% 98%) 0%, transparent 60%);
@@ -49,13 +49,13 @@
     --shadow-red-sm: 0 5px 15px -5px hsl(0 75% 15% / 0.25);
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 15% 10%;
-    --sidebar-primary: 0 75% 35%;
+    --sidebar-foreground: 220 24% 8%;
+    --sidebar-primary: 0 82% 32%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 10% 96%;
-    --sidebar-accent-foreground: 0 75% 30%;
-    --sidebar-border: 220 10% 90%;
-    --sidebar-ring: 0 75% 35%;
+    --sidebar-accent: 220 16% 91%;
+    --sidebar-accent-foreground: 220 24% 8%;
+    --sidebar-border: 220 15% 82%;
+    --sidebar-ring: 0 82% 32%;
   }
 
   .dark {

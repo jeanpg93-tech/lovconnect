@@ -17,12 +17,16 @@ window.addEventListener("unhandledrejection", (event) => {
   if (isChunkLoadError(event.reason)) requestFreshChunkReload();
 });
 
-// Apply persisted theme before render to avoid flash
+// Apply theme before render to avoid flash
 try {
+  const themeChoiceKey = "lov-theme-user-choice-v2";
   const saved = localStorage.getItem("lov-theme");
-  // Dark é o tema principal — só usa light se o usuário tiver escolhido explicitamente.
-  const isDark = saved ? saved === "dark" : true;
+  const hasUserChoice = localStorage.getItem(themeChoiceKey) === "true";
+  // Dark é o padrão real. Valores antigos salvos como light são ignorados até o usuário trocar novamente.
+  const theme = hasUserChoice && (saved === "light" || saved === "dark") ? saved : "dark";
+  const isDark = theme === "dark";
   document.documentElement.classList.toggle("dark", isDark);
+  localStorage.setItem("lov-theme", theme);
 } catch {}
 
 primeAudioOnFirstGesture();

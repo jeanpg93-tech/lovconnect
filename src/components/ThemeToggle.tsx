@@ -3,11 +3,13 @@ import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "lov-theme";
+const USER_CHOICE_KEY = "lov-theme-user-choice-v2";
 
 function getInitial(): "light" | "dark" {
   if (typeof window === "undefined") return "dark";
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved === "dark" || saved === "light") return saved;
+  const hasUserChoice = localStorage.getItem(USER_CHOICE_KEY) === "true";
+  if (hasUserChoice && (saved === "dark" || saved === "light")) return saved;
   return "dark";
 }
 
@@ -20,7 +22,10 @@ export function ThemeToggle() {
     localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 
-  const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+  const toggle = () => {
+    localStorage.setItem(USER_CHOICE_KEY, "true");
+    setTheme((t) => (t === "dark" ? "light" : "dark"));
+  };
 
   return (
     <Button
