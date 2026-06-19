@@ -321,10 +321,7 @@ export default function PublicStorefront() {
             .eq("is_active", true)
             .eq("show_on_storefront", true)
             .gt("sale_price_cents", 0),
-          supabase
-            .from("recharge_plans")
-            .select("id, name, duration_days, credits_per_day, total_credits_cap, is_active")
-            .eq("is_active", true),
+          supabase.rpc("public_list_active_recharge_plans" as any),
         ])
         : [{ data: [] as any[] }, { data: [] as any[] }];
       const plansById = new Map(((publicPlans ?? []) as any[]).map((plan) => [plan.id, plan]));
@@ -899,29 +896,6 @@ export default function PublicStorefront() {
                       Aguardando confirmação… {order.product_type === "credits" ? "A recargas será processada após o pagamento." : "A chave será enviada no seu WhatsApp."}
                     </div>
                     <div className="pt-3 border-t mt-3">
-                      {/* Botão TESTE: liberar PIX manualmente — restrito ao Jean + plano 3.000 créditos */}
-                      {reseller?.slug === "jean-carlo" &&
-                       order.product_type === "recharge_plan" && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="w-full mb-2 bg-emerald-600 hover:bg-emerald-500 text-white"
-                          onClick={async () => {
-                            if (!order?.id) return;
-                            const { data, error } = await supabase.functions.invoke(
-                              "dev-release-storefront-pix",
-                              { body: { order_id: order.id } },
-                            );
-                            if (error || (data as any)?.error) {
-                              toast.error((data as any)?.error ?? error?.message ?? "Falha ao liberar PIX");
-                              return;
-                            }
-                            toast.success("PIX liberado (teste)");
-                          }}
-                        >
-                          ⚡ Liberar PIX (teste)
-                        </Button>
-                      )}
                       <Button
                         type="button"
                         variant="ghost"

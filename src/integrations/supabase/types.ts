@@ -4620,6 +4620,19 @@ export type Database = {
         Args: { _description: string; _order_id: string; _reseller_id: string }
         Returns: number
       }
+      public_list_active_recharge_plans: {
+        Args: never
+        Returns: {
+          credits_per_day: number
+          delivery_hour: number
+          description: string
+          duration_days: number
+          id: string
+          is_active: boolean
+          name: string
+          total_credits_cap: number
+        }[]
+      }
       reject_user: { Args: { _user_id: string }; Returns: undefined }
       reseller_list_recharge_plans: {
         Args: never

@@ -52,6 +52,11 @@ async function enqueuePlanWebhook(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const auth = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (auth !== SERVICE_ROLE) {
+    return json({ error: "unauthorized" }, 401);
+  }
   try {
     const db = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
