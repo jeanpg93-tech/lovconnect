@@ -58,25 +58,12 @@ const fmtSize = (b: number | null) => {
 const fmtDate = (s: string) =>
   new Date(s).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
-type Method = "flow" | "lovax";
-const SETTING_KEY = "licencas.delivery.method";
-const normalizeMethod = (value: unknown): Method | null => {
-  const raw =
-    typeof value === "object" && value !== null && "method" in value
-      ? (value as { method?: unknown }).method
-      : value;
-  if (raw === "flow" || raw === "promptflow") return "flow";
-  if (raw === "lovax") return "lovax";
-  return null;
-};
-
 export default function RevendedorBaixarExtensao() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ExtRow[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [resellerId, setResellerId] = useState<string | null>(null);
-  const [activeMethod] = useState<Method>("lovax");
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<ExtRow | null>(null);
@@ -270,7 +257,7 @@ export default function RevendedorBaixarExtensao() {
             extensionId={activeExtensionId}
             extensionName={activeExtension?.name ?? null}
             extensionVersion={activeExtension?.version ?? null}
-            extensionMethod={activeExtension?.method ?? activeMethod}
+            extensionMethod="lovax"
           />
         </div>
       )}
