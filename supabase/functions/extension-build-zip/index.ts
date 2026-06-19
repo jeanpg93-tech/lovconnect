@@ -196,6 +196,31 @@ Deno.serve(async (req) => {
       });
     }
 
+    // If the download is triggered directly from the customizer form, use the
+    // just-submitted values too. This avoids stale downloads when the user edits
+    // the form and immediately clicks "Baixar extensão alterada".
+    const customizationOverride = body.customization_override;
+    if (customizationOverride && typeof customizationOverride === "object" && !Array.isArray(customizationOverride)) {
+      const allowedOverrideFields = [
+        "brand_name", "logo_rect_url", "logo_square_url", "icon_16_url", "icon_32_url", "icon_48_url", "icon_128_url",
+        "color_primary", "color_primary_hover", "color_secondary", "color_bg", "color_bg_elevated", "color_bg_surface", "color_success",
+        "card_bg_color", "card_border_color", "card_border_hover_color", "card_text_color", "card_muted_text_color",
+        "popup_color_primary", "popup_color_primary_hover", "popup_color_secondary", "popup_color_bg", "popup_color_bg_elevated", "popup_color_bg_surface",
+        "popup_card_bg_color", "popup_card_border_color", "popup_card_border_hover_color", "popup_card_text_color", "popup_card_muted_text_color",
+        "support_url", "community_url", "manifest_name", "manifest_description", "window_title", "display_version", "brand_kicker", "brand_badge",
+        "header_badge_text", "greeting_badge_text", "footer_text", "greeting_text", "use_license_name", "currency_symbol", "show_greeting_badge",
+        "license_title", "license_description", "license_placeholder", "license_button_text", "popup_brand_name", "popup_window_title",
+        "popup_footer_text", "popup_greeting_text", "popup_header_badge_text", "popup_greeting_badge_text", "popup_brand_badge",
+      ];
+      const merged = { ...cust } as Record<string, unknown>;
+      for (const field of allowedOverrideFields) {
+        if (Object.prototype.hasOwnProperty.call(customizationOverride, field)) {
+          merged[field] = customizationOverride[field];
+        }
+      }
+      cust = merged as Cust;
+    }
+
     // Download base ZIP: prefer the extension's actual uploaded file;
     // fall back to the legacy template if present.
     let tplBlob: Blob | null = null;
