@@ -343,7 +343,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
 
         {/* Stepper Header */}
         <div className="grid grid-cols-5 gap-2">
-          {STEPS.map((step, idx) => (
+          {visibleSteps.map((step, idx) => (
             <button
               key={step.id}
               onClick={() => setCurrentStep(idx)}
@@ -363,9 +363,9 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
         <Card className="p-6 relative overflow-hidden border-white/5 bg-card/30 backdrop-blur-xl">
           <div className="mb-6">
             <h3 className="text-lg font-bold flex items-center gap-2 text-white">
-              {STEPS[currentStep].title}
+              {activeStep.title}
             </h3>
-            <p className="text-xs text-muted-foreground">{STEPS[currentStep].description}</p>
+            <p className="text-xs text-muted-foreground">{activeStep.description}</p>
           </div>
 
           <div className="min-h-[350px]">
@@ -653,9 +653,9 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
                 Salvar
               </Button>
               
-              {currentStep < STEPS.length - 1 ? (
+              {currentStep < visibleSteps.length - 1 ? (
                 <Button 
-                  onClick={() => setCurrentStep(prev => Math.min(STEPS.length - 1, prev + 1))}
+                  onClick={() => setCurrentStep(prev => Math.min(visibleSteps.length - 1, prev + 1))}
                   className="rounded-xl px-8 shadow-lg shadow-primary/10"
                 >
                   Próximo <ChevronRight className="h-4 w-4 ml-2" />
