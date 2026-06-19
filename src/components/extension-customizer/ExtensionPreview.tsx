@@ -1,4 +1,5 @@
 import { CSSProperties } from "react";
+import lcIcon from "@/assets/lc-icon.png";
 
 export type ExtCustomization = {
   brand_kicker: string;
@@ -90,28 +91,12 @@ export type ExtCustomization = {
 };
 
 function LovaxLogo({ src, large = false }: { src?: string | null; large?: boolean }) {
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt="Logo da extensão"
-        className={large ? "h-20 w-20 object-contain" : "h-8 w-8 object-contain"}
-      />
-    );
-  }
-
   return (
-    <div
-      className={large ? "grid h-20 w-20 place-items-center rounded-full text-4xl font-black italic" : "grid h-8 w-8 place-items-center rounded-full text-lg font-black italic"}
-      style={{
-        background: "radial-gradient(circle at 35% 25%, #ff5c5c, #b00000 48%, #111 52%, #3a3a3a 76%, #ff1010)",
-        color: "#ff1010",
-        textShadow: "0 1px 0 #fff, 0 0 10px rgba(255,16,16,.75)",
-        boxShadow: "0 0 22px rgba(255,16,16,.32)",
-      }}
-    >
-      LC
-    </div>
+    <img
+      src={src || lcIcon}
+      alt="Logo da extensão"
+      className={large ? "h-20 w-20 object-contain" : "h-8 w-8 object-contain"}
+    />
   );
 }
 
@@ -159,7 +144,7 @@ function LovaxPreview({
               <LovaxLogo src={logo} large />
             </div>
             <h3 className="text-[20px] font-black leading-tight text-white">
-              Bem vindo a <span style={{ color: lovaxAccent }}>TS Community</span>
+              {c.license_title || "Bem-vindo a LovConnect"}
             </h3>
             <p className="mt-2 text-[15px] text-slate-300">{c.license_description || "Insira sua chave de licença para desbloquear."}</p>
             <div className="mt-6 rounded-lg border border-white/10 bg-[#1b1b1f] px-4 py-3 text-left font-mono text-[15px] text-slate-400">
@@ -236,8 +221,14 @@ function LovaxPreview({
         {!showLicense && (
           <div className="flex shrink-0 items-center justify-between border-t border-red-500/10 px-4 py-2 text-[10px] text-slate-400">
             <button onClick={() => onModeChange?.(mode === "popup" ? "sidebar" : "popup")}>◀ Popup</button>
-            <span style={{ color: lovaxAccent }}>Suporte</span>
-            <span>{version}</span>
+            <span className="flex items-center gap-1" style={{ color: lovaxAccent }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+                <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+              </svg>
+              Suporte
+            </span>
+            <span>🇲🇿 v{version}</span>
           </div>
         )}
       </div>
