@@ -103,3 +103,38 @@ export async function extractPaletteFromImage(
     if (typeof source !== "string") URL.revokeObjectURL(url);
   }
 }
+
+/**
+ * Redimensiona uma imagem (File) para um PNG quadrado de `size` pixels.
+ * Centraliza a imagem mantendo proporção, fundo transparente.
+ */
+export async function resizeImageToPng(
+  source: File | Blob,
+  size: number,
+): Promise<Blob> {
+  const url = URL.createObjectURL(source);
+  try {
+    const img = await loadImage(url);
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas indisponível");
+    const scale = Math.min(size / img.width, size / img.height);
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const x = Math.floor((size - w) / 2);
+    const y = Math.floor((size - h) / 2);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, x, y, w, h);
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("Falha ao gerar PNG"))),
+        "image/png",
+      );
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
