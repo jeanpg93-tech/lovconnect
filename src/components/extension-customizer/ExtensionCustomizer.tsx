@@ -163,11 +163,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
 
   const STEPS = [
     { id: "layout", title: "Estrutura", icon: Layout, description: "Nomes e títulos básicos" },
-    { id: "colors", title: "Cores", icon: Palette, description: "Identidade visual" },
-    { id: "brand", title: "Textos", icon: Type, description: "Saudações e rodapé" },
-    { id: "images", title: "Imagens", icon: ImageIcon, description: "Logos e ícones" },
-    { id: "shortcuts", title: "Atalhos", icon: MousePointer2, description: "Ações rápidas" },
-    { id: "license", title: "Ativação", icon: KeyRound, description: "Tela de licença" },
+    { id: "colors", title: "Cor primária", icon: Palette, description: "Cor de destaque da extensão" },
   ];
   const visibleSteps = STEPS;
   const activeStep = visibleSteps[currentStep] ?? visibleSteps[0];
@@ -181,11 +177,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
       setCurrentStep(Math.max(0, visibleSteps.length - 1));
       return;
     }
-    if (activeStep?.id === "license") {
-      setPreviewMode("license");
-    } else {
-      setPreviewMode("sidebar");
-    }
+    setPreviewMode("sidebar");
   }, [currentStep, extensionMethod, activeStep?.id, visibleSteps.length]);
 
   async function loadData() {
