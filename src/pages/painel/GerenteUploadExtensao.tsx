@@ -3,13 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { sanitizeRichText } from "@/lib/sanitize-html";
@@ -76,19 +69,21 @@ const bumpPatch = (v: string) => {
 };
 
 const METHOD_STORAGE_KEY = "gerente_upload_extensao_method";
+const SETTING_KEY = "licencas.delivery.method";
+
+const normalizeMethod = (value: unknown): Method | null => {
+  const raw = typeof value === "object" && value !== null && "method" in value
+    ? (value as { method?: unknown }).method
+    : value;
+  if (raw === "flow" || raw === "promptflow") return "flow";
+  if (raw === "lovax") return "lovax";
+  return null;
+};
+
+const methodLabel = (m: Method) => (m === "flow" ? "MétodoFlow" : "MétodoLovax");
 
 export default function GerenteUploadExtensao() {
-  const [method, setMethodState] = useState<Method>(() => {
-    if (typeof window === "undefined") return "flow";
-    const saved = window.localStorage.getItem(METHOD_STORAGE_KEY);
-    return saved === "lovax" || saved === "flow" ? saved : "flow";
-  });
-  const setMethod = (m: Method) => {
-    setMethodState(m);
-    try {
-      window.localStorage.setItem(METHOD_STORAGE_KEY, m);
-    } catch {}
-  };
+  const [method, setMethodState] = useState<Method>("flow");
   const [ext, setExt] = useState<Ext | null>(null);
   const [loading, setLoading] = useState(true);
   const [versions, setVersions] = useState<Version[]>([]);
@@ -214,9 +209,29 @@ export default function GerenteUploadExtensao() {
     setVersions((data ?? []) as Version[]);
   };
 
+  const getActiveMethod = async (): Promise<Method> => {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", SETTING_KEY)
+      .maybeSingle();
+    const active = normalizeMethod(data?.value);
+    if (active) {
+      try {
+        window.localStorage.setItem(METHOD_STORAGE_KEY, active);
+      } catch {}
+      return active;
+    }
+
+    const saved = typeof window !== "undefined" ? normalizeMethod(window.localStorage.getItem(METHOD_STORAGE_KEY)) : null;
+    return saved ?? "flow";
+  };
+
   const load = async () => {
     setLoading(true);
-    const e = await ensureExtension(method);
+    const activeMethod = await getActiveMethod();
+    setMethodState(activeMethod);
+    const e = await ensureExtension(activeMethod);
     if (e) {
       setExt(e);
       setVersionInput(bumpPatch(e.version));
@@ -231,7 +246,7 @@ export default function GerenteUploadExtensao() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [method]);
+  }, []);
 
   const submit = async () => {
     if (!ext) return;
@@ -365,18 +380,15 @@ export default function GerenteUploadExtensao() {
           </div>
 
           <div className="space-y-1.5">
-            <Label>Extensão/Método</Label>
-            <Select value={method} onValueChange={(v) => setMethod(v as Method)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o método" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="flow">Método - PromptFlow</SelectItem>
-                <SelectItem value="lovax">Método - LovaX</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Método ativo</Label>
+            <div className="flex items-center justify-between rounded-md border border-border bg-background/40 px-3 py-2 text-sm">
+              <span className="font-medium">{methodLabel(method)}</span>
+              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                Ativo
+              </span>
+            </div>
             <p className="text-[10px] text-muted-foreground">
-              Cada método tem sua própria extensão oficial. A loja entrega a extensão do método escolhido pelo revendedor.
+              O upload será publicado automaticamente para o método de entrega ativo no sistema.
             </p>
           </div>
 
