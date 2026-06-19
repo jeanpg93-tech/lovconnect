@@ -309,6 +309,56 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
     }
   }
 
+  async function handleDownloadZip() {
+    if (!EXTENSION_ID) {
+      toast.error("Extensão não identificada");
+      return;
+    }
+    setDownloadingZip(true);
+    try {
+      const token = await getValidAccessToken();
+      if (!token) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        return;
+      }
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-build-zip`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ extension_id: EXTENSION_ID }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        let msg = body;
+        try {
+          const parsed = JSON.parse(body);
+          msg = parsed.error || parsed.message || body;
+        } catch {
+          /* usar texto raw */
+        }
+        throw new Error(msg || "Erro ao gerar extensão personalizada");
+      }
+      const blob = await res.blob();
+      const fileName = `${data.brand_name.replace(/[^a-z0-9]+/gi, "_") || "Extensao"}_v${extensionVersion || "5.3"}.zip`;
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+      toast.success("Download da extensão personalizada iniciado!");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao baixar extensão personalizada");
+    } finally {
+      setDownloadingZip(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-32 items-center justify-center">
