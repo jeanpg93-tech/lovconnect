@@ -111,7 +111,7 @@ function getExtensionDefaults(
       color_bg_elevated: "#141416",
       color_bg_surface: "#1b1b1f",
       color_success: "#20e6a0",
-      license_title: "Bem vindo a TS Community",
+      license_title: "Bem-vindo a LovConnect",
       license_description: "Insira sua chave de licença para desbloquear.",
       license_placeholder: "TS-XXXXXXXXXXXXXXXXXXXXXX",
       license_button_text: "Validar Licença",
