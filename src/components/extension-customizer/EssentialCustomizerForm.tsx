@@ -13,6 +13,7 @@ import {
   Sparkles,
   Palette,
   Image as ImageIcon,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ExtensionPreview, type ExtCustomization } from "./ExtensionPreview";
