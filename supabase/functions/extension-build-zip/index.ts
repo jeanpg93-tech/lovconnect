@@ -737,6 +737,8 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
     const outBlob = new BlobWriter("application/zip");
     const writer = new ZipWriter(outBlob);
 
+    const writtenEntries = new Set<string>();
+
     for (const entry of entries) {
       if (entry.directory) continue;
       if (entriesToRemove.has(entry.filename)) {
@@ -751,10 +753,20 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
         } else {
           await writer.add(entry.filename, new Uint8ArrayReader(override));
         }
+        writtenEntries.add(entry.filename);
       } else {
         // copy original bytes
         const data = await entry.getData!(new Uint8ArrayWriter()) as Uint8Array;
         await writer.add(entry.filename, new Uint8ArrayReader(data));
+        writtenEntries.add(entry.filename);
+      }
+    }
+    for (const [path, override] of overrides.entries()) {
+      if (writtenEntries.has(path)) continue;
+      if (typeof override === "string") {
+        await writer.add(path, new TextReader(override));
+      } else {
+        await writer.add(path, new Uint8ArrayReader(override));
       }
     }
     await reader.close();
