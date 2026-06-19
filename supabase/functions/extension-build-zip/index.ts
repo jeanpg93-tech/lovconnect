@@ -143,11 +143,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Download base template
-    const { data: tplBlob, error: dlErr } = await supabase.storage
-      .from("extension-builds").download(TEMPLATE_PATH);
-    if (dlErr || !tplBlob) {
-      return new Response(JSON.stringify({ error: "Template ZIP not found" }), {
+    // Download base ZIP: prefer the extension's actual uploaded file;
+    // fall back to the legacy template if present.
+    let tplBlob: Blob | null = null;
+    const { data: extRow } = await supabase
+      .from("extensions")
+      .select("file_path")
+      .eq("id", extension_id)
+      .maybeSingle();
+    if (extRow?.file_path) {
+      const { data } = await supabase.storage
+        .from("extension-files").download(extRow.file_path);
+      if (data) tplBlob = data;
+    }
+    if (!tplBlob) {
+      const { data } = await supabase.storage
+        .from("extension-builds").download(TEMPLATE_PATH);
+      if (data) tplBlob = data;
+    }
+    if (!tplBlob) {
+      return new Response(JSON.stringify({ error: "Base ZIP not found for this extension" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
