@@ -160,6 +160,7 @@ const Sidebar = React.forwardRef<
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+              paddingTop: "env(safe-area-inset-top)",
             } as React.CSSProperties
           }
           side={side}

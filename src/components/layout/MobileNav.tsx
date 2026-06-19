@@ -104,12 +104,6 @@ export function MobileNav() {
       url: primaryRole === "gerente" ? "/painel/gerente/todas-licencas" : "/painel/revendedor/licencas",
       active: pathname === (primaryRole === "gerente" ? "/painel/gerente/todas-licencas" : "/painel/revendedor/licencas"),
     },
-    ...(primaryRole === "revendedor" ? [{
-      label: "APIs",
-      icon: Code2,
-      onClick: () => setIsApiModalOpen(true),
-      active: pathname === "/painel/revendedor/api" || pathname === "/painel/revendedor/api-recargas",
-    }] : []),
     {
       label: t("mobileNav.wallet"),
       icon: Wallet,

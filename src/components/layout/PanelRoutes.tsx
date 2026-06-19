@@ -153,7 +153,7 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/revendedor/api-recargas", match: exact("/painel/revendedor/api-recargas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorApiRecargas /></RoleRoute> },
   { key: "/painel/revendedor/baixar-extensao", match: exact("/painel/revendedor/baixar-extensao"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorBaixarExtensao /></RoleRoute> },
   { key: "/painel/revendedor/niveis", match: exact("/painel/revendedor/niveis"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorNiveis /></RoleRoute> },
-  { key: "/painel/revendedor/ranking", match: exact("/painel/revendedor/ranking"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorRanking /></RoleRoute> },
+  { key: "/painel/revendedor/ranking", match: exact("/painel/revendedor/ranking"), render: () => <RoleRoute allow={["revendedor", "gerente"]}><RevendedorRanking /></RoleRoute> },
   { key: "/painel/revendedor/personalizar-extensao", match: exact("/painel/revendedor/personalizar-extensao"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPersonalizarExtensao /></RoleRoute> },
   { key: "/painel/revendedor/transacoes", match: exact("/painel/revendedor/transacoes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorTransacoes /></RoleRoute> },
   { key: "/painel/revendedor/resetar-chave", match: exact("/painel/revendedor/resetar-chave"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorResetarChave /></RoleRoute> },
