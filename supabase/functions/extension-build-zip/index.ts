@@ -418,6 +418,63 @@ ${isPopup ? "#ql-body" : ".sp-container, .main-container"} { background: var(--q
 .ql-tab.ql-tab-active, .sp-tab.sp-tab-active { background: var(--ql-accent-subtle) !important; color: var(--ql-accent) !important; }
 .ql-send-btn, .sp-send-btn { background: linear-gradient(135deg, var(--ql-accent), var(--ql-secondary)) !important; }
 
+/* Dark is the downloaded extension default. Light mode receives a separate high-contrast palette. */
+#ql-floating.ql-light, body.sp-light {
+  --ql-bg: #f8fafc !important;
+  --ql-bg-elevated: #ffffff !important;
+  --ql-bg-surface: #ffffff !important;
+  --ql-bg-hover: #e5e7eb !important;
+  --ql-border: rgba(15,23,42,0.16) !important;
+  --ql-border-hover: rgba(15,23,42,0.28) !important;
+  --ql-text-primary: #0f172a !important;
+  --ql-text-secondary: #334155 !important;
+  --ql-text-muted: #475569 !important;
+  --ql-accent-subtle: color-mix(in srgb, var(--ql-accent) 12%, transparent) !important;
+  --ql-accent-glow: color-mix(in srgb, var(--ql-accent) 24%, transparent) !important;
+}
+#ql-floating.ql-light .ql-icon-btn,
+#ql-floating.ql-light .ql-tool-btn,
+#ql-floating.ql-light .ql-attach-btn,
+body.sp-light .sp-icon-btn,
+body.sp-light .sp-tool-btn,
+body.sp-light .sp-attach-btn,
+body.sp-light .sp-back-to-popup {
+  color: var(--ql-text-secondary) !important;
+  border-color: var(--ql-border) !important;
+}
+#ql-floating.ql-light .ql-icon-btn:hover,
+#ql-floating.ql-light .ql-tool-btn:hover,
+#ql-floating.ql-light .ql-attach-btn:hover,
+body.sp-light .sp-icon-btn:hover,
+body.sp-light .sp-tool-btn:hover,
+body.sp-light .sp-attach-btn:hover,
+body.sp-light .sp-back-to-popup:hover {
+  color: var(--ql-text-primary) !important;
+  background: var(--ql-bg-hover) !important;
+}
+#ql-floating.ql-light .ql-profile-name,
+#ql-floating.ql-light .ql-gate-title,
+#ql-floating.ql-light .ql-modal-title,
+#ql-floating.ql-light .ql-pkg-name,
+#ql-floating.ql-light strong,
+body.sp-light .sp-profile-name,
+body.sp-light .sp-gate-title,
+body.sp-light .sp-modal-title,
+body.sp-light strong {
+  color: var(--ql-text-primary) !important;
+}
+#ql-floating.ql-light .ql-chip:hover,
+body.sp-light .sp-chip:hover {
+  color: var(--ql-accent) !important;
+}
+#ql-floating.ql-light .ql-trial-countdown,
+#ql-floating.ql-light .ql-download-card,
+body.sp-light .sp-trial-countdown,
+body.sp-light .sp-download-card {
+  background: var(--ql-bg-surface) !important;
+  border-color: var(--ql-border) !important;
+}
+
 /* Hide logos if not provided */
 ${!cust.logo_rect_url ? ".sp-logo, .brand-logo, .ql-brand-logo, img[src*='logo1254'] { display: none !important; }" : ""}
 ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-square, img[src*='logo512'] { display: none !important; }" : ""}
