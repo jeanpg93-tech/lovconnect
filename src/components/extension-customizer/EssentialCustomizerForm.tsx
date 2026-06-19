@@ -341,7 +341,6 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
     icon_32_url: data.icon_32_url,
     icon_48_url: data.icon_48_url,
     icon_128_url: data.icon_128_url,
-    support_url: data.support_url,
     greeting_text: "Cliente",
     use_license_name: true,
     currency_symbol: "MZN",

@@ -76,7 +76,7 @@ export default function RevendedorBaixarExtensao() {
   const [items, setItems] = useState<ExtRow[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [resellerId, setResellerId] = useState<string | null>(null);
-  const [activeMethod, setActiveMethod] = useState<Method>("flow");
+  const [activeMethod] = useState<Method>("lovax");
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<ExtRow | null>(null);
@@ -89,30 +89,21 @@ export default function RevendedorBaixarExtensao() {
     (async () => {
       setLoading(true);
 
-      const [{ data: extRes }, { data: rsl }, { data: setting }] = await Promise.all([
+      const [{ data: extRes }, { data: rsl }] = await Promise.all([
         supabase
           .from("extensions")
           .select("id,name,slug,version,description,changelog,file_path,file_name,file_size,updated_at,method")
           .eq("is_active", true)
+          .eq("method", "lovax")
           .order("name", { ascending: true }),
         supabase
           .from("resellers")
           .select("id")
           .eq("user_id", user.id)
           .maybeSingle(),
-        supabase
-          .from("app_settings")
-          .select("value")
-          .eq("key", SETTING_KEY)
-          .maybeSingle(),
       ]);
 
       if (cancelled) return;
-      const m =
-        normalizeMethod((setting as any)?.value) ??
-        normalizeMethod(window.localStorage.getItem(SETTING_KEY)) ??
-        "flow";
-      setActiveMethod(m);
       if (extRes) {
         setItems(extRes as ExtRow[]);
       }
@@ -152,7 +143,7 @@ export default function RevendedorBaixarExtensao() {
     }
   };
 
-  const visibleItems = items.filter((e) => (e.method ?? "flow") === activeMethod);
+  const visibleItems = items.filter((e) => e.method === "lovax");
   const activeExtension = visibleItems[0] ?? null;
   const activeExtensionId = activeExtension?.id ?? null;
 
