@@ -414,6 +414,11 @@ Deno.serve(async (req) => {
         "#a855f7": p.secondary,
         "#c4b5fd": p.secondary,
         // Azuis / primária
+        "#ef4444": p.primary,
+        "#dc2626": p.hover,
+        "#ff1010": p.primary,
+        "#d90000": p.hover,
+        "#ff3b30": p.secondary,
         "#3b82f6": p.primary,
         "#2563eb": p.hover,
         "#38bdf8": p.primary,
@@ -457,6 +462,9 @@ Deno.serve(async (req) => {
       const priRgb = hexToRgb(p.primary);
       if (priRgb) {
         const reps = [
+          /rgba?\(\s*239\s*,\s*68\s*,\s*68/gi,    // #ef4444
+          /rgba?\(\s*220\s*,\s*38\s*,\s*38/gi,    // #dc2626
+          /rgba?\(\s*255\s*,\s*16\s*,\s*16/gi,    // #ff1010
           /rgba?\(\s*59\s*,\s*130\s*,\s*246/gi,   // #3b82f6
           /rgba?\(\s*56\s*,\s*189\s*,\s*248/gi,   // #38bdf8
         ];
@@ -569,6 +577,9 @@ body.sp-light .sp-download-card {
 /* Hide logos if not provided */
 ${!cust.logo_rect_url ? ".sp-logo, .brand-logo, .ql-brand-logo, img[src*='logo1254'] { display: none !important; }" : ""}
 ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-square, img[src*='logo512'] { display: none !important; }" : ""}
+.sp-brand-logo, .ql-brand-logo { width: 28px !important; height: 28px !important; object-fit: contain !important; flex: 0 0 28px !important; border-radius: 6px !important; }
+.sp-brand, .ql-header-left { display: flex !important; align-items: center !important; gap: 8px !important; min-width: 0 !important; }
+.sp-brand-text, .ql-brand, .ql-title { min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
 `;
       if (history_enabled === false) {
         output += `\n.sp-tab[data-tab="history"], [data-tab-id="history"], .ql-tab[data-tab="history"] { display: none !important; }\n`;
