@@ -180,15 +180,17 @@ export default function RevendedorBaixarExtensao() {
         <div className="flex h-40 items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
-      ) : items.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <div className="rounded-xl border border-border bg-card/60 p-10 text-center text-sm text-muted-foreground">
           Nenhuma extensão disponível para download.
         </div>
       ) : (
         <div className="space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/60 px-1">Todas as Extensões</h2>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/60 px-1">
+            Todas as Extensões
+          </h2>
           <div className="flex flex-col gap-2">
-            {items.map((e) => {
+            {visibleItems.map((e) => {
               const has = !!e.file_path;
               return (
                 <div
@@ -271,7 +273,10 @@ export default function RevendedorBaixarExtensao() {
               aplicadas automaticamente para os clientes ativos.
             </p>
           </div>
-          <EssentialCustomizerForm resellerId={resellerId} />
+          <EssentialCustomizerForm
+            resellerId={resellerId}
+            extensionId={activeExtensionId}
+          />
         </div>
       )}
 
