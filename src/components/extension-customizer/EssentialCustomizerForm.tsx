@@ -578,7 +578,19 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
           </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={handleDownloadZip}
+            disabled={downloadingZip}
+          >
+            {downloadingZip ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            Baixar extensão alterada
+          </Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
