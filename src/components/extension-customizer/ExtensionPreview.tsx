@@ -142,7 +142,7 @@ function LovaxPreview({
       style={{ width: 390, height: showLicense ? 820 : 760, background: "#070707", color: "#f8fafc" }}
     >
       <div className="relative flex h-full flex-col bg-[#070707]">
-        <LovaxHeader c={c} logo={logo} />
+        <LovaxHeader c={c} logo={logo} accent={lovaxAccent} />
 
         {showLicense ? (
           <div className="flex flex-1 flex-col px-14 pb-4 pt-28 text-center">
