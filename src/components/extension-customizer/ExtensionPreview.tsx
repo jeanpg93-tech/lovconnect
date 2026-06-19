@@ -89,6 +89,161 @@ export type ExtCustomization = {
   popup_card_muted_text_color?: string;
 };
 
+function LovaxLogo({ src, large = false }: { src?: string | null; large?: boolean }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt="Logo da extensão"
+        className={large ? "h-20 w-20 object-contain" : "h-8 w-8 object-contain"}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={large ? "grid h-20 w-20 place-items-center rounded-full text-4xl font-black italic" : "grid h-8 w-8 place-items-center rounded-full text-lg font-black italic"}
+      style={{
+        background: "radial-gradient(circle at 35% 25%, #ff5c5c, #b00000 48%, #111 52%, #3a3a3a 76%, #ff1010)",
+        color: "#ff1010",
+        textShadow: "0 1px 0 #fff, 0 0 10px rgba(255,16,16,.75)",
+        boxShadow: "0 0 22px rgba(255,16,16,.32)",
+      }}
+    >
+      LC
+    </div>
+  );
+}
+
+function LovaxHeader({ c, logo }: { c: ExtCustomization; logo?: string | null }) {
+  return (
+    <div className="flex h-[62px] shrink-0 items-center gap-2 border-b border-red-500/10 bg-[#141416] px-4">
+      <LovaxLogo src={logo} />
+      <div className="text-[15px] font-extrabold text-[#ff1010]">{c.brand_name || "LovConnect"}</div>
+      <span className="ml-1 rounded-md bg-[#ff1010] px-2 py-0.5 text-[10px] font-black text-white shadow-[0_0_14px_rgba(255,16,16,.55)]">
+        {(c.header_badge_text || c.brand_badge || "PRO").toUpperCase()}
+      </span>
+    </div>
+  );
+}
+
+function LovaxPreview({
+  c,
+  mode,
+  onModeChange,
+  showLicense,
+}: {
+  c: ExtCustomization;
+  mode: "sidebar" | "popup";
+  onModeChange?: (mode: "sidebar" | "popup") => void;
+  showLicense?: boolean;
+}) {
+  const accent = c.color_primary || "#ff1010";
+  const version = c.display_version || "5.3";
+  const logo = c.logo_square_url || c.logo_rect_url;
+  const shortcuts = (c.shortcuts?.length ? c.shortcuts : []).slice(0, 8);
+  const badge = c.greeting_badge_text || c.brand_badge || "PRO";
+
+  return (
+    <div
+      className="ext-preview-container overflow-hidden rounded-xl border border-red-500/10 font-sans shadow-2xl"
+      style={{ width: 390, height: showLicense ? 820 : 760, background: "#070707", color: "#f8fafc" }}
+    >
+      <div className="relative flex h-full flex-col bg-[#070707]">
+        <LovaxHeader c={c} logo={logo} />
+
+        {showLicense ? (
+          <div className="flex flex-1 flex-col px-14 pb-4 pt-28 text-center">
+            <div className="mx-auto mb-7">
+              <LovaxLogo src={logo} large />
+            </div>
+            <h3 className="text-[20px] font-black leading-tight text-white">
+              Bem vindo a <span style={{ color: accent }}>TS Community</span>
+            </h3>
+            <p className="mt-2 text-[15px] text-slate-300">{c.license_description || "Insira sua chave de licença para desbloquear."}</p>
+            <div className="mt-6 rounded-lg border border-white/10 bg-[#1b1b1f] px-4 py-3 text-left font-mono text-[15px] text-slate-400">
+              {c.license_placeholder || "TS-XXXXXXXXXXXXXXXXXXXXXX"}
+            </div>
+            <button className="mt-3 rounded-lg py-3 text-[15px] font-black text-white shadow-[0_0_26px_rgba(255,16,16,.32)]" style={{ background: accent }}>
+              {c.license_button_text || "Validar Licença"}
+            </button>
+            <div className="mt-5 space-y-3 text-left">
+              {[
+                ["🔑", "Adquirir licença", "Adquira sua licença de forma rá..."],
+                ["💬", "Entrar na comunidade", "Participe da comunidade exclusi..."],
+                ["🎧", "Obter suporte", "Fale com nossa equipe e tire sua..."],
+              ].map(([icon, title, desc]) => (
+                <div key={title} className="flex items-center gap-3 rounded-xl border border-red-500/35 bg-red-950/20 p-3 text-[#ff1010]">
+                  <div className="grid h-10 w-10 place-items-center rounded-lg border border-red-500/50">{icon}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[14px] font-black">{title}</div>
+                    <div className="truncate text-[12px]">{desc}</div>
+                  </div>
+                  <span className="text-lg">›</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-auto border-t border-red-500/10 pt-4">
+              <span className="rounded-full border border-red-500/70 px-5 py-2 text-[12px] font-black text-[#ff1010]">
+                {c.footer_text || "Desenvolvido por LovConnect"}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-1 flex-col overflow-hidden px-4 pb-0 pt-5">
+            <div className="rounded-xl border border-white/10 bg-[#1b1b1f] p-4 shadow-lg">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="text-[16px] font-black">Jean <span className="rounded-md border border-emerald-500/50 bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-400">{badge}</span></div>
+                  <div className="mt-3 truncate text-[14px] font-bold text-emerald-400">✅ Sincronizado! Projeto: 196668...</div>
+                </div>
+                <div className="flex gap-4 text-[16px]" style={{ color: accent }}><span>☾</span><span>?</span><span>▯</span><span>↗</span></div>
+              </div>
+              <div className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-900/35 px-5 py-5 text-center">
+                <div className="text-xl text-emerald-300">∞</div>
+                <div className="mt-1 text-[14px] font-black tracking-[0.18em] text-emerald-300">VITALÍCIO</div>
+                <div className="mt-1 text-[13px] text-slate-300">Acesso sem expiração</div>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-xl bg-[#151518] text-[14px] font-bold text-slate-500">
+              <div className="border-b-2 px-4 py-3" style={{ borderColor: accent, background: "rgba(255,16,16,.16)", color: accent }}>↯ Prompt</div>
+              <div className="px-4 py-3">☆ Skills</div>
+              <div className="px-4 py-3">▱ Histórico <span className="rounded-full px-1.5 text-white" style={{ background: accent }}>7</span></div>
+            </div>
+            <div className="mt-4 grid grid-cols-4 gap-2">
+              {shortcuts.map((s, i) => (
+                <button key={`${s.label}-${i}`} className="h-[84px] rounded-xl border bg-red-950/25 px-1 text-[11px] font-bold text-slate-200" style={{ borderColor: accent }}>
+                  <div className="mx-auto mb-2 grid h-8 w-8 place-items-center rounded-full bg-red-500/20 text-lg">{["🛠️", "♻️", "🎨", "🖥️", "⚡", "🛡️", "🧪", "🧮"][i] || "⚡"}</div>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 flex-1 rounded-t-2xl border border-b-0 bg-[#18181b] p-4" style={{ borderColor: accent }}>
+              <div className="text-[16px] text-slate-500">O que vamos criar hoje?</div>
+              <div className="mt-auto flex h-full flex-col justify-end">
+                <div className="mb-8 border-t border-white/10 pt-3">
+                  <div className="flex flex-wrap items-center gap-2 text-slate-400">
+                    {['📎', '🎙️', '🛡️', '▱', '👁️', '⇩', '⚡'].map((i) => <span key={i} className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5">{i}</span>)}
+                    <button className="ml-auto grid h-12 w-12 place-items-center rounded-full text-2xl text-white shadow-[0_0_20px_rgba(255,16,16,.45)]" style={{ background: accent }}>➜</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!showLicense && (
+          <div className="flex shrink-0 items-center justify-between border-t border-red-500/10 px-4 py-2 text-[10px] text-slate-400">
+            <button onClick={() => onModeChange?.(mode === "popup" ? "sidebar" : "popup")}>◀ Popup</button>
+            <span style={{ color: accent }}>Suporte</span>
+            <span>{version}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function ExtensionPreview({ 
   c, 
   mode = "sidebar", 
