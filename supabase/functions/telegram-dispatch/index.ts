@@ -20,6 +20,12 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'missing keys' }), { status: 500 })
   }
 
+  const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const auth = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').trim()
+  if (auth !== SERVICE_ROLE) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
+  }
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
