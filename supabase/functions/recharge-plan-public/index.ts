@@ -68,7 +68,7 @@ async function getSubByToken(db: ReturnType<typeof admin>, token: string) {
 async function buildPayload(db: ReturnType<typeof admin>, sub: Sub) {
   const { data: plan } = await db
     .from("recharge_plans")
-    .select("id,name,description,duration_days,credits_per_day,total_credits_cap,delivery_hour,bot_owner_email")
+    .select("id,name,description,duration_days,credits_per_day,total_credits_cap,delivery_hour")
     .eq("id", sub.plan_id)
     .maybeSingle();
 
