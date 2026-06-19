@@ -156,6 +156,17 @@ export function ExtensionPreview({
     "--xp-border-hover": (isPopup && c.popup_card_border_hover_color) || c.card_border_hover_color || "rgba(255,255,255,0.12)",
   } as CSSProperties;
 
+  if (isLovax) {
+    return (
+      <LovaxPreview
+        c={c}
+        mode={mode}
+        onModeChange={onModeChange}
+        showLicense={showLicense}
+      />
+    );
+  }
+
   return (
     <div
       className={`ext-preview-container rounded-2xl overflow-hidden flex flex-col font-[Inter,system-ui,sans-serif] transition-all duration-300 ${isPopup ? 'scale-95 shadow-primary/20 border' : ''}`}
