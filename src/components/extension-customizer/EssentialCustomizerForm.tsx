@@ -337,17 +337,27 @@ export function EssentialCustomizerForm({ resellerId, extensionId }: Props) {
             </div>
 
             {!separateLogos ? (
-              <LogoSlot
-                label="Logo única (será usada como retangular e quadrada)"
-                url={data.logo_rect_url}
-                onUpload={(f) =>
-                  handleLogoUpload("logo_rect_url", f, "logo_square_url")
-                }
-                onClear={() => {
-                  update("logo_rect_url", null);
-                  update("logo_square_url", null);
-                }}
-              />
+              <>
+                <LogoSlot
+                  label="Logo única (gera retangular, quadrada e ícones)"
+                  url={data.logo_rect_url}
+                  onUpload={(f) =>
+                    handleLogoUpload("logo_rect_url", f, "logo_square_url", true)
+                  }
+                  onClear={() => {
+                    update("logo_rect_url", null);
+                    update("logo_square_url", null);
+                    update("icon_16_url", null);
+                    update("icon_32_url", null);
+                    update("icon_48_url", null);
+                    update("icon_128_url", null);
+                  }}
+                />
+                <p className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-2 text-[10px] text-muted-foreground">
+                  Geramos automaticamente os ícones do Chrome (16, 32, 48 e
+                  128). Se vazio, usamos a logo padrão.
+                </p>
+              </>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <LogoSlot
@@ -365,7 +375,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId }: Props) {
               </div>
             )}
             <p className="text-[10px] text-muted-foreground">
-              PNG, JPG, SVG ou WEBP — máx 500KB
+              PNG, JPG, SVG ou WEBP — máx 10MB
             </p>
           </div>
 
@@ -479,6 +489,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId }: Props) {
               key={advancedKey}
               scope="reseller"
               resellerId={resellerId}
+              extensionId={EXTENSION_ID}
             />
           </Card>
         </CollapsibleContent>
