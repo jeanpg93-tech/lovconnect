@@ -16,6 +16,8 @@ type Cust = {
   manifest_name: string; manifest_description: string; support_url: string;
   community_url?: string | null;
   greeting_text: string; use_license_name: boolean; currency_symbol: string; footer_text: string;
+  license_title?: string | null; license_description?: string | null; license_placeholder?: string | null;
+  license_button_text?: string | null;
   show_greeting_badge: boolean; color_success: string;
   color_primary: string; color_primary_hover: string; color_secondary: string;
   color_bg: string; color_bg_elevated: string; color_bg_surface: string;
@@ -94,6 +96,20 @@ function escapeJs(s: string) {
 }
 function escapeHtml(s: string) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeJsonStringContent(s: string) {
+  return JSON.stringify(String(s)).slice(1, -1);
+}
+function replaceLegacyBrandText(content: string, brandName: string) {
+  return String(content)
+    .replace(/TS(?:\s|&nbsp;|&#160;|\\u00a0|\u00a0)+Community/gi, brandName)
+    .replace(/T\s*S\s*Community/gi, brandName)
+    .replace(/Main Lovable/g, brandName)
+    .replace(/Master Lovable/g, brandName)
+    .replace(
+      /(Bem[- ]?vindo[a]?\s+a[o]?\s+)([^<\n"'`\\]{1,80}?)(?=[<\n"'`\\]|\s*<\/|\s*\+|$)/gi,
+      (_m, p1) => `${p1}${brandName}`,
+    );
 }
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const h = String(hex || "").replace("#", "").trim();
@@ -250,7 +266,9 @@ Deno.serve(async (req) => {
     }
 
     // 1) manifest.json
-    const manifestEntry = entries.find(e => e.filename === "manifest.json");
+    const baseName = (name: string) => name.split("/").pop() || name;
+
+    const manifestEntry = entries.find(e => baseName(e.filename) === "manifest.json");
     if (manifestEntry?.getData) {
       const txt = await manifestEntry.getData(new TextWriter());
       try {
@@ -272,7 +290,7 @@ Deno.serve(async (req) => {
           delete m.action.default_icon;
         }
 
-        overrides.set("manifest.json", JSON.stringify(m, null, 2));
+        overrides.set(manifestEntry.filename, JSON.stringify(m, null, 2));
       } catch (err) {
         console.error("Error parsing manifest.json", err);
       }
@@ -532,7 +550,7 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
 
     // Decide o "modo" (popup vs sidebar) com base no nome do arquivo
     const fileMode = (name: string): "popup" | "sidebar" => {
-      const n = name.toLowerCase();
+      const n = baseName(name).toLowerCase();
       if (n.includes("popup") || n.includes("floating") || n === "content.js" || n === "content-templates.js") {
         return "popup";
       }
@@ -552,6 +570,10 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
       const currency_symbol = (mode === "popup" && cust.popup_currency_symbol) || cust.currency_symbol || "MZN";
       const footer_text = (mode === "popup" && cust.popup_footer_text) || cust.footer_text || "Desenvolvido em Moçambique";
       const show_greeting_badge = mode === "popup" ? (cust.popup_show_greeting_badge !== false) : (cust.show_greeting_badge !== false);
+      const licenseTitle = (cust.license_title && cust.license_title.trim()) || `Bem vindo a ${brand_name}`;
+      const licenseDescription = (cust.license_description && cust.license_description.trim()) || "Insira sua chave de licença para desbloquear.";
+      const licensePlaceholder = (cust.license_placeholder && cust.license_placeholder.trim()) || "TS-XXXXXXXXXXXXXXXXXXXXXX";
+      const licenseButtonText = (cust.license_button_text && cust.license_button_text.trim()) || "Validar Licença";
 
       // HTML específico
       if (fileName.endsWith(".html")) {
@@ -566,11 +588,17 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
         content = content.replace(/<span class="sp-footer-badge">[\s\S]*?<\/span>/g, `<span class="sp-footer-badge">🇲🇿 ${escapeHtml(cust.display_version)}</span>`);
         content = content.replace(/Desenvolvido em Moçambique/g, escapeHtml(footer_text));
         content = content.replace(/Olá, Cliente/g, escapeHtml(greeting_text));
+        content = content.replace(/Bem vindo a\s+TS\s+Community/gi, escapeHtml(licenseTitle));
+        content = content.replace(/Bem-vindo a\s+TS\s+Community/gi, escapeHtml(licenseTitle));
+        content = content.replace(/Ativar Licen[cç]a/g, escapeHtml(licenseTitle));
+        content = content.replace(/Insira sua chave de licen[cç]a para desbloquear\./g, escapeHtml(licenseDescription));
+        content = content.replace(/TS-X{8,}/g, escapeHtml(licensePlaceholder));
+        content = content.replace(/Validar Licen[cç]a/g, escapeHtml(licenseButtonText));
         content = content.replace(/Aguardando sincronização\.\.\./g, (mode === 'popup' ? 'Sincronizando...' : 'Aguardando sincronização...')); // Optional tweak
         content = content.replace(/MZN/g, escapeHtml(currency_symbol));
         content = content.replace(/Master Lovable • v[\d.]+/g, `${escapeHtml(brand_kicker)} ${escapeHtml(brand_name)} • ${escapeHtml(cust.display_version)}`);
         // Force the greeting text in content.js even if not "Olá, Cliente"
-        if (fileName === "content.js") {
+        if (baseName(fileName) === "content.js") {
           const greetingVal = use_license_name ? "qlUserName || 'Usuário'" : `'${escapeJs(greeting_text)}'`;
           content = content.replace(/qlUserName\s*\|\|\s*"User"/g, greetingVal);
         }
@@ -617,12 +645,22 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
         content = content.replace(/chrome\.storage\.local\.set\(\{ ql_dark_mode: !isLight \}\);/g, 'chrome.storage.local.set({ ql_dark_mode: !isLight, ql_theme_user_choice: true });');
         content = content.replace(/chrome\.storage\.local\.get\(\["ql_dark_mode"\], r => \{ if\(r\.ql_dark_mode === false\) document\.body\.classList\.add\('sp-light'\); \}\);/g, 'chrome.storage.local.get(["ql_dark_mode","ql_theme_user_choice"], r => { if(r.ql_theme_user_choice === true && r.ql_dark_mode === false) document.body.classList.add(\'sp-light\'); else { document.body.classList.remove(\'sp-light\'); chrome.storage.local.set({ ql_dark_mode: true }); } });');
         // Suporte: substitui também dentro de strings JS (ex.: content-templates.js)
+        const jsLicenseTitle = escapeJsonStringContent(licenseTitle);
+        const jsLicenseDescription = escapeJsonStringContent(licenseDescription);
+        const jsLicensePlaceholder = escapeJsonStringContent(licensePlaceholder);
+        const jsLicenseButtonText = escapeJsonStringContent(licenseButtonText);
+        content = content.replace(/Bem vindo a\s+TS\s+Community/gi, jsLicenseTitle);
+        content = content.replace(/Bem-vindo a\s+TS\s+Community/gi, jsLicenseTitle);
+        content = content.replace(/Ativar Licen(?:ç|\\u00e7)c?a/g, jsLicenseTitle);
+        content = content.replace(/Insira sua chave de licen(?:ç|\\u00e7)c?a para desbloquear\./g, jsLicenseDescription);
+        content = content.replace(/TS-X{8,}/g, jsLicensePlaceholder);
+        content = content.replace(/Validar Licen(?:ç|\\u00e7)c?a/g, jsLicenseButtonText);
         content = content.replace(/href=\\"https:\/\/discord\.gg\/[^"]+\\"/g, `href=\\"${escapeJs(cust.support_url)}\\"`);
         content = content.replace(/href=\\"https:\/\/wa\.me\/[^"]+\\"/g, `href=\\"${escapeJs(cust.support_url)}\\"`);
         content = content.replace(/href="https:\/\/discord\.gg\/[^"]+"/g, `href="${escapeJs(cust.support_url)}"`);
         content = content.replace(/href="https:\/\/wa\.me\/[^"]+"/g, `href="${escapeJs(cust.support_url)}"`);
         // Comunidade dentro do popup flutuante (content-templates.js): adiciona ao lado do Suporte
-        if (cust.community_url && cust.community_url.trim() !== "" && fileName === "content-templates.js") {
+        if (cust.community_url && cust.community_url.trim() !== "" && baseName(fileName) === "content-templates.js") {
           const cu = escapeJs(cust.community_url.trim());
           content = content.replace(
             /('<a href="[^']*" target="_blank" class="ql-support-link">[\s\S]*?Suporte<\/a>')/,
@@ -642,16 +680,7 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
       // Fallback final: troca o nome literal da marca em qualquer arquivo de UI.
       // Aplicado por último para pegar ocorrências em strings JS embutidas.
       if (fileName.endsWith(".html") || fileName.endsWith(".js") || fileName.endsWith(".css")) {
-        content = content.replace(/Main Lovable/g, brand_name);
-        content = content.replace(/Master Lovable/g, brand_name);
-        // Outras marcas conhecidas em ZIPs base herdados (ex.: "TS Community")
-        content = content.replace(/TS\s+Community/g, brand_name);
-        // Saudação "Bem-vindo a XXXX" / "Bem vindo ao YYY" → usa o brand atual.
-        // Aceita acento opcional, hífen opcional, "a"/"ao", e preserva o "Bem-vindo a ".
-        content = content.replace(
-          /(Bem[- ]?vindo[a]?\s+a[o]?\s+)([^<\n"'`\\]{1,60}?)(?=[<\n"'`\\]|\s*<\/|\s*\+)/gi,
-          (_m, p1) => `${p1}${brand_name}`,
-        );
+        content = replaceLegacyBrandText(content, brand_name);
       }
 
       return content;
@@ -678,7 +707,7 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
       }
 
       // Atalhos da Sidebar (sidepanel-templates.js)
-      if (fileName === "sidepanel-templates.js" && Array.isArray(cust.shortcuts) && cust.shortcuts.length > 0) {
+      if (baseName(fileName) === "sidepanel-templates.js" && Array.isArray(cust.shortcuts) && cust.shortcuts.length > 0) {
         const arr = cust.shortcuts.map((s) =>
           `  { icon: SP_SVG.sparkles, label: '${escapeJs(s.label)}', prompt: '${escapeJs(s.prompt)}' }`
         ).join(",\n");
@@ -687,7 +716,7 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
       }
 
       // Atalhos do Popup flutuante (content-templates.js)
-      if (fileName === "content-templates.js" && Array.isArray(cust.popup_shortcuts) && cust.popup_shortcuts.length > 0) {
+      if (baseName(fileName) === "content-templates.js" && Array.isArray(cust.popup_shortcuts) && cust.popup_shortcuts.length > 0) {
         const arr = cust.popup_shortcuts.map((s) =>
           `  { icon: QL_SVG.sparkles, label: '${escapeJs(s.label)}', prompt: '${escapeJs(s.prompt)}' }`
         ).join(",\n");
