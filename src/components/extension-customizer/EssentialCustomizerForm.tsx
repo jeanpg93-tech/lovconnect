@@ -6,28 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   Loader2,
   Save,
   Upload,
   X,
   Sparkles,
   Palette,
-  ChevronDown,
-  Settings2,
   Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ExtensionCustomizer } from "./ExtensionCustomizer";
+import { ExtensionPreview, type ExtCustomization } from "./ExtensionPreview";
 import { extractPaletteFromImage, resizeImageToPng, type Swatch } from "@/lib/color-extract";
 import { cn } from "@/lib/utils";
 
-// Fallback caso o método ativo não traga uma extensão correspondente
-const DEFAULT_EXTENSION_ID = "ce171e28-cab8-490f-b50f-381aa975918e";
+// Fallback fixo da extensão LovaX v5.3
+const DEFAULT_EXTENSION_ID = "df1cf674-31d2-4320-b0fc-ceee0b3c840a";
 
 type EssentialData = {
   brand_name: string;
@@ -43,14 +36,14 @@ type EssentialData = {
 };
 
 const DEFAULTS: EssentialData = {
-  brand_name: "",
+  brand_name: "LovConnect",
   logo_rect_url: null,
   logo_square_url: null,
   icon_16_url: null,
   icon_32_url: null,
   icon_48_url: null,
   icon_128_url: null,
-  color_primary: "#3b82f6",
+  color_primary: "#ff1010",
   support_url: "",
   community_url: "",
 };
@@ -87,14 +80,13 @@ type Props = {
 
 export function EssentialCustomizerForm({ resellerId, extensionId, extensionName, extensionVersion, extensionMethod }: Props) {
   const EXTENSION_ID = extensionId || DEFAULT_EXTENSION_ID;
+  const activeExtensionMethod: "lovax" = "lovax";
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [recordId, setRecordId] = useState<string | null>(null);
-  const [data, setData] = useState<EssentialData>(DEFAULTS);
+  const [data, setData] = useState<EssentialData>(getMethodDefaults("lovax"));
   const [palette, setPalette] = useState<Swatch[]>([]);
   const [separateLogos, setSeparateLogos] = useState(false);
-  const [advancedKey, setAdvancedKey] = useState(0);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     void load();
@@ -104,7 +96,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
   async function load() {
     setLoading(true);
     setRecordId(null);
-    const methodDefaults = getMethodDefaults(extensionMethod);
+    const methodDefaults = getMethodDefaults(activeExtensionMethod);
     setData(methodDefaults);
     setPalette([]);
     setSeparateLogos(false);
@@ -130,7 +122,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
           color_primary: (row as any).color_primary ?? "#3b82f6",
           support_url: (row as any).support_url ?? "",
           community_url: (row as any).community_url ?? "",
-        }, extensionMethod));
+        }, activeExtensionMethod));
         const hasSeparate =
           !!(row as any).logo_rect_url &&
           !!(row as any).logo_square_url &&
@@ -163,7 +155,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
             color_primary: (tpl as any).color_primary ?? d.color_primary,
             support_url: (tpl as any).support_url ?? d.support_url,
             community_url: (tpl as any).community_url ?? d.community_url,
-          }, extensionMethod));
+          }, activeExtensionMethod));
         }
       }
     } finally {
@@ -307,7 +299,6 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
         .eq("id", id);
       if (error) throw error;
       toast.success("Personalização salva!");
-      setAdvancedKey((k) => k + 1); // força reload do customizer avançado
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar");
     } finally {
@@ -323,8 +314,61 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
     );
   }
 
+  const brandName = data.brand_name.trim() || "LovConnect";
+  const version = (extensionVersion || "5.3").replace(/^v/i, "");
+  const primary = data.color_primary || "#ff1010";
+  const previewData: ExtCustomization = {
+    brand_kicker: "",
+    brand_name: brandName,
+    brand_badge: "PRO",
+    header_badge_text: "PRO",
+    greeting_badge_text: "PRO",
+    display_version: version,
+    window_title: `${brandName} - Painel Lateral`,
+    manifest_name: brandName,
+    manifest_description: "Extensão LovaX",
+    support_url: data.support_url,
+    color_primary: primary.toLowerCase() === "#3b82f6" ? "#ff1010" : primary,
+    color_primary_hover: primary.toLowerCase() === "#3b82f6" ? "#d90000" : primary,
+    color_secondary: "#ff3b30",
+    color_bg: "#070707",
+    color_bg_elevated: "#141416",
+    color_bg_surface: "#1b1b1f",
+    color_success: "#20e6a0",
+    logo_rect_url: data.logo_rect_url,
+    logo_square_url: data.logo_square_url,
+    icon_16_url: data.icon_16_url,
+    icon_32_url: data.icon_32_url,
+    icon_48_url: data.icon_48_url,
+    icon_128_url: data.icon_128_url,
+    support_url: data.support_url,
+    greeting_text: "Cliente",
+    use_license_name: true,
+    currency_symbol: "MZN",
+    footer_text: `Desenvolvido por ${brandName}`,
+    show_greeting_badge: true,
+    shortcuts: [
+      { label: "Corrigir Bug", prompt: "Corrija bugs no projeto." },
+      { label: "Refatorar", prompt: "Refatore o código mantendo o comportamento." },
+      { label: "Melhorar UI", prompt: "Melhore a interface do usuário." },
+      { label: "Explicar Código", prompt: "Explique este código." },
+      { label: "Otimizar", prompt: "Otimize performance e legibilidade." },
+      { label: "Segurança", prompt: "Revise problemas de segurança." },
+      { label: "Criar Teste", prompt: "Crie testes para este fluxo." },
+      { label: "Responsividade", prompt: "Ajuste a responsividade da interface." },
+    ],
+    license_title: `Bem-vindo a ${brandName}`,
+    license_description: "Insira sua chave de licença para desbloquear.",
+    license_placeholder: "TS-XXXXXXXXXXXXXXXXXXXXXX",
+    license_button_text: "Validar Licença",
+    license_buy_button_text: "",
+    license_extra_buttons: [],
+    license_emoji: "🔑",
+    license_emoji_size: 64,
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
       <Card className="border-border bg-card/50 p-5 space-y-5">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -493,40 +537,12 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
           </Button>
         </div>
       </Card>
-
-      {/* Avançado */}
-      <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full justify-between border-dashed"
-          >
-            <span className="flex items-center gap-2">
-              <Settings2 className="h-4 w-4" />
-              Configurações avançadas
-            </span>
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 transition-transform",
-                advancedOpen && "rotate-180",
-              )}
-            />
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-4">
-          <Card className="border-border bg-card/40 p-2">
-            <ExtensionCustomizer
-              key={advancedKey}
-              scope="reseller"
-              resellerId={resellerId}
-              extensionId={EXTENSION_ID}
-              extensionName={extensionName}
-              extensionVersion={extensionVersion}
-              extensionMethod={extensionMethod}
-            />
-          </Card>
-        </CollapsibleContent>
-      </Collapsible>
+      <div className="space-y-3 xl:sticky xl:top-8 xl:self-start">
+        <div className="px-1 text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
+          Visualização LovaX
+        </div>
+        <ExtensionPreview c={previewData} mode="sidebar" extensionMethod={activeExtensionMethod} />
+      </div>
     </div>
   );
 }
