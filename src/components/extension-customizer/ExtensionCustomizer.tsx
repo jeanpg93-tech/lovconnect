@@ -103,7 +103,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId }: Props) {
 
   useEffect(() => {
     void loadData();
-  }, [scope, resellerId]);
+  }, [scope, resellerId, extensionId]);
 
   useEffect(() => {
     if (currentStep === 5) {
