@@ -2,23 +2,40 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/painel/PageHeader";
-import { ExtensionCustomizer } from "@/components/extension-customizer/ExtensionCustomizer";
+import { EssentialCustomizerForm } from "@/components/extension-customizer/EssentialCustomizerForm";
 import { Loader2 } from "lucide-react";
+
+type LovaxExtension = {
+  id: string;
+  name: string;
+  version: string;
+};
 
 export default function RevendedorPersonalizarExtensao() {
   const { user } = useAuth();
   const [resellerId, setResellerId] = useState<string | null>(null);
+  const [lovaxExtension, setLovaxExtension] = useState<LovaxExtension | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("resellers")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setResellerId(data?.id ?? null);
+    Promise.all([
+      supabase
+        .from("resellers")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("extensions")
+        .select("id,name,version")
+        .eq("is_active", true)
+        .eq("method", "lovax")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]).then(([resellerResult, extensionResult]) => {
+        setResellerId(resellerResult.data?.id ?? null);
+        setLovaxExtension((extensionResult.data as LovaxExtension | null) ?? null);
         setLoading(false);
       });
   }, [user]);
@@ -38,7 +55,13 @@ export default function RevendedorPersonalizarExtensao() {
         description="Customize cores, textos, logo e atalhos. Baixe o ZIP pronto para entregar aos seus clientes."
       />
       {resellerId ? (
-        <ExtensionCustomizer scope="reseller" resellerId={resellerId} />
+        <EssentialCustomizerForm
+          resellerId={resellerId}
+          extensionId={lovaxExtension?.id ?? null}
+          extensionName={lovaxExtension?.name ?? "LovaX"}
+          extensionVersion={lovaxExtension?.version ?? "5.3"}
+          extensionMethod="lovax"
+        />
       ) : (
         <p className="text-sm text-muted-foreground">Revendedor não encontrado.</p>
       )}

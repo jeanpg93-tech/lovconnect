@@ -58,25 +58,12 @@ const fmtSize = (b: number | null) => {
 const fmtDate = (s: string) =>
   new Date(s).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
-type Method = "flow" | "lovax";
-const SETTING_KEY = "licencas.delivery.method";
-const normalizeMethod = (value: unknown): Method | null => {
-  const raw =
-    typeof value === "object" && value !== null && "method" in value
-      ? (value as { method?: unknown }).method
-      : value;
-  if (raw === "flow" || raw === "promptflow") return "flow";
-  if (raw === "lovax") return "lovax";
-  return null;
-};
-
 export default function RevendedorBaixarExtensao() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ExtRow[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [resellerId, setResellerId] = useState<string | null>(null);
-  const [activeMethod, setActiveMethod] = useState<Method>("flow");
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<ExtRow | null>(null);
@@ -89,30 +76,21 @@ export default function RevendedorBaixarExtensao() {
     (async () => {
       setLoading(true);
 
-      const [{ data: extRes }, { data: rsl }, { data: setting }] = await Promise.all([
+      const [{ data: extRes }, { data: rsl }] = await Promise.all([
         supabase
           .from("extensions")
           .select("id,name,slug,version,description,changelog,file_path,file_name,file_size,updated_at,method")
           .eq("is_active", true)
+          .eq("method", "lovax")
           .order("name", { ascending: true }),
         supabase
           .from("resellers")
           .select("id")
           .eq("user_id", user.id)
           .maybeSingle(),
-        supabase
-          .from("app_settings")
-          .select("value")
-          .eq("key", SETTING_KEY)
-          .maybeSingle(),
       ]);
 
       if (cancelled) return;
-      const m =
-        normalizeMethod((setting as any)?.value) ??
-        normalizeMethod(window.localStorage.getItem(SETTING_KEY)) ??
-        "flow";
-      setActiveMethod(m);
       if (extRes) {
         setItems(extRes as ExtRow[]);
       }
@@ -152,7 +130,7 @@ export default function RevendedorBaixarExtensao() {
     }
   };
 
-  const visibleItems = items.filter((e) => (e.method ?? "flow") === activeMethod);
+  const visibleItems = items.filter((e) => e.method === "lovax");
   const activeExtension = visibleItems[0] ?? null;
   const activeExtensionId = activeExtension?.id ?? null;
 
@@ -242,10 +220,7 @@ export default function RevendedorBaixarExtensao() {
                       variant="outline"
                       className="h-9 px-3"
                       onClick={() => {
-                        const path =
-                          e.slug === "extension-lovax"
-                            ? "/Extension-lovax"
-                            : "/Extension-flow";
+                        const path = "/Extension-lovax";
                         const url = `${window.location.origin}${path}`;
                         navigator.clipboard.writeText(url).then(
                           () => toast.success("Link copiado!"),
@@ -279,7 +254,7 @@ export default function RevendedorBaixarExtensao() {
             extensionId={activeExtensionId}
             extensionName={activeExtension?.name ?? null}
             extensionVersion={activeExtension?.version ?? null}
-            extensionMethod={activeExtension?.method ?? activeMethod}
+            extensionMethod="lovax"
           />
         </div>
       )}
