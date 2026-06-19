@@ -565,6 +565,12 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
 
       // Strings inline em JS/HTML
       if (fileName.endsWith(".js") || fileName.endsWith(".html")) {
+        // Tema: escuro deve ser o padrão real. Valores antigos salvos como light não podem vencer
+        // até o usuário tocar de novo no botão de tema dentro da extensão personalizada.
+        content = content.replace(/chrome\.storage\.local\.get\(\["ql_license_valid","ql_license_key","ql_minimized","ql_height","ql_dark_mode","ql_user_name","ql_expires_at","ql_activated_at","ql_license_status","ql_session_id"\]/g, 'chrome.storage.local.get(["ql_license_valid","ql_license_key","ql_minimized","ql_height","ql_dark_mode","ql_theme_user_choice","ql_user_name","ql_expires_at","ql_activated_at","ql_license_status","ql_session_id"]');
+        content = content.replace(/if\(res\.ql_dark_mode === false\)\s*\{\s*box\.classList\.add\("ql-light"\);\s*\}/g, 'if(res.ql_theme_user_choice === true && res.ql_dark_mode === false) { box.classList.add("ql-light"); } else { box.classList.remove("ql-light"); chrome.storage.local.set({ ql_dark_mode: true }); }');
+        content = content.replace(/chrome\.storage\.local\.set\(\{ ql_dark_mode: !isLight \}\);/g, 'chrome.storage.local.set({ ql_dark_mode: !isLight, ql_theme_user_choice: true });');
+        content = content.replace(/chrome\.storage\.local\.get\(\["ql_dark_mode"\], r => \{ if\(r\.ql_dark_mode === false\) document\.body\.classList\.add\('sp-light'\); \}\);/g, 'chrome.storage.local.get(["ql_dark_mode","ql_theme_user_choice"], r => { if(r.ql_theme_user_choice === true && r.ql_dark_mode === false) document.body.classList.add(\'sp-light\'); else { document.body.classList.remove(\'sp-light\'); chrome.storage.local.set({ ql_dark_mode: true }); } });');
         // Suporte: substitui também dentro de strings JS (ex.: content-templates.js)
         content = content.replace(/href=\\"https:\/\/discord\.gg\/[^"]+\\"/g, `href=\\"${escapeJs(cust.support_url)}\\"`);
         content = content.replace(/href=\\"https:\/\/wa\.me\/[^"]+\\"/g, `href=\\"${escapeJs(cust.support_url)}\\"`);
