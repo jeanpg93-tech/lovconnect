@@ -321,10 +321,7 @@ export default function PublicStorefront() {
             .eq("is_active", true)
             .eq("show_on_storefront", true)
             .gt("sale_price_cents", 0),
-          supabase
-            .from("recharge_plans")
-            .select("id, name, duration_days, credits_per_day, total_credits_cap, is_active")
-            .eq("is_active", true),
+          supabase.rpc("public_list_active_recharge_plans" as any),
         ])
         : [{ data: [] as any[] }, { data: [] as any[] }];
       const plansById = new Map(((publicPlans ?? []) as any[]).map((plan) => [plan.id, plan]));
