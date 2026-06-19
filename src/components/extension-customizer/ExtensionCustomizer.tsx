@@ -82,6 +82,7 @@ type Props = {
   extensionId?: string | null;
   extensionName?: string | null;
   extensionVersion?: string | null;
+  extensionMethod?: "flow" | "lovax" | null;
 };
 
 function getExtensionDefaults(extensionName?: string | null, extensionVersion?: string | null): ExtCustomization {
@@ -98,7 +99,7 @@ function getExtensionDefaults(extensionName?: string | null, extensionVersion?: 
   };
 }
 
-export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionName, extensionVersion }: Props) {
+export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionName, extensionVersion, extensionMethod }: Props) {
   const EXTENSION_ID = extensionId || DEFAULT_EXTENSION_ID;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -123,11 +124,11 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
 
   useEffect(() => {
     if (currentStep === 5) {
-      setPreviewMode("license");
+      setPreviewMode(extensionMethod === "lovax" ? "sidebar" : "license");
     } else {
       setPreviewMode("sidebar");
     }
-  }, [currentStep]);
+  }, [currentStep, extensionMethod]);
 
   async function loadData() {
     setLoading(true);
@@ -689,7 +690,12 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
             </div>
           </div>
         </div>
-        <ExtensionPreview c={data} mode={previewMode === "license" ? "sidebar" : previewMode} showLicense={previewMode === "license"} />
+        <ExtensionPreview
+          c={data}
+          mode={previewMode === "license" ? "sidebar" : previewMode}
+          showLicense={previewMode === "license"}
+          extensionMethod={extensionMethod}
+        />
         <Card className="p-4 bg-primary/5 border border-primary/10 rounded-2xl">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             <strong>Dica:</strong> As cores escolhidas no passo "Cores" são o coração do tema e serão aplicadas em toda a interface automaticamente.
