@@ -93,6 +93,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Revendedores", url: "/painel/gerente/revendedores", icon: Store },
       { title: "Níveis", url: "/painel/gerente/niveis", icon: Crown },
       { title: "Afiliados", url: "/painel/gerente/affiliados", icon: Ticket },
+      { title: "Ranking", url: "/painel/revendedor/ranking", icon: Trophy },
       { title: "Premiação Ranking", url: "/painel/gerente/ranking-prizes", icon: Gift },
     ]},
     { label: "Produtos", items: [
@@ -111,6 +112,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Dashboard", url: "/painel/revendedor", icon: LayoutDashboard, tour: "menu-dashboard" },
       { title: "Carteira", url: "/painel/revendedor/carteira", icon: Wallet, tour: "menu-carteira" },
       { title: "Indique e ganhe", url: "/painel/revendedor/indicacoes", icon: Gift, tour: "menu-indicacoes" },
+      { title: "Ranking", url: "/painel/revendedor/ranking", icon: Trophy },
     ]},
     { label: "Mensalidade", items: [
       { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles, tour: "menu-gerar-chave" },
