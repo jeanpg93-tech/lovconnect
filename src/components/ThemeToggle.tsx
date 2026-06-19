@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 const STORAGE_KEY = "lov-theme";
 
 function getInitial(): "light" | "dark" {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return "dark";
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved === "dark" || saved === "light") return saved;
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return "dark";
 }
 
 export function ThemeToggle() {
