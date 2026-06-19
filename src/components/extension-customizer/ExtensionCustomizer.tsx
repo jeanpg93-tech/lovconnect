@@ -85,9 +85,49 @@ type Props = {
   extensionMethod?: "flow" | "lovax" | null;
 };
 
-function getExtensionDefaults(extensionName?: string | null, extensionVersion?: string | null): ExtCustomization {
+function getExtensionDefaults(
+  extensionName?: string | null,
+  extensionVersion?: string | null,
+  extensionMethod?: "flow" | "lovax" | null,
+): ExtCustomization {
   const name = extensionName?.trim();
   if (!name) return DEFAULTS;
+
+  if (extensionMethod === "lovax") {
+    return {
+      ...DEFAULTS,
+      brand_kicker: "",
+      brand_name: "LovConnect",
+      brand_badge: "PRO",
+      header_badge_text: "PRO",
+      greeting_badge_text: "PRO",
+      manifest_name: name,
+      window_title: `${name} - Painel Lateral`,
+      display_version: extensionVersion || DEFAULTS.display_version,
+      color_primary: "#ff1010",
+      color_primary_hover: "#d90000",
+      color_secondary: "#ff3b30",
+      color_bg: "#070707",
+      color_bg_elevated: "#141416",
+      color_bg_surface: "#1b1b1f",
+      color_success: "#20e6a0",
+      license_title: "Bem vindo a TS Community",
+      license_description: "Insira sua chave de licença para desbloquear.",
+      license_placeholder: "TS-XXXXXXXXXXXXXXXXXXXXXX",
+      license_button_text: "Validar Licença",
+      footer_text: "Desenvolvido por LovConnect",
+      shortcuts: [
+        { label: "Corrigir Bug", prompt: "Corrija bugs no projeto." },
+        { label: "Refatorar", prompt: "Refatore o código mantendo o comportamento." },
+        { label: "Melhorar UI", prompt: "Melhore a interface do usuário." },
+        { label: "Explicar Código", prompt: "Explique este código." },
+        { label: "Otimizar", prompt: "Otimize performance e legibilidade." },
+        { label: "Segurança", prompt: "Revise problemas de segurança." },
+        { label: "Criar Teste", prompt: "Crie testes para este fluxo." },
+        { label: "Responsividade", prompt: "Ajuste a responsividade da interface." },
+      ],
+    };
+  }
 
   return {
     ...DEFAULTS,
@@ -96,6 +136,18 @@ function getExtensionDefaults(extensionName?: string | null, extensionVersion?: 
     manifest_name: name,
     window_title: `${name} - Painel Lateral`,
     display_version: extensionVersion || DEFAULTS.display_version,
+  };
+}
+
+function normalizeLovaxCustomization<T extends Partial<ExtCustomization>>(value: T, defaults: ExtCustomization, method?: "flow" | "lovax" | null): T {
+  if (method !== "lovax") return value;
+  const oldFlowBlue = String(value.color_primary ?? "").toLowerCase() === "#3b82f6";
+  const oldFlowSecondary = String(value.color_secondary ?? "").toLowerCase() === "#a78bfa";
+  return {
+    ...value,
+    color_primary: oldFlowBlue ? defaults.color_primary : value.color_primary,
+    color_primary_hover: oldFlowBlue ? defaults.color_primary_hover : value.color_primary_hover,
+    color_secondary: oldFlowSecondary ? defaults.color_secondary : value.color_secondary,
   };
 }
 
@@ -117,12 +169,12 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
     { id: "shortcuts", title: "Atalhos", icon: MousePointer2, description: "Ações rápidas" },
     { id: "license", title: "Ativação", icon: KeyRound, description: "Tela de licença" },
   ];
-  const visibleSteps = extensionMethod === "lovax" ? STEPS.filter((step) => step.id !== "license") : STEPS;
+  const visibleSteps = STEPS;
   const activeStep = visibleSteps[currentStep] ?? visibleSteps[0];
 
   useEffect(() => {
     void loadData();
-  }, [scope, resellerId, extensionId, extensionName, extensionVersion]);
+  }, [scope, resellerId, extensionId, extensionName, extensionVersion, extensionMethod]);
 
   useEffect(() => {
     if (currentStep >= visibleSteps.length) {
@@ -138,7 +190,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
 
   async function loadData() {
     setLoading(true);
-    const defaults = getExtensionDefaults(extensionName, extensionVersion);
+    const defaults = getExtensionDefaults(extensionName, extensionVersion, extensionMethod);
     setRecordId(null);
     setData(defaults);
     try {
@@ -155,7 +207,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
 
       if (row) {
         setRecordId(row.id);
-        const typedRow = row as unknown as ExtCustomization;
+        const typedRow = normalizeLovaxCustomization(row as unknown as ExtCustomization, defaults, extensionMethod);
         setData({ 
           ...defaults, 
           ...typedRow, 
@@ -169,7 +221,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
           .eq("is_template", true)
           .maybeSingle();
         if (tpl) {
-          const typedTpl = tpl as unknown as ExtCustomization;
+          const typedTpl = normalizeLovaxCustomization(tpl as unknown as ExtCustomization, defaults, extensionMethod);
           setData({ 
             ...defaults, 
             ...typedTpl, 
@@ -691,11 +743,9 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
             <div className={cn("text-[10px] border border-emerald-500/20 px-3 py-1 rounded-full font-bold cursor-pointer transition-colors", previewMode === "sidebar" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground")} onClick={() => setPreviewMode("sidebar")}>
               Sidebar
             </div>
-            {extensionMethod !== "lovax" && (
-              <div className={cn("text-[10px] border border-emerald-500/20 px-3 py-1 rounded-full font-bold cursor-pointer transition-colors", previewMode === "license" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground")} onClick={() => setPreviewMode("license")}>
-                Ativação
-              </div>
-            )}
+            <div className={cn("text-[10px] border border-emerald-500/20 px-3 py-1 rounded-full font-bold cursor-pointer transition-colors", previewMode === "license" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground")} onClick={() => setPreviewMode("license")}>
+              Ativação
+            </div>
           </div>
         </div>
         <ExtensionPreview

@@ -55,6 +55,29 @@ const DEFAULTS: EssentialData = {
   greeting_text: "Olá, Cliente",
 };
 
+const getMethodDefaults = (method?: "flow" | "lovax" | null): EssentialData =>
+  method === "lovax"
+    ? {
+        ...DEFAULTS,
+        brand_name: "LovConnect",
+        color_primary: "#ff1010",
+        greeting_text: "Olá, Cliente",
+      }
+    : DEFAULTS;
+
+const normalizeMethodData = (
+  value: EssentialData,
+  method?: "flow" | "lovax" | null,
+): EssentialData => {
+  if (method !== "lovax") return value;
+  return {
+    ...value,
+    brand_name: value.brand_name || "LovConnect",
+    color_primary:
+      value.color_primary.toLowerCase() === "#3b82f6" ? "#ff1010" : value.color_primary,
+  };
+};
+
 type Props = {
   resellerId: string;
   extensionId?: string | null;
@@ -77,12 +100,13 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resellerId, EXTENSION_ID]);
+  }, [resellerId, EXTENSION_ID, extensionMethod]);
 
   async function load() {
     setLoading(true);
     setRecordId(null);
-    setData(DEFAULTS);
+    const methodDefaults = getMethodDefaults(extensionMethod);
+    setData(methodDefaults);
     setPalette([]);
     setSeparateLogos(false);
     try {
@@ -96,7 +120,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
 
       if (row) {
         setRecordId(row.id);
-        setData({
+        setData(normalizeMethodData({
           brand_name: (row as any).brand_name ?? "",
           logo_rect_url: (row as any).logo_rect_url ?? null,
           logo_square_url: (row as any).logo_square_url ?? null,
@@ -107,7 +131,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
           color_primary: (row as any).color_primary ?? "#3b82f6",
           support_url: (row as any).support_url ?? "",
           greeting_text: (row as any).greeting_text ?? "Olá, Cliente",
-        });
+        }, extensionMethod));
         const hasSeparate =
           !!(row as any).logo_rect_url &&
           !!(row as any).logo_square_url &&
@@ -134,13 +158,13 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
           .eq("is_template", true)
           .maybeSingle();
         if (tpl) {
-          setData((d) => ({
+          setData((d) => normalizeMethodData({
             ...d,
             brand_name: (tpl as any).brand_name ?? d.brand_name,
             color_primary: (tpl as any).color_primary ?? d.color_primary,
             support_url: (tpl as any).support_url ?? d.support_url,
             greeting_text: (tpl as any).greeting_text ?? d.greeting_text,
-          }));
+          }, extensionMethod));
         }
       }
     } finally {
