@@ -1,0 +1,1 @@
+ALTER TABLE public.extension_customizations ADD COLUMN IF NOT EXISTS community_url text;
