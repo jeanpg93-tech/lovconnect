@@ -170,10 +170,11 @@ export function EssentialCustomizerForm({ resellerId, extensionId }: Props) {
     field: "logo_rect_url" | "logo_square_url",
     file: File,
     alsoApplyTo?: "logo_rect_url" | "logo_square_url",
+    generateIcons?: boolean,
   ) {
-    // Validação
-    if (file.size > 500 * 1024) {
-      toast.error("Logo deve ter no máximo 500KB");
+    // Validação — até 10MB (redimensionamos ao gerar ícones)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Logo deve ter no máximo 10MB");
       return;
     }
     const allowed = ["image/png", "image/jpeg", "image/svg+xml", "image/webp"];
@@ -199,6 +200,37 @@ export function EssentialCustomizerForm({ resellerId, extensionId }: Props) {
 
       update(field, pub.publicUrl);
       if (alsoApplyTo) update(alsoApplyTo, pub.publicUrl);
+
+      // Gera ícones 16/32/48/128 automaticamente quando logo única
+      if (generateIcons && file.type !== "image/svg+xml") {
+        try {
+          const sizes = [16, 32, 48, 128] as const;
+          const results = await Promise.all(
+            sizes.map(async (s) => {
+              const blob = await resizeImageToPng(file, s);
+              const iconPath = `reseller/${id}/icon-${s}-${Date.now()}.png`;
+              const { error: iErr } = await supabase.storage
+                .from("extension-customizations")
+                .upload(iconPath, blob, { upsert: true, contentType: "image/png" });
+              if (iErr) throw iErr;
+              const { data: iPub } = supabase.storage
+                .from("extension-customizations")
+                .getPublicUrl(iconPath);
+              return [s, iPub.publicUrl] as const;
+            }),
+          );
+          for (const [s, url] of results) {
+            update(`icon_${s}_url` as keyof EssentialData, url as any);
+          }
+          toast.success(
+            "Ícones 16/32/48/128 gerados automaticamente a partir da logo",
+          );
+        } catch (err: any) {
+          toast.error(
+            `Logo enviada, mas falhou ao gerar ícones: ${err?.message || "erro"}`,
+          );
+        }
+      }
 
       // Extrai paleta automaticamente
       try {
@@ -231,6 +263,10 @@ export function EssentialCustomizerForm({ resellerId, extensionId }: Props) {
         brand_name: data.brand_name.trim(),
         logo_rect_url: data.logo_rect_url,
         logo_square_url: data.logo_square_url,
+        icon_16_url: data.icon_16_url,
+        icon_32_url: data.icon_32_url,
+        icon_48_url: data.icon_48_url,
+        icon_128_url: data.icon_128_url,
         color_primary: data.color_primary,
         support_url: data.support_url.trim() || null,
         greeting_text: data.greeting_text.trim() || "Olá, Cliente",
