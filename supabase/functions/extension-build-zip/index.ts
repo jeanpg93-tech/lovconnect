@@ -266,7 +266,9 @@ Deno.serve(async (req) => {
     }
 
     // 1) manifest.json
-    const manifestEntry = entries.find(e => e.filename === "manifest.json");
+    const baseName = (name: string) => name.split("/").pop() || name;
+
+    const manifestEntry = entries.find(e => baseName(e.filename) === "manifest.json");
     if (manifestEntry?.getData) {
       const txt = await manifestEntry.getData(new TextWriter());
       try {
