@@ -707,7 +707,7 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
       }
 
       // Atalhos da Sidebar (sidepanel-templates.js)
-      if (fileName === "sidepanel-templates.js" && Array.isArray(cust.shortcuts) && cust.shortcuts.length > 0) {
+      if (baseName(fileName) === "sidepanel-templates.js" && Array.isArray(cust.shortcuts) && cust.shortcuts.length > 0) {
         const arr = cust.shortcuts.map((s) =>
           `  { icon: SP_SVG.sparkles, label: '${escapeJs(s.label)}', prompt: '${escapeJs(s.prompt)}' }`
         ).join(",\n");
@@ -716,7 +716,7 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
       }
 
       // Atalhos do Popup flutuante (content-templates.js)
-      if (fileName === "content-templates.js" && Array.isArray(cust.popup_shortcuts) && cust.popup_shortcuts.length > 0) {
+      if (baseName(fileName) === "content-templates.js" && Array.isArray(cust.popup_shortcuts) && cust.popup_shortcuts.length > 0) {
         const arr = cust.popup_shortcuts.map((s) =>
           `  { icon: QL_SVG.sparkles, label: '${escapeJs(s.label)}', prompt: '${escapeJs(s.prompt)}' }`
         ).join(",\n");
