@@ -223,6 +223,12 @@ Deno.serve(async (req) => {
     // Read entries
     const reader = new ZipReader(new BlobReader(tplBlob));
     const entries = await reader.getEntries();
+    const baseName = (name: string) => name.split("/").pop() || name;
+    const manifestEntry = entries.find(e => baseName(e.filename) === "manifest.json");
+    const manifestDir = manifestEntry?.filename.includes("/")
+      ? manifestEntry.filename.replace(/manifest\.json$/, "")
+      : "";
+    const zipPath = (relativePath: string) => `${manifestDir}${relativePath}`;
 
     // Prepare custom assets
     const overrides = new Map<string, Uint8Array | string>();
@@ -248,9 +254,9 @@ Deno.serve(async (req) => {
       if (url && url.trim() !== "") {
         const bytes = await fetchBytes(url);
         if (bytes) {
-          overrides.set(newPath, bytes);
+          overrides.set(zipPath(newPath), bytes);
           if (oldPath !== newPath) {
-            entriesToRemove.add(oldPath);
+            entriesToRemove.add(zipPath(oldPath));
           }
           // Track icons for manifest
           const iconMatch = newPath.match(/icon(\d+)\.png/);
@@ -258,17 +264,14 @@ Deno.serve(async (req) => {
             availableIcons[iconMatch[1]] = newPath;
           }
         } else {
-          entriesToRemove.add(oldPath);
+          entriesToRemove.add(zipPath(oldPath));
         }
       } else {
-        entriesToRemove.add(oldPath);
+        entriesToRemove.add(zipPath(oldPath));
       }
     }
 
     // 1) manifest.json
-    const baseName = (name: string) => name.split("/").pop() || name;
-
-    const manifestEntry = entries.find(e => baseName(e.filename) === "manifest.json");
     if (manifestEntry?.getData) {
       const txt = await manifestEntry.getData(new TextWriter());
       try {
