@@ -14,6 +14,7 @@ type Cust = {
   header_badge_text?: string; greeting_badge_text?: string;
   display_version: string; window_title: string;
   manifest_name: string; manifest_description: string; support_url: string;
+  community_url?: string | null;
   greeting_text: string; use_license_name: boolean; currency_symbol: string; footer_text: string;
   show_greeting_badge: boolean; color_success: string;
   color_primary: string; color_primary_hover: string; color_secondary: string;
