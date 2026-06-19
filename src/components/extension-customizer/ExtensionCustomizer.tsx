@@ -117,18 +117,24 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
     { id: "shortcuts", title: "Atalhos", icon: MousePointer2, description: "Ações rápidas" },
     { id: "license", title: "Ativação", icon: KeyRound, description: "Tela de licença" },
   ];
+  const visibleSteps = extensionMethod === "lovax" ? STEPS.filter((step) => step.id !== "license") : STEPS;
+  const activeStep = visibleSteps[currentStep] ?? visibleSteps[0];
 
   useEffect(() => {
     void loadData();
   }, [scope, resellerId, extensionId, extensionName, extensionVersion]);
 
   useEffect(() => {
-    if (currentStep === 5) {
-      setPreviewMode(extensionMethod === "lovax" ? "sidebar" : "license");
+    if (currentStep >= visibleSteps.length) {
+      setCurrentStep(Math.max(0, visibleSteps.length - 1));
+      return;
+    }
+    if (activeStep?.id === "license") {
+      setPreviewMode("license");
     } else {
       setPreviewMode("sidebar");
     }
-  }, [currentStep, extensionMethod]);
+  }, [currentStep, extensionMethod, activeStep?.id, visibleSteps.length]);
 
   async function loadData() {
     setLoading(true);
