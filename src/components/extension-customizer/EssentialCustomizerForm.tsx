@@ -392,6 +392,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
     try {
       const saved = await persistCustomization(true);
       if (!saved) return;
+      const { payload } = buildCustomizationPayload();
 
       const token = await getValidAccessToken();
       if (!token) {
@@ -405,7 +406,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ extension_id: EXTENSION_ID }),
+        body: JSON.stringify({ extension_id: EXTENSION_ID, customization_override: payload }),
       });
       if (!res.ok) {
         const body = await res.text();
