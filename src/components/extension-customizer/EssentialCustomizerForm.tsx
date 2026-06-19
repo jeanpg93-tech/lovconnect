@@ -39,7 +39,7 @@ type EssentialData = {
   icon_128_url: string | null;
   color_primary: string;
   support_url: string;
-  greeting_text: string;
+  community_url: string;
 };
 
 const DEFAULTS: EssentialData = {
@@ -52,7 +52,7 @@ const DEFAULTS: EssentialData = {
   icon_128_url: null,
   color_primary: "#3b82f6",
   support_url: "",
-  greeting_text: "Olá, Cliente",
+  community_url: "",
 };
 
 const getMethodDefaults = (method?: "flow" | "lovax" | null): EssentialData =>
@@ -61,7 +61,6 @@ const getMethodDefaults = (method?: "flow" | "lovax" | null): EssentialData =>
         ...DEFAULTS,
         brand_name: "LovConnect",
         color_primary: "#ff1010",
-        greeting_text: "Olá, Cliente",
       }
     : DEFAULTS;
 
@@ -130,7 +129,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
           icon_128_url: (row as any).icon_128_url ?? null,
           color_primary: (row as any).color_primary ?? "#3b82f6",
           support_url: (row as any).support_url ?? "",
-          greeting_text: (row as any).greeting_text ?? "Olá, Cliente",
+          community_url: (row as any).community_url ?? "",
         }, extensionMethod));
         const hasSeparate =
           !!(row as any).logo_rect_url &&
@@ -153,7 +152,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
         // Tenta carregar template do gerente como base
         const { data: tpl } = await supabase
           .from("extension_customizations")
-          .select("brand_name,color_primary,support_url,greeting_text")
+          .select("brand_name,color_primary,support_url,community_url")
           .eq("extension_id", EXTENSION_ID)
           .eq("is_template", true)
           .maybeSingle();
@@ -163,7 +162,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
             brand_name: (tpl as any).brand_name ?? d.brand_name,
             color_primary: (tpl as any).color_primary ?? d.color_primary,
             support_url: (tpl as any).support_url ?? d.support_url,
-            greeting_text: (tpl as any).greeting_text ?? d.greeting_text,
+            community_url: (tpl as any).community_url ?? d.community_url,
           }, extensionMethod));
         }
       }
@@ -300,7 +299,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
         icon_128_url: data.icon_128_url,
         color_primary: data.color_primary,
         support_url: data.support_url.trim() || null,
-        greeting_text: data.greeting_text.trim() || "Olá, Cliente",
+        community_url: data.community_url.trim() || null,
       };
       const { error } = await supabase
         .from("extension_customizations")
@@ -469,16 +468,16 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
             />
           </div>
 
-          {/* Greeting */}
+          {/* Community */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">
-              Saudação ao cliente
+              Comunidade / Grupo do WhatsApp
             </Label>
             <Input
-              value={data.greeting_text}
-              onChange={(e) => update("greeting_text", e.target.value)}
-              placeholder="Olá, Cliente"
-              maxLength={80}
+              value={data.community_url}
+              onChange={(e) => update("community_url", e.target.value)}
+              placeholder="https://chat.whatsapp.com/..."
+              maxLength={200}
             />
           </div>
         </div>
