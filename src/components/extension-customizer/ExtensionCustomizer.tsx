@@ -685,9 +685,11 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
             <div className={cn("text-[10px] border border-emerald-500/20 px-3 py-1 rounded-full font-bold cursor-pointer transition-colors", previewMode === "sidebar" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground")} onClick={() => setPreviewMode("sidebar")}>
               Sidebar
             </div>
-            <div className={cn("text-[10px] border border-emerald-500/20 px-3 py-1 rounded-full font-bold cursor-pointer transition-colors", previewMode === "license" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground")} onClick={() => setPreviewMode("license")}>
-              Ativação
-            </div>
+            {extensionMethod !== "lovax" && (
+              <div className={cn("text-[10px] border border-emerald-500/20 px-3 py-1 rounded-full font-bold cursor-pointer transition-colors", previewMode === "license" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground")} onClick={() => setPreviewMode("license")}>
+                Ativação
+              </div>
+            )}
           </div>
         </div>
         <ExtensionPreview
