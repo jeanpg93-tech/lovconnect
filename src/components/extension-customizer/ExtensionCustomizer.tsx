@@ -119,7 +119,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
 
   useEffect(() => {
     void loadData();
-  }, [scope, resellerId, extensionId]);
+  }, [scope, resellerId, extensionId, extensionName, extensionVersion]);
 
   useEffect(() => {
     if (currentStep === 5) {
