@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { ExtensionPreview, type ExtCustomization } from "./ExtensionPreview";
 import { extractPaletteFromImage, resizeImageToPng, type Swatch } from "@/lib/color-extract";
 import { cn } from "@/lib/utils";
+import { getValidAccessToken } from "@/lib/authenticated-functions";
 
 // Fallback fixo da extensão LovaX v5.3
 const DEFAULT_EXTENSION_ID = "df1cf674-31d2-4320-b0fc-ceee0b3c840a";
