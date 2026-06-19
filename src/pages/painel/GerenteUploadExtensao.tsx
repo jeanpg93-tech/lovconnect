@@ -21,6 +21,9 @@ import {
   Package,
   X,
   GitCommit,
+  Pencil,
+  Trash2,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import * as tus from "tus-js-client";
@@ -94,6 +97,60 @@ export default function GerenteUploadExtensao() {
   const [logs, setLogs] = useState("");
   const [versionInput, setVersionInput] = useState("1.0.0");
   const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const startEdit = (v: Version) => {
+    setEditingId(v.id);
+    setEditingValue(v.changelog ?? "");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingValue("");
+  };
+
+  const saveEdit = async (v: Version) => {
+    if (!ext) return;
+    const value = editingValue.trim();
+    if (!value) return toast.error("A descrição não pode ficar vazia");
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from("extension_versions")
+        .update({ changelog: value })
+        .eq("id", v.id);
+      if (error) throw error;
+      // Se for a versão atual, espelha em extensions.changelog
+      if (ext.version === v.version) {
+        await supabase.from("extensions").update({ changelog: value }).eq("id", ext.id);
+      }
+      toast.success("Descrição atualizada");
+      cancelEdit();
+      await loadVersions(ext.id);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao atualizar");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const removeVersion = async (v: Version) => {
+    if (!ext) return;
+    if (!window.confirm(`Excluir a versão v${v.version} do histórico? Esta ação não pode ser desfeita.`)) return;
+    try {
+      const { error } = await supabase.from("extension_versions").delete().eq("id", v.id);
+      if (error) throw error;
+      if (v.file_path) {
+        await supabase.storage.from("extension-files").remove([v.file_path]);
+      }
+      toast.success("Versão removida");
+      await loadVersions(ext.id);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao excluir");
+    }
+  };
 
   const ensureExtension = async (m: Method): Promise<Ext | null> => {
     const { data: byMethod } = await supabase
@@ -442,21 +499,80 @@ export default function GerenteUploadExtensao() {
                         </span>
                       </div>
                       {v.changelog && (
-                        <div
-                          className="prose-sm mt-1.5 max-w-none whitespace-pre-wrap text-[11px] text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
-                          dangerouslySetInnerHTML={{ __html: sanitizeRichText(v.changelog) }}
-                        />
+                        editingId === v.id ? (
+                          <div className="mt-2 space-y-2">
+                            <RichTextEditor
+                              value={editingValue}
+                              onChange={setEditingValue}
+                              maxLength={MAX_LOG_LEN}
+                              placeholder="Descreva o que mudou..."
+                            />
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                className="h-7 px-2 text-[11px]"
+                                onClick={() => saveEdit(v)}
+                                disabled={savingEdit}
+                              >
+                                {savingEdit ? (
+                                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Check className="mr-1 h-3 w-3" />
+                                )}
+                                Salvar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-[11px]"
+                                onClick={cancelEdit}
+                                disabled={savingEdit}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className="prose-sm mt-1.5 max-w-none whitespace-pre-wrap text-[11px] text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
+                            dangerouslySetInnerHTML={{ __html: sanitizeRichText(v.changelog) }}
+                          />
+                        )
                       )}
                       {v.file_name && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-2 h-6 px-2 text-[11px]"
-                          onClick={() => download(v.file_path, v.file_name)}
-                        >
-                          <Download className="mr-1 h-3 w-3" />
-                          {fmtSize(v.file_size)}
-                        </Button>
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-[11px]"
+                            onClick={() => download(v.file_path, v.file_name)}
+                          >
+                            <Download className="mr-1 h-3 w-3" />
+                            {fmtSize(v.file_size)}
+                          </Button>
+                          {editingId !== v.id && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 px-2 text-[11px]"
+                                onClick={() => startEdit(v)}
+                              >
+                                <Pencil className="mr-1 h-3 w-3" />
+                                Editar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 px-2 text-[11px] text-destructive hover:text-destructive"
+                                onClick={() => removeVersion(v)}
+                              >
+                                <Trash2 className="mr-1 h-3 w-3" />
+                                Excluir
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
