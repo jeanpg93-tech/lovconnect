@@ -30,7 +30,7 @@ type Row = {
   error_message: string | null;
   paid_at: string | null;
   created_at: string;
-  raw_response: any;
+  raw_response?: any;
   promotion_id?: string | null;
   promotion_discount_cents?: number | null;
   delivery_source?: string | null;
@@ -73,7 +73,7 @@ export default function GerenteVendasLoja() {
     try {
       let query = supabase
         .from("storefront_orders")
-        .select("*")
+        .select("balance_refunded_at,buyer_name,buyer_whatsapp,cancellation_status,cancelled_at,cancelled_by,client_refund_endtoend_id,client_refund_error,client_refund_method,client_refund_pix_key,client_refunded_at,copy_paste,cost_cents,created_at,credit_amount,delivery_source,delivery_type,error_message,expires_at,extension_id,fallback_from_pack,id,invite_link,is_legacy,is_test,key_revoke_error,key_revoked_at,license_key,license_type,paid_at,price_cents,product_type,promotion_discount_cents,promotion_id,provider,provider_transaction_id,qr_code_base64,recharge_plan_id,recharge_plan_subscription_id,reseller_id,short_code,status,updated_at")
         .order("created_at", { ascending: false })
         .limit(500);
 

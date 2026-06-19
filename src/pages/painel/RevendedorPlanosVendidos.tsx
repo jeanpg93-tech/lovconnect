@@ -155,7 +155,7 @@ export default function RevendedorPlanosVendidos() {
 
       const { data, error } = await supabase
         .from("reseller_recharge_plan_subscriptions")
-        .select("*")
+        .select("id, plan_id, reseller_id, customer_id, customer_name, customer_whatsapp, workspace_name, owner_email_required, status, source, source_reference_id, sale_price_cents, cost_cents, credits_per_day, duration_days, delivery_hour, total_credits_cap, paused_at, ends_at, cancelled_at, cancelled_reason, completed_at, owner_email_added_at, owner_rejected_at, owner_rejected_reason, owner_rejected_count, owner_confirmation_attempts, awaiting_owner_expires_at, order_token, notes, created_at, updated_at")
         .eq("reseller_id", r.id)
         .order("created_at", { ascending: false })
         .limit(500);

@@ -92,7 +92,7 @@ export default function RevendedorPlanoPreco() {
       if (p) {
         const { data: priceRows } = await supabase
           .from("reseller_recharge_plan_prices")
-          .select("*")
+          .select("id, plan_id, reseller_id, sale_price_cents, show_on_storefront, is_active, created_at, updated_at")
           .eq("reseller_id", r.id)
           .eq("plan_id", p.id)
           .maybeSingle();
