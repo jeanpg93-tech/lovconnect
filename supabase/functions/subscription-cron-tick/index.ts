@@ -33,14 +33,6 @@ function nextOccurrence(fromIso: string, dom: number): string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const auth = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
-  if (auth !== serviceKey) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   const admin = createClient(supabaseUrl, serviceKey);
   const today = todayBRT();
   const log: Record<string, unknown> = { today };
