@@ -303,16 +303,16 @@ Deno.serve(async (req) => {
         primary: cssValue((isPopup && cust.popup_color_primary) || cust.color_primary, DEFAULT_DARK_THEME.primary),
         hover: cssValue((isPopup && cust.popup_color_primary_hover) || cust.color_primary_hover, DEFAULT_DARK_THEME.hover),
         secondary: cssValue((isPopup && cust.popup_color_secondary) || cust.color_secondary, DEFAULT_DARK_THEME.secondary),
-        bg: cssValue((isPopup && cust.popup_color_bg) || cust.color_bg, DEFAULT_DARK_THEME.bg),
-        elevated: cssValue((isPopup && cust.popup_color_bg_elevated) || cust.color_bg_elevated, DEFAULT_DARK_THEME.elevated),
-        surface: cssValue((isPopup && cust.popup_color_bg_surface) || cust.color_bg_surface, DEFAULT_DARK_THEME.surface),
+        bg: darkThemeValue((isPopup && cust.popup_color_bg) || cust.color_bg, DEFAULT_DARK_THEME.bg),
+        elevated: darkThemeValue((isPopup && cust.popup_color_bg_elevated) || cust.color_bg_elevated, DEFAULT_DARK_THEME.elevated),
+        surface: darkThemeValue((isPopup && cust.popup_color_bg_surface) || cust.color_bg_surface, DEFAULT_DARK_THEME.surface),
       };
 
-      const cardBg = cssValue((isPopup && cust.popup_card_bg_color) || cust.card_bg_color, p.surface);
+      const cardBg = darkThemeValue((isPopup && cust.popup_card_bg_color) || cust.card_bg_color, p.surface);
       const cardBorder = cssValue((isPopup && cust.popup_card_border_color) || cust.card_border_color, 'rgba(255,255,255,0.08)');
       const cardBorderHover = cssValue((isPopup && cust.popup_card_border_hover_color) || cust.card_border_hover_color, 'rgba(255,255,255,0.14)');
-      const cardText = cssValue((isPopup && cust.popup_card_text_color) || cust.card_text_color, DEFAULT_DARK_THEME.textPrimary);
-      const cardMuted = cssValue((isPopup && cust.popup_card_muted_text_color) || cust.card_muted_text_color, DEFAULT_DARK_THEME.textSecondary);
+      const cardText = lightTextValue((isPopup && cust.popup_card_text_color) || cust.card_text_color, DEFAULT_DARK_THEME.textPrimary);
+      const cardMuted = lightTextValue((isPopup && cust.popup_card_muted_text_color) || cust.card_muted_text_color, DEFAULT_DARK_THEME.textSecondary);
 
       const w = {
         deep:  (isPopup && cust.popup_color_wave_deep) || wave.deep,
