@@ -23,16 +23,20 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ExtensionCustomizer } from "./ExtensionCustomizer";
-import { extractPaletteFromImage, type Swatch } from "@/lib/color-extract";
+import { extractPaletteFromImage, resizeImageToPng, type Swatch } from "@/lib/color-extract";
 import { cn } from "@/lib/utils";
 
-// Mesma extensão padrão usada no customizer completo
-const EXTENSION_ID = "ce171e28-cab8-490f-b50f-381aa975918e";
+// Fallback caso o método ativo não traga uma extensão correspondente
+const DEFAULT_EXTENSION_ID = "ce171e28-cab8-490f-b50f-381aa975918e";
 
 type EssentialData = {
   brand_name: string;
   logo_rect_url: string | null;
   logo_square_url: string | null;
+  icon_16_url: string | null;
+  icon_32_url: string | null;
+  icon_48_url: string | null;
+  icon_128_url: string | null;
   color_primary: string;
   support_url: string;
   greeting_text: string;
@@ -42,6 +46,10 @@ const DEFAULTS: EssentialData = {
   brand_name: "",
   logo_rect_url: null,
   logo_square_url: null,
+  icon_16_url: null,
+  icon_32_url: null,
+  icon_48_url: null,
+  icon_128_url: null,
   color_primary: "#3b82f6",
   support_url: "",
   greeting_text: "Olá, Cliente",
@@ -49,9 +57,11 @@ const DEFAULTS: EssentialData = {
 
 type Props = {
   resellerId: string;
+  extensionId?: string | null;
 };
 
-export function EssentialCustomizerForm({ resellerId }: Props) {
+export function EssentialCustomizerForm({ resellerId, extensionId }: Props) {
+  const EXTENSION_ID = extensionId || DEFAULT_EXTENSION_ID;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [recordId, setRecordId] = useState<string | null>(null);
@@ -64,7 +74,7 @@ export function EssentialCustomizerForm({ resellerId }: Props) {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resellerId]);
+  }, [resellerId, EXTENSION_ID]);
 
   async function load() {
     setLoading(true);
@@ -83,6 +93,10 @@ export function EssentialCustomizerForm({ resellerId }: Props) {
           brand_name: (row as any).brand_name ?? "",
           logo_rect_url: (row as any).logo_rect_url ?? null,
           logo_square_url: (row as any).logo_square_url ?? null,
+          icon_16_url: (row as any).icon_16_url ?? null,
+          icon_32_url: (row as any).icon_32_url ?? null,
+          icon_48_url: (row as any).icon_48_url ?? null,
+          icon_128_url: (row as any).icon_128_url ?? null,
           color_primary: (row as any).color_primary ?? "#3b82f6",
           support_url: (row as any).support_url ?? "",
           greeting_text: (row as any).greeting_text ?? "Olá, Cliente",
@@ -156,10 +170,11 @@ export function EssentialCustomizerForm({ resellerId }: Props) {
     field: "logo_rect_url" | "logo_square_url",
     file: File,
     alsoApplyTo?: "logo_rect_url" | "logo_square_url",
+    generateIcons?: boolean,
   ) {
-    // Validação
-    if (file.size > 500 * 1024) {
-      toast.error("Logo deve ter no máximo 500KB");
+    // Validação — até 10MB (redimensionamos ao gerar ícones)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Logo deve ter no máximo 10MB");
       return;
     }
     const allowed = ["image/png", "image/jpeg", "image/svg+xml", "image/webp"];
@@ -185,6 +200,37 @@ export function EssentialCustomizerForm({ resellerId }: Props) {
 
       update(field, pub.publicUrl);
       if (alsoApplyTo) update(alsoApplyTo, pub.publicUrl);
+
+      // Gera ícones 16/32/48/128 automaticamente quando logo única
+      if (generateIcons && file.type !== "image/svg+xml") {
+        try {
+          const sizes = [16, 32, 48, 128] as const;
+          const results = await Promise.all(
+            sizes.map(async (s) => {
+              const blob = await resizeImageToPng(file, s);
+              const iconPath = `reseller/${id}/icon-${s}-${Date.now()}.png`;
+              const { error: iErr } = await supabase.storage
+                .from("extension-customizations")
+                .upload(iconPath, blob, { upsert: true, contentType: "image/png" });
+              if (iErr) throw iErr;
+              const { data: iPub } = supabase.storage
+                .from("extension-customizations")
+                .getPublicUrl(iconPath);
+              return [s, iPub.publicUrl] as const;
+            }),
+          );
+          for (const [s, url] of results) {
+            update(`icon_${s}_url` as keyof EssentialData, url as any);
+          }
+          toast.success(
+            "Ícones 16/32/48/128 gerados automaticamente a partir da logo",
+          );
+        } catch (err: any) {
+          toast.error(
+            `Logo enviada, mas falhou ao gerar ícones: ${err?.message || "erro"}`,
+          );
+        }
+      }
 
       // Extrai paleta automaticamente
       try {
@@ -217,6 +263,10 @@ export function EssentialCustomizerForm({ resellerId }: Props) {
         brand_name: data.brand_name.trim(),
         logo_rect_url: data.logo_rect_url,
         logo_square_url: data.logo_square_url,
+        icon_16_url: data.icon_16_url,
+        icon_32_url: data.icon_32_url,
+        icon_48_url: data.icon_48_url,
+        icon_128_url: data.icon_128_url,
         color_primary: data.color_primary,
         support_url: data.support_url.trim() || null,
         greeting_text: data.greeting_text.trim() || "Olá, Cliente",
@@ -287,17 +337,27 @@ export function EssentialCustomizerForm({ resellerId }: Props) {
             </div>
 
             {!separateLogos ? (
-              <LogoSlot
-                label="Logo única (será usada como retangular e quadrada)"
-                url={data.logo_rect_url}
-                onUpload={(f) =>
-                  handleLogoUpload("logo_rect_url", f, "logo_square_url")
-                }
-                onClear={() => {
-                  update("logo_rect_url", null);
-                  update("logo_square_url", null);
-                }}
-              />
+              <>
+                <LogoSlot
+                  label="Logo única (gera retangular, quadrada e ícones)"
+                  url={data.logo_rect_url}
+                  onUpload={(f) =>
+                    handleLogoUpload("logo_rect_url", f, "logo_square_url", true)
+                  }
+                  onClear={() => {
+                    update("logo_rect_url", null);
+                    update("logo_square_url", null);
+                    update("icon_16_url", null);
+                    update("icon_32_url", null);
+                    update("icon_48_url", null);
+                    update("icon_128_url", null);
+                  }}
+                />
+                <p className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-2 text-[10px] text-muted-foreground">
+                  Geramos automaticamente os ícones do Chrome (16, 32, 48 e
+                  128). Se vazio, usamos a logo padrão.
+                </p>
+              </>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <LogoSlot
@@ -315,7 +375,7 @@ export function EssentialCustomizerForm({ resellerId }: Props) {
               </div>
             )}
             <p className="text-[10px] text-muted-foreground">
-              PNG, JPG, SVG ou WEBP — máx 500KB
+              PNG, JPG, SVG ou WEBP — máx 10MB
             </p>
           </div>
 
@@ -429,6 +489,7 @@ export function EssentialCustomizerForm({ resellerId }: Props) {
               key={advancedKey}
               scope="reseller"
               resellerId={resellerId}
+              extensionId={EXTENSION_ID}
             />
           </Card>
         </CollapsibleContent>

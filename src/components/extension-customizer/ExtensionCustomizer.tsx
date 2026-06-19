@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { ExtensionPreview, type ExtCustomization } from "./ExtensionPreview";
 import { cn } from "@/lib/utils";
 
-const EXTENSION_ID = "ce171e28-cab8-490f-b50f-381aa975918e";
+const DEFAULT_EXTENSION_ID = "ce171e28-cab8-490f-b50f-381aa975918e";
 
 const DEFAULTS: ExtCustomization = {
   brand_kicker: "Master",
@@ -79,9 +79,11 @@ const DEFAULTS: ExtCustomization = {
 type Props = {
   scope: "template" | "reseller";
   resellerId?: string | null;
+  extensionId?: string | null;
 };
 
-export function ExtensionCustomizer({ scope, resellerId }: Props) {
+export function ExtensionCustomizer({ scope, resellerId, extensionId }: Props) {
+  const EXTENSION_ID = extensionId || DEFAULT_EXTENSION_ID;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -101,7 +103,7 @@ export function ExtensionCustomizer({ scope, resellerId }: Props) {
 
   useEffect(() => {
     void loadData();
-  }, [scope, resellerId]);
+  }, [scope, resellerId, extensionId]);
 
   useEffect(() => {
     if (currentStep === 5) {

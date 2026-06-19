@@ -35,6 +35,7 @@ type ExtRow = {
   file_name: string | null;
   file_size: number | null;
   updated_at: string;
+  method: "flow" | "lovax" | null;
 };
 
 type Version = {
@@ -57,12 +58,25 @@ const fmtSize = (b: number | null) => {
 const fmtDate = (s: string) =>
   new Date(s).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
+type Method = "flow" | "lovax";
+const SETTING_KEY = "licencas.delivery.method";
+const normalizeMethod = (value: unknown): Method | null => {
+  const raw =
+    typeof value === "object" && value !== null && "method" in value
+      ? (value as { method?: unknown }).method
+      : value;
+  if (raw === "flow" || raw === "promptflow") return "flow";
+  if (raw === "lovax") return "lovax";
+  return null;
+};
+
 export default function RevendedorBaixarExtensao() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ExtRow[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [resellerId, setResellerId] = useState<string | null>(null);
+  const [activeMethod, setActiveMethod] = useState<Method>("flow");
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<ExtRow | null>(null);
@@ -75,10 +89,10 @@ export default function RevendedorBaixarExtensao() {
     (async () => {
       setLoading(true);
 
-      const [{ data: extRes }, { data: rsl }] = await Promise.all([
+      const [{ data: extRes }, { data: rsl }, { data: setting }] = await Promise.all([
         supabase
           .from("extensions")
-          .select("id,name,slug,version,description,changelog,file_path,file_name,file_size,updated_at")
+          .select("id,name,slug,version,description,changelog,file_path,file_name,file_size,updated_at,method")
           .eq("is_active", true)
           .order("name", { ascending: true }),
         supabase
@@ -86,9 +100,19 @@ export default function RevendedorBaixarExtensao() {
           .select("id")
           .eq("user_id", user.id)
           .maybeSingle(),
+        supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", SETTING_KEY)
+          .maybeSingle(),
       ]);
 
       if (cancelled) return;
+      const m =
+        normalizeMethod((setting as any)?.value) ??
+        normalizeMethod(window.localStorage.getItem(SETTING_KEY)) ??
+        "flow";
+      setActiveMethod(m);
       if (extRes) {
         setItems(extRes as ExtRow[]);
       }
@@ -128,6 +152,9 @@ export default function RevendedorBaixarExtensao() {
     }
   };
 
+  const visibleItems = items.filter((e) => (e.method ?? "flow") === activeMethod);
+  const activeExtensionId = visibleItems[0]?.id ?? null;
+
   const openHistory = async (e: ExtRow) => {
     setHistoryTarget(e);
     setHistoryOpen(true);
@@ -153,15 +180,17 @@ export default function RevendedorBaixarExtensao() {
         <div className="flex h-40 items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
-      ) : items.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <div className="rounded-xl border border-border bg-card/60 p-10 text-center text-sm text-muted-foreground">
           Nenhuma extensão disponível para download.
         </div>
       ) : (
         <div className="space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/60 px-1">Todas as Extensões</h2>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/60 px-1">
+            Todas as Extensões
+          </h2>
           <div className="flex flex-col gap-2">
-            {items.map((e) => {
+            {visibleItems.map((e) => {
               const has = !!e.file_path;
               return (
                 <div
@@ -244,7 +273,10 @@ export default function RevendedorBaixarExtensao() {
               aplicadas automaticamente para os clientes ativos.
             </p>
           </div>
-          <EssentialCustomizerForm resellerId={resellerId} />
+          <EssentialCustomizerForm
+            resellerId={resellerId}
+            extensionId={activeExtensionId}
+          />
         </div>
       )}
 
