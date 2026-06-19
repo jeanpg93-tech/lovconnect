@@ -80,9 +80,25 @@ type Props = {
   scope: "template" | "reseller";
   resellerId?: string | null;
   extensionId?: string | null;
+  extensionName?: string | null;
+  extensionVersion?: string | null;
 };
 
-export function ExtensionCustomizer({ scope, resellerId, extensionId }: Props) {
+function getExtensionDefaults(extensionName?: string | null, extensionVersion?: string | null): ExtCustomization {
+  const name = extensionName?.trim();
+  if (!name) return DEFAULTS;
+
+  return {
+    ...DEFAULTS,
+    brand_kicker: name.toLowerCase().includes("lovax") ? "LovaX" : DEFAULTS.brand_kicker,
+    brand_name: name,
+    manifest_name: name,
+    window_title: `${name} - Painel Lateral`,
+    display_version: extensionVersion || DEFAULTS.display_version,
+  };
+}
+
+export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionName, extensionVersion }: Props) {
   const EXTENSION_ID = extensionId || DEFAULT_EXTENSION_ID;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -103,7 +119,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId }: Props) {
 
   useEffect(() => {
     void loadData();
-  }, [scope, resellerId, extensionId]);
+  }, [scope, resellerId, extensionId, extensionName, extensionVersion]);
 
   useEffect(() => {
     if (currentStep === 5) {
@@ -115,6 +131,9 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId }: Props) {
 
   async function loadData() {
     setLoading(true);
+    const defaults = getExtensionDefaults(extensionName, extensionVersion);
+    setRecordId(null);
+    setData(defaults);
     try {
       let q = supabase
         .from("extension_customizations")
@@ -131,9 +150,9 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId }: Props) {
         setRecordId(row.id);
         const typedRow = row as unknown as ExtCustomization;
         setData({ 
-          ...DEFAULTS, 
+          ...defaults, 
           ...typedRow, 
-          shortcuts: (row.shortcuts as any) ?? DEFAULTS.shortcuts,
+          shortcuts: (row.shortcuts as any) ?? defaults.shortcuts,
         });
       } else if (scope === "reseller") {
         const { data: tpl } = await supabase
@@ -145,9 +164,9 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId }: Props) {
         if (tpl) {
           const typedTpl = tpl as unknown as ExtCustomization;
           setData({ 
-            ...DEFAULTS, 
+            ...defaults, 
             ...typedTpl, 
-            shortcuts: (tpl.shortcuts as any) ?? DEFAULTS.shortcuts,
+            shortcuts: (tpl.shortcuts as any) ?? defaults.shortcuts,
           });
         }
       }
