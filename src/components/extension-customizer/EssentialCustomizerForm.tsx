@@ -85,6 +85,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
   const activeExtensionMethod: "lovax" = "lovax";
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [downloadingZip, setDownloadingZip] = useState(false);
   const [recordId, setRecordId] = useState<string | null>(null);
   const [data, setData] = useState<EssentialData>(getMethodDefaults("lovax"));
   const [palette, setPalette] = useState<Swatch[]>([]);
