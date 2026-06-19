@@ -346,6 +346,33 @@ Deno.serve(async (req) => {
               type: "activation_approved",
             });
           }
+
+          // Notifica o gerente via Telegram sobre nova ativação de painel paga
+          try {
+            const { data: tg } = await admin
+              .from("telegram_settings")
+              .select("chat_id, notify_signups")
+              .eq("id", 1)
+              .maybeSingle();
+            if (tg?.chat_id && (tg as any).notify_signups !== false) {
+              const { data: r } = await admin
+                .from("resellers")
+                .select("display_name")
+                .eq("id", actPay.reseller_id)
+                .maybeSingle();
+              const amountBRL = "R$ " +
+                (Number(actPay.amount_cents) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              const text =
+                "🎉 <b>Nova Ativação de Painel</b>\n" +
+                "👨‍💼 Revendedor: " + (r?.display_name ?? "—") + "\n" +
+                "💵 Valor: " + amountBRL + "\n" +
+                "💳 Pagamento: PIX (MisticPay)";
+              await admin.from("telegram_outbox").insert({ text });
+            }
+          } catch (e) {
+            console.warn("[webhook] telegram activation notify failed", e);
+          }
+
           return json({ ok: true, kind: "activation" });
         }
         if (status === "FALHA" || status === "CANCELADO") {
