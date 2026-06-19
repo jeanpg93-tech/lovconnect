@@ -136,6 +136,18 @@ function getExtensionDefaults(
   };
 }
 
+function normalizeLovaxCustomization<T extends Partial<ExtCustomization>>(value: T, defaults: ExtCustomization, method?: "flow" | "lovax" | null): T {
+  if (method !== "lovax") return value;
+  const oldFlowBlue = String(value.color_primary ?? "").toLowerCase() === "#3b82f6";
+  const oldFlowSecondary = String(value.color_secondary ?? "").toLowerCase() === "#a78bfa";
+  return {
+    ...value,
+    color_primary: oldFlowBlue ? defaults.color_primary : value.color_primary,
+    color_primary_hover: oldFlowBlue ? defaults.color_primary_hover : value.color_primary_hover,
+    color_secondary: oldFlowSecondary ? defaults.color_secondary : value.color_secondary,
+  };
+}
+
 export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionName, extensionVersion, extensionMethod }: Props) {
   const EXTENSION_ID = extensionId || DEFAULT_EXTENSION_ID;
   const [loading, setLoading] = useState(true);
@@ -192,7 +204,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
 
       if (row) {
         setRecordId(row.id);
-        const typedRow = row as unknown as ExtCustomization;
+        const typedRow = normalizeLovaxCustomization(row as unknown as ExtCustomization, defaults, extensionMethod);
         setData({ 
           ...defaults, 
           ...typedRow, 
@@ -206,7 +218,7 @@ export function ExtensionCustomizer({ scope, resellerId, extensionId, extensionN
           .eq("is_template", true)
           .maybeSingle();
         if (tpl) {
-          const typedTpl = tpl as unknown as ExtCustomization;
+          const typedTpl = normalizeLovaxCustomization(tpl as unknown as ExtCustomization, defaults, extensionMethod);
           setData({ 
             ...defaults, 
             ...typedTpl, 
