@@ -180,7 +180,7 @@ function LovaxPreview({
             <div className="rounded-xl border border-white/10 bg-[#1b1b1f] p-4 shadow-lg">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="text-[16px] font-black">Cliente <span className="rounded-md border border-emerald-500/50 bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-400">{badge}</span></div>
+                  <div className="text-[16px] font-black">Usuário{"\u00a0"}<span className="rounded-md border border-emerald-500/50 bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-400">{badge}</span></div>
                   <div className="mt-3 truncate text-[14px] font-bold text-emerald-400">✅ Sincronizado! Projeto: 196668...</div>
                 </div>
                 <div className="flex gap-4 text-[16px]" style={{ color: lovaxAccent }}><span>☾</span><span>?</span><span>▯</span><span>↗</span></div>
