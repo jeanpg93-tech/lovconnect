@@ -100,12 +100,18 @@ function LovaxLogo({ src, large = false }: { src?: string | null; large?: boolea
   );
 }
 
-function LovaxHeader({ c, logo }: { c: ExtCustomization; logo?: string | null }) {
+function LovaxHeader({ c, logo, accent }: { c: ExtCustomization; logo?: string | null; accent: string }) {
   return (
-    <div className="flex h-[62px] shrink-0 items-center gap-2 border-b border-red-500/10 bg-[#141416] px-4">
+    <div
+      className="flex h-[62px] shrink-0 items-center gap-2 bg-[#141416] px-4"
+      style={{ borderBottom: `1px solid ${accent}1a` }}
+    >
       <LovaxLogo src={logo} />
-      <div className="text-[15px] font-extrabold text-[#ff1010]">{c.brand_name || "LovConnect"}</div>
-      <span className="ml-1 rounded-md bg-[#ff1010] px-2 py-0.5 text-[10px] font-black text-white shadow-[0_0_14px_rgba(255,16,16,.55)]">
+      <div className="text-[15px] font-extrabold" style={{ color: accent }}>{c.brand_name || "LovConnect"}</div>
+      <span
+        className="ml-1 rounded-md px-2 py-0.5 text-[10px] font-black text-white"
+        style={{ background: accent, boxShadow: `0 0 14px ${accent}8c` }}
+      >
         {(c.header_badge_text || c.brand_badge || "PRO").toUpperCase()}
       </span>
     </div>
