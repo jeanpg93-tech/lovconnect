@@ -343,6 +343,17 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
         use_license_name: true,
         currency_symbol: "MZN",
         show_greeting_badge: true,
+        license_title: `Bem vindo a ${brand}`,
+        license_description: "Insira sua chave de licença para desbloquear.",
+        license_placeholder: "TS-XXXXXXXXXXXXXXXXXXXXXX",
+        license_button_text: "Validar Licença",
+        popup_brand_name: brand,
+        popup_window_title: `${brand} - Painel Lateral`,
+        popup_footer_text: `Desenvolvido por ${brand}`,
+        popup_greeting_text: "Olá, Cliente",
+        popup_header_badge_text: "PRO",
+        popup_greeting_badge_text: "PRO",
+        popup_brand_badge: "PRO",
       };
       const { error } = await supabase
         .from("extension_customizations")
