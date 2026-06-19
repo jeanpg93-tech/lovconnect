@@ -275,28 +275,24 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
     }
   }
 
-  async function handleSave() {
-    if (!data.brand_name.trim()) {
-      toast.error("Informe o nome da marca");
-      return;
-    }
-    setSaving(true);
-    try {
-      const id = await ensureRecord();
-      if (!id) return;
-      const brand = data.brand_name.trim();
-      const version = (extensionVersion || "5.3").replace(/^v/i, "");
-      // Derive hover color (slightly darker variant of primary)
-      const primaryHover = (() => {
-        const m = /^#?([0-9a-f]{6})$/i.exec(data.color_primary.replace("#", ""));
-        if (!m) return data.color_primary;
-        const n = parseInt(m[1], 16);
-        const r = Math.max(0, ((n >> 16) & 0xff) - 24);
-        const g = Math.max(0, ((n >> 8) & 0xff) - 24);
-        const b = Math.max(0, (n & 0xff) - 24);
-        return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
-      })();
-      const payload = {
+  function buildCustomizationPayload() {
+    const brand = data.brand_name.trim();
+    const version = (extensionVersion || "5.3").replace(/^v/i, "");
+    const primary = data.color_primary || "#ff1010";
+    // Derive hover color (slightly darker variant of primary)
+    const primaryHover = (() => {
+      const m = /^#?([0-9a-f]{6})$/i.exec(primary.replace("#", ""));
+      if (!m) return primary;
+      const n = parseInt(m[1], 16);
+      const r = Math.max(0, ((n >> 16) & 0xff) - 24);
+      const g = Math.max(0, ((n >> 8) & 0xff) - 24);
+      const b = Math.max(0, (n & 0xff) - 24);
+      return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+    })();
+
+    return {
+      brand,
+      payload: {
         brand_name: brand,
         logo_rect_url: data.logo_rect_url,
         logo_square_url: data.logo_square_url,
@@ -304,7 +300,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
         icon_32_url: data.icon_32_url,
         icon_48_url: data.icon_48_url,
         icon_128_url: data.icon_128_url,
-        color_primary: data.color_primary,
+        color_primary: primary,
         color_primary_hover: primaryHover,
         color_secondary: "#ff3b30",
         color_bg: "#070707",
@@ -316,7 +312,7 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
         card_border_hover_color: "rgba(255,255,255,0.14)",
         card_text_color: "#f4f4f5",
         card_muted_text_color: "#a1a1aa",
-        popup_color_primary: data.color_primary,
+        popup_color_primary: primary,
         popup_color_primary_hover: primaryHover,
         popup_color_secondary: "#ff3b30",
         popup_color_bg: "#070707",
@@ -354,18 +350,37 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
         popup_header_badge_text: "PRO",
         popup_greeting_badge_text: "PRO",
         popup_brand_badge: "PRO",
-      };
+      },
+    };
+  }
+
+  async function persistCustomization(silent = false): Promise<boolean> {
+    if (!data.brand_name.trim()) {
+      toast.error("Informe o nome da marca");
+      return false;
+    }
+    if (!silent) setSaving(true);
+    try {
+      const id = await ensureRecord();
+      if (!id) return false;
+      const { payload } = buildCustomizationPayload();
       const { error } = await supabase
         .from("extension_customizations")
         .update(payload as any)
         .eq("id", id);
       if (error) throw error;
-      toast.success("Personalização salva!");
+      if (!silent) toast.success("Personalização salva!");
+      return true;
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar");
+      return false;
     } finally {
-      setSaving(false);
+      if (!silent) setSaving(false);
     }
+  }
+
+  async function handleSave() {
+    await persistCustomization();
   }
 
   async function handleDownloadZip() {
@@ -375,6 +390,9 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
     }
     setDownloadingZip(true);
     try {
+      const saved = await persistCustomization(true);
+      if (!saved) return;
+
       const token = await getValidAccessToken();
       if (!token) {
         toast.error("Sessão expirada. Faça login novamente.");
