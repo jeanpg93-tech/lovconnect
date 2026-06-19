@@ -258,7 +258,7 @@ export default function RevendedorBaixarExtensao() {
         </div>
       )}
 
-      {resellerId && (
+      {resellerId === "68fddcfb-5e1f-492c-be75-9a8a3d2a63fa" && (
         <div className="space-y-3 pt-4">
           <div className="px-1">
             <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/60">
