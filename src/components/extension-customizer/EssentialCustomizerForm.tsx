@@ -58,9 +58,11 @@ const DEFAULTS: EssentialData = {
 type Props = {
   resellerId: string;
   extensionId?: string | null;
+  extensionName?: string | null;
+  extensionVersion?: string | null;
 };
 
-export function EssentialCustomizerForm({ resellerId, extensionId }: Props) {
+export function EssentialCustomizerForm({ resellerId, extensionId, extensionName, extensionVersion }: Props) {
   const EXTENSION_ID = extensionId || DEFAULT_EXTENSION_ID;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,6 +80,10 @@ export function EssentialCustomizerForm({ resellerId, extensionId }: Props) {
 
   async function load() {
     setLoading(true);
+    setRecordId(null);
+    setData(DEFAULTS);
+    setPalette([]);
+    setSeparateLogos(false);
     try {
       const { data: row } = await supabase
         .from("extension_customizations")
@@ -490,6 +496,8 @@ export function EssentialCustomizerForm({ resellerId, extensionId }: Props) {
               scope="reseller"
               resellerId={resellerId}
               extensionId={EXTENSION_ID}
+              extensionName={extensionName}
+              extensionVersion={extensionVersion}
             />
           </Card>
         </CollapsibleContent>
