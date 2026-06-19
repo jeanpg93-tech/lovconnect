@@ -568,6 +568,10 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
       const currency_symbol = (mode === "popup" && cust.popup_currency_symbol) || cust.currency_symbol || "MZN";
       const footer_text = (mode === "popup" && cust.popup_footer_text) || cust.footer_text || "Desenvolvido em Moçambique";
       const show_greeting_badge = mode === "popup" ? (cust.popup_show_greeting_badge !== false) : (cust.show_greeting_badge !== false);
+      const licenseTitle = (cust.license_title && cust.license_title.trim()) || `Bem vindo a ${brand_name}`;
+      const licenseDescription = (cust.license_description && cust.license_description.trim()) || "Insira sua chave de licença para desbloquear.";
+      const licensePlaceholder = (cust.license_placeholder && cust.license_placeholder.trim()) || "TS-XXXXXXXXXXXXXXXXXXXXXX";
+      const licenseButtonText = (cust.license_button_text && cust.license_button_text.trim()) || "Validar Licença";
 
       // HTML específico
       if (fileName.endsWith(".html")) {
@@ -582,6 +586,12 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
         content = content.replace(/<span class="sp-footer-badge">[\s\S]*?<\/span>/g, `<span class="sp-footer-badge">🇲🇿 ${escapeHtml(cust.display_version)}</span>`);
         content = content.replace(/Desenvolvido em Moçambique/g, escapeHtml(footer_text));
         content = content.replace(/Olá, Cliente/g, escapeHtml(greeting_text));
+        content = content.replace(/Bem vindo a\s+TS\s+Community/gi, escapeHtml(licenseTitle));
+        content = content.replace(/Bem-vindo a\s+TS\s+Community/gi, escapeHtml(licenseTitle));
+        content = content.replace(/Ativar Licen[cç]a/g, escapeHtml(licenseTitle));
+        content = content.replace(/Insira sua chave de licen[cç]a para desbloquear\./g, escapeHtml(licenseDescription));
+        content = content.replace(/TS-X{8,}/g, escapeHtml(licensePlaceholder));
+        content = content.replace(/Validar Licen[cç]a/g, escapeHtml(licenseButtonText));
         content = content.replace(/Aguardando sincronização\.\.\./g, (mode === 'popup' ? 'Sincronizando...' : 'Aguardando sincronização...')); // Optional tweak
         content = content.replace(/MZN/g, escapeHtml(currency_symbol));
         content = content.replace(/Master Lovable • v[\d.]+/g, `${escapeHtml(brand_kicker)} ${escapeHtml(brand_name)} • ${escapeHtml(cust.display_version)}`);
@@ -633,6 +643,16 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
         content = content.replace(/chrome\.storage\.local\.set\(\{ ql_dark_mode: !isLight \}\);/g, 'chrome.storage.local.set({ ql_dark_mode: !isLight, ql_theme_user_choice: true });');
         content = content.replace(/chrome\.storage\.local\.get\(\["ql_dark_mode"\], r => \{ if\(r\.ql_dark_mode === false\) document\.body\.classList\.add\('sp-light'\); \}\);/g, 'chrome.storage.local.get(["ql_dark_mode","ql_theme_user_choice"], r => { if(r.ql_theme_user_choice === true && r.ql_dark_mode === false) document.body.classList.add(\'sp-light\'); else { document.body.classList.remove(\'sp-light\'); chrome.storage.local.set({ ql_dark_mode: true }); } });');
         // Suporte: substitui também dentro de strings JS (ex.: content-templates.js)
+        const jsLicenseTitle = escapeJsonStringContent(licenseTitle);
+        const jsLicenseDescription = escapeJsonStringContent(licenseDescription);
+        const jsLicensePlaceholder = escapeJsonStringContent(licensePlaceholder);
+        const jsLicenseButtonText = escapeJsonStringContent(licenseButtonText);
+        content = content.replace(/Bem vindo a\s+TS\s+Community/gi, jsLicenseTitle);
+        content = content.replace(/Bem-vindo a\s+TS\s+Community/gi, jsLicenseTitle);
+        content = content.replace(/Ativar Licen(?:ç|\\u00e7)c?a/g, jsLicenseTitle);
+        content = content.replace(/Insira sua chave de licen(?:ç|\\u00e7)c?a para desbloquear\./g, jsLicenseDescription);
+        content = content.replace(/TS-X{8,}/g, jsLicensePlaceholder);
+        content = content.replace(/Validar Licen(?:ç|\\u00e7)c?a/g, jsLicenseButtonText);
         content = content.replace(/href=\\"https:\/\/discord\.gg\/[^"]+\\"/g, `href=\\"${escapeJs(cust.support_url)}\\"`);
         content = content.replace(/href=\\"https:\/\/wa\.me\/[^"]+\\"/g, `href=\\"${escapeJs(cust.support_url)}\\"`);
         content = content.replace(/href="https:\/\/discord\.gg\/[^"]+"/g, `href="${escapeJs(cust.support_url)}"`);
