@@ -279,6 +279,7 @@ export default function RevendedorBaixarExtensao() {
             extensionId={activeExtensionId}
             extensionName={activeExtension?.name ?? null}
             extensionVersion={activeExtension?.version ?? null}
+            extensionMethod={activeExtension?.method ?? activeMethod}
           />
         </div>
       )}
