@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
         const m = JSON.parse(txt as string);
         m.name = cust.manifest_name || cust.brand_name || m.name;
         m.description = cust.manifest_description || `Extensão ${cust.brand_name || ""}`.trim() || m.description;
-        m.version = cust.display_version.replace(/^v/, "").replace(/[^0-9.]/g, "") || "1.0.0";
+        m.version = String(cust.display_version || "1.0.0").replace(/^v/, "").replace(/[^0-9.]/g, "") || "1.0.0";
         
         // Ensure action exists
         if (!m.action) m.action = {};
