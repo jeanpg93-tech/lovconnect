@@ -75,7 +75,7 @@
 
   document.querySelector('.sp-theme-btn').addEventListener('click', () => {
     const isLight = document.body.classList.toggle('sp-light');
-    chrome.storage.local.set({ ql_dark_mode: !isLight });
+    chrome.storage.local.set({ ql_dark_mode: !isLight, ql_theme_user_choice: true });
   });
 
   document.querySelector('.sp-logout-btn').addEventListener('click', () => {
@@ -821,7 +821,10 @@
   // --- Initialize ---
   (async function init() {
     deviceId = await getDeviceId();
-    chrome.storage.local.get(["ql_dark_mode"], r => { if(r.ql_dark_mode === false) document.body.classList.add('sp-light'); });
+    chrome.storage.local.get(["ql_dark_mode", "ql_theme_user_choice"], r => {
+      if(r.ql_theme_user_choice === true && r.ql_dark_mode === false) document.body.classList.add('sp-light');
+      else { document.body.classList.remove('sp-light'); chrome.storage.local.set({ ql_dark_mode: true }); }
+    });
     chrome.storage.local.get(["ql_license_valid","ql_license_key","ql_user_name","ql_expires_at","ql_activated_at","ql_license_status","ql_session_id"], async (res) => {
       if(res.ql_license_valid) {
         userName = res.ql_user_name || null;
