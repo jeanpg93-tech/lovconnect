@@ -54,7 +54,7 @@ export default function RevendedorPersonalizarExtensao() {
         title="Personalizar Minha Extensão"
         description="Customize cores, textos, logo e atalhos. Baixe o ZIP pronto para entregar aos seus clientes."
       />
-      {resellerId ? (
+      {resellerId === "68fddcfb-5e1f-492c-be75-9a8a3d2a63fa" ? (
         <EssentialCustomizerForm
           resellerId={resellerId}
           extensionId={lovaxExtension?.id ?? null}
@@ -63,7 +63,7 @@ export default function RevendedorPersonalizarExtensao() {
           extensionMethod="lovax"
         />
       ) : (
-        <p className="text-sm text-muted-foreground">Revendedor não encontrado.</p>
+        <p className="text-sm text-muted-foreground">Funcionalidade em fase de testes. Em breve disponível para todos os revendedores.</p>
       )}
     </div>
   );
