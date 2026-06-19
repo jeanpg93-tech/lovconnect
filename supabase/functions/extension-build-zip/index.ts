@@ -53,6 +53,24 @@ type Cust = {
 
 const TEMPLATE_PATH = "templates/master-lovable-base.zip";
 
+const DEFAULT_DARK_THEME = {
+  primary: "#ff1010",
+  hover: "#d90000",
+  secondary: "#ff3b30",
+  bg: "#070707",
+  elevated: "#141416",
+  surface: "#1b1b1f",
+  textPrimary: "#f4f4f5",
+  textSecondary: "#a1a1aa",
+  textMuted: "#71717a",
+};
+
+function cssValue(value: unknown, fallback: string) {
+  const v = String(value ?? "").trim();
+  if (!v || v === "null" || v === "undefined") return fallback;
+  return v;
+}
+
 function escapeJs(s: string) {
   return String(s).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n");
 }
@@ -264,13 +282,19 @@ Deno.serve(async (req) => {
       const isPopup = mode === "popup";
       
       const p = {
-        primary: (isPopup && cust.popup_color_primary) || cust.color_primary,
-        hover: (isPopup && cust.popup_color_primary_hover) || cust.color_primary_hover,
-        secondary: (isPopup && cust.popup_color_secondary) || cust.color_secondary,
-        bg: (isPopup && cust.popup_color_bg) || cust.color_bg,
-        elevated: (isPopup && cust.popup_color_bg_elevated) || cust.color_bg_elevated,
-        surface: (isPopup && cust.popup_color_bg_surface) || cust.color_bg_surface,
+        primary: cssValue((isPopup && cust.popup_color_primary) || cust.color_primary, DEFAULT_DARK_THEME.primary),
+        hover: cssValue((isPopup && cust.popup_color_primary_hover) || cust.color_primary_hover, DEFAULT_DARK_THEME.hover),
+        secondary: cssValue((isPopup && cust.popup_color_secondary) || cust.color_secondary, DEFAULT_DARK_THEME.secondary),
+        bg: cssValue((isPopup && cust.popup_color_bg) || cust.color_bg, DEFAULT_DARK_THEME.bg),
+        elevated: cssValue((isPopup && cust.popup_color_bg_elevated) || cust.color_bg_elevated, DEFAULT_DARK_THEME.elevated),
+        surface: cssValue((isPopup && cust.popup_color_bg_surface) || cust.color_bg_surface, DEFAULT_DARK_THEME.surface),
       };
+
+      const cardBg = cssValue((isPopup && cust.popup_card_bg_color) || cust.card_bg_color, p.surface);
+      const cardBorder = cssValue((isPopup && cust.popup_card_border_color) || cust.card_border_color, 'rgba(255,255,255,0.08)');
+      const cardBorderHover = cssValue((isPopup && cust.popup_card_border_hover_color) || cust.card_border_hover_color, 'rgba(255,255,255,0.14)');
+      const cardText = cssValue((isPopup && cust.popup_card_text_color) || cust.card_text_color, DEFAULT_DARK_THEME.textPrimary);
+      const cardMuted = cssValue((isPopup && cust.popup_card_muted_text_color) || cust.card_muted_text_color, DEFAULT_DARK_THEME.textSecondary);
 
       const w = {
         deep:  (isPopup && cust.popup_color_wave_deep) || wave.deep,
@@ -290,12 +314,13 @@ Deno.serve(async (req) => {
   --ql-secondary: ${p.secondary};
   --ql-bg: ${p.bg};
   --ql-bg-elevated: ${p.elevated};
-  --ql-bg-surface: ${(isPopup && cust.popup_card_bg_color) || cust.card_bg_color || p.surface};
-  --ql-bg-hover: ${(isPopup && cust.popup_card_bg_color) || cust.card_bg_color || p.surface};
-  --ql-border: ${(isPopup && cust.popup_card_border_color) || cust.card_border_color || 'rgba(255,255,255,0.06)'};
-  --ql-border-hover: ${(isPopup && cust.popup_card_border_hover_color) || cust.card_border_hover_color || 'rgba(255,255,255,0.12)'};
-  --ql-text-primary: ${(isPopup && cust.popup_card_text_color) || cust.card_text_color || '#f4f4f5'};
-  --ql-text-secondary: ${(isPopup && cust.popup_card_muted_text_color) || cust.card_muted_text_color || '#a1a1aa'};
+  --ql-bg-surface: ${cardBg};
+  --ql-bg-hover: ${cardBg};
+  --ql-border: ${cardBorder};
+  --ql-border-hover: ${cardBorderHover};
+  --ql-text-primary: ${cardText};
+  --ql-text-secondary: ${cardMuted};
+  --ql-text-muted: ${DEFAULT_DARK_THEME.textMuted};
   --ql-success: ${cust.color_success || '#34d399'};
   --ql-success-bg: ${(cust.color_success || '#34d399')}1a;
   --ml-deep: ${w.deep};
