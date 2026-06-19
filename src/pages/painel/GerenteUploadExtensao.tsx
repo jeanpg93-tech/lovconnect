@@ -68,7 +68,7 @@ const bumpPatch = (v: string) => {
   return parts.join(".");
 };
 
-const METHOD_STORAGE_KEY = "gerente_upload_extensao_method";
+const METHOD_STORAGE_KEY = "licencas.delivery.method";
 const SETTING_KEY = "licencas.delivery.method";
 
 const normalizeMethod = (value: unknown): Method | null => {
