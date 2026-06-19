@@ -16,6 +16,8 @@ type Cust = {
   manifest_name: string; manifest_description: string; support_url: string;
   community_url?: string | null;
   greeting_text: string; use_license_name: boolean; currency_symbol: string; footer_text: string;
+  license_title?: string | null; license_description?: string | null; license_placeholder?: string | null;
+  license_button_text?: string | null;
   show_greeting_badge: boolean; color_success: string;
   color_primary: string; color_primary_hover: string; color_secondary: string;
   color_bg: string; color_bg_elevated: string; color_bg_surface: string;
@@ -94,6 +96,20 @@ function escapeJs(s: string) {
 }
 function escapeHtml(s: string) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeJsonStringContent(s: string) {
+  return JSON.stringify(String(s)).slice(1, -1);
+}
+function replaceLegacyBrandText(content: string, brandName: string) {
+  return String(content)
+    .replace(/TS(?:\s|&nbsp;|&#160;|\\u00a0|\u00a0)+Community/gi, brandName)
+    .replace(/T\s*S\s*Community/gi, brandName)
+    .replace(/Main Lovable/g, brandName)
+    .replace(/Master Lovable/g, brandName)
+    .replace(
+      /(Bem[- ]?vindo[a]?\s+a[o]?\s+)([^<\n"'`\\]{1,80}?)(?=[<\n"'`\\]|\s*<\/|\s*\+|$)/gi,
+      (_m, p1) => `${p1}${brandName}`,
+    );
 }
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const h = String(hex || "").replace("#", "").trim();
