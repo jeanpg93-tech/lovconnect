@@ -209,7 +209,7 @@ function LovaxPreview({
             <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-xl bg-[#151518] text-[14px] font-bold text-slate-500">
               <div className="border-b-2 px-4 py-3" style={{ borderColor: lovaxAccent, background: "rgba(255,16,16,.16)", color: lovaxAccent }}>↯ Prompt</div>
               <div className="px-4 py-3">☆ Skills</div>
-              <div className="px-4 py-3">▱ Histórico <span className="rounded-full px-1.5 text-white" style={{ background: accent }}>7</span></div>
+              <div className="px-4 py-3">▱ Histórico <span className="rounded-full px-1.5 text-white" style={{ background: lovaxAccent }}>7</span></div>
             </div>
             <div className="mt-4 grid grid-cols-4 gap-2">
               {shortcuts.map((s, i) => (
