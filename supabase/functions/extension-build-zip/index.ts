@@ -14,6 +14,7 @@ type Cust = {
   header_badge_text?: string; greeting_badge_text?: string;
   display_version: string; window_title: string;
   manifest_name: string; manifest_description: string; support_url: string;
+  community_url?: string | null;
   greeting_text: string; use_license_name: boolean; currency_symbol: string; footer_text: string;
   show_greeting_badge: boolean; color_success: string;
   color_primary: string; color_primary_hover: string; color_secondary: string;
@@ -218,9 +219,9 @@ Deno.serve(async (req) => {
       const txt = await manifestEntry.getData(new TextWriter());
       try {
         const m = JSON.parse(txt as string);
-        m.name = cust.manifest_name;
-        m.description = cust.manifest_description;
-        m.version = cust.display_version.replace(/^v/, "").replace(/[^0-9.]/g, "") || "1.0.0";
+        m.name = cust.manifest_name || cust.brand_name || m.name;
+        m.description = cust.manifest_description || `Extensão ${cust.brand_name || ""}`.trim() || m.description;
+        m.version = String(cust.display_version || "1.0.0").replace(/^v/, "").replace(/[^0-9.]/g, "") || "1.0.0";
         
         // Ensure action exists
         if (!m.action) m.action = {};
@@ -458,6 +459,15 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
         content = content.replace(/href="https:\/\/discord\.gg\/[^"]+"/g, `href="${escapeHtml(cust.support_url)}"`);
         content = content.replace(/href="https:\/\/t\.me\/[^"]+"/g, `href="${escapeHtml(cust.support_url)}"`);
 
+        // Comunidade: injeta um segundo link ao lado do "Suporte" quando configurado
+        if (cust.community_url && cust.community_url.trim() !== "") {
+          const cu = escapeHtml(cust.community_url.trim());
+          content = content.replace(
+            /(<a [^>]*class="sp-support-link"[^>]*>[\s\S]*?<\/a>)/,
+            `$1\n    <a href="${cu}" target="_blank" class="sp-community-link" style="display:inline-flex;align-items:center;gap:6px;color:var(--ql-accent);text-decoration:none;font-size:12px;margin-left:8px">👥 Comunidade</a>`,
+          );
+        }
+
         if (cust.banner_enabled && cust.banner_url) {
           const bannerInner = `<img src="${escapeHtml(cust.banner_url)}" alt="" style="width:100%;display:block;border-radius:8px"/>`;
           const bannerHtml = cust.banner_link
@@ -473,6 +483,19 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
 
       // Strings inline em JS/HTML
       if (fileName.endsWith(".js") || fileName.endsWith(".html")) {
+        // Suporte: substitui também dentro de strings JS (ex.: content-templates.js)
+        content = content.replace(/href=\\"https:\/\/discord\.gg\/[^"]+\\"/g, `href=\\"${escapeJs(cust.support_url)}\\"`);
+        content = content.replace(/href=\\"https:\/\/wa\.me\/[^"]+\\"/g, `href=\\"${escapeJs(cust.support_url)}\\"`);
+        content = content.replace(/href="https:\/\/discord\.gg\/[^"]+"/g, `href="${escapeJs(cust.support_url)}"`);
+        content = content.replace(/href="https:\/\/wa\.me\/[^"]+"/g, `href="${escapeJs(cust.support_url)}"`);
+        // Comunidade dentro do popup flutuante (content-templates.js): adiciona ao lado do Suporte
+        if (cust.community_url && cust.community_url.trim() !== "" && fileName === "content-templates.js") {
+          const cu = escapeJs(cust.community_url.trim());
+          content = content.replace(
+            /('<a href="[^']*" target="_blank" class="ql-support-link">[\s\S]*?Suporte<\/a>')/,
+            `$1 +\n      '<a href="${cu}" target="_blank" class="ql-community-link" style="display:inline-flex;align-items:center;gap:4px;color:var(--ql-accent);text-decoration:none;margin-left:8px">👥 Comunidade</a>'`,
+          );
+        }
         // Versões "🇲🇿 v4.2", "🇲🇿 v4.3" → display_version
         content = content.replace(/🇲🇿\s*v[\d.]+/g, `🇲🇿 ${cust.display_version}`);
         // "Extensão v4.3" no card de downloads
