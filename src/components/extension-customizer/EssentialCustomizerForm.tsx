@@ -23,16 +23,20 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ExtensionCustomizer } from "./ExtensionCustomizer";
-import { extractPaletteFromImage, type Swatch } from "@/lib/color-extract";
+import { extractPaletteFromImage, resizeImageToPng, type Swatch } from "@/lib/color-extract";
 import { cn } from "@/lib/utils";
 
-// Mesma extensão padrão usada no customizer completo
-const EXTENSION_ID = "ce171e28-cab8-490f-b50f-381aa975918e";
+// Fallback caso o método ativo não traga uma extensão correspondente
+const DEFAULT_EXTENSION_ID = "ce171e28-cab8-490f-b50f-381aa975918e";
 
 type EssentialData = {
   brand_name: string;
   logo_rect_url: string | null;
   logo_square_url: string | null;
+  icon_16_url: string | null;
+  icon_32_url: string | null;
+  icon_48_url: string | null;
+  icon_128_url: string | null;
   color_primary: string;
   support_url: string;
   greeting_text: string;
@@ -42,6 +46,10 @@ const DEFAULTS: EssentialData = {
   brand_name: "",
   logo_rect_url: null,
   logo_square_url: null,
+  icon_16_url: null,
+  icon_32_url: null,
+  icon_48_url: null,
+  icon_128_url: null,
   color_primary: "#3b82f6",
   support_url: "",
   greeting_text: "Olá, Cliente",
@@ -49,9 +57,11 @@ const DEFAULTS: EssentialData = {
 
 type Props = {
   resellerId: string;
+  extensionId?: string | null;
 };
 
-export function EssentialCustomizerForm({ resellerId }: Props) {
+export function EssentialCustomizerForm({ resellerId, extensionId }: Props) {
+  const EXTENSION_ID = extensionId || DEFAULT_EXTENSION_ID;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [recordId, setRecordId] = useState<string | null>(null);
@@ -64,7 +74,7 @@ export function EssentialCustomizerForm({ resellerId }: Props) {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resellerId]);
+  }, [resellerId, EXTENSION_ID]);
 
   async function load() {
     setLoading(true);
@@ -83,6 +93,10 @@ export function EssentialCustomizerForm({ resellerId }: Props) {
           brand_name: (row as any).brand_name ?? "",
           logo_rect_url: (row as any).logo_rect_url ?? null,
           logo_square_url: (row as any).logo_square_url ?? null,
+          icon_16_url: (row as any).icon_16_url ?? null,
+          icon_32_url: (row as any).icon_32_url ?? null,
+          icon_48_url: (row as any).icon_48_url ?? null,
+          icon_128_url: (row as any).icon_128_url ?? null,
           color_primary: (row as any).color_primary ?? "#3b82f6",
           support_url: (row as any).support_url ?? "",
           greeting_text: (row as any).greeting_text ?? "Olá, Cliente",
