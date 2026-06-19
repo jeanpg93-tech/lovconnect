@@ -481,6 +481,33 @@ body.sp-light .sp-modal-title,
 body.sp-light strong {
   color: var(--ql-text-primary) !important;
 }
+/* Headings de boas-vindas / títulos do gate em modo claro: garantem leitura.
+   Cobre variações conhecidas (sp-welcome, sp-welcome-title, ql-welcome,
+   h1/h2 dentro do gate de licença, etc.). */
+body.sp-light .sp-welcome,
+body.sp-light .sp-welcome-title,
+body.sp-light .sp-welcome-heading,
+body.sp-light .sp-hero-title,
+body.sp-light .sp-license-gate h1,
+body.sp-light .sp-license-gate h2,
+body.sp-light .sp-license-gate h3,
+body.sp-light .sp-license-gate .sp-title,
+#ql-floating.ql-light .ql-welcome,
+#ql-floating.ql-light .ql-welcome-title,
+#ql-floating.ql-light .ql-license-gate h1,
+#ql-floating.ql-light .ql-license-gate h2,
+#ql-floating.ql-light .ql-license-gate h3 {
+  color: var(--ql-text-primary) !important;
+  opacity: 1 !important;
+}
+body.sp-light .sp-license-gate p,
+body.sp-light .sp-gate-desc,
+body.sp-light .sp-welcome-subtitle,
+#ql-floating.ql-light .ql-license-gate p,
+#ql-floating.ql-light .ql-gate-desc {
+  color: var(--ql-text-secondary) !important;
+  opacity: 1 !important;
+}
 #ql-floating.ql-light .ql-chip:hover,
 body.sp-light .sp-chip:hover {
   color: var(--ql-accent) !important;
@@ -617,6 +644,14 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
       if (fileName.endsWith(".html") || fileName.endsWith(".js") || fileName.endsWith(".css")) {
         content = content.replace(/Main Lovable/g, brand_name);
         content = content.replace(/Master Lovable/g, brand_name);
+        // Outras marcas conhecidas em ZIPs base herdados (ex.: "TS Community")
+        content = content.replace(/TS\s+Community/g, brand_name);
+        // Saudação "Bem-vindo a XXXX" / "Bem vindo ao YYY" → usa o brand atual.
+        // Aceita acento opcional, hífen opcional, "a"/"ao", e preserva o "Bem-vindo a ".
+        content = content.replace(
+          /(Bem[- ]?vindo[a]?\s+a[o]?\s+)([^<\n"'`\\]{1,60}?)(?=[<\n"'`\\]|\s*<\/|\s*\+)/gi,
+          (_m, p1) => `${p1}${brand_name}`,
+        );
       }
 
       return content;
