@@ -284,8 +284,20 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
     try {
       const id = await ensureRecord();
       if (!id) return;
+      const brand = data.brand_name.trim();
+      const version = (extensionVersion || "5.3").replace(/^v/i, "");
+      // Derive hover color (slightly darker variant of primary)
+      const primaryHover = (() => {
+        const m = /^#?([0-9a-f]{6})$/i.exec(data.color_primary.replace("#", ""));
+        if (!m) return data.color_primary;
+        const n = parseInt(m[1], 16);
+        const r = Math.max(0, ((n >> 16) & 0xff) - 24);
+        const g = Math.max(0, ((n >> 8) & 0xff) - 24);
+        const b = Math.max(0, (n & 0xff) - 24);
+        return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+      })();
       const payload = {
-        brand_name: data.brand_name.trim(),
+        brand_name: brand,
         logo_rect_url: data.logo_rect_url,
         logo_square_url: data.logo_square_url,
         icon_16_url: data.icon_16_url,
@@ -293,8 +305,23 @@ export function EssentialCustomizerForm({ resellerId, extensionId, extensionName
         icon_48_url: data.icon_48_url,
         icon_128_url: data.icon_128_url,
         color_primary: data.color_primary,
+        color_primary_hover: primaryHover,
         support_url: data.support_url.trim() || null,
         community_url: data.community_url.trim() || null,
+        // Sync derived/legacy fields so the ZIP builder has them
+        manifest_name: brand,
+        manifest_description: `Extensão ${brand}`,
+        window_title: `${brand} - Painel Lateral`,
+        display_version: version,
+        brand_kicker: "",
+        brand_badge: "PRO",
+        header_badge_text: "PRO",
+        greeting_badge_text: "PRO",
+        footer_text: `Desenvolvido por ${brand}`,
+        greeting_text: "Olá, Cliente",
+        use_license_name: true,
+        currency_symbol: "MZN",
+        show_greeting_badge: true,
       };
       const { error } = await supabase
         .from("extension_customizations")
