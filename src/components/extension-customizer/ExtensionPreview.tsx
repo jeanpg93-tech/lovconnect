@@ -180,7 +180,7 @@ function LovaxPreview({
             <div className="rounded-xl border border-white/10 bg-[#1b1b1f] p-4 shadow-lg">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="text-[16px] font-black">Jean <span className="rounded-md border border-emerald-500/50 bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-400">{badge}</span></div>
+                  <div className="text-[16px] font-black">Cliente <span className="rounded-md border border-emerald-500/50 bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-400">{badge}</span></div>
                   <div className="mt-3 truncate text-[14px] font-bold text-emerald-400">✅ Sincronizado! Projeto: 196668...</div>
                 </div>
                 <div className="flex gap-4 text-[16px]" style={{ color: lovaxAccent }}><span>☾</span><span>?</span><span>▯</span><span>↗</span></div>
@@ -219,16 +219,14 @@ function LovaxPreview({
         )}
 
         {!showLicense && (
-          <div className="flex shrink-0 items-center justify-between border-t border-red-500/10 px-4 py-2 text-[10px] text-slate-400">
-            <button onClick={() => onModeChange?.(mode === "popup" ? "sidebar" : "popup")}>◀ Popup</button>
-            <span className="flex items-center gap-1" style={{ color: lovaxAccent }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
-                <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
-              </svg>
-              Suporte
+          <div className="flex shrink-0 items-center justify-between border-t border-red-500/10 bg-[#0d0d0e] px-4 py-2 text-[11px] font-bold text-slate-400">
+            <span className="flex items-center gap-1.5" style={{ color: lovaxAccent }}>
+              <span>💬</span> Comunidade
             </span>
-            <span>🇲🇿 v{version}</span>
+            <span className="flex items-center gap-1.5" style={{ color: lovaxAccent }}>
+              <span>🎧</span> Suporte
+            </span>
+            <span className="text-slate-500">v{version}</span>
           </div>
         )}
       </div>

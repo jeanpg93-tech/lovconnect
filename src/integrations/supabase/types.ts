@@ -529,6 +529,7 @@ export type Database = {
           color_wave_deep: string
           color_wave_ice: string
           color_wave_navy: string
+          community_url: string | null
           created_at: string
           currency_symbol: string | null
           display_version: string
@@ -621,6 +622,7 @@ export type Database = {
           color_wave_deep?: string
           color_wave_ice?: string
           color_wave_navy?: string
+          community_url?: string | null
           created_at?: string
           currency_symbol?: string | null
           display_version?: string
@@ -713,6 +715,7 @@ export type Database = {
           color_wave_deep?: string
           color_wave_ice?: string
           color_wave_navy?: string
+          community_url?: string | null
           created_at?: string
           currency_symbol?: string | null
           display_version?: string
