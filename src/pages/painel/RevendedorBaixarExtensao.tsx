@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/painel/PageHeader";
 import { sanitizeRichText } from "@/lib/sanitize-html";
+import { getValidAccessToken } from "@/lib/authenticated-functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EssentialCustomizerForm } from "@/components/extension-customizer/EssentialCustomizerForm";
@@ -103,21 +104,40 @@ export default function RevendedorBaixarExtensao() {
     };
   }, [user]);
 
-  const handleDownload = async (path: string | null, name: string | null, id?: string) => {
-    if (!path) {
+  const handleDownload = async (path: string | null, name: string | null, id?: string, method?: ExtRow["method"]) => {
+    if (!path && method !== "lovax") {
       toast.error("Arquivo ainda não disponível.");
       return;
     }
     if (id) setDownloadingId(id);
     try {
-      const { data, error } = await supabase.storage
-        .from("extension-files")
-        .download(path);
-      if (error || !data) throw error ?? new Error("Falha ao baixar");
-      const url = URL.createObjectURL(data);
+      let blob: Blob;
+      let downloadName = name || "extensao";
+
+      if (method === "lovax" && id) {
+        const token = await getValidAccessToken();
+        if (!token) throw new Error("Sessão expirada. Faça login novamente.");
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-build-zip`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ extension_id: id }),
+        });
+        if (!res.ok) throw new Error("Erro ao gerar extensão personalizada");
+        blob = await res.blob();
+        const disposition = res.headers.get("Content-Disposition") || "";
+        downloadName = disposition.match(/filename="?([^";]+)"?/i)?.[1] || downloadName;
+      } else {
+        const { data, error } = await supabase.storage
+          .from("extension-files")
+          .download(path!);
+        if (error || !data) throw error ?? new Error("Falha ao baixar");
+        blob = data;
+      }
+
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = name || "extensao";
+      a.download = downloadName;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -205,7 +225,7 @@ export default function RevendedorBaixarExtensao() {
                     <Button
                       size="sm"
                       disabled={!has || downloadingId === e.id}
-                      onClick={() => handleDownload(e.file_path, e.file_name, e.id)}
+                      onClick={() => handleDownload(e.file_path, e.file_name, e.id, e.method)}
                       variant="secondary"
                       className="h-9 px-3"
                     >
