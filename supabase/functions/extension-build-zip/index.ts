@@ -219,8 +219,8 @@ Deno.serve(async (req) => {
       const txt = await manifestEntry.getData(new TextWriter());
       try {
         const m = JSON.parse(txt as string);
-        m.name = cust.manifest_name;
-        m.description = cust.manifest_description;
+        m.name = cust.manifest_name || cust.brand_name || m.name;
+        m.description = cust.manifest_description || `Extensão ${cust.brand_name || ""}`.trim() || m.description;
         m.version = cust.display_version.replace(/^v/, "").replace(/[^0-9.]/g, "") || "1.0.0";
         
         // Ensure action exists
