@@ -290,7 +290,7 @@ Deno.serve(async (req) => {
           delete m.action.default_icon;
         }
 
-        overrides.set("manifest.json", JSON.stringify(m, null, 2));
+        overrides.set(manifestEntry.filename, JSON.stringify(m, null, 2));
       } catch (err) {
         console.error("Error parsing manifest.json", err);
       }
@@ -550,7 +550,7 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
 
     // Decide o "modo" (popup vs sidebar) com base no nome do arquivo
     const fileMode = (name: string): "popup" | "sidebar" => {
-      const n = name.toLowerCase();
+      const n = baseName(name).toLowerCase();
       if (n.includes("popup") || n.includes("floating") || n === "content.js" || n === "content-templates.js") {
         return "popup";
       }
@@ -598,7 +598,7 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
         content = content.replace(/MZN/g, escapeHtml(currency_symbol));
         content = content.replace(/Master Lovable • v[\d.]+/g, `${escapeHtml(brand_kicker)} ${escapeHtml(brand_name)} • ${escapeHtml(cust.display_version)}`);
         // Force the greeting text in content.js even if not "Olá, Cliente"
-        if (fileName === "content.js") {
+        if (baseName(fileName) === "content.js") {
           const greetingVal = use_license_name ? "qlUserName || 'Usuário'" : `'${escapeJs(greeting_text)}'`;
           content = content.replace(/qlUserName\s*\|\|\s*"User"/g, greetingVal);
         }
@@ -660,7 +660,7 @@ ${!cust.logo_square_url ? ".sp-logo-square, .brand-logo-square, .ql-brand-logo-s
         content = content.replace(/href="https:\/\/discord\.gg\/[^"]+"/g, `href="${escapeJs(cust.support_url)}"`);
         content = content.replace(/href="https:\/\/wa\.me\/[^"]+"/g, `href="${escapeJs(cust.support_url)}"`);
         // Comunidade dentro do popup flutuante (content-templates.js): adiciona ao lado do Suporte
-        if (cust.community_url && cust.community_url.trim() !== "" && fileName === "content-templates.js") {
+        if (cust.community_url && cust.community_url.trim() !== "" && baseName(fileName) === "content-templates.js") {
           const cu = escapeJs(cust.community_url.trim());
           content = content.replace(
             /('<a href="[^']*" target="_blank" class="ql-support-link">[\s\S]*?Suporte<\/a>')/,
