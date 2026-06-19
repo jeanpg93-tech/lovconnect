@@ -276,6 +276,7 @@ export default function RevendedorBaixarExtensao() {
           <EssentialCustomizerForm
             resellerId={resellerId}
             extensionId={activeExtensionId}
+            filePath={visibleItems[0]?.file_path ?? null}
           />
         </div>
       )}
