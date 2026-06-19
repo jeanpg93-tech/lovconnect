@@ -40,6 +40,17 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const svc = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    // Require authenticated caller. The frontend already gates this on session,
+    // but we enforce it server-side as well to prevent unauthenticated abuse.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (!token) return json({ error: "unauthorized" }, 401);
+    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) return json({ error: "unauthorized" }, 401);
+
     const body = await req.json().catch(() => ({}));
     const license_key = typeof body.license_key === "string" ? body.license_key.trim() : "";
 
