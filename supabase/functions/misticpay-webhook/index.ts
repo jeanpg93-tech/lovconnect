@@ -184,12 +184,18 @@ async function notifyTelegramStorefrontLicenseSale(admin: any, storeOrder: any, 
 
     const { data: reseller } = await admin
       .from("resellers")
-      .select("display_name, balance_cents")
+      .select("display_name")
       .eq("id", storeOrder.reseller_id)
       .maybeSingle();
 
+    const { data: bal } = await admin
+      .from("reseller_balances")
+      .select("balance_cents")
+      .eq("reseller_id", storeOrder.reseller_id)
+      .maybeSingle();
+
     const amountBRL = "R$ " + (Number(costCents || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const balanceBRL = "R$ " + (Number(reseller?.balance_cents ?? 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const balanceBRL = "R$ " + (Number(bal?.balance_cents ?? 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const text =
       "🛒 <b>Venda na Loja Pública</b>\n" +
       "👨‍💼 Revendedor: " + (reseller?.display_name ?? "—") + "\n" +
