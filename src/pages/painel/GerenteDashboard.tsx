@@ -913,10 +913,8 @@ export default function GerenteDashboard() {
               </span>
             </div>
 
-            <h1 className="font-display text-4xl font-black tracking-tighter sm:text-6xl lg:text-7xl leading-[0.9]">
-              Dashboard
-              <br />
-              <span className="text-primary italic">Geral.</span>
+            <h1 className="font-display text-2xl font-black tracking-tighter sm:text-3xl lg:text-4xl leading-[1]">
+              Dashboard <span className="text-primary italic">Geral.</span>
             </h1>
             <p className="max-w-xl text-sm text-muted-foreground leading-relaxed">
               Monitoramento em tempo real do ecossistema. Métricas, vendas e
@@ -981,7 +979,7 @@ export default function GerenteDashboard() {
           </div>
 
           {/* Hero KPI strip */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="rounded-2xl border border-border bg-background/70 p-5 backdrop-blur">
               <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
                 <TrendingUp className="h-3 w-3 text-emerald-500" /> Recargas hoje
@@ -993,17 +991,47 @@ export default function GerenteDashboard() {
                 {todayRecharge.count} recargas{todayRecharge.count === 1 ? "" : "s"} no MisticPay
               </div>
             </div>
+
             <div className="rounded-2xl border border-border bg-background/70 p-5 backdrop-blur">
               <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
-                <Wallet className="h-3 w-3 text-primary" /> Saldo Provedor
+                <Sparkles className="h-3 w-3 text-violet-500" /> MétodoLovax
+                {activeMethod === "lovax" && (
+                  <span className="rounded-full bg-violet-500/15 px-1.5 py-[1px] text-[8px] font-bold tracking-wider text-violet-500">
+                    ATIVO
+                  </span>
+                )}
               </div>
-              <div className="mt-2 font-display font-black tracking-tighter text-xl">
-                {providerBalance}
+              <div className="mt-2 font-display font-black tracking-tighter text-xl tabular-nums">
+                {lovaxUsage ? `${lovaxUsage.used}/${lovaxUsage.limit || "∞"}` : "—"}
               </div>
               <div className="mt-1 text-[10px] text-muted-foreground">
-                recarga disponível para recargas
+                {lovaxUsage && lovaxUsage.limit
+                  ? `${Math.max(0, lovaxUsage.limit - lovaxUsage.used)} licenças restantes`
+                  : "Licenças usadas / limite"}
               </div>
             </div>
+
+            {(() => {
+              const methodRemaining =
+                activeMethod === "flow" ? commitments.flowRemaining : commitments.lovaxRemaining;
+              const realAvail = Number.isFinite(methodRemaining)
+                ? Math.max(0, methodRemaining - commitments.committed)
+                : Number.POSITIVE_INFINITY;
+              const methodLabel = activeMethod === "flow" ? "MétodoFlow" : "MétodoLovax";
+              return (
+                <div className="rounded-2xl border border-border bg-background/70 p-5 backdrop-blur">
+                  <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
+                    <Package className="h-3 w-3 text-emerald-500" /> Reserva de Packs · {methodLabel}
+                  </div>
+                  <div className="mt-2 font-display font-black tracking-tighter text-xl tabular-nums">
+                    {commitments.loading ? "—" : `${commitments.committed} comprometidas`}
+                  </div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    Disponível real: {Number.isFinite(realAvail) ? realAvail : "∞"}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </section>
