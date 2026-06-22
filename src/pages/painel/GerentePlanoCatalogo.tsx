@@ -255,6 +255,60 @@ export default function GerentePlanoCatalogo() {
 
   return (
     <div className="space-y-6">
+      <Card className={pauseEnabled ? "border-amber-500/50" : ""}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className={pauseEnabled ? "h-5 w-5 text-amber-500" : "h-5 w-5 text-muted-foreground"} />
+            Manutenção de novas vendas
+          </CardTitle>
+          <CardDescription>
+            Pausa <strong>somente novas vendas</strong> deste plano em todos os canais
+            (loja pública, API do revendedor e venda manual). Planos já vendidos
+            continuam sendo entregues normalmente pela agenda.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-4">
+            <Switch
+              checked={pauseEnabled}
+              onCheckedChange={setPauseEnabled}
+              disabled={savingPause}
+            />
+            <div className="flex-1">
+              <p className="text-sm font-medium">
+                {pauseEnabled
+                  ? "Novas vendas PAUSADAS"
+                  : "Vendas funcionando normalmente"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Quando ativado, todas as novas tentativas de compra retornam erro
+                503 com a mensagem abaixo.
+              </p>
+            </div>
+          </div>
+          <div>
+            <Label>Mensagem exibida ao revendedor/cliente</Label>
+            <Textarea
+              rows={2}
+              value={pauseMessage}
+              onChange={(e) => setPauseMessage(e.target.value)}
+              placeholder="Ex.: Estamos em manutenção. Novas vendas voltam em alguns minutos."
+              disabled={!pauseEnabled && !pauseDirty}
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={savePause} disabled={!pauseDirty || savingPause}>
+              {savingPause ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Salvar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
