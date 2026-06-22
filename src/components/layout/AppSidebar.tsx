@@ -636,43 +636,6 @@ export function AppSidebar() {
             </NavLink>
 
             <NavLink
-              to="/painel/gerente/todas-licencas?tab=api"
-              className={cn(
-                "group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-card p-2.5 transition-all hover:shadow-sm",
-                activeMethod === "lovax"
-                  ? "border-violet-500/60 ring-1 ring-violet-500/40"
-                  : "border-border hover:border-violet-500/40"
-              )}
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-500 transition-transform group-hover:scale-110">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
-                  <span>MétodoLovax</span>
-                  {activeMethod === "lovax" && (
-                    <span className="rounded-full bg-violet-500/15 px-1.5 py-[1px] text-[8px] font-bold tracking-wider text-violet-500">
-                      ATIVO
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
-                  {lovaxLoading && lovaxUsage === null
-                    ? "—"
-                    : lovaxUsage
-                    ? `${lovaxUsage.used}/${lovaxUsage.limit || "∞"}`
-                    : "—"}
-                </div>
-                <div className="mt-0.5 text-[9px] text-muted-foreground/80 leading-none">Licenças usadas</div>
-                {lovaxUsage && lovaxUsage.limit ? (
-                  <div className="mt-0.5 text-[9px] font-semibold text-violet-500/90 leading-none tabular-nums">
-                    {Math.max(0, lovaxUsage.limit - lovaxUsage.used)} restantes
-                  </div>
-                ) : null}
-              </div>
-            </NavLink>
-
-            <NavLink
               to="/painel/gerente/gateway"
               className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2.5 transition-all hover:border-purple-500/40 hover:shadow-sm"
             >
@@ -738,43 +701,6 @@ export function AppSidebar() {
               </button>
             </NavLink>
 
-            {/* Comprometido em Packs (somente método ativo) */}
-            {(() => {
-              const methodRemaining =
-                activeMethod === "flow" ? commitments.flowRemaining : commitments.lovaxRemaining;
-              const realAvail = Number.isFinite(methodRemaining)
-                ? Math.max(0, methodRemaining - commitments.committed)
-                : Number.POSITIVE_INFINITY;
-              const overcommitted =
-                commitments.committed > 0 && commitments.committed >= methodRemaining;
-              const methodLabel = activeMethod === "flow" ? "MétodoFlow" : "MétodoLovax";
-              return (
-                <NavLink
-                  to="/painel/gerente/pacotes"
-                  className={cn(
-                    "group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-card p-2.5 transition-all hover:shadow-sm",
-                    overcommitted
-                      ? "border-destructive/60 ring-1 ring-destructive/40"
-                      : "border-border hover:border-emerald-500/40"
-                  )}
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 transition-transform group-hover:scale-110">
-                    <Package className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
-                      Reserva de Packs · {methodLabel}
-                    </div>
-                    <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
-                      {commitments.loading ? "—" : `${commitments.committed} comprometidas`}
-                    </div>
-                    <div className="mt-0.5 text-[9px] text-muted-foreground/80 leading-none">
-                      Disponível real: {Number.isFinite(realAvail) ? realAvail : "∞"}
-                    </div>
-                  </div>
-                </NavLink>
-              );
-            })()}
           </div>
         )}
         {primaryRole === "gerente" && collapsed && (
@@ -788,16 +714,6 @@ export function AppSidebar() {
               title={providerUsage ? `MétodoFlow — Licenças usadas: ${providerUsage.used}/${providerUsage.limit || "∞"}` : "MétodoFlow"}
             >
               <Zap className="h-4 w-4" />
-            </NavLink>
-            <NavLink
-              to="/painel/gerente/todas-licencas?tab=api"
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-md border bg-violet-500/10 text-violet-500",
-                activeMethod === "lovax" ? "border-violet-500 ring-1 ring-violet-500/50" : "border-violet-500/30"
-              )}
-              title={lovaxUsage ? `MétodoLovax — Licenças usadas: ${lovaxUsage.used}/${lovaxUsage.limit || "∞"}` : "MétodoLovax"}
-            >
-              <Sparkles className="h-4 w-4" />
             </NavLink>
             <NavLink
               to="/painel/gerente/gateway"
