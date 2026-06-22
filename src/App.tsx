@@ -84,6 +84,7 @@ const App = () => (
                 <Route path="/" element={<Navigate to="/auth" replace />} />
                 <Route path="/index" element={<Navigate to="/auth" replace />} />
                 <Route path="/index.html" element={<Navigate to="/auth" replace />} />
+                <Route path="/sidepanel.html" element={<Navigate to="/auth" replace />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/banned" element={<Banned />} />
