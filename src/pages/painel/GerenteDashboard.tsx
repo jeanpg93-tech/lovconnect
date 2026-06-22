@@ -783,6 +783,39 @@ export default function GerenteDashboard() {
     fetchStats();
   }, [period, orderPage, apiLogPage]);
 
+  // Lovax usage + método ativo (para os cards do Hero)
+  useEffect(() => {
+    let cancelled = false;
+    const loadLovax = async () => {
+      try {
+        const { data, error } = await invokeAuthenticatedFunction("lovax-api?action=status", { method: "GET" });
+        if (cancelled) return;
+        if (error || (data as any)?.error || (data as any)?.provider_error) {
+          setLovaxUsage(null);
+        } else {
+          const used = Number((data as any)?.used ?? 0);
+          const limit = Number((data as any)?.max ?? (data as any)?.limit ?? 0);
+          setLovaxUsage({ used, limit });
+        }
+      } catch {
+        if (!cancelled) setLovaxUsage(null);
+      }
+    };
+    const loadMethod = async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "licencas.delivery.method")
+        .maybeSingle();
+      const v = (data?.value as any)?.method;
+      if (!cancelled && (v === "flow" || v === "lovax")) setActiveMethod(v);
+    };
+    loadLovax();
+    loadMethod();
+    const id = setInterval(loadLovax, 60_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
   const applyCustomRange = () => {
     if (customRange.from) {
       fetchStats();
