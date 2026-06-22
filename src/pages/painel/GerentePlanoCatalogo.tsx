@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, RefreshCcw, CalendarClock, Power, Users } from "lucide-react";
+import { Loader2, Save, RefreshCcw, CalendarClock, Power, Users, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 type RechargePlan = {
@@ -50,6 +50,13 @@ export default function GerentePlanoCatalogo() {
   >([]);
   const [resellerSearch, setResellerSearch] = useState("");
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [pauseEnabled, setPauseEnabled] = useState<boolean>(false);
+  const [pauseMessage, setPauseMessage] = useState<string>("");
+  const [pauseInitial, setPauseInitial] = useState<{ enabled: boolean; message: string }>({
+    enabled: false,
+    message: "",
+  });
+  const [savingPause, setSavingPause] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -70,6 +77,20 @@ export default function GerentePlanoCatalogo() {
         .eq("key", "recharge_plans_enabled_globally")
         .maybeSingle();
       setGlobalEnabled((gFlag?.value as any) === true);
+
+      const { data: pauseRow } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "plano3k_sales_paused")
+        .maybeSingle();
+      const pv = (pauseRow?.value as any) || {};
+      const initial = {
+        enabled: pv.enabled === true,
+        message: typeof pv.message === "string" ? pv.message : "",
+      };
+      setPauseInitial(initial);
+      setPauseEnabled(initial.enabled);
+      setPauseMessage(initial.message);
 
       const { data: rs } = await supabase
         .from("resellers")
@@ -100,6 +121,33 @@ export default function GerentePlanoCatalogo() {
       toast.error("Erro ao salvar", { description: e.message });
     } finally {
       setSavingGlobal(false);
+    }
+  };
+
+  const pauseDirty =
+    pauseEnabled !== pauseInitial.enabled || pauseMessage !== pauseInitial.message;
+
+  const savePause = async () => {
+    setSavingPause(true);
+    try {
+      const next = { enabled: pauseEnabled, message: pauseMessage };
+      const { error } = await supabase
+        .from("app_settings")
+        .upsert(
+          { key: "plano3k_sales_paused", value: next as any },
+          { onConflict: "key" },
+        );
+      if (error) throw error;
+      setPauseInitial(next);
+      toast.success(
+        next.enabled
+          ? "Vendas do plano pausadas"
+          : "Vendas do plano reativadas",
+      );
+    } catch (e: any) {
+      toast.error("Erro ao salvar", { description: e.message });
+    } finally {
+      setSavingPause(false);
     }
   };
 
