@@ -5,6 +5,8 @@ import { PageHeader, StatCard } from "@/components/painel/PageHeader";
 import FallbackMetricCard from "@/components/painel/FallbackMetricCard";
 import OnlineUsersCard from "@/components/painel/OnlineUsersCard";
 import ManagerStockAlertBanner from "@/components/painel/ManagerStockAlertBanner";
+import { useProviderCommitments } from "@/hooks/useProviderCommitments";
+import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import {
   Package,
   Store,
@@ -38,6 +40,7 @@ import {
   Info,
   Zap,
   CalendarClock,
+  Sparkles,
 } from "lucide-react";
 import {
   Select,
