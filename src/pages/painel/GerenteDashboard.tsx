@@ -1021,13 +1021,17 @@ export default function GerenteDashboard() {
               return (
                 <div className="group rounded-2xl border border-border bg-background/70 p-5 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:border-primary/40 hover:bg-background/90 hover:shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.35)] cursor-default">
                   <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
-                    <Package className="h-3 w-3 text-emerald-500" /> Reserva de Packs · {methodLabel}
+                    <Package className="h-3 w-3 text-emerald-500" />
+                    <span className="truncate">Reserva de Packs</span>
+                    <span className="ml-auto rounded-full bg-emerald-500/10 px-1.5 py-[1px] text-[8px] font-bold tracking-wider text-emerald-500">
+                      {methodLabel}
+                    </span>
                   </div>
-                  <div className="mt-2 font-display font-black tracking-tighter text-xl tabular-nums">
-                    {commitments.loading ? "—" : `${commitments.committed} comprometidas`}
+                  <div className="mt-2 font-display font-black text-emerald-600 text-xl tabular-nums">
+                    {commitments.loading ? "—" : commitments.committed}
                   </div>
                   <div className="mt-1 text-[10px] text-muted-foreground">
-                    Disponível real: {Number.isFinite(realAvail) ? realAvail : "∞"}
+                    comprometidas · disponível: {Number.isFinite(realAvail) ? realAvail : "∞"}
                   </div>
                 </div>
               );
