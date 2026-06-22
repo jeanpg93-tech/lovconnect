@@ -565,6 +565,17 @@ Deno.serve(async (req) => {
       if (!planoId) return errResp(400, "MISSING_PLAN", "Campo planoId é obrigatório");
       if (nome.length < 2) return errResp(400, "INVALID_NAME", "Informe o nome do cliente");
 
+      // Manutenção global de vendas do Plano 3K
+      const { data: pauseRow } = await admin
+        .from("app_settings")
+        .select("value")
+        .eq("key", "plano3k_sales_paused")
+        .maybeSingle();
+      const pause = (pauseRow?.value as any) || {};
+      if (pause.enabled === true) {
+        return errResp(503, "PLAN_SALES_PAUSED", pause.message || "Vendas do plano temporariamente em manutenção.");
+      }
+
       // Carrega plano + preço do revendedor
       const { data: plan } = await admin
         .from("recharge_plans")

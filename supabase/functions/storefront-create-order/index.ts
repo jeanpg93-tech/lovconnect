@@ -88,6 +88,18 @@ Deno.serve(async (req) => {
       if (!globallyEnabled && !(reseller as any).recharge_plans_enabled) {
         return json({ error: "Plano de recarga ainda não liberado para esta loja" }, 403);
       }
+      // Manutenção global de vendas do Plano 3K
+      const { data: pauseRow } = await admin
+        .from("app_settings")
+        .select("value")
+        .eq("key", "plano3k_sales_paused")
+        .maybeSingle();
+      const pause = (pauseRow?.value as any) || {};
+      if (pause.enabled === true) {
+        return json({
+          error: pause.message || "Vendas do plano temporariamente em manutenção.",
+        }, 503);
+      }
       const { data: plan } = await admin
         .from("recharge_plans")
         .select("*")
