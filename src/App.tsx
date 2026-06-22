@@ -8,10 +8,10 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { isChunkLoadError, requestFreshChunkReload } from "@/lib/chunk-recovery";
+import Auth from "./pages/Auth.tsx";
+import NotFound from "./pages/NotFound.tsx";
 
-const Auth = lazy(() => lazyWithChunkRecovery(() => import("./pages/Auth.tsx")));
 const ResetPassword = lazy(() => lazyWithChunkRecovery(() => import("./pages/ResetPassword.tsx")));
-const NotFound = lazy(() => lazyWithChunkRecovery(() => import("./pages/NotFound.tsx")));
 const AppLayout = lazy(() => lazyWithChunkRecovery(() => import("./components/layout/AppLayout")));
 const PublicStorefront = lazy(() => lazyWithChunkRecovery(() => import("./pages/PublicStorefront")));
 const PublicExtension = lazy(() => lazyWithChunkRecovery(() => import("./pages/PublicExtension")));
