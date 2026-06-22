@@ -980,7 +980,7 @@ export default function GerenteDashboard() {
 
           {/* Hero KPI strip */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="rounded-2xl border border-border bg-background/70 p-5 backdrop-blur">
+            <div className="group rounded-2xl border border-border bg-background/70 p-5 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:border-primary/40 hover:bg-background/90 hover:shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.35)] cursor-default">
               <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
                 <TrendingUp className="h-3 w-3 text-emerald-500" /> Recargas hoje
               </div>
@@ -992,7 +992,7 @@ export default function GerenteDashboard() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border bg-background/70 p-5 backdrop-blur">
+            <div className="group rounded-2xl border border-border bg-background/70 p-5 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:border-primary/40 hover:bg-background/90 hover:shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.35)] cursor-default">
               <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
                 <Sparkles className="h-3 w-3 text-violet-500" /> MétodoLovax
                 {activeMethod === "lovax" && (
@@ -1019,7 +1019,7 @@ export default function GerenteDashboard() {
                 : Number.POSITIVE_INFINITY;
               const methodLabel = activeMethod === "flow" ? "MétodoFlow" : "MétodoLovax";
               return (
-                <div className="rounded-2xl border border-border bg-background/70 p-5 backdrop-blur">
+                <div className="group rounded-2xl border border-border bg-background/70 p-5 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:border-primary/40 hover:bg-background/90 hover:shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.35)] cursor-default">
                   <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
                     <Package className="h-3 w-3 text-emerald-500" /> Reserva de Packs · {methodLabel}
                   </div>
