@@ -63,6 +63,20 @@ Deno.serve(async (req) => {
     if (!plan.is_active) return json({ error: "plan_inactive" }, 400);
     if (!plan.bot_owner_email) return json({ error: "plan_not_ready" }, 400);
 
+    // Manutenção de vendas do Plano 3K
+    const { data: pauseRow } = await admin
+      .from("app_settings")
+      .select("value")
+      .eq("key", "plano3k_sales_paused")
+      .maybeSingle();
+    const pause = (pauseRow?.value as any) || {};
+    if (pause.enabled === true) {
+      return json({
+        error: "plan_sales_paused",
+        message: pause.message || "Vendas do plano temporariamente em manutenção.",
+      }, 503);
+    }
+
     const { data: price } = await admin
       .from("reseller_recharge_plan_prices")
       .select("sale_price_cents, is_active")

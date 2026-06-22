@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, CalendarClock, Store } from "lucide-react";
+import { Loader2, Save, CalendarClock, Store, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 type RechargePlan = {
@@ -50,6 +50,10 @@ export default function RevendedorPlanoPreco() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [featureEnabled, setFeatureEnabled] = useState<boolean>(true);
+  const [salesPaused, setSalesPaused] = useState<{ enabled: boolean; message: string }>({
+    enabled: false,
+    message: "",
+  });
 
   const load = async () => {
     setLoading(true);
@@ -74,6 +78,18 @@ export default function RevendedorPlanoPreco() {
       const enabled =
         (gFlag?.value as any) === true || !!(r as any).recharge_plans_enabled;
       setFeatureEnabled(enabled);
+
+      const { data: pauseRow } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "plano3k_sales_paused")
+        .maybeSingle();
+      const pv = (pauseRow?.value as any) || {};
+      setSalesPaused({
+        enabled: pv.enabled === true,
+        message: typeof pv.message === "string" ? pv.message : "",
+      });
+
       if (!enabled) {
         setPlan(null);
         setLoading(false);
@@ -174,7 +190,20 @@ export default function RevendedorPlanoPreco() {
   }
 
   return (
-    <Card>
+    <div className="space-y-4">
+      {salesPaused.enabled && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-amber-700 dark:text-amber-300">
+          <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <p className="font-semibold">Novas vendas do plano em manutenção</p>
+            <p className="opacity-90">
+              {salesPaused.message ||
+                "Estamos em manutenção. Novas vendas deste plano estão temporariamente pausadas. Planos já vendidos continuam sendo entregues normalmente."}
+            </p>
+          </div>
+        </div>
+      )}
+      <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CalendarClock className="h-5 w-5 text-primary" />
@@ -267,6 +296,7 @@ export default function RevendedorPlanoPreco() {
           </Button>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   );
 }
