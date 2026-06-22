@@ -1,5 +1,5 @@
-import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "jsr:@supabase/supabase-js@2/cors";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 // corsHeaders imported from SDK
 
