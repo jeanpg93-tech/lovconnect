@@ -716,16 +716,6 @@ export function AppSidebar() {
               <Zap className="h-4 w-4" />
             </NavLink>
             <NavLink
-              to="/painel/gerente/todas-licencas?tab=api"
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-md border bg-violet-500/10 text-violet-500",
-                activeMethod === "lovax" ? "border-violet-500 ring-1 ring-violet-500/50" : "border-violet-500/30"
-              )}
-              title={lovaxUsage ? `MétodoLovax — Licenças usadas: ${lovaxUsage.used}/${lovaxUsage.limit || "∞"}` : "MétodoLovax"}
-            >
-              <Sparkles className="h-4 w-4" />
-            </NavLink>
-            <NavLink
               to="/painel/gerente/gateway"
               className="flex h-8 w-8 items-center justify-center rounded-md border border-purple-500/30 bg-purple-500/10 text-purple-500"
               title={gatewayBalance ? `Saldo Gateway (MisticPay): R$ ${Number(gatewayBalance).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Saldo no Gateway"}
