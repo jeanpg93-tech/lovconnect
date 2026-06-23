@@ -7,7 +7,7 @@
   const hasExtensionRuntime = () =>
     typeof chrome !== "undefined" && !!chrome.runtime && !!chrome.runtime.id;
 
-  if (typeof chrome === "undefined") {
+  if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) {
     const listeners = [];
     const readStore = () => {
       try { return JSON.parse(localStorage.getItem("lov-sidepanel-store") || "{}"); }
@@ -24,6 +24,7 @@
       return Object.keys(keys).reduce((acc, key) => ({ ...acc, [key]: store[key] ?? keys[key] }), {});
     };
     window.chrome = {
+      ...(typeof chrome !== "undefined" ? chrome : {}),
       storage: {
         local: {
           get: (keys, cb) => cb && cb(pickValues(readStore(), keys)),
