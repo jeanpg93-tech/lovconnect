@@ -4,6 +4,50 @@
 // ============================================================
 
 (function(){
+  const hasExtensionRuntime = () =>
+    typeof chrome !== "undefined" && !!chrome.runtime && !!chrome.runtime.id;
+
+  if (typeof chrome === "undefined") {
+    const listeners = [];
+    const readStore = () => {
+      try { return JSON.parse(localStorage.getItem("lov-sidepanel-store") || "{}"); }
+      catch (_) { return {}; }
+    };
+    const writeStore = (store) => {
+      try { localStorage.setItem("lov-sidepanel-store", JSON.stringify(store)); }
+      catch (_) {}
+    };
+    const pickValues = (store, keys) => {
+      if (!keys) return { ...store };
+      if (Array.isArray(keys)) return keys.reduce((acc, key) => ({ ...acc, [key]: store[key] }), {});
+      if (typeof keys === "string") return { [keys]: store[keys] };
+      return Object.keys(keys).reduce((acc, key) => ({ ...acc, [key]: store[key] ?? keys[key] }), {});
+    };
+    window.chrome = {
+      storage: {
+        local: {
+          get: (keys, cb) => cb && cb(pickValues(readStore(), keys)),
+          set: (values, cb) => {
+            const store = { ...readStore(), ...values };
+            writeStore(store);
+            listeners.forEach((listener) => listener(values, "local"));
+            if (cb) cb();
+          },
+          remove: (keys, cb) => {
+            const store = readStore();
+            (Array.isArray(keys) ? keys : [keys]).forEach((key) => delete store[key]);
+            writeStore(store);
+            if (cb) cb();
+          },
+        },
+        onChanged: { addListener: (listener) => listeners.push(listener) },
+      },
+      runtime: { sendMessage: (_msg, cb) => cb && cb(null), lastError: null },
+      tabs: { query: (_query, cb) => cb && cb([]) },
+      scripting: { executeScript: () => Promise.resolve() },
+    };
+  }
+
   const SUPABASE_URL = "https://ynvrijkuampxpsmshftm.supabase.co";
   const VALIDATE_URL = SUPABASE_URL + "/functions/v1/validate-license";
   const OPTIMIZE_URL = SUPABASE_URL + "/functions/v1/optimize-prompt";
@@ -27,7 +71,7 @@
   function safeSendMessage(msg) {
     return new Promise((resolve, reject) => {
       try {
-        if (!chrome.runtime || !chrome.runtime.id) return reject(new Error("Extension context invalidated"));
+        if (!hasExtensionRuntime()) return reject(new Error("Extension context unavailable"));
         chrome.runtime.sendMessage(msg, (resp) => {
           if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
           resolve(resp);
@@ -39,7 +83,21 @@
   function bgFetch(url, opts = {}) {
     return new Promise((resolve, reject) => {
       try {
-        if (!chrome.runtime || !chrome.runtime.id) return reject(new Error("Extension context invalidated"));
+        if (!hasExtensionRuntime()) {
+          fetch(url, {
+            method: opts.method || "POST",
+            headers: opts.headers || {},
+            body: opts.body || null,
+          })
+            .then(async (resp) => {
+              const text = await resp.text();
+              const data = text ? JSON.parse(text) : null;
+              if (!resp.ok) throw new Error((data && (data.error || data.message)) || "Fetch failed (" + resp.status + ")");
+              resolve(data);
+            })
+            .catch(reject);
+          return;
+        }
         chrome.runtime.sendMessage({ action: "proxyFetch", url, method: opts.method || "POST", headers: opts.headers || {}, body: opts.body || null }, (resp) => {
           if(chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
           if(!resp) return reject(new Error("No response"));
@@ -70,7 +128,7 @@
   document.getElementById('sp-back-to-popup').addEventListener('click', () => {
     try { chrome.storage.local.set({ ql_sidebar_mode: false }); } catch(e) {}
     try { chrome.runtime.sendMessage({ action: "deactivateSidebar" }); } catch(e) {}
-    try { window.close(); } catch(e) {}
+    try { hasExtensionRuntime() ? window.close() : window.location.assign('/painel'); } catch(e) {}
   });
 
   document.querySelector('.sp-theme-btn').addEventListener('click', () => {
