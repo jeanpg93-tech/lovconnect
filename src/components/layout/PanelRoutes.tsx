@@ -220,7 +220,7 @@ export function PanelRoutes() {
   const matched = ROUTES.find((r) => r.match(pathname));
 
   if (loading && !hasData) {
-    return null;
+    return <PageFallback />;
   }
 
   if (!matched) {
