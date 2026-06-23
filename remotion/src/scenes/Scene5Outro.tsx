@@ -10,7 +10,7 @@ export const Scene5Outro: React.FC = () => {
   const taglineWords = ["Sua", "marca.", "Seu", "painel.", "No", "automático."];
   return (
     <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-      <div style={{ opacity: interpolate(frame, [10, 28], [0, 1], { extrapolateRight: "clamp" }), transform: `translateY(${interpolate(frame, [10, 28], [10, 0], { extrapolateRight: "clamp" })}px)`, fontFamily: theme.body, fontSize: 18, letterSpacing: "0.4em", color: theme.textDim, textTransform: "uppercase", marginBottom: 32 }}>— Apresenta</div>
+      <div style={{ opacity: interpolate(frame, [10, 28], [0, 1], { extrapolateRight: "clamp" }), transform: `translateY(${interpolate(frame, [10, 28], [10, 0], { extrapolateRight: "clamp" })}px)`, fontFamily: theme.body, fontSize: 18, letterSpacing: "0.4em", color: theme.textDim, textTransform: "uppercase", marginBottom: 32 }}>— A nova era da revenda</div>
       <div style={{ fontFamily: theme.display, fontSize: 200, fontWeight: 700, color: theme.text, letterSpacing: "-0.05em", lineHeight: 1, transform: `scale(${interpolate(logoS, [0, 1], [0.7, 1])}) translateY(${idle(frame - 30, 5, 70)}px)`, opacity: interpolate(logoS, [0, 1], [0, 1]), textShadow: `0 0 40px ${theme.primary}66, 0 0 120px ${theme.primary}33` }}>
         lov<span style={{ color: theme.primary }}>connect</span>
       </div>
