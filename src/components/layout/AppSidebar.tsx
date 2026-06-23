@@ -762,15 +762,30 @@ export function AppSidebar() {
                     <Package className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
-                      Reserva de Packs · {methodLabel}
+                    <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
+                      <span className="truncate">Reserva · {methodLabel}</span>
+                      {overcommitted && (
+                        <span className="rounded-full bg-destructive/15 px-1.5 py-[1px] text-[8px] font-bold tracking-wider text-destructive">
+                          ALERTA
+                        </span>
+                      )}
                     </div>
                     <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
-                      {commitments.loading ? "—" : `${commitments.committed} comprometidas`}
+                      {commitments.loading ? "—" : commitments.committed}
                     </div>
                     <div className="mt-0.5 text-[9px] text-muted-foreground/80 leading-none">
-                      Disponível real: {Number.isFinite(realAvail) ? realAvail : "∞"}
+                      comprometidas
                     </div>
+                    {!commitments.loading && (
+                      <div
+                        className={cn(
+                          "mt-0.5 text-[9px] font-semibold leading-none tabular-nums",
+                          overcommitted ? "text-destructive" : "text-emerald-500/90"
+                        )}
+                      >
+                        {Number.isFinite(realAvail) ? realAvail : "∞"} disponíveis
+                      </div>
+                    )}
                   </div>
                 </NavLink>
               );
