@@ -34,14 +34,3 @@ primeAudioOnFirstGesture();
 window.setTimeout(resetChunkReloadAttempts, 10_000);
 
 createRoot(document.getElementById("root")!).render(<App />);
-
-// Remove o boot loader assim que o React montou.
-queueMicrotask(() => {
-  const boot = document.getElementById("lov-boot");
-  if (boot) {
-    boot.style.transition = "opacity 200ms ease";
-    boot.style.opacity = "0";
-    setTimeout(() => boot.remove(), 220);
-  }
-});
-
