@@ -5,8 +5,6 @@ import { PageHeader, StatCard } from "@/components/painel/PageHeader";
 import FallbackMetricCard from "@/components/painel/FallbackMetricCard";
 import OnlineUsersCard from "@/components/painel/OnlineUsersCard";
 import ManagerStockAlertBanner from "@/components/painel/ManagerStockAlertBanner";
-import { useProviderCommitments } from "@/hooks/useProviderCommitments";
-import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import {
   Package,
   Store,
@@ -40,7 +38,6 @@ import {
   Info,
   Zap,
   CalendarClock,
-  Sparkles,
 } from "lucide-react";
 import {
   Select,
@@ -155,9 +152,6 @@ export default function GerenteDashboard() {
   });
   const [gatewayBalance, setGatewayBalance] = useState<string>("R$ 0,00");
   const [providerBalance, setProviderBalance] = useState<string>("R$ 0,00");
-  const [lovaxUsage, setLovaxUsage] = useState<{ used: number; limit: number } | null>(null);
-  const [activeMethod, setActiveMethod] = useState<"flow" | "lovax">("flow");
-  const commitments = useProviderCommitments(true);
   const [todayRecharge, setTodayRecharge] = useState<{ cents: number; count: number }>({ cents: 0, count: 0 });
   const [creditMovements, setCreditMovements] = useState<{
     id: string;
@@ -783,39 +777,6 @@ export default function GerenteDashboard() {
     fetchStats();
   }, [period, orderPage, apiLogPage]);
 
-  // Lovax usage + método ativo (para os cards do Hero)
-  useEffect(() => {
-    let cancelled = false;
-    const loadLovax = async () => {
-      try {
-        const { data, error } = await invokeAuthenticatedFunction("lovax-api?action=status", { method: "GET" });
-        if (cancelled) return;
-        if (error || (data as any)?.error || (data as any)?.provider_error) {
-          setLovaxUsage(null);
-        } else {
-          const used = Number((data as any)?.used ?? 0);
-          const limit = Number((data as any)?.max ?? (data as any)?.limit ?? 0);
-          setLovaxUsage({ used, limit });
-        }
-      } catch {
-        if (!cancelled) setLovaxUsage(null);
-      }
-    };
-    const loadMethod = async () => {
-      const { data } = await supabase
-        .from("app_settings")
-        .select("value")
-        .eq("key", "licencas.delivery.method")
-        .maybeSingle();
-      const v = (data?.value as any)?.method;
-      if (!cancelled && (v === "flow" || v === "lovax")) setActiveMethod(v);
-    };
-    loadLovax();
-    loadMethod();
-    const id = setInterval(loadLovax, 60_000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, []);
-
   const applyCustomRange = () => {
     if (customRange.from) {
       fetchStats();
@@ -913,8 +874,10 @@ export default function GerenteDashboard() {
               </span>
             </div>
 
-            <h1 className="font-display text-2xl font-black tracking-tighter sm:text-3xl lg:text-4xl leading-[1]">
-              Dashboard <span className="text-primary italic">Geral.</span>
+            <h1 className="font-display text-4xl font-black tracking-tighter sm:text-6xl lg:text-7xl leading-[0.9]">
+              Dashboard
+              <br />
+              <span className="text-primary italic">Geral.</span>
             </h1>
             <p className="max-w-xl text-sm text-muted-foreground leading-relaxed">
               Monitoramento em tempo real do ecossistema. Métricas, vendas e
@@ -979,8 +942,8 @@ export default function GerenteDashboard() {
           </div>
 
           {/* Hero KPI strip */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="group rounded-2xl border border-border bg-background/70 p-5 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:border-primary/40 hover:bg-background/90 hover:shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.35)] cursor-default">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-border bg-background/70 p-5 backdrop-blur">
               <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
                 <TrendingUp className="h-3 w-3 text-emerald-500" /> Recargas hoje
               </div>
@@ -991,47 +954,17 @@ export default function GerenteDashboard() {
                 {todayRecharge.count} recargas{todayRecharge.count === 1 ? "" : "s"} no MisticPay
               </div>
             </div>
-
-            <div className="group rounded-2xl border border-border bg-background/70 p-5 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:border-primary/40 hover:bg-background/90 hover:shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.35)] cursor-default">
+            <div className="rounded-2xl border border-border bg-background/70 p-5 backdrop-blur">
               <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
-                <Sparkles className="h-3 w-3 text-violet-500" /> MétodoLovax
-                {activeMethod === "lovax" && (
-                  <span className="rounded-full bg-violet-500/15 px-1.5 py-[1px] text-[8px] font-bold tracking-wider text-violet-500">
-                    ATIVO
-                  </span>
-                )}
+                <Wallet className="h-3 w-3 text-primary" /> Saldo Provedor
               </div>
-              <div className="mt-2 font-display font-black tracking-tighter text-xl tabular-nums">
-                {lovaxUsage ? `${lovaxUsage.used}/${lovaxUsage.limit || "∞"}` : "—"}
+              <div className="mt-2 font-display font-black tracking-tighter text-xl">
+                {providerBalance}
               </div>
               <div className="mt-1 text-[10px] text-muted-foreground">
-                {lovaxUsage && lovaxUsage.limit
-                  ? `${Math.max(0, lovaxUsage.limit - lovaxUsage.used)} licenças restantes`
-                  : "Licenças usadas / limite"}
+                recarga disponível para recargas
               </div>
             </div>
-
-            {(() => {
-              const methodRemaining =
-                activeMethod === "flow" ? commitments.flowRemaining : commitments.lovaxRemaining;
-              const realAvail = Number.isFinite(methodRemaining)
-                ? Math.max(0, methodRemaining - commitments.committed)
-                : Number.POSITIVE_INFINITY;
-              const methodLabel = activeMethod === "flow" ? "MétodoFlow" : "MétodoLovax";
-              return (
-                <div className="group rounded-2xl border border-border bg-background/70 p-5 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:border-primary/40 hover:bg-background/90 hover:shadow-[0_8px_30px_-12px_hsl(var(--primary)/0.35)] cursor-default">
-                  <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
-                    <Package className="h-3 w-3 text-emerald-500" /> Reserva de Packs · {methodLabel}
-                  </div>
-                  <div className="mt-2 font-display font-black tracking-tighter text-xl tabular-nums">
-                    {commitments.loading ? "—" : `${commitments.committed} comprometidas`}
-                  </div>
-                  <div className="mt-1 text-[10px] text-muted-foreground">
-                    Disponível real: {Number.isFinite(realAvail) ? realAvail : "∞"}
-                  </div>
-                </div>
-              );
-            })()}
           </div>
         </div>
       </section>

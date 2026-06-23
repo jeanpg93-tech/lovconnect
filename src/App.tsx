@@ -82,8 +82,6 @@ const App = () => (
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<Navigate to="/auth" replace />} />
-                <Route path="/index" element={<Navigate to="/painel" replace />} />
-                <Route path="/sidepanel.html" element={<Navigate to="/painel" replace />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/banned" element={<Banned />} />

@@ -34,3 +34,4 @@ primeAudioOnFirstGesture();
 window.setTimeout(resetChunkReloadAttempts, 10_000);
 
 createRoot(document.getElementById("root")!).render(<App />);
+
