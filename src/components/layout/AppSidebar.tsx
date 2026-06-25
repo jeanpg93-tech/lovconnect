@@ -156,6 +156,7 @@ const dangerItemsByRole: Partial<Record<AppRole, { title: string; url: string; i
     { title: "Gateway de pagamento", url: "/painel/gerente/gateway", icon: CreditCard },
     { title: "API Método", url: "/painel/gerente/api-provedor", icon: KeyRound },
     { title: "API Recargas", url: "/painel/gerente/api-recargas", icon: Coins },
+    { title: "API Claude", url: "/painel/gerente/api-claude", icon: Sparkles },
     { title: "API Revendedor", url: "/painel/gerente/api-revendedor", icon: KeyRound },
     { title: "Resetar chave", url: "/painel/gerente/resetar-chave", icon: RotateCcw },
     { title: "Instalar App", url: "/painel/gerente/instalar-app", icon: Smartphone },
