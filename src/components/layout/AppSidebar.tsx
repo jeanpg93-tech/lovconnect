@@ -128,6 +128,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
     { label: "Minhas vendas", items: [
       { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
       { title: "Plano 3K", url: "/painel/revendedor/planos-vendidos", icon: CalendarClock },
+      { title: "API Claude", url: "/painel/revendedor/claude", icon: Sparkles },
       { title: "Licenças", url: "/painel/revendedor/licencas", icon: Puzzle },
     ]},
     { label: "Configurarações", items: [
@@ -216,6 +217,7 @@ export function AppSidebar() {
   const [tier, setTier] = useState<{ name: string; color: string; slug: string } | null>(null);
   const [storeEnabled, setStoreEnabled] = useState<boolean | null>(null);
   const [isPartner, setIsPartner] = useState<boolean>(false);
+  const [claudeEnabled, setClaudeEnabled] = useState<boolean>(false);
   const [profile, setProfile] = useState<{ display_name: string | null; avatar_url: string | null; email: string | null }>({ display_name: null, avatar_url: null, email: null });
 
   const isManager = primaryRole === "gerente";
@@ -251,8 +253,9 @@ export function AppSidebar() {
     
     const load = async () => {
       try {
-        const { data: r, error: rErr } = await supabase.from("resellers").select("id").eq("user_id", user.id).maybeSingle();
+        const { data: r, error: rErr } = await supabase.from("resellers").select("id, claude_enabled").eq("user_id", user.id).maybeSingle();
         if (!r || cancelled || rErr) return;
+        setClaudeEnabled(!!(r as any).claude_enabled);
 
         const [balanceRes, tierRes, storeRes, partnerRes] = await Promise.all([
           supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
@@ -421,6 +424,7 @@ export function AppSidebar() {
     label: isPack && group.label === "Minhas vendas" ? "Vendas - Saldo" : group.label,
     items: group.items.filter(item => {
       if (isPartner && item.url === "/painel/revendedor/niveis") return false;
+      if (!claudeEnabled && item.url === "/painel/revendedor/claude") return false;
       // Filtra grupos por modo
       if (group.label === "Vendas - Packs" && !isPack) return false;
       if (group.label === "Mensalidade" && !isSubscription) return false;
