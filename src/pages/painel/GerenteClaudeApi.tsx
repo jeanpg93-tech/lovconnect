@@ -80,6 +80,38 @@ function BalanceTab() {
   };
   useEffect(() => { load(); }, []);
 
+  // Pega o "payload" real (alguns provedores embrulham em { data: {...} })
+  const payload: any = data?.data && typeof data.data === "object" ? data.data : data;
+
+  const scalarEntries: Array<[string, any]> = payload && typeof payload === "object"
+    ? Object.entries(payload).filter(([, v]) => v === null || ["string", "number", "boolean"].includes(typeof v))
+    : [];
+  const arrayEntries: Array<[string, any[]]> = payload && typeof payload === "object"
+    ? Object.entries(payload).filter(([, v]) => Array.isArray(v)) as Array<[string, any[]]>
+    : [];
+
+  const FIELD_LABELS: Record<string, string> = {
+    balance: "Saldo disponível",
+    available_balance: "Saldo disponível",
+    availableBalance: "Saldo disponível",
+    blocked_balance: "Saldo bloqueado",
+    blockedBalance: "Saldo bloqueado",
+    credits: "Créditos",
+    stock: "Estoque",
+    email: "E-mail",
+    name: "Nome",
+    username: "Usuário",
+    plan: "Plano",
+  };
+  const isMoneyField = (k: string) => /balance|saldo|valor|price|preco|preço/i.test(k);
+  const fmt = (k: string, v: any) => {
+    if (v === null || v === undefined || v === "") return "—";
+    if (typeof v === "boolean") return v ? "Sim" : "Não";
+    if (typeof v === "number" && isMoneyField(k))
+      return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    return String(v);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -89,15 +121,57 @@ function BalanceTab() {
         </Button>
       </div>
       {error && <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>}
-      {!error && (
-        <div className="rounded-xl border border-border bg-card/60 p-5">
-          <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-            <Wallet className="h-3.5 w-3.5 text-primary" /> Resposta do fornecedor
-          </div>
-          <pre className="overflow-auto rounded-lg bg-background/60 p-3 text-xs">
-            {data ? JSON.stringify(data, null, 2) : (loading ? "Carregando..." : "—")}
-          </pre>
-        </div>
+      {!error && loading && !data && (
+        <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+      )}
+      {!error && data && (
+        <>
+          {scalarEntries.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {scalarEntries.map(([k, v]) => (
+                <div key={k} className="rounded-xl border border-border bg-card/60 p-4">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+                    <Wallet className="h-3.5 w-3.5 text-primary" />
+                    {FIELD_LABELS[k] ?? k.replace(/_/g, " ")}
+                  </div>
+                  <div className="mt-1 font-display text-xl font-semibold tabular-nums">
+                    {fmt(k, v)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {arrayEntries.map(([k, arr]) => (
+            <div key={k} className="rounded-xl border border-border bg-card/60 p-5">
+              <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+                {FIELD_LABELS[k] ?? k.replace(/_/g, " ")} <Badge variant="secondary">{arr.length}</Badge>
+              </div>
+              <div className="space-y-2">
+                {arr.map((item, i) => (
+                  <div key={i} className="rounded-lg border border-border/60 bg-background/40 p-3 text-sm">
+                    {typeof item === "object" && item !== null ? (
+                      <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
+                        {Object.entries(item).map(([ik, iv]) => (
+                          <div key={ik} className="flex justify-between gap-3">
+                            <span className="text-muted-foreground">{FIELD_LABELS[ik] ?? ik.replace(/_/g, " ")}</span>
+                            <span className="font-medium tabular-nums">{fmt(ik, iv)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      String(item)
+                    )}
+                  </div>
+                ))}
+                {arr.length === 0 && <div className="text-sm text-muted-foreground">Vazio.</div>}
+              </div>
+            </div>
+          ))}
+          <details className="rounded-xl border border-border bg-card/40 p-3 text-xs">
+            <summary className="cursor-pointer text-muted-foreground">Ver resposta bruta do fornecedor</summary>
+            <pre className="mt-2 overflow-auto rounded-lg bg-background/60 p-3">{JSON.stringify(data, null, 2)}</pre>
+          </details>
+        </>
       )}
     </div>
   );
