@@ -383,6 +383,151 @@ export type Database = {
           },
         ]
       }
+      claude_orders: {
+        Row: {
+          code: string | null
+          code_revealed_at: string | null
+          cost_cents: number
+          created_at: string
+          customer_identifier: string | null
+          error_message: string | null
+          id: string
+          plan_code: Database["public"]["Enums"]["claude_plan_code"]
+          profit_cents: number
+          provider_key_id: string | null
+          provider_response: Json | null
+          request_id: string | null
+          reseller_id: string
+          sale_price_cents: number
+          status: Database["public"]["Enums"]["claude_order_status"]
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          code_revealed_at?: string | null
+          cost_cents?: number
+          created_at?: string
+          customer_identifier?: string | null
+          error_message?: string | null
+          id?: string
+          plan_code: Database["public"]["Enums"]["claude_plan_code"]
+          profit_cents?: number
+          provider_key_id?: string | null
+          provider_response?: Json | null
+          request_id?: string | null
+          reseller_id: string
+          sale_price_cents?: number
+          status?: Database["public"]["Enums"]["claude_order_status"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          code_revealed_at?: string | null
+          cost_cents?: number
+          created_at?: string
+          customer_identifier?: string | null
+          error_message?: string | null
+          id?: string
+          plan_code?: Database["public"]["Enums"]["claude_plan_code"]
+          profit_cents?: number
+          provider_key_id?: string | null
+          provider_response?: Json | null
+          request_id?: string | null
+          reseller_id?: string
+          sale_price_cents?: number
+          status?: Database["public"]["Enums"]["claude_order_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claude_orders_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      claude_plan_prices: {
+        Row: {
+          cost_cents: number
+          created_at: string
+          id: string
+          is_active: boolean
+          markup_mode: Database["public"]["Enums"]["claude_markup_mode"]
+          markup_value_cents: number
+          plan_code: Database["public"]["Enums"]["claude_plan_code"]
+          sale_price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          cost_cents?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          markup_mode?: Database["public"]["Enums"]["claude_markup_mode"]
+          markup_value_cents?: number
+          plan_code: Database["public"]["Enums"]["claude_plan_code"]
+          sale_price_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          cost_cents?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          markup_mode?: Database["public"]["Enums"]["claude_markup_mode"]
+          markup_value_cents?: number
+          plan_code?: Database["public"]["Enums"]["claude_plan_code"]
+          sale_price_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      claude_reseller_price_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          markup_mode: Database["public"]["Enums"]["claude_markup_mode"]
+          markup_value_cents: number
+          plan_code: Database["public"]["Enums"]["claude_plan_code"]
+          reseller_id: string
+          sale_price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          markup_mode?: Database["public"]["Enums"]["claude_markup_mode"]
+          markup_value_cents?: number
+          plan_code: Database["public"]["Enums"]["claude_plan_code"]
+          reseller_id: string
+          sale_price_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          markup_mode?: Database["public"]["Enums"]["claude_markup_mode"]
+          markup_value_cents?: number
+          plan_code?: Database["public"]["Enums"]["claude_plan_code"]
+          reseller_id?: string
+          sale_price_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claude_reseller_price_overrides_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_extensions: {
         Row: {
           client_id: string
@@ -3429,6 +3574,7 @@ export type Database = {
           activation_status: string
           billing_mode: string
           bonus_min_tier_id: string | null
+          claude_enabled: boolean
           created_at: string
           delivery_source: string
           display_name: string
@@ -3454,6 +3600,7 @@ export type Database = {
           activation_status?: string
           billing_mode?: string
           bonus_min_tier_id?: string | null
+          claude_enabled?: boolean
           created_at?: string
           delivery_source?: string
           display_name: string
@@ -3479,6 +3626,7 @@ export type Database = {
           activation_status?: string
           billing_mode?: string
           bonus_min_tier_id?: string | null
+          claude_enabled?: boolean
           created_at?: string
           delivery_source?: string
           display_name?: string
@@ -4321,6 +4469,14 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claude_compute_sale_price: {
+        Args: {
+          cost_cents: number
+          mode: Database["public"]["Enums"]["claude_markup_mode"]
+          value_cents: number
+        }
+        Returns: number
+      }
       cleanup_old_trial_registrations: {
         Args: { _days?: number }
         Returns: number
@@ -4680,6 +4836,13 @@ export type Database = {
     }
     Enums: {
       app_role: "gerente" | "revendedor" | "cliente"
+      claude_markup_mode: "percent" | "fixed_add" | "final"
+      claude_order_status: "pending" | "issued" | "failed" | "refunded"
+      claude_plan_code:
+        | "mini_token"
+        | "medium_token"
+        | "mini_subscription"
+        | "medium_subscription"
       onboarding_tour_status: "pending" | "completed" | "skipped"
       recharge_plan_delivery_status:
         | "pending"
@@ -4823,6 +4986,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["gerente", "revendedor", "cliente"],
+      claude_markup_mode: ["percent", "fixed_add", "final"],
+      claude_order_status: ["pending", "issued", "failed", "refunded"],
+      claude_plan_code: [
+        "mini_token",
+        "medium_token",
+        "mini_subscription",
+        "medium_subscription",
+      ],
       onboarding_tour_status: ["pending", "completed", "skipped"],
       recharge_plan_delivery_status: [
         "pending",
