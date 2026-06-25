@@ -265,7 +265,11 @@ function PricesTab() {
         </Button>
       </div>
       {rows.map((r) => (
-        <PriceCard key={r.id} row={r} onSaved={(u) => setRows((rs) => rs.map((x) => x.id === u.id ? u : x))} />
+        <PriceCard
+          key={`${r.id}:${r.cost_cents}:${r.sale_price_cents}:${r.markup_mode}:${r.markup_value_cents}`}
+          row={r}
+          onSaved={(u) => setRows((rs) => rs.map((x) => x.id === u.id ? u : x))}
+        />
       ))}
     </div>
   );
