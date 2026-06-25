@@ -12,16 +12,16 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart3, Tag, Users, Loader2, RefreshCw, Save, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
-type PlanCode = "mini_token" | "medium_token" | "mini_subscription" | "medium_subscription";
+type PlanCode = "5x_7d" | "5x_30d" | "20x_30d" | "pro_30d";
 type MarkupMode = "percent" | "fixed_add" | "final";
 
 const PLAN_LABELS: Record<PlanCode, string> = {
-  mini_token: "Mini (Token)",
-  medium_token: "Medium (Token)",
-  mini_subscription: "Mini (Assinatura)",
-  medium_subscription: "Medium (Assinatura)",
+  "5x_7d": "5x_7d",
+  "5x_30d": "5x_30d",
+  "20x_30d": "20x_30d",
+  "pro_30d": "pro_30d",
 };
-const PLAN_ORDER: PlanCode[] = ["mini_token", "medium_token", "mini_subscription", "medium_subscription"];
+const PLAN_ORDER: PlanCode[] = ["5x_7d", "5x_30d", "20x_30d", "pro_30d"];
 
 type PlanPrice = {
   id: string;
@@ -205,22 +205,65 @@ function BalanceTab() {
 function PricesTab() {
   const [rows, setRows] = useState<PlanPrice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from("claude_plan_prices").select("*");
-      const ordered = PLAN_ORDER
-        .map((pc) => (data ?? []).find((d: any) => d.plan_code === pc))
-        .filter(Boolean) as PlanPrice[];
-      setRows(ordered);
-      setLoading(false);
-    })();
-  }, []);
+  const load = async () => {
+    const { data } = await supabase.from("claude_plan_prices").select("*");
+    const ordered = PLAN_ORDER
+      .map((pc) => (data ?? []).find((d: any) => d.plan_code === pc))
+      .filter(Boolean) as PlanPrice[];
+    setRows(ordered);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const syncFromProvider = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await invokeAuthenticatedFunction("claude-api", { method: "GET" });
+      if (error) throw new Error((data as any)?.error ?? (error as any)?.message ?? "Erro ao consultar fornecedor");
+      const payload: any = (data as any)?.data && typeof (data as any).data === "object" ? (data as any).data : data;
+      const prices = payload?.prices;
+      if (!prices || typeof prices !== "object") throw new Error("Resposta do fornecedor não contém 'prices'");
+
+      const updates = PLAN_ORDER
+        .map((pc) => {
+          const cost = Number(prices[pc]);
+          if (!Number.isFinite(cost)) return null;
+          const row = rows.find((r) => r.plan_code === pc);
+          if (!row) return null;
+          const sale = computeSale(cost, row.markup_mode, row.markup_value_cents);
+          return { id: row.id, cost_cents: cost, sale_price_cents: sale };
+        })
+        .filter(Boolean) as Array<{ id: string; cost_cents: number; sale_price_cents: number }>;
+
+      if (updates.length === 0) throw new Error("Nenhum plano correspondente encontrado");
+
+      for (const u of updates) {
+        await supabase
+          .from("claude_plan_prices")
+          .update({ cost_cents: u.cost_cents, sale_price_cents: u.sale_price_cents })
+          .eq("id", u.id);
+      }
+      toast.success(`${updates.length} custo(s) sincronizado(s) do fornecedor`);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao sincronizar");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   if (loading) return <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={syncFromProvider} disabled={syncing}>
+          {syncing ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1 h-3.5 w-3.5" />}
+          Sincronizar custos do fornecedor
+        </Button>
+      </div>
       {rows.map((r) => (
         <PriceCard key={r.id} row={r} onSaved={(u) => setRows((rs) => rs.map((x) => x.id === u.id ? u : x))} />
       ))}
