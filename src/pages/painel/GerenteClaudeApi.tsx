@@ -89,6 +89,11 @@ function BalanceTab() {
   const arrayEntries: Array<[string, any[]]> = payload && typeof payload === "object"
     ? Object.entries(payload).filter(([, v]) => Array.isArray(v)) as Array<[string, any[]]>
     : [];
+  const objectEntries: Array<[string, Record<string, any>]> = payload && typeof payload === "object"
+    ? Object.entries(payload).filter(
+        ([, v]) => v && typeof v === "object" && !Array.isArray(v),
+      ) as Array<[string, Record<string, any>]>
+    : [];
 
   const FIELD_LABELS: Record<string, string> = {
     balance: "Saldo disponível",
@@ -103,12 +108,17 @@ function BalanceTab() {
     username: "Usuário",
     plan: "Plano",
   };
-  const isMoneyField = (k: string) => /balance|saldo|valor|price|preco|preço/i.test(k);
+  const isMoneyField = (k: string) =>
+    /balance|saldo|valor|price|preco|preço|cost|custo|amount/i.test(k) ||
+    /^(\d+x_)?\d+d$/i.test(k) || // chaves de plano estilo "5x_7d", "20x_30d"
+    /^pro_/i.test(k);
   const fmt = (k: string, v: any) => {
     if (v === null || v === undefined || v === "") return "—";
     if (typeof v === "boolean") return v ? "Sim" : "Não";
-    if (typeof v === "number" && isMoneyField(k))
-      return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    if (typeof v === "number" && isMoneyField(k)) {
+      // Fornecedor devolve valores monetários em centavos
+      return (v / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
     return String(v);
   };
 
@@ -164,6 +174,21 @@ function BalanceTab() {
                   </div>
                 ))}
                 {arr.length === 0 && <div className="text-sm text-muted-foreground">Vazio.</div>}
+              </div>
+            </div>
+          ))}
+          {objectEntries.map(([k, obj]) => (
+            <div key={k} className="rounded-xl border border-border bg-card/60 p-5">
+              <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+                {FIELD_LABELS[k] ?? k.replace(/_/g, " ")}
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {Object.entries(obj).map(([ik, iv]) => (
+                  <div key={ik} className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 p-3 text-sm">
+                    <span className="text-muted-foreground">{FIELD_LABELS[ik] ?? ik.replace(/_/g, " ")}</span>
+                    <span className="font-semibold tabular-nums">{fmt(ik, iv)}</span>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
