@@ -392,7 +392,7 @@ export type Database = {
           customer_identifier: string | null
           error_message: string | null
           id: string
-          plan_code: Database["public"]["Enums"]["claude_plan_code"]
+          plan_code: string
           profit_cents: number
           provider_key_id: string | null
           provider_response: Json | null
@@ -410,7 +410,7 @@ export type Database = {
           customer_identifier?: string | null
           error_message?: string | null
           id?: string
-          plan_code: Database["public"]["Enums"]["claude_plan_code"]
+          plan_code: string
           profit_cents?: number
           provider_key_id?: string | null
           provider_response?: Json | null
@@ -428,7 +428,7 @@ export type Database = {
           customer_identifier?: string | null
           error_message?: string | null
           id?: string
-          plan_code?: Database["public"]["Enums"]["claude_plan_code"]
+          plan_code?: string
           profit_cents?: number
           provider_key_id?: string | null
           provider_response?: Json | null
@@ -456,7 +456,7 @@ export type Database = {
           is_active: boolean
           markup_mode: Database["public"]["Enums"]["claude_markup_mode"]
           markup_value_cents: number
-          plan_code: Database["public"]["Enums"]["claude_plan_code"]
+          plan_code: string
           sale_price_cents: number
           updated_at: string
         }
@@ -467,7 +467,7 @@ export type Database = {
           is_active?: boolean
           markup_mode?: Database["public"]["Enums"]["claude_markup_mode"]
           markup_value_cents?: number
-          plan_code: Database["public"]["Enums"]["claude_plan_code"]
+          plan_code: string
           sale_price_cents?: number
           updated_at?: string
         }
@@ -478,7 +478,7 @@ export type Database = {
           is_active?: boolean
           markup_mode?: Database["public"]["Enums"]["claude_markup_mode"]
           markup_value_cents?: number
-          plan_code?: Database["public"]["Enums"]["claude_plan_code"]
+          plan_code?: string
           sale_price_cents?: number
           updated_at?: string
         }
@@ -491,7 +491,7 @@ export type Database = {
           is_active: boolean
           markup_mode: Database["public"]["Enums"]["claude_markup_mode"]
           markup_value_cents: number
-          plan_code: Database["public"]["Enums"]["claude_plan_code"]
+          plan_code: string
           reseller_id: string
           sale_price_cents: number
           updated_at: string
@@ -502,7 +502,7 @@ export type Database = {
           is_active?: boolean
           markup_mode?: Database["public"]["Enums"]["claude_markup_mode"]
           markup_value_cents?: number
-          plan_code: Database["public"]["Enums"]["claude_plan_code"]
+          plan_code: string
           reseller_id: string
           sale_price_cents?: number
           updated_at?: string
@@ -513,7 +513,7 @@ export type Database = {
           is_active?: boolean
           markup_mode?: Database["public"]["Enums"]["claude_markup_mode"]
           markup_value_cents?: number
-          plan_code?: Database["public"]["Enums"]["claude_plan_code"]
+          plan_code?: string
           reseller_id?: string
           sale_price_cents?: number
           updated_at?: string
@@ -4838,11 +4838,6 @@ export type Database = {
       app_role: "gerente" | "revendedor" | "cliente"
       claude_markup_mode: "percent" | "fixed_add" | "final"
       claude_order_status: "pending" | "issued" | "failed" | "refunded"
-      claude_plan_code:
-        | "mini_token"
-        | "medium_token"
-        | "mini_subscription"
-        | "medium_subscription"
       onboarding_tour_status: "pending" | "completed" | "skipped"
       recharge_plan_delivery_status:
         | "pending"
@@ -4988,12 +4983,6 @@ export const Constants = {
       app_role: ["gerente", "revendedor", "cliente"],
       claude_markup_mode: ["percent", "fixed_add", "final"],
       claude_order_status: ["pending", "issued", "failed", "refunded"],
-      claude_plan_code: [
-        "mini_token",
-        "medium_token",
-        "mini_subscription",
-        "medium_subscription",
-      ],
       onboarding_tour_status: ["pending", "completed", "skipped"],
       recharge_plan_delivery_status: [
         "pending",
