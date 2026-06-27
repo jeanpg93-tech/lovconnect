@@ -143,7 +143,7 @@ function BalanceTab() {
                 <div key={k} className="rounded-xl border border-border bg-card/60 p-4">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
                     <Wallet className="h-3.5 w-3.5 text-primary" />
-                    {FIELD_LABELS[k] ?? k.replace(/_/g, " ")}
+                    {FIELD_LABELS[k] ?? k}
                   </div>
                   <div className="mt-1 font-display text-xl font-semibold tabular-nums">
                     {fmt(k, v)}
@@ -155,7 +155,7 @@ function BalanceTab() {
           {arrayEntries.map(([k, arr]) => (
             <div key={k} className="rounded-xl border border-border bg-card/60 p-5">
               <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-                {FIELD_LABELS[k] ?? k.replace(/_/g, " ")} <Badge variant="secondary">{arr.length}</Badge>
+                {FIELD_LABELS[k] ?? k} <Badge variant="secondary">{arr.length}</Badge>
               </div>
               <div className="space-y-2">
                 {arr.map((item, i) => (
@@ -164,7 +164,7 @@ function BalanceTab() {
                       <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
                         {Object.entries(item).map(([ik, iv]) => (
                           <div key={ik} className="flex justify-between gap-3">
-                            <span className="text-muted-foreground">{FIELD_LABELS[ik] ?? ik.replace(/_/g, " ")}</span>
+                            <span className="text-muted-foreground">{FIELD_LABELS[ik] ?? ik}</span>
                             <span className="font-medium tabular-nums">{fmt(ik, iv)}</span>
                           </div>
                         ))}
@@ -181,12 +181,12 @@ function BalanceTab() {
           {objectEntries.map(([k, obj]) => (
             <div key={k} className="rounded-xl border border-border bg-card/60 p-5">
               <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-                {FIELD_LABELS[k] ?? k.replace(/_/g, " ")}
+                {FIELD_LABELS[k] ?? k}
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 {Object.entries(obj).map(([ik, iv]) => (
                   <div key={ik} className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 p-3 text-sm">
-                    <span className="text-muted-foreground">{FIELD_LABELS[ik] ?? ik.replace(/_/g, " ")}</span>
+                    <span className="text-muted-foreground">{FIELD_LABELS[ik] ?? ik}</span>
                     <span className="font-semibold tabular-nums">{fmt(ik, iv)}</span>
                   </div>
                 ))}
