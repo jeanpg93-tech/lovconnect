@@ -10,16 +10,23 @@ import {
 import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
-type PlanCode = "mini_token" | "medium_token" | "mini_subscription" | "medium_subscription";
+type PlanCode = "5x_7d" | "5x_30d" | "20x_30d" | "pro_30d";
 type MarkupMode = "percent" | "fixed_add" | "final";
 
 const PLAN_LABELS: Record<PlanCode, string> = {
-  mini_token: "Mini (Token)",
-  medium_token: "Medium (Token)",
-  mini_subscription: "Mini (Assinatura)",
-  medium_subscription: "Medium (Assinatura)",
+  "5x_7d": "5x · 7 dias",
+  "5x_30d": "5x · 30 dias",
+  "20x_30d": "20x · 30 dias",
+  "pro_30d": "Pro · 30 dias",
 };
-const PLAN_ORDER: PlanCode[] = ["mini_token", "medium_token", "mini_subscription", "medium_subscription"];
+const PLAN_ORDER: PlanCode[] = ["5x_7d", "5x_30d", "20x_30d", "pro_30d"];
+
+const PLAN_LIMITS: Record<PlanCode, string> = {
+  "5x_7d": "1.250.000 tokens / 12h",
+  "5x_30d": "1.250.000 tokens / 12h",
+  "20x_30d": "5.000.000 tokens / 12h",
+  "pro_30d": "300.000 tokens / 24h",
+};
 
 const fmtBRL = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -114,6 +121,7 @@ export default function RevendedorClaude() {
               {!p.is_active && <Badge variant="secondary">Indisponível</Badge>}
             </div>
             <div className="mb-4 text-2xl font-bold">{fmtBRL(p.sale_price_cents)}</div>
+            <div className="mb-3 text-[11px] text-muted-foreground">{PLAN_LIMITS[p.plan_code]}</div>
             <Button
               className="w-full"
               disabled={!p.is_active || issuing !== null}

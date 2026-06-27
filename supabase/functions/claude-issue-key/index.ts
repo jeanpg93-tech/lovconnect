@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify({ plan: planCode }),
+        body: JSON.stringify({ kind: planCode }),
       });
       providerStatus = r.status;
       const txt = await r.text();
