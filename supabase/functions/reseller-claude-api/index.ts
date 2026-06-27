@@ -18,7 +18,7 @@ const corsHeaders = {
 const CLAUDE_API_KEY = Deno.env.get("CLAUDE_RESELLER_API_KEY") ?? "";
 const CLAUDE_BASE_URL = (Deno.env.get("CLAUDE_RESELLER_API_BASE_URL") ?? "").replace(/\/$/, "");
 
-const PLAN_CODES = new Set(["mini_token", "medium_token", "mini_subscription", "medium_subscription"]);
+const PLAN_CODES = new Set(["5x_7d", "5x_30d", "20x_30d", "pro_30d"]);
 
 function json(d: unknown, status = 200) {
   return new Response(JSON.stringify(d), {
@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify({ plan: planCode }),
+          body: JSON.stringify({ kind: planCode }),
         });
         providerStatus = r.status;
         const txt = await r.text();
