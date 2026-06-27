@@ -121,6 +121,7 @@ export default function RevendedorClaude() {
               {!p.is_active && <Badge variant="secondary">Indisponível</Badge>}
             </div>
             <div className="mb-4 text-2xl font-bold">{fmtBRL(p.sale_price_cents)}</div>
+            <div className="mb-3 text-[11px] text-muted-foreground">{PLAN_LIMITS[p.plan_code]}</div>
             <Button
               className="w-full"
               disabled={!p.is_active || issuing !== null}
