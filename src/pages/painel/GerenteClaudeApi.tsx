@@ -111,7 +111,8 @@ function BalanceTab() {
   const isMoneyField = (k: string) =>
     /balance|saldo|valor|price|preco|preço|cost|custo|amount/i.test(k) ||
     /^(\d+x_)?\d+d$/i.test(k) || // chaves de plano estilo "5x_7d", "20x_30d"
-    /^pro_/i.test(k);
+    /^pro_/i.test(k) ||
+    /^api(_|$)/i.test(k); // chaves de plano de API: "api_30d", "api_500k_30d", etc.
   const fmt = (k: string, v: any) => {
     if (v === null || v === undefined || v === "") return "—";
     if (typeof v === "boolean") return v ? "Sim" : "Não";
