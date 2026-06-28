@@ -5,6 +5,8 @@ import { PageHeader, StatCard } from "@/components/painel/PageHeader";
 import FallbackMetricCard from "@/components/painel/FallbackMetricCard";
 import OnlineUsersCard from "@/components/painel/OnlineUsersCard";
 import ManagerStockAlertBanner from "@/components/painel/ManagerStockAlertBanner";
+import { useProviderCommitments } from "@/hooks/useProviderCommitments";
+import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import {
   Package,
   Store,
@@ -153,6 +155,8 @@ export default function GerenteDashboard() {
   const [gatewayBalance, setGatewayBalance] = useState<string>("R$ 0,00");
   const [providerBalance, setProviderBalance] = useState<string>("R$ 0,00");
   const [todayRecharge, setTodayRecharge] = useState<{ cents: number; count: number }>({ cents: 0, count: 0 });
+  const [lovaxStock, setLovaxStock] = useState<{ used: number; limit: number } | null>(null);
+  const commitments = useProviderCommitments(true);
   const [creditMovements, setCreditMovements] = useState<{
     id: string;
     created_at: string;
@@ -232,6 +236,18 @@ export default function GerenteDashboard() {
       supabase.from("recharge_intents").select("amount_cents").not("paid_at", "is", null).gte("paid_at", todayIsoEarly),
       supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id, reference_id, promotion_id").order("created_at", { ascending: false }).limit(100),
     ]);
+
+    // Estoque LovaX (semelhante ao card do menu lateral)
+    try {
+      const { data: lovaxData } = await invokeAuthenticatedFunction("lovax-api?action=status", { method: "GET" });
+      const ld: any = lovaxData ?? {};
+      if (!ld?.error) {
+        const remaining = Number(ld?.remaining ?? 0);
+        const used = Number(ld?.used ?? 0);
+        const limit = Number(ld?.limit ?? ld?.max ?? used + remaining);
+        setLovaxStock({ used, limit });
+      }
+    } catch {}
 
     // Mensalistas geram licenças com price_cents=0 (sem débito), então não aparecem
     // em balance_transactions. Buscamos separadamente para mesclar no feed.
