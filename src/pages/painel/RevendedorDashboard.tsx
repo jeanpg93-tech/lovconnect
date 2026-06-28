@@ -16,6 +16,7 @@ import OriginBadge, { readOriginFromNotes } from "@/components/painel/OriginBadg
 import PeriodFilter, { PeriodKey, computeRange } from "@/components/painel/PeriodFilter";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
 import { usePricingIssues } from "@/hooks/usePricingIssues";
+import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import { Button } from "@/components/ui/button";
 import { WhatsAppFloatingButtons } from "@/components/WhatsAppFloatingButtons";
 import {
@@ -46,6 +47,7 @@ import {
   Heart,
   Infinity as InfinityIcon,
   Star,
+  CalendarClock,
 } from "lucide-react";
 import {
   Dialog,
@@ -168,6 +170,7 @@ export default function RevendedorDashboard() {
     subscriptionBlocked: roleSubBlocked,
     packCredits,
   } = useRole();
+  const enabledMethods = useResellerEnabledMethods();
   const [loading, setLoading] = useState(true);
   const [resellerId, setResellerId] = useState<string | null>(null);
 
@@ -636,16 +639,25 @@ export default function RevendedorDashboard() {
 
             {/* CTAs */}
             <div className="flex flex-wrap justify-center md:justify-start gap-2">
-              <Button asChild size="sm" className="rounded-xl shadow-red-glow">
-                <Link to="/painel/revendedor/recargas">
-                  <Zap className="mr-2 h-4 w-4" /> Centro de Abastecimento
-                </Link>
-              </Button>
-              <Button asChild size="sm" variant="outline" className="rounded-xl">
+              {enabledMethods.recharges && (
+                <Button asChild size="sm" className="rounded-xl shadow-red-glow">
+                  <Link to="/painel/revendedor/recargas">
+                    <Zap className="mr-2 h-4 w-4" /> Centro de Abastecimento
+                  </Link>
+                </Button>
+              )}
+              <Button asChild size="sm" className="rounded-xl shadow-red-glow bg-primary text-primary-foreground hover:bg-primary/90">
                 <Link to="/painel/revendedor/licencas">
                   <ShoppingCart className="mr-2 h-4 w-4" /> Licenças
                 </Link>
               </Button>
+              {enabledMethods.plano3k && (
+                <Button asChild size="sm" variant="outline" className="rounded-xl">
+                  <Link to="/painel/revendedor/planos-vendidos">
+                    <CalendarClock className="mr-2 h-4 w-4" /> Plano 3K
+                  </Link>
+                </Button>
+              )}
             </div>
 
             {/* Mini stats */}

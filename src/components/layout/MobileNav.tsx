@@ -2,6 +2,7 @@ import { Home, Wallet, KeyRound, Coins, ArrowRightLeft, Plus, History, LayoutDas
 import { Link, useLocation } from "react-router-dom";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
+import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -21,6 +22,7 @@ export function MobileNav() {
   const { pathname } = useLocation();
   const { primaryRole, isSubscription } = useRole();
   const { user, signOut } = useAuth();
+  const enabledMethods = useResellerEnabledMethods();
   const { setOpenMobile } = useSidebar();
   const { t } = useTranslation();
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
@@ -90,7 +92,7 @@ export function MobileNav() {
       icon: Zap,
       url: "/painel/revendedor/recargas",
       active: pathname === "/painel/revendedor/recargas",
-      hidden: isSubscription,
+      hidden: isSubscription || !enabledMethods.recharges,
     },
     {
       label: t("mobileNav.generate"),
@@ -249,7 +251,7 @@ export function MobileNav() {
                     </Link>
                   </Button>
 
-                  <Button
+                  {enabledMethods.recharges && <Button
                     variant="ghost"
                     className="group relative h-24 w-full bg-zinc-900/40 border border-white/5 p-0 overflow-hidden rounded-[2rem] transition-all hover:bg-zinc-800/60 active:scale-[0.98]"
                     asChild
@@ -267,7 +269,7 @@ export function MobileNav() {
                         <span className="block text-xs font-medium text-zinc-500 uppercase tracking-widest">Gerar chave API</span>
                       </div>
                     </Link>
-                  </Button>
+                  </Button>}
                 </>
               )}
 
@@ -345,7 +347,7 @@ export function MobileNav() {
                 </Link>
               </Button>
 
-              <Button
+              {enabledMethods.recharges && <Button
                 variant="ghost"
                 className="group relative h-24 w-full bg-zinc-900/40 border border-white/5 p-0 overflow-hidden rounded-[2rem] transition-all hover:bg-zinc-800/60 active:scale-[0.98]"
                 asChild
@@ -363,7 +365,7 @@ export function MobileNav() {
                     <span className="block text-xs font-medium text-zinc-500 uppercase tracking-widest">Automáticas e manuais</span>
                   </div>
                 </Link>
-              </Button>
+              </Button>}
             </div>
           </div>
         </DialogContent>

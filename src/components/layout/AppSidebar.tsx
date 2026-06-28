@@ -68,6 +68,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import { useProviderCommitments } from "@/hooks/useProviderCommitments";
+import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import { useTranslation } from "react-i18next";
 
 type Item = { title: string; url: string; icon: any; badge?: "store-status"; tour?: string };
@@ -222,6 +223,7 @@ export function AppSidebar() {
 
   const isManager = primaryRole === "gerente";
   const commitments = useProviderCommitments(isManager);
+  const enabledMethods = useResellerEnabledMethods();
 
   useEffect(() => {
     if (!user?.id) return;
@@ -425,6 +427,14 @@ export function AppSidebar() {
     items: group.items.filter(item => {
       if (isPartner && item.url === "/painel/revendedor/niveis") return false;
       if (!claudeEnabled && item.url === "/painel/revendedor/claude") return false;
+      // Esconde páginas cujos métodos estão desabilitados globalmente.
+      if (primaryRole === "revendedor") {
+        if (!enabledMethods.recharges && (
+          item.url === "/painel/revendedor/recargas" ||
+          item.url === "/painel/revendedor/api-recargas"
+        )) return false;
+        if (!enabledMethods.plano3k && item.url === "/painel/revendedor/planos-vendidos") return false;
+      }
       // Filtra grupos por modo
       if (group.label === "Vendas - Packs" && !isPack) return false;
       if (group.label === "Mensalidade" && !isSubscription) return false;
