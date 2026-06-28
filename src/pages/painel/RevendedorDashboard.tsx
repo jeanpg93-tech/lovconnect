@@ -16,6 +16,7 @@ import OriginBadge, { readOriginFromNotes } from "@/components/painel/OriginBadg
 import PeriodFilter, { PeriodKey, computeRange } from "@/components/painel/PeriodFilter";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
 import { usePricingIssues } from "@/hooks/usePricingIssues";
+import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import { Button } from "@/components/ui/button";
 import { WhatsAppFloatingButtons } from "@/components/WhatsAppFloatingButtons";
 import {
