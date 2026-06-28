@@ -5,13 +5,13 @@ import { cn } from "@/lib/utils";
  * Renderiza como SVG simples usando currentColor para herdar o tema
  * (segue o padrão dos ícones lucide do projeto).
  */
-export function ClaudeIcon({ className, size = 16 }: { className?: string; size?: number }) {
+export function ClaudeIcon({ className, size }: { className?: string; size?: number }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
-      width={size}
-      height={size}
+      width={size ?? "1em"}
+      height={size ?? "1em"}
       fill="currentColor"
       stroke="none"
       className={cn("inline-block shrink-0", className)}
