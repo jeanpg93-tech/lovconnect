@@ -40,8 +40,11 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const planCode = String(body?.plan_code ?? '').trim();
     const customerIdentifier = body?.customer_identifier ? String(body.customer_identifier) : null;
+    const customerName = body?.customer_name ? String(body.customer_name).trim().slice(0, 120) : null;
+    const customerWhatsapp = body?.customer_whatsapp ? String(body.customer_whatsapp).replace(/\D+/g, '').slice(0, 15) : null;
     const requestId = body?.request_id ? String(body.request_id) : null;
     if (!PLAN_CODES.has(planCode)) return jsonResponse({ error: 'invalid_plan_code' }, 400);
+    if (!customerName || customerName.length < 2) return jsonResponse({ error: 'customer_name_required' }, 400);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
@@ -108,6 +111,8 @@ Deno.serve(async (req) => {
         reseller_id: reseller.id,
         plan_code: planCode,
         customer_identifier: customerIdentifier,
+        customer_name: customerName,
+        customer_whatsapp: customerWhatsapp,
         cost_cents: costCents,
         sale_price_cents: saleCents,
         profit_cents: profitCents,
