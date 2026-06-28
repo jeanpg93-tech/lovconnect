@@ -57,11 +57,24 @@ export default function ClaudePriceTable() {
       ((ov ?? []) as any[]).forEach((o) => {
         if (o.is_active) ovMap.set(o.plan_code, o.sale_price_cents);
       });
+      // Per-tier cost lookup
+      const tierCosts: Record<string, number> = {};
+      if (rid) {
+        await Promise.all(
+          PLAN_ORDER.map(async (pc) => {
+            const { data } = await supabase.rpc("get_reseller_claude_cost", {
+              _reseller_id: rid,
+              _plan_code: pc,
+            });
+            if (typeof data === "number") tierCosts[pc] = data;
+          }),
+        );
+      }
       const merged: PlanRow[] = PLAN_ORDER.map((pc) => {
         const b: any = (base ?? []).find((x: any) => x.plan_code === pc);
         return {
           plan_code: pc,
-          reseller_cost_cents: b?.reseller_cost_cents ?? 0,
+          reseller_cost_cents: tierCosts[pc] ?? b?.reseller_cost_cents ?? 0,
           suggested_sale_cents: b?.sale_price_cents ?? 0,
           override_sale_cents: ovMap.has(pc) ? (ovMap.get(pc) as number) : null,
           is_active: !!b?.is_active,

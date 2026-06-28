@@ -9,17 +9,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Tag, Users, Loader2, RefreshCw, Save, Wallet } from "lucide-react";
+import { BarChart3, Tag, Users, Loader2, RefreshCw, Save, Wallet, Layers } from "lucide-react";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type PlanCode = "5x_7d" | "5x_30d" | "20x_30d" | "pro_30d";
 type MarkupMode = "percent" | "fixed_add" | "final";
 
 const PLAN_LABELS: Record<PlanCode, string> = {
-  "5x_7d": "5x_7d",
-  "5x_30d": "5x_30d",
-  "20x_30d": "20x_30d",
-  "pro_30d": "pro_30d",
+  "5x_7d": "5x · 7 dias",
+  "5x_30d": "5x · 30 dias",
+  "20x_30d": "20x · 30 dias",
+  "pro_30d": "Pro · 30 dias",
 };
 const PLAN_ORDER: PlanCode[] = ["5x_7d", "5x_30d", "20x_30d", "pro_30d"];
 
@@ -268,6 +269,14 @@ function PricesTab() {
           Sincronizar custos do fornecedor
         </Button>
       </div>
+
+      <TierMatrix plans={rows} />
+
+      <details className="rounded-xl border border-border bg-card/40">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-muted-foreground">
+          Configuração avançada (markup de venda sugerido / ativar plano)
+        </summary>
+        <div className="space-y-3 p-3">
       {rows.map((r) => (
         <PriceCard
           key={`${r.id}:${r.cost_cents}:${r.sale_price_cents}:${r.markup_mode}:${r.markup_value_cents}`}
@@ -275,6 +284,209 @@ function PricesTab() {
           onSaved={(u) => setRows((rs) => rs.map((x) => x.id === u.id ? u : x))}
         />
       ))}
+        </div>
+      </details>
+    </div>
+  );
+}
+
+type TierRow = {
+  tier_id: string;
+  tier_name: string;
+  tier_sort_order: number;
+  plan_code: PlanCode;
+  reseller_cost_cents: number;
+  is_active: boolean;
+};
+
+function TierMatrix({ plans }: { plans: PlanPrice[] }) {
+  const isMobile = useIsMobile();
+  const [loading, setLoading] = useState(true);
+  const [matrix, setMatrix] = useState<TierRow[]>([]);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.rpc("admin_tier_claude_prices_matrix");
+    if (error) { toast.error(error.message); setLoading(false); return; }
+    setMatrix((data ?? []) as TierRow[]);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const tiers = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; sort: number }>();
+    matrix.forEach((m) => {
+      if (!map.has(m.tier_id)) map.set(m.tier_id, { id: m.tier_id, name: m.tier_name, sort: m.tier_sort_order });
+    });
+    return Array.from(map.values()).sort((a, b) => a.sort - b.sort);
+  }, [matrix]);
+
+  const getCell = (tierId: string, planCode: PlanCode) =>
+    matrix.find((m) => m.tier_id === tierId && m.plan_code === planCode);
+
+  const keyOf = (tierId: string, planCode: string) => `${tierId}:${planCode}`;
+
+  const save = async (tierId: string, planCode: PlanCode) => {
+    const k = keyOf(tierId, planCode);
+    const raw = drafts[k];
+    if (raw == null) return;
+    const cents = parseBRL(raw);
+    if (cents <= 0) return toast.error("Valor inválido");
+    const plan = plans.find((p) => p.plan_code === planCode);
+    if (plan && cents < plan.cost_cents) {
+      return toast.error(`Abaixo do seu custo (${fmtBRL(plan.cost_cents)})`);
+    }
+    setSavingKey(k);
+    const { error } = await supabase
+      .from("tier_claude_prices")
+      .upsert(
+        { tier_id: tierId, plan_code: planCode, reseller_cost_cents: cents, is_active: true },
+        { onConflict: "tier_id,plan_code" },
+      );
+    setSavingKey(null);
+    if (error) return toast.error(error.message);
+    setMatrix((prev) => {
+      const idx = prev.findIndex((m) => m.tier_id === tierId && m.plan_code === planCode);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], reseller_cost_cents: cents, is_active: true };
+        return copy;
+      }
+      const t = tiers.find((t) => t.id === tierId);
+      return [...prev, { tier_id: tierId, tier_name: t?.name ?? "", tier_sort_order: t?.sort ?? 0, plan_code: planCode, reseller_cost_cents: cents, is_active: true }];
+    });
+    setDrafts((d) => { const c = { ...d }; delete c[k]; return c; });
+    toast.success("Preço salvo");
+  };
+
+  if (loading) return <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
+
+  return (
+    <div className="rounded-xl border border-border bg-card/60 overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-border bg-card/80 px-4 py-3">
+        <Layers className="h-4 w-4 text-primary" />
+        <div className="font-display font-semibold">Preços por nível</div>
+        <Badge variant="secondary" className="ml-auto">{tiers.length} níveis</Badge>
+      </div>
+
+      {/* Desktop matrix */}
+      {!isMobile && (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr className="border-b border-border bg-card/40 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                <th className="px-3 py-2 text-left">Plano</th>
+                <th className="px-3 py-2 text-right">Meu custo</th>
+                {tiers.map((t) => (
+                  <th key={t.id} className="px-3 py-2 text-center">{t.name}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {plans.map((p) => (
+                <tr key={p.plan_code} className="border-b border-border/60 last:border-0">
+                  <td className="px-3 py-3">
+                    <div className="font-display font-semibold">{PLAN_LABELS[p.plan_code]}</div>
+                    <div className="text-[11px] text-muted-foreground">{p.is_active ? "Ativo" : "Inativo"}</div>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <div className="font-display tabular-nums font-semibold">{fmtBRL(p.cost_cents)}</div>
+                  </td>
+                  {tiers.map((t) => {
+                    const cell = getCell(t.id, p.plan_code);
+                    const k = keyOf(t.id, p.plan_code);
+                    const draftVal = drafts[k];
+                    const currentCents = cell?.reseller_cost_cents ?? 0;
+                    const draftCents = draftVal != null ? parseBRL(draftVal) : currentCents;
+                    const profit = draftCents - p.cost_cents;
+                    return (
+                      <td key={t.id} className="px-2 py-2 text-center align-top">
+                        <Input
+                          value={draftVal ?? (currentCents ? (currentCents / 100).toFixed(2).replace(".", ",") : "")}
+                          onChange={(e) => setDrafts((d) => ({ ...d, [k]: e.target.value }))}
+                          placeholder="0,00"
+                          className="h-8 text-center tabular-nums"
+                        />
+                        <div className={`mt-1 text-[10px] tabular-nums ${profit > 0 ? "text-emerald-500" : profit < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                          Lucro: {fmtBRL(profit)}
+                        </div>
+                        {draftVal != null && draftVal !== "" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="mt-1 h-6 px-2 text-[11px]"
+                            disabled={savingKey === k}
+                            onClick={() => save(t.id, p.plan_code)}
+                          >
+                            {savingKey === k ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                          </Button>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Mobile: card per plan with tier list */}
+      {isMobile && (
+        <div className="divide-y divide-border">
+          {plans.map((p) => (
+            <div key={p.plan_code} className="p-4">
+              <div className="mb-3 flex items-baseline justify-between">
+                <div>
+                  <div className="font-display font-semibold">{PLAN_LABELS[p.plan_code]}</div>
+                  <div className="text-[11px] text-muted-foreground">Meu custo</div>
+                </div>
+                <div className="font-display text-base font-bold tabular-nums">{fmtBRL(p.cost_cents)}</div>
+              </div>
+              <div className="space-y-2">
+                {tiers.map((t) => {
+                  const cell = getCell(t.id, p.plan_code);
+                  const k = keyOf(t.id, p.plan_code);
+                  const draftVal = drafts[k];
+                  const currentCents = cell?.reseller_cost_cents ?? 0;
+                  const draftCents = draftVal != null ? parseBRL(draftVal) : currentCents;
+                  const profit = draftCents - p.cost_cents;
+                  return (
+                    <div key={t.id} className="rounded-lg border border-border/60 bg-background/40 p-2.5">
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <Badge variant="secondary" className="text-[11px]">{t.name}</Badge>
+                        <span className={`text-[11px] tabular-nums ${profit > 0 ? "text-emerald-500" : profit < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                          Lucro: {fmtBRL(profit)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground">R$</span>
+                        <Input
+                          value={draftVal ?? (currentCents ? (currentCents / 100).toFixed(2).replace(".", ",") : "")}
+                          onChange={(e) => setDrafts((d) => ({ ...d, [k]: e.target.value }))}
+                          placeholder="0,00"
+                          className="h-8 tabular-nums"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2"
+                          disabled={savingKey === k || draftVal == null}
+                          onClick={() => save(t.id, p.plan_code)}
+                        >
+                          {savingKey === k ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
