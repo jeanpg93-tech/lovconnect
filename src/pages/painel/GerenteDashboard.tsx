@@ -153,7 +153,6 @@ export default function GerenteDashboard() {
     totalOrders: 0, totalApiLogs: 0
   });
   const [gatewayBalance, setGatewayBalance] = useState<string>("R$ 0,00");
-  const [providerBalance, setProviderBalance] = useState<string>("R$ 0,00");
   const [todayRecharge, setTodayRecharge] = useState<{ cents: number; count: number }>({ cents: 0, count: 0 });
   const [lovaxStock, setLovaxStock] = useState<{ used: number; limit: number } | null>(null);
   const commitments = useProviderCommitments(true);
@@ -223,7 +222,7 @@ export default function GerenteDashboard() {
 
     const todayIsoEarly = today.toISOString();
 
-    const [ext, rev, clients, storefronts, reports, provUsage, ordersAll, balanceRes, providerBalanceRes, todayRechargesRes, creditMovesRes] = await Promise.all([
+    const [ext, rev, clients, storefronts, reports, provUsage, ordersAll, balanceRes, todayRechargesRes, creditMovesRes] = await Promise.all([
       supabase.from("extensions").select("*", { count: "exact", head: true }),
       supabase.from("resellers").select("*", { count: "exact", head: true }).eq("is_active", true).eq("is_demo", false),
       supabase.from("profiles").select("*", { count: "exact", head: true }).not("reseller_id", "is", null),
@@ -232,7 +231,6 @@ export default function GerenteDashboard() {
       withTimeout(supabase.functions.invoke("provider-api?action=usage-all") as any, 8000, { data: { usage: [] }, error: null }),
       supabase.from("orders").select("price_cents, is_test, status, created_at, reseller_id").limit(100000),
       withTimeout(supabase.functions.invoke("provider-api?action=gateway-balance") as any, 8000, { data: null, error: null }),
-      withTimeout(supabase.functions.invoke("lovable-credits-api?action=balance", { method: "GET" }) as any, 8000, { data: null, error: null }),
       supabase.from("recharge_intents").select("amount_cents").not("paid_at", "is", null).gte("paid_at", todayIsoEarly),
       supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id, reference_id, promotion_id").order("created_at", { ascending: false }).limit(100),
     ]);
@@ -283,13 +281,6 @@ export default function GerenteDashboard() {
     const ordersAllAny: any = ordersAll;
     if (balanceAny?.data?.balance) {
       setGatewayBalance(formatBRL(Number(balanceAny.data.balance) * 100));
-    }
-
-    const provBal: any = providerBalanceRes;
-    const provSaldo = provBal?.data?.data?.saldoReais ?? provBal?.data?.saldoReais ??
-      (provBal?.data?.data?.saldoCentavos != null ? provBal.data.data.saldoCentavos / 100 : null);
-    if (provSaldo != null) {
-      setProviderBalance(`R$ ${Number(provSaldo).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`);
     }
 
     const todayRechList = (todayRechargesRes as any)?.data ?? [];

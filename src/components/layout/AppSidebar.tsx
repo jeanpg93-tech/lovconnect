@@ -212,8 +212,6 @@ export function AppSidebar() {
   const [activeMethod, setActiveMethod] = useState<"flow" | "lovax">("flow");
   const [gatewayBalance, setGatewayBalance] = useState<string | null>(null);
   const [gatewayLoading, setGatewayLoading] = useState(false);
-  const [creditsBalance, setCreditsBalance] = useState<number | null>(null);
-  const [creditsLoading, setCreditsLoading] = useState(false);
   const [resellerBalance, setResellerBalance] = useState<number>(0);
   const [tier, setTier] = useState<{ name: string; color: string; slug: string } | null>(null);
   const [storeEnabled, setStoreEnabled] = useState<boolean | null>(null);
@@ -332,27 +330,8 @@ export function AppSidebar() {
       }
     };
 
-    const fetchCreditsBalance = async () => {
-      setCreditsLoading(true);
-      try {
-        const { data, error } = await invokeAuthenticatedFunction("lovable-credits-api?action=balance", { method: "GET" });
-        if (cancelled) return;
-        if (error || data?.error) {
-          setCreditsBalance(null);
-        } else {
-          const saldo = data?.data?.saldoReais ?? data?.saldoReais ?? (data?.data?.saldoCentavos != null ? data.data.saldoCentavos / 100 : data?.saldo);
-          setCreditsBalance(saldo != null ? Number(saldo) : null);
-        }
-      } catch {
-        if (!cancelled) setCreditsBalance(null);
-      } finally {
-        if (!cancelled) setCreditsLoading(false);
-      }
-    };
-
     fetchBalance();
     fetchGatewayBalance();
-    fetchCreditsBalance();
     const fetchLovax = async () => {
       setLovaxLoading(true);
       try {
@@ -375,7 +354,6 @@ export function AppSidebar() {
     const id = setInterval(() => {
       fetchBalance();
       fetchGatewayBalance();
-      fetchCreditsBalance();
       fetchLovax();
     }, 60_000);
 
