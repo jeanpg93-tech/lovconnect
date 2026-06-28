@@ -385,12 +385,27 @@ function TierMatrix({ plans }: { plans: PlanPrice[] }) {
                 <th className="px-3 py-2 text-right">Meu custo</th>
                 {tiers.map((t) => {
                   const s = tierStyle(t.name);
+                  const mode = tierMode[t.id] ?? "brl";
                   return (
                     <th key={t.id} className="px-3 py-2 text-center" style={{ color: s.color }}>
-                      <span className="inline-flex items-center justify-center gap-1.5">
-                        <s.Icon className="h-3.5 w-3.5" style={{ color: s.color }} />
-                        {t.name}
-                      </span>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="inline-flex items-center justify-center gap-1.5">
+                          <s.Icon className="h-3.5 w-3.5" style={{ color: s.color }} />
+                          {t.name}
+                        </span>
+                        <div className="inline-flex rounded-md border border-border/60 p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => { setTierMode((m) => ({ ...m, [t.id]: "brl" })); setDrafts({}); }}
+                            className={`px-1.5 py-0.5 text-[10px] rounded ${mode === "brl" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                          >R$</button>
+                          <button
+                            type="button"
+                            onClick={() => { setTierMode((m) => ({ ...m, [t.id]: "pct" })); setDrafts({}); }}
+                            className={`px-1.5 py-0.5 text-[10px] rounded ${mode === "pct" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+                          >%</button>
+                        </div>
+                      </div>
                     </th>
                   );
                 })}
@@ -411,20 +426,34 @@ function TierMatrix({ plans }: { plans: PlanPrice[] }) {
                     const k = keyOf(t.id, p.plan_code);
                     const draftVal = drafts[k];
                     const currentCents = cell?.reseller_cost_cents ?? 0;
-                    const draftCents = draftVal != null ? parseBRL(draftVal) : currentCents;
+                    const mode = tierMode[t.id] ?? "brl";
+                    const draftCents = draftVal != null
+                      ? (mode === "pct"
+                          ? Math.round(p.cost_cents * (1 + (parseFloat(draftVal.replace(",", ".")) || 0) / 100))
+                          : parseBRL(draftVal))
+                      : currentCents;
                     const profit = draftCents - p.cost_cents;
                     const s = tierStyle(t.name);
+                    const placeholderTxt = mode === "pct" ? "30" : "0,00";
+                    const displayVal = draftVal ?? (mode === "brl"
+                      ? (currentCents ? (currentCents / 100).toFixed(2).replace(".", ",") : "")
+                      : (currentCents && p.cost_cents ? (((currentCents - p.cost_cents) / p.cost_cents) * 100).toFixed(2).replace(".", ",") : ""));
                     return (
                       <td key={t.id} className="px-2 py-2 text-center align-top" style={{ background: s.bg }}>
-                        <Input
-                          value={draftVal ?? (currentCents ? (currentCents / 100).toFixed(2).replace(".", ",") : "")}
-                          onChange={(e) => setDrafts((d) => ({ ...d, [k]: e.target.value }))}
-                          placeholder="0,00"
-                          className="h-8 text-center tabular-nums"
-                          style={{ borderColor: s.border }}
-                        />
+                        <div className="relative">
+                          <Input
+                            value={displayVal}
+                            onChange={(e) => setDrafts((d) => ({ ...d, [k]: e.target.value }))}
+                            placeholder={placeholderTxt}
+                            className="h-8 text-center tabular-nums pr-6"
+                            style={{ borderColor: s.border }}
+                          />
+                          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                            {mode === "pct" ? "%" : "R$"}
+                          </span>
+                        </div>
                         <div className={`mt-1 text-[10px] tabular-nums ${profit > 0 ? "text-emerald-500" : profit < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                          Lucro: {fmtBRL(profit)}
+                          {mode === "pct" ? `≈ ${fmtBRL(draftCents)} · Lucro: ${fmtBRL(profit)}` : `Lucro: ${fmtBRL(profit)}`}
                         </div>
                         {draftVal != null && draftVal !== "" && (
                           <Button
@@ -465,8 +494,16 @@ function TierMatrix({ plans }: { plans: PlanPrice[] }) {
                   const k = keyOf(t.id, p.plan_code);
                   const draftVal = drafts[k];
                   const currentCents = cell?.reseller_cost_cents ?? 0;
-                  const draftCents = draftVal != null ? parseBRL(draftVal) : currentCents;
+                  const mode = tierMode[t.id] ?? "brl";
+                  const draftCents = draftVal != null
+                    ? (mode === "pct"
+                        ? Math.round(p.cost_cents * (1 + (parseFloat(draftVal.replace(",", ".")) || 0) / 100))
+                        : parseBRL(draftVal))
+                    : currentCents;
                   const profit = draftCents - p.cost_cents;
+                  const displayVal = draftVal ?? (mode === "brl"
+                    ? (currentCents ? (currentCents / 100).toFixed(2).replace(".", ",") : "")
+                    : (currentCents && p.cost_cents ? (((currentCents - p.cost_cents) / p.cost_cents) * 100).toFixed(2).replace(".", ",") : ""));
                   return (
                     <div key={t.id} className="rounded-lg border p-2.5" style={{ background: tierStyle(t.name).bg, borderColor: tierStyle(t.name).border }}>
                       <div className="mb-1.5 flex items-center justify-between">
@@ -476,16 +513,22 @@ function TierMatrix({ plans }: { plans: PlanPrice[] }) {
                             {t.name}
                           </span>
                         ); })()}
-                        <span className={`text-[11px] tabular-nums ${profit > 0 ? "text-emerald-500" : profit < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                          Lucro: {fmtBRL(profit)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="inline-flex rounded-md border border-border/60 p-0.5">
+                            <button type="button" onClick={() => { setTierMode((m) => ({ ...m, [t.id]: "brl" })); setDrafts({}); }} className={`px-1.5 py-0.5 text-[10px] rounded ${mode === "brl" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}>R$</button>
+                            <button type="button" onClick={() => { setTierMode((m) => ({ ...m, [t.id]: "pct" })); setDrafts({}); }} className={`px-1.5 py-0.5 text-[10px] rounded ${mode === "pct" ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}>%</button>
+                          </div>
+                          <span className={`text-[11px] tabular-nums ${profit > 0 ? "text-emerald-500" : profit < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            Lucro: {fmtBRL(profit)}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-muted-foreground">R$</span>
+                        <span className="text-xs text-muted-foreground">{mode === "pct" ? "%" : "R$"}</span>
                         <Input
-                          value={draftVal ?? (currentCents ? (currentCents / 100).toFixed(2).replace(".", ",") : "")}
+                          value={displayVal}
                           onChange={(e) => setDrafts((d) => ({ ...d, [k]: e.target.value }))}
-                          placeholder="0,00"
+                          placeholder={mode === "pct" ? "30" : "0,00"}
                           className="h-8 tabular-nums"
                         />
                         <Button
