@@ -86,15 +86,17 @@ function BalanceTab() {
   // Pega o "payload" real (alguns provedores embrulham em { data: {...} })
   const payload: any = data?.data && typeof data.data === "object" ? data.data : data;
 
+  // Campos brutos que não devem aparecer aqui (gerenciados em outras abas)
+  const HIDDEN_KEYS = new Set(["prices", "plans", "plan_prices"]);
   const scalarEntries: Array<[string, any]> = payload && typeof payload === "object"
-    ? Object.entries(payload).filter(([, v]) => v === null || ["string", "number", "boolean"].includes(typeof v))
+    ? Object.entries(payload).filter(([k, v]) => !HIDDEN_KEYS.has(k) && (v === null || ["string", "number", "boolean"].includes(typeof v)))
     : [];
   const arrayEntries: Array<[string, any[]]> = payload && typeof payload === "object"
-    ? Object.entries(payload).filter(([, v]) => Array.isArray(v)) as Array<[string, any[]]>
+    ? Object.entries(payload).filter(([k, v]) => !HIDDEN_KEYS.has(k) && Array.isArray(v)) as Array<[string, any[]]>
     : [];
   const objectEntries: Array<[string, Record<string, any>]> = payload && typeof payload === "object"
     ? Object.entries(payload).filter(
-        ([, v]) => v && typeof v === "object" && !Array.isArray(v),
+        ([k, v]) => !HIDDEN_KEYS.has(k) && v && typeof v === "object" && !Array.isArray(v),
       ) as Array<[string, Record<string, any>]>
     : [];
 
