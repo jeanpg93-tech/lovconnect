@@ -8,13 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-type PlanCode = "5x_7d" | "5x_30d" | "20x_30d" | "pro_30d";
+type PlanCode = "5x_7d" | "5x_30d" | "20x_30d";
 const PLAN_ORDER: PlanCode[] = ["5x_7d", "5x_30d", "20x_30d"];
 const PLAN_LABELS: Record<PlanCode, string> = {
   "5x_7d": "5x · 7 dias",
   "5x_30d": "5x · 30 dias",
   "20x_30d": "20x · 30 dias",
-  "pro_30d": "Pro · 30 dias",
 };
 const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
