@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Tag, Users, Loader2, RefreshCw, Save, Wallet, Layers } from "lucide-react";
+import { BarChart3, Tag, Users, Loader2, RefreshCw, Save, Wallet, Layers, Medal, Award, Crown, Gem } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -311,6 +311,15 @@ function TierMatrix({ plans }: { plans: PlanPrice[] }) {
   const getCell = (tierId: string, planCode: PlanCode) =>
     matrix.find((m) => m.tier_id === tierId && m.plan_code === planCode);
 
+  const tierStyle = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes("bronze")) return { Icon: Medal, color: "#cd7f32", bg: "rgba(205,127,50,0.10)", border: "rgba(205,127,50,0.35)" };
+    if (n.includes("prata") || n.includes("silver")) return { Icon: Award, color: "#c0c5ce", bg: "rgba(192,197,206,0.10)", border: "rgba(192,197,206,0.35)" };
+    if (n.includes("ouro") || n.includes("gold")) return { Icon: Crown, color: "#f5c542", bg: "rgba(245,197,66,0.12)", border: "rgba(245,197,66,0.40)" };
+    if (n.includes("partner") || n.includes("diamond") || n.includes("platinum")) return { Icon: Gem, color: "#8ab4ff", bg: "rgba(138,180,255,0.10)", border: "rgba(138,180,255,0.40)" };
+    return { Icon: Layers, color: "hsl(var(--primary))", bg: "hsl(var(--primary) / 0.08)", border: "hsl(var(--primary) / 0.35)" };
+  };
+
   const keyOf = (tierId: string, planCode: string) => `${tierId}:${planCode}`;
 
   const save = async (tierId: string, planCode: PlanCode) => {
@@ -364,9 +373,17 @@ function TierMatrix({ plans }: { plans: PlanPrice[] }) {
               <tr className="border-b border-border bg-card/40 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                 <th className="px-3 py-2 text-left">Plano</th>
                 <th className="px-3 py-2 text-right">Meu custo</th>
-                {tiers.map((t) => (
-                  <th key={t.id} className="px-3 py-2 text-center">{t.name}</th>
-                ))}
+                {tiers.map((t) => {
+                  const s = tierStyle(t.name);
+                  return (
+                    <th key={t.id} className="px-3 py-2 text-center" style={{ color: s.color }}>
+                      <span className="inline-flex items-center justify-center gap-1.5">
+                        <s.Icon className="h-3.5 w-3.5" style={{ color: s.color }} />
+                        {t.name}
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -386,13 +403,15 @@ function TierMatrix({ plans }: { plans: PlanPrice[] }) {
                     const currentCents = cell?.reseller_cost_cents ?? 0;
                     const draftCents = draftVal != null ? parseBRL(draftVal) : currentCents;
                     const profit = draftCents - p.cost_cents;
+                    const s = tierStyle(t.name);
                     return (
-                      <td key={t.id} className="px-2 py-2 text-center align-top">
+                      <td key={t.id} className="px-2 py-2 text-center align-top" style={{ background: s.bg }}>
                         <Input
                           value={draftVal ?? (currentCents ? (currentCents / 100).toFixed(2).replace(".", ",") : "")}
                           onChange={(e) => setDrafts((d) => ({ ...d, [k]: e.target.value }))}
                           placeholder="0,00"
                           className="h-8 text-center tabular-nums"
+                          style={{ borderColor: s.border }}
                         />
                         <div className={`mt-1 text-[10px] tabular-nums ${profit > 0 ? "text-emerald-500" : profit < 0 ? "text-destructive" : "text-muted-foreground"}`}>
                           Lucro: {fmtBRL(profit)}
@@ -439,9 +458,14 @@ function TierMatrix({ plans }: { plans: PlanPrice[] }) {
                   const draftCents = draftVal != null ? parseBRL(draftVal) : currentCents;
                   const profit = draftCents - p.cost_cents;
                   return (
-                    <div key={t.id} className="rounded-lg border border-border/60 bg-background/40 p-2.5">
+                    <div key={t.id} className="rounded-lg border p-2.5" style={{ background: tierStyle(t.name).bg, borderColor: tierStyle(t.name).border }}>
                       <div className="mb-1.5 flex items-center justify-between">
-                        <Badge variant="secondary" className="text-[11px]">{t.name}</Badge>
+                        {(() => { const s = tierStyle(t.name); return (
+                          <span className="inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold" style={{ color: s.color, borderColor: s.border }}>
+                            <s.Icon className="h-3 w-3" />
+                            {t.name}
+                          </span>
+                        ); })()}
                         <span className={`text-[11px] tabular-nums ${profit > 0 ? "text-emerald-500" : profit < 0 ? "text-destructive" : "text-muted-foreground"}`}>
                           Lucro: {fmtBRL(profit)}
                         </span>
