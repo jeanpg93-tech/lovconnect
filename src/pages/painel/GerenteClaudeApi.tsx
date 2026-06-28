@@ -9,17 +9,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Tag, Users, Loader2, RefreshCw, Save, Wallet } from "lucide-react";
+import { BarChart3, Tag, Users, Loader2, RefreshCw, Save, Wallet, Layers } from "lucide-react";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type PlanCode = "5x_7d" | "5x_30d" | "20x_30d" | "pro_30d";
 type MarkupMode = "percent" | "fixed_add" | "final";
 
 const PLAN_LABELS: Record<PlanCode, string> = {
-  "5x_7d": "5x_7d",
-  "5x_30d": "5x_30d",
-  "20x_30d": "20x_30d",
-  "pro_30d": "pro_30d",
+  "5x_7d": "5x · 7 dias",
+  "5x_30d": "5x · 30 dias",
+  "20x_30d": "20x · 30 dias",
+  "pro_30d": "Pro · 30 dias",
 };
 const PLAN_ORDER: PlanCode[] = ["5x_7d", "5x_30d", "20x_30d", "pro_30d"];
 
