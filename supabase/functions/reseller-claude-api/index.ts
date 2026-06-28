@@ -58,11 +58,27 @@ Deno.serve(async (req) => {
   if (!apiKey || apiKey.length < 10) return json({ success: false, error: "Missing X-API-Key" }, 401);
 
   const keyHash = await sha256Hex(apiKey);
-  const { data: keyRow } = await svc
-    .from("reseller_api_keys")
-    .select("id, reseller_id, is_active, revoked_at")
-    .eq("key_hash", keyHash)
-    .maybeSingle();
+  // Aceita chaves criadas em "reseller_claude_api_keys" (nova página dedicada do Claude)
+  // ou nas chaves genéricas legadas em "reseller_api_keys" (compatibilidade).
+  let keyRow: any = null;
+  {
+    const { data } = await svc
+      .from("reseller_claude_api_keys")
+      .select("id, reseller_id, is_active, revoked_at")
+      .eq("key_hash", keyHash)
+      .maybeSingle();
+    keyRow = data;
+  }
+  let keyTable = "reseller_claude_api_keys";
+  if (!keyRow) {
+    const { data } = await svc
+      .from("reseller_api_keys")
+      .select("id, reseller_id, is_active, revoked_at")
+      .eq("key_hash", keyHash)
+      .maybeSingle();
+    keyRow = data;
+    keyTable = "reseller_api_keys";
+  }
   if (!keyRow || !keyRow.is_active || keyRow.revoked_at) {
     return json({ success: false, error: "API Key inválida ou revogada" }, 401);
   }
@@ -78,7 +94,7 @@ Deno.serve(async (req) => {
   }
   if (!reseller.claude_enabled) return json({ success: false, error: "Claude API não habilitada para este revendedor" }, 403);
 
-  await svc.from("reseller_api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
+  await svc.from(keyTable).update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
 
   const resolvePrices = async () => {
     const [{ data: def }, { data: ov }] = await Promise.all([
@@ -158,16 +174,17 @@ Deno.serve(async (req) => {
       if (!defaultPrice || !defaultPrice.is_active) return json({ success: false, error: "plano_indisponivel" }, 400);
 
       const costCents = defaultPrice.cost_cents;
+      const resellerCostCents = (defaultPrice as any).reseller_cost_cents ?? defaultPrice.sale_price_cents;
       const saleCents = override && override.is_active
         ? computeSale(costCents, override.markup_mode, override.markup_value_cents)
         : defaultPrice.sale_price_cents;
-      const profitCents = saleCents - costCents;
+      const profitCents = saleCents - resellerCostCents;
 
       // Pre-check (informational; atomic check happens inside the RPC below)
       const { data: balRow } = await svc.from("reseller_balances").select("balance_cents").eq("reseller_id", reseller.id).maybeSingle();
       const balance = balRow?.balance_cents ?? 0;
-      if (balance < saleCents) {
-        return json({ success: false, error: "saldo_insuficiente", saldo_centavos: balance, preco_centavos: saleCents }, 402);
+      if (balance < resellerCostCents) {
+        return json({ success: false, error: "saldo_insuficiente", saldo_centavos: balance, preco_centavos: resellerCostCents }, 402);
       }
 
       const { data: order, error: oErr } = await svc.from("claude_orders").insert({
@@ -224,7 +241,7 @@ Deno.serve(async (req) => {
       // SECURITY: atomic debit via RPC to prevent TOCTOU / double-spend.
       const { data: debited, error: debitErr } = await svc.rpc("debit_reseller_balance", {
         _reseller_id: reseller.id,
-        _amount_cents: saleCents,
+        _amount_cents: resellerCostCents,
         _kind: "claude_key_issue",
         _description: `Emissão chave Claude ${planCode} (API)`,
         _reference_id: order.id,

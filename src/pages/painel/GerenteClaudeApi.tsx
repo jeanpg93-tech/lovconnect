@@ -30,6 +30,9 @@ type PlanPrice = {
   markup_mode: MarkupMode;
   markup_value_cents: number;
   sale_price_cents: number;
+  reseller_cost_mode: "markup" | "final";
+  reseller_cost_markup_bps: number;
+  reseller_cost_cents: number;
   is_active: boolean;
 };
 
@@ -286,11 +289,26 @@ function PriceCard({ row, onSaved }: { row: PlanPrice; onSaved: (r: PlanPrice) =
   );
   const [active, setActive] = useState(row.is_active);
   const [saving, setSaving] = useState(false);
+  // Custo cobrado do revendedor (definido pelo gerente)
+  const [rcMode, setRcMode] = useState<"markup" | "final">(row.reseller_cost_mode ?? "final");
+  const [rcVal, setRcVal] = useState(
+    (row.reseller_cost_mode ?? "final") === "markup"
+      ? ((row.reseller_cost_markup_bps ?? 0) / 100).toFixed(2).replace(".", ",")
+      : ((row.reseller_cost_cents ?? row.sale_price_cents) / 100).toFixed(2).replace(".", ","),
+  );
 
   const costCents = parseBRL(cost);
   const valueCents = mode === "percent" ? Math.round(parseFloat(val.replace(",", ".") || "0") * 100) : parseBRL(val);
   const sale = useMemo(() => computeSale(costCents, mode, valueCents), [costCents, mode, valueCents]);
   const profit = sale - costCents;
+  // Custo final cobrado do revendedor
+  const rcMarkupBps = rcMode === "markup" ? Math.round(parseFloat(rcVal.replace(",", ".") || "0") * 100) : 0;
+  const rcFinalCents = rcMode === "final" ? parseBRL(rcVal) : 0;
+  const resellerCostCents = useMemo(() => {
+    if (rcMode === "markup") return Math.max(0, Math.round((costCents * (10000 + rcMarkupBps)) / 10000));
+    return Math.max(0, rcFinalCents);
+  }, [rcMode, costCents, rcMarkupBps, rcFinalCents]);
+  const managerProfit = resellerCostCents - costCents;
 
   const save = async () => {
     setSaving(true);
@@ -299,6 +317,9 @@ function PriceCard({ row, onSaved }: { row: PlanPrice; onSaved: (r: PlanPrice) =
       markup_mode: mode,
       markup_value_cents: valueCents,
       sale_price_cents: sale,
+      reseller_cost_mode: rcMode,
+      reseller_cost_markup_bps: rcMarkupBps,
+      reseller_cost_cents: resellerCostCents,
       is_active: active,
     }).eq("id", row.id).select().single();
     setSaving(false);
@@ -336,12 +357,44 @@ function PriceCard({ row, onSaved }: { row: PlanPrice; onSaved: (r: PlanPrice) =
           <Input value={val} onChange={(e) => setVal(e.target.value)} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Preço de venda</Label>
+          <Label className="text-xs">Preço sugerido (revendedor)</Label>
           <div className="flex h-9 items-center rounded-md border border-border bg-background/40 px-3 text-sm font-semibold">
             {fmtBRL(sale)}
           </div>
         </div>
       </div>
+
+      <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-3">
+        <div className="mb-2 text-[11px] font-mono uppercase tracking-wider text-primary">
+          Custo cobrado do revendedor
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Modo</Label>
+            <Select value={rcMode} onValueChange={(v) => setRcMode(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="markup">% sobre custo</SelectItem>
+                <SelectItem value="final">Valor fixo (R$)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">{rcMode === "markup" ? "Markup (%)" : "Valor final (R$)"}</Label>
+            <Input value={rcVal} onChange={(e) => setRcVal(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Cobrado do revendedor</Label>
+            <div className="flex h-9 items-center rounded-md border border-primary/40 bg-background/40 px-3 text-sm font-semibold text-primary">
+              {fmtBRL(resellerCostCents)}
+            </div>
+          </div>
+        </div>
+        <div className="mt-2 text-[11px] text-muted-foreground">
+          Seu lucro por chave: <span className={managerProfit >= 0 ? "text-emerald-500" : "text-destructive"}>{fmtBRL(managerProfit)}</span>
+        </div>
+      </div>
+
       <div className="mt-3 flex items-center justify-between text-xs">
         <span className="text-muted-foreground">Lucro estimado: <span className={profit >= 0 ? "text-emerald-500" : "text-destructive"}>{fmtBRL(profit)}</span></span>
         <Button size="sm" onClick={save} disabled={saving}>

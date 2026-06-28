@@ -63,6 +63,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { LovMainLogo } from "@/components/LovMainLogo";
+import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import { useRole, AppRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -129,7 +130,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
     { label: "Minhas vendas", items: [
       { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
       { title: "Plano 3K", url: "/painel/revendedor/planos-vendidos", icon: CalendarClock },
-      { title: "API Claude", url: "/painel/revendedor/claude", icon: Sparkles },
+      { title: "Claude", url: "/painel/revendedor/claude", icon: ClaudeIcon as any },
       { title: "Licenças", url: "/painel/revendedor/licencas", icon: Puzzle },
     ]},
     { label: "Configurarações", items: [
@@ -138,6 +139,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Baixar Extensão", url: "/painel/revendedor/baixar-extensao", icon: Package, tour: "menu-extensao" },
       { title: "API Licenças", url: "/painel/revendedor/api", icon: KeyRound },
       { title: "API Recargas", url: "/painel/revendedor/api-recargas", icon: Coins },
+      { title: "API Claude", url: "/painel/revendedor/api-claude", icon: ClaudeIcon as any },
       { title: "Resetar chave", url: "/painel/revendedor/resetar-chave", icon: RotateCcw },
       { title: "Editar perfil", url: "/painel/conta", icon: UserCog },
     ]},
@@ -158,7 +160,7 @@ const dangerItemsByRole: Partial<Record<AppRole, { title: string; url: string; i
     { title: "Gateway de pagamento", url: "/painel/gerente/gateway", icon: CreditCard },
     { title: "API Método", url: "/painel/gerente/api-provedor", icon: KeyRound },
     { title: "API Recargas", url: "/painel/gerente/api-recargas", icon: Coins },
-    { title: "API Claude", url: "/painel/gerente/api-claude", icon: Sparkles },
+    { title: "API Claude", url: "/painel/gerente/api-claude", icon: ClaudeIcon as any },
     { title: "API Revendedor", url: "/painel/gerente/api-revendedor", icon: KeyRound },
     { title: "Resetar chave", url: "/painel/gerente/resetar-chave", icon: RotateCcw },
     { title: "Instalar App", url: "/painel/gerente/instalar-app", icon: Smartphone },
@@ -405,6 +407,7 @@ export function AppSidebar() {
     items: group.items.filter(item => {
       if (isPartner && item.url === "/painel/revendedor/niveis") return false;
       if (!claudeEnabled && item.url === "/painel/revendedor/claude") return false;
+      if (!claudeEnabled && item.url === "/painel/revendedor/api-claude") return false;
       // Esconde páginas cujos métodos estão desabilitados globalmente.
       if (primaryRole === "revendedor") {
         if (!enabledMethods.recharges && (

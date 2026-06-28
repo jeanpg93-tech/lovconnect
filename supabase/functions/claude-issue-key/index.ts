@@ -81,11 +81,14 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'plan_not_active' }, 400);
     }
     const costCents = defaultPrice.cost_cents;
+    // Custo cobrado do revendedor (definido pelo gerente). Fallback p/ sale_price_cents
+    // em registros antigos onde reseller_cost_cents ainda não foi preenchido.
+    const resellerCostCents = (defaultPrice as any).reseller_cost_cents ?? defaultPrice.sale_price_cents;
     let saleCents = defaultPrice.sale_price_cents;
     if (override && override.is_active) {
       saleCents = computeSalePrice(costCents, override.markup_mode, override.markup_value_cents);
     }
-    const profitCents = saleCents - costCents;
+    const profitCents = saleCents - resellerCostCents;
 
     // Pre-check balance (informational — atomic check happens at debit time)
     const { data: balanceRow } = await admin
@@ -94,8 +97,8 @@ Deno.serve(async (req) => {
       .eq('reseller_id', reseller.id)
       .maybeSingle();
     const balance = balanceRow?.balance_cents ?? 0;
-    if (balance < saleCents) {
-      return jsonResponse({ error: 'insufficient_balance', balance_cents: balance, required_cents: saleCents }, 402);
+    if (balance < resellerCostCents) {
+      return jsonResponse({ error: 'insufficient_balance', balance_cents: balance, required_cents: resellerCostCents }, 402);
     }
 
     // Create pending order
@@ -166,7 +169,7 @@ Deno.serve(async (req) => {
     // double-spend under concurrent requests.
     const { data: debited, error: debitErr } = await admin.rpc('debit_reseller_balance', {
       _reseller_id: reseller.id,
-      _amount_cents: saleCents,
+      _amount_cents: resellerCostCents,
       _kind: 'claude_key_issue',
       _description: `Emissão chave Claude ${planCode}`,
       _reference_id: order.id,
