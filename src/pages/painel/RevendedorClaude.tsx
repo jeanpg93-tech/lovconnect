@@ -138,6 +138,11 @@ export default function RevendedorClaude() {
       setCustomerWhatsapp("");
       setCustomerEmail("");
       loadAll();
+    } else {
+      toast.error("O fornecedor não retornou o código.");
+    }
+  };
+
   const confirmCancel = async () => {
     if (!cancelTarget) return;
     setCancelling(true);
@@ -153,11 +158,6 @@ export default function RevendedorClaude() {
     toast.success(`Chave cancelada. Estorno: ${fmtBRL(data?.refund_cents ?? 0)}`);
     setCancelTarget(null);
     loadAll();
-  };
-
-    } else {
-      toast.error("O fornecedor não retornou o código.");
-    }
   };
 
   const formatWhatsapp = (v: string) => {
