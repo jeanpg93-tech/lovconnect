@@ -73,7 +73,7 @@ export function PendingProfileGate({ userId, children }: { userId: string; child
       <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
       <div className="relative z-10 w-full max-w-md">
         <div className="mb-6 flex justify-center sm:mb-8">
-          <LovMainLogo size="h-20 sm:h-28" />
+          <LovMainLogo variant="vertical" size="h-40 sm:h-56" />
         </div>
         <div className="rounded-2xl border border-border/60 bg-card/60 p-8 shadow-2xl backdrop-blur-sm">
           <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-primary/10 shadow-red-glow-sm">
