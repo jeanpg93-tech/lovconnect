@@ -129,7 +129,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
     { label: "Minhas vendas", items: [
       { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
       { title: "Plano 3K", url: "/painel/revendedor/planos-vendidos", icon: CalendarClock },
-      { title: "API Claude", url: "/painel/revendedor/claude", icon: Sparkles },
+      { title: "Claude", url: "/painel/revendedor/claude", icon: Sparkles },
       { title: "Licenças", url: "/painel/revendedor/licencas", icon: Puzzle },
     ]},
     { label: "Configurarações", items: [
@@ -138,6 +138,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Baixar Extensão", url: "/painel/revendedor/baixar-extensao", icon: Package, tour: "menu-extensao" },
       { title: "API Licenças", url: "/painel/revendedor/api", icon: KeyRound },
       { title: "API Recargas", url: "/painel/revendedor/api-recargas", icon: Coins },
+      { title: "API Claude", url: "/painel/revendedor/api-claude", icon: Sparkles },
       { title: "Resetar chave", url: "/painel/revendedor/resetar-chave", icon: RotateCcw },
       { title: "Editar perfil", url: "/painel/conta", icon: UserCog },
     ]},
