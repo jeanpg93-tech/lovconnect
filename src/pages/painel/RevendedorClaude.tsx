@@ -443,6 +443,19 @@ export default function RevendedorClaude() {
                     {h.status === "failed" && h.error_message && (
                       <div className="mt-2 text-[10px] text-rose-500/90 line-clamp-2">{h.error_message}</div>
                     )}
+                    {canCancel && h.status === "issued" && h.provider_key_id && (
+                      <div className="mt-2 flex justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-[11px] text-rose-500 hover:bg-rose-500/10 hover:text-rose-400"
+                          onClick={() => setCancelTarget(h)}
+                        >
+                          <Ban className="mr-1 h-3 w-3" /> Cancelar venda
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
