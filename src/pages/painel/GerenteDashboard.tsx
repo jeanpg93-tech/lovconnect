@@ -230,7 +230,7 @@ export default function GerenteDashboard() {
       supabase.from("reseller_storefronts").select("*", { count: "exact", head: true }).eq("is_enabled", true),
       supabase.from("storefront_reports").select("*", { count: "exact", head: true }).eq("status", "pending"),
       withTimeout(supabase.functions.invoke("provider-api?action=usage-all") as any, 8000, { data: { usage: [] }, error: null }),
-      supabase.from("orders").select("price_cents, is_test, status, created_at, reseller_id"),
+      supabase.from("orders").select("price_cents, is_test, status, created_at, reseller_id").limit(100000),
       withTimeout(supabase.functions.invoke("provider-api?action=gateway-balance") as any, 8000, { data: null, error: null }),
       withTimeout(supabase.functions.invoke("lovable-credits-api?action=balance", { method: "GET" }) as any, 8000, { data: null, error: null }),
       supabase.from("recharge_intents").select("amount_cents").not("paid_at", "is", null).gte("paid_at", todayIsoEarly),
