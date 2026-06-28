@@ -406,6 +406,7 @@ export function AppSidebar() {
     items: group.items.filter(item => {
       if (isPartner && item.url === "/painel/revendedor/niveis") return false;
       if (!claudeEnabled && item.url === "/painel/revendedor/claude") return false;
+      if (!claudeEnabled && item.url === "/painel/revendedor/api-claude") return false;
       // Esconde páginas cujos métodos estão desabilitados globalmente.
       if (primaryRole === "revendedor") {
         if (!enabledMethods.recharges && (
