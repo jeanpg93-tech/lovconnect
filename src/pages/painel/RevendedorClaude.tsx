@@ -15,22 +15,20 @@ import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
 
-type PlanCode = "5x_7d" | "5x_30d" | "20x_30d" | "pro_30d";
+type PlanCode = "5x_7d" | "5x_30d" | "20x_30d";
 type MarkupMode = "percent" | "fixed_add" | "final";
 
 const PLAN_LABELS: Record<PlanCode, string> = {
   "5x_7d": "5x · 7 dias",
   "5x_30d": "5x · 30 dias",
   "20x_30d": "20x · 30 dias",
-  "pro_30d": "Pro · 30 dias",
 };
-const PLAN_ORDER: PlanCode[] = ["5x_7d", "5x_30d", "20x_30d", "pro_30d"];
+const PLAN_ORDER: PlanCode[] = ["5x_7d", "5x_30d", "20x_30d"];
 
 const PLAN_LIMITS: Record<PlanCode, string> = {
   "5x_7d": "1,25 Milhões de tokens / 12h",
   "5x_30d": "1,25 Milhões de tokens / 12h",
   "20x_30d": "5 Milhões de tokens / 12h",
-  "pro_30d": "300 Mil tokens / 24h",
 };
 
 const fmtBRL = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -47,11 +45,9 @@ const PLAN_GRADIENTS: Record<PlanCode, string> = {
   "5x_7d": "from-sky-500/20 via-sky-500/5 to-transparent",
   "5x_30d": "from-blue-500/20 via-blue-500/5 to-transparent",
   "20x_30d": "from-primary/25 via-primary/5 to-transparent",
-  "pro_30d": "from-amber-500/25 via-amber-500/5 to-transparent",
 };
 const PLAN_BADGES: Partial<Record<PlanCode, { label: string; cls: string }>> = {
   "20x_30d": { label: "Popular", cls: "bg-primary/15 text-primary border-primary/30" },
-  "pro_30d": { label: "Top", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
 };
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {

@@ -239,7 +239,7 @@ export default function RevendedorApiClaude() {
   }'`}
               </pre>
               <div className="mt-2 text-xs text-muted-foreground">
-                Planos disponíveis: <code>5x_7d</code>, <code>5x_30d</code>, <code>20x_30d</code>, <code>pro_30d</code>.
+                Planos disponíveis: <code>5x_7d</code>, <code>5x_30d</code>, <code>20x_30d</code>.
                 O preço é debitado da sua carteira.
               </div>
             </div>
