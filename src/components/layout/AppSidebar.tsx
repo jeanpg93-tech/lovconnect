@@ -68,6 +68,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import { useProviderCommitments } from "@/hooks/useProviderCommitments";
+import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import { useTranslation } from "react-i18next";
 
 type Item = { title: string; url: string; icon: any; badge?: "store-status"; tour?: string };
