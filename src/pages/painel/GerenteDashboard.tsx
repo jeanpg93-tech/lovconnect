@@ -1070,7 +1070,7 @@ export default function GerenteDashboard() {
                   <ShoppingCart className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="font-display text-base sm:text-lg font-bold tracking-tight">Movimentações de Recarga</h3>
+                  <h3 className="font-display text-base sm:text-lg font-bold tracking-tight">Movimentações</h3>
                   <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">entradas e saídas do sistema</p>
                 </div>
               </div>
