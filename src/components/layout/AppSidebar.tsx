@@ -131,6 +131,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Recargas", url: "/painel/revendedor/recargas", icon: Zap },
       { title: "Plano 3K", url: "/painel/revendedor/planos-vendidos", icon: CalendarClock },
       { title: "Claude", url: "/painel/revendedor/claude", icon: ClaudeIcon as any },
+      { title: "Clientes Claude", url: "/painel/revendedor/claude-clientes", icon: ClaudeIcon as any },
       { title: "Licenças", url: "/painel/revendedor/licencas", icon: Puzzle },
     ]},
     { label: "Configurarações", items: [
@@ -408,6 +409,7 @@ export function AppSidebar() {
       if (isPartner && item.url === "/painel/revendedor/niveis") return false;
       if (!claudeEnabled && item.url === "/painel/revendedor/claude") return false;
       if (!claudeEnabled && item.url === "/painel/revendedor/api-claude") return false;
+      if (!claudeEnabled && item.url === "/painel/revendedor/claude-clientes") return false;
       // Esconde páginas cujos métodos estão desabilitados globalmente.
       if (primaryRole === "revendedor") {
         if (!enabledMethods.recharges && (
