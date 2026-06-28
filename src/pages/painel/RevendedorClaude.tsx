@@ -321,6 +321,23 @@ export default function RevendedorClaude() {
             </div>
           </div>
 
+          <div className="mt-3">
+            <Label className="text-xs">
+              E-mail do cliente <span className="text-muted-foreground">(opcional — permite acompanhar o consumo de tokens)</span>
+            </Label>
+            <div className="relative mt-1.5">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="cliente@email.com"
+                type="email"
+                inputMode="email"
+                className="pl-9"
+              />
+            </div>
+          </div>
+
           <div className="mt-6 mb-3 flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">3</span>
             <h3 className="font-display text-sm font-semibold">Emitir chave</h3>
