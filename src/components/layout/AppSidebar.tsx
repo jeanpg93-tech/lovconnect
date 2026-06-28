@@ -223,6 +223,7 @@ export function AppSidebar() {
 
   const isManager = primaryRole === "gerente";
   const commitments = useProviderCommitments(isManager);
+  const enabledMethods = useResellerEnabledMethods();
 
   useEffect(() => {
     if (!user?.id) return;
