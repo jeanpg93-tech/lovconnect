@@ -163,6 +163,7 @@ Deno.serve(async (req) => {
         : defaultPrice.sale_price_cents;
       const profitCents = saleCents - costCents;
 
+      // Pre-check (informational; atomic check happens inside the RPC below)
       const { data: balRow } = await svc.from("reseller_balances").select("balance_cents").eq("reseller_id", reseller.id).maybeSingle();
       const balance = balRow?.balance_cents ?? 0;
       if (balance < saleCents) {
@@ -220,23 +221,22 @@ Deno.serve(async (req) => {
       const providerKeyId: string | undefined =
         providerResp?.id ?? providerResp?.key_id ?? providerResp?.data?.id;
 
-      const { error: debitErr } = await svc.from("reseller_balances")
-        .update({ balance_cents: balance - saleCents })
-        .eq("reseller_id", reseller.id);
-      if (debitErr) {
+      // SECURITY: atomic debit via RPC to prevent TOCTOU / double-spend.
+      const { data: debited, error: debitErr } = await svc.rpc("debit_reseller_balance", {
+        _reseller_id: reseller.id,
+        _amount_cents: saleCents,
+        _kind: "claude_key_issue",
+        _description: `Emissão chave Claude ${planCode} (API)`,
+        _reference_id: order.id,
+      });
+      if (debitErr || debited !== true) {
         await svc.from("claude_orders").update({
-          status: "failed", provider_response: providerResp, error_message: `debit_failed: ${debitErr.message}`,
+          status: "failed",
+          provider_response: providerResp,
+          error_message: `debit_failed: ${debitErr?.message ?? 'insufficient_balance'}`,
         }).eq("id", order.id);
-        return json({ success: false, error: "debit_failed" }, 500);
+        return json({ success: false, error: debitErr ? "debit_failed" : "saldo_insuficiente" }, 402);
       }
-
-      await svc.from("balance_transactions").insert({
-        reseller_id: reseller.id,
-        amount_cents: -saleCents,
-        transaction_type: "claude_key_issue",
-        description: `Emissão chave Claude ${planCode} (API)`,
-        metadata: { order_id: order.id, plan_code: planCode, source: "reseller-claude-api" },
-      }).then(() => {}, () => {});
 
       await svc.from("claude_orders").update({
         status: "issued",
