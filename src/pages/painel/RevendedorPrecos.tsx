@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/painel/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Sparkles, Zap, Beaker, CalendarClock } from "lucide-react";
+import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import MethodPriceTable from "@/components/painel/MethodPriceTable";
+import ClaudePriceTable from "@/components/painel/ClaudePriceTable";
 import RevendedorCreditos from "./RevendedorCreditos";
 import RevendedorPlanoPreco from "./RevendedorPlanoPreco";
 import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
@@ -17,6 +19,7 @@ export default function RevendedorPrecos() {
     const t: { value: string; label: string; icon: any; render: () => JSX.Element }[] = [];
     if (methods.flow) t.push({ value: "promptflow", label: "MétodoFlow", icon: Sparkles, render: () => <MethodPriceTable method="flow" /> });
     t.push({ value: "lovax", label: "LovaX", icon: Beaker, render: () => <MethodPriceTable method="lovax" /> });
+    t.push({ value: "claude", label: "Claude", icon: ClaudeIcon as any, render: () => <ClaudePriceTable /> });
     if (methods.recharges) t.push({ value: "recargas", label: "Recargas", icon: Zap, render: () => <RevendedorCreditos /> });
     if (methods.plano3k) t.push({ value: "plano", label: "Plano 3K", icon: CalendarClock, render: () => <RevendedorPlanoPreco /> });
     return t;
