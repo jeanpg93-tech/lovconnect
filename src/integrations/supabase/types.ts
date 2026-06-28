@@ -4284,6 +4284,44 @@ export type Database = {
         }
         Relationships: []
       }
+      tier_claude_prices: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          plan_code: string
+          reseller_cost_cents: number
+          tier_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          plan_code: string
+          reseller_cost_cents?: number
+          tier_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          plan_code?: string
+          reseller_cost_cents?: number
+          tier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tier_claude_prices_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tier_credit_prices: {
         Row: {
           created_at: string
@@ -4553,6 +4591,17 @@ export type Database = {
           status: string
         }[]
       }
+      admin_tier_claude_prices_matrix: {
+        Args: never
+        Returns: {
+          is_active: boolean
+          plan_code: string
+          reseller_cost_cents: number
+          tier_id: string
+          tier_name: string
+          tier_sort_order: number
+        }[]
+      }
       approve_user: { Args: { _user_id: string }; Returns: undefined }
       build_storefront_credit_sale_text: {
         Args: { _order_id: string }
@@ -4793,6 +4842,10 @@ export type Database = {
       get_primary_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_reseller_claude_cost: {
+        Args: { _plan_code: string; _reseller_id: string }
+        Returns: number
       }
       get_reseller_ranking_v2: {
         Args: { start_date: string }
