@@ -153,7 +153,6 @@ export default function GerenteDashboard() {
     totalOrders: 0, totalApiLogs: 0
   });
   const [gatewayBalance, setGatewayBalance] = useState<string>("R$ 0,00");
-  const [providerBalance, setProviderBalance] = useState<string>("R$ 0,00");
   const [todayRecharge, setTodayRecharge] = useState<{ cents: number; count: number }>({ cents: 0, count: 0 });
   const [lovaxStock, setLovaxStock] = useState<{ used: number; limit: number } | null>(null);
   const commitments = useProviderCommitments(true);
