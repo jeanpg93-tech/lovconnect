@@ -2,6 +2,7 @@ import { Home, Wallet, KeyRound, Coins, ArrowRightLeft, Plus, History, LayoutDas
 import { Link, useLocation } from "react-router-dom";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
+import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -21,6 +22,7 @@ export function MobileNav() {
   const { pathname } = useLocation();
   const { primaryRole, isSubscription } = useRole();
   const { user, signOut } = useAuth();
+  const enabledMethods = useResellerEnabledMethods();
   const { setOpenMobile } = useSidebar();
   const { t } = useTranslation();
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
