@@ -540,6 +540,56 @@ export default function RevendedorClaude() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Ban className="h-5 w-5 text-rose-500" /> Cancelar venda Claude
+            </DialogTitle>
+            <DialogDescription>
+              A chave será revogada no fornecedor e o valor debitado voltará ao seu saldo.
+            </DialogDescription>
+          </DialogHeader>
+
+          {cancelTarget && (
+            <div className="space-y-2 rounded-lg border border-border bg-background/40 p-3 text-sm">
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Plano</span>
+                <span className="font-semibold">{PLAN_LABELS[cancelTarget.plan_code as PlanCode] ?? cancelTarget.plan_code}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Cliente</span>
+                <span className="font-semibold truncate">{cancelTarget.customer_name || "—"}</span>
+              </div>
+              <div className="flex justify-between gap-2 border-t border-border pt-2">
+                <span className="text-muted-foreground">Estorno na carteira</span>
+                <span className="font-bold text-emerald-500">{fmtBRL(cancelTarget.cost_cents ?? 0)}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-600">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>
+              O cliente perderá o acesso imediatamente. Se o fornecedor recusar o cancelamento
+              (ex.: janela expirada), nada é debitado e a chave continua ativa.
+            </span>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={cancelling}>Voltar</Button>
+            <Button
+              className="bg-rose-500 text-white hover:bg-rose-600"
+              onClick={confirmCancel}
+              disabled={cancelling}
+            >
+              {cancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Ban className="mr-2 h-4 w-4" />}
+              Revogar chave e estornar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
