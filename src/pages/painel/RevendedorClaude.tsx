@@ -10,10 +10,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search, User, MessageCircle } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search, User, MessageCircle, Mail, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+
+// Conta de testes Jean Gomes — únicos com botão "Cancelar venda" no momento.
+const TEST_USER_ID = "beae9f73-5c2c-4878-bfc5-41e9e2faf15e";
 
 type PlanCode = "5x_7d" | "5x_30d" | "20x_30d";
 type MarkupMode = "percent" | "fixed_add" | "final";
@@ -55,9 +59,13 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   pending: { label: "Pendente", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
   failed: { label: "Falhou", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
   refunded: { label: "Estornada", cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
+  cancelled: { label: "Cancelada", cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
+  cancel_failed: { label: "Falha no cancelamento", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
 };
 
 export default function RevendedorClaude() {
+  const { user } = useAuth();
+  const canCancel = user?.id === TEST_USER_ID;
   const [loading, setLoading] = useState(true);
   const [prices, setPrices] = useState<PriceRow[]>([]);
   const [issuing, setIssuing] = useState<PlanCode | null>(null);
@@ -70,8 +78,11 @@ export default function RevendedorClaude() {
   const [search, setSearch] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerWhatsapp, setCustomerWhatsapp] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmChecks, setConfirmChecks] = useState({ data: false, debit: false, once: false });
+  const [cancelTarget, setCancelTarget] = useState<any | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const loadAll = async () => {
     const { data: userRes } = await supabase.auth.getUser();
@@ -84,7 +95,7 @@ export default function RevendedorClaude() {
     const [{ data: def }, { data: ov }, { data: hist }, { data: bal }] = await Promise.all([
       supabase.from("claude_plan_prices").select("plan_code, markup_mode, markup_value_cents, sale_price_cents, is_active"),
       supabase.from("claude_reseller_price_overrides").select("*").eq("reseller_id", r.id),
-      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id, customer_name, customer_whatsapp").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, cost_cents, created_at, error_message, code, provider_key_id, customer_name, customer_whatsapp, customer_email").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
     ]);
 
@@ -112,6 +123,7 @@ export default function RevendedorClaude() {
         request_id: crypto.randomUUID(),
         customer_name: customerName.trim(),
         customer_whatsapp: customerWhatsapp.replace(/\D+/g, ""),
+        customer_email: customerEmail.trim() || null,
       },
     });
     setIssuing(null);
@@ -124,7 +136,25 @@ export default function RevendedorClaude() {
       setRevealed({ code: data.code, plan });
       setCustomerName("");
       setCustomerWhatsapp("");
+      setCustomerEmail("");
       loadAll();
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    setCancelling(true);
+    const { data, error } = await invokeAuthenticatedFunction<any>("claude-cancel-key", {
+      method: "POST",
+      body: { order_id: cancelTarget.id },
+    });
+    setCancelling(false);
+    if (error) {
+      const msg = (data as any)?.error ?? (error as any)?.message ?? "Falha ao cancelar";
+      return toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+    }
+    toast.success(`Chave cancelada. Estorno: ${fmtBRL(data?.refund_cents ?? 0)}`);
+    setCancelTarget(null);
+    loadAll();
+  };
+
     } else {
       toast.error("O fornecedor não retornou o código.");
     }
