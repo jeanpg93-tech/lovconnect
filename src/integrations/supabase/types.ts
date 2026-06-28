@@ -4440,6 +4440,51 @@ export type Database = {
         Args: { _amount_cents: number; _reseller_id: string }
         Returns: undefined
       }
+      admin_claude_plan_prices_full: {
+        Args: never
+        Returns: {
+          cost_cents: number
+          created_at: string
+          id: string
+          is_active: boolean
+          markup_mode: string
+          markup_value_cents: number
+          plan_code: string
+          sale_price_cents: number
+          updated_at: string
+        }[]
+      }
+      admin_recent_provider_cost_by_credits: {
+        Args: never
+        Returns: {
+          cost_cents: number
+          credits: number
+        }[]
+      }
+      admin_reseller_credit_purchases_costs: {
+        Args: { _from?: string; _to?: string }
+        Returns: {
+          cost_cents: number
+          created_at: string
+          credits: number
+          customer_name: string
+          id: string
+          price_cents: number
+          reseller_id: string
+          status: string
+        }[]
+      }
+      admin_reseller_recharge_plan_subscriptions_costs: {
+        Args: { _from?: string; _to?: string }
+        Returns: {
+          cost_cents: number
+          created_at: string
+          plan_id: string
+          reseller_id: string
+          started_at: string
+          status: string
+        }[]
+      }
       approve_user: { Args: { _user_id: string }; Returns: undefined }
       build_storefront_credit_sale_text: {
         Args: { _order_id: string }
