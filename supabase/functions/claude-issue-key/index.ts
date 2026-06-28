@@ -7,7 +7,7 @@ const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const CLAUDE_API_KEY = Deno.env.get('CLAUDE_RESELLER_API_KEY')!;
 const CLAUDE_BASE_URL = (Deno.env.get('CLAUDE_RESELLER_API_BASE_URL') ?? '').replace(/\/$/, '');
 
-const PLAN_CODES = new Set(['5x_7d', '5x_30d', '20x_30d', 'pro_30d']);
+const PLAN_CODES = new Set(['5x_7d', '5x_30d', '20x_30d']);
 
 const jsonResponse = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {

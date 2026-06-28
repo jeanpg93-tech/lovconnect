@@ -18,7 +18,7 @@ const corsHeaders = {
 const CLAUDE_API_KEY = Deno.env.get("CLAUDE_RESELLER_API_KEY") ?? "";
 const CLAUDE_BASE_URL = (Deno.env.get("CLAUDE_RESELLER_API_BASE_URL") ?? "").replace(/\/$/, "");
 
-const PLAN_CODES = new Set(["5x_7d", "5x_30d", "20x_30d", "pro_30d"]);
+const PLAN_CODES = new Set(["5x_7d", "5x_30d", "20x_30d"]);
 
 function json(d: unknown, status = 200) {
   return new Response(JSON.stringify(d), {

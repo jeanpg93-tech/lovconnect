@@ -22,7 +22,7 @@ const PLAN_LABELS: Record<PlanCode, string> = {
   "20x_30d": "20x · 30 dias",
   "pro_30d": "Pro · 30 dias",
 };
-const PLAN_ORDER: PlanCode[] = ["5x_7d", "5x_30d", "20x_30d", "pro_30d"];
+const PLAN_ORDER: PlanCode[] = ["5x_7d", "5x_30d", "20x_30d"];
 
 type PlanPrice = {
   id: string;
