@@ -167,7 +167,7 @@ const ROUTES: PanelRoute[] = [
 ];
 
 const PageFallback = () => (
-  <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+  <div className="flex min-h-[60vh] w-full flex-1 flex-col items-center justify-center gap-4 text-center">
     <div className="relative flex h-16 w-16 items-center justify-center">
       <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" />
       <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 border border-primary/30">
