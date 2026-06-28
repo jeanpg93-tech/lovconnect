@@ -30,6 +30,9 @@ type PlanPrice = {
   markup_mode: MarkupMode;
   markup_value_cents: number;
   sale_price_cents: number;
+  reseller_cost_mode: "markup" | "final";
+  reseller_cost_markup_bps: number;
+  reseller_cost_cents: number;
   is_active: boolean;
 };
 
