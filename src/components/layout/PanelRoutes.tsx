@@ -73,6 +73,7 @@ const RevendedorHistoricoPacote = lazy(() => import("@/pages/painel/RevendedorHi
 const RevendedorResetarChave = lazy(() => import("@/pages/painel/RevendedorResetarChave"));
 const RevendedorPlanosVendidos = lazy(() => import("@/pages/painel/RevendedorPlanosVendidos"));
 const RevendedorClaude = lazy(() => import("@/pages/painel/RevendedorClaude"));
+const RevendedorApiClaude = lazy(() => import("@/pages/painel/RevendedorApiClaude"));
 
 const ClienteDashboard = lazy(() => import("@/pages/painel/ClienteDashboard"));
 const ClienteExtensoes = lazy(() => import("@/pages/painel/ClienteExtensoes"));
@@ -135,6 +136,7 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/revendedor/recargas", match: exact("/painel/revendedor/recargas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorRecarga /></RoleRoute> },
   { key: "/painel/revendedor/planos-vendidos", match: exact("/painel/revendedor/planos-vendidos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPlanosVendidos /></RoleRoute> },
   { key: "/painel/revendedor/claude", match: exact("/painel/revendedor/claude"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorClaude /></RoleRoute> },
+  { key: "/painel/revendedor/api-claude", match: exact("/painel/revendedor/api-claude"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorApiClaude /></RoleRoute> },
   { key: "/painel/revendedor/clientes", match: exact("/painel/revendedor/clientes"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorClientes /></RoleRoute> },
   { key: "/painel/revendedor/licencas", match: exact("/painel/revendedor/licencas"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPedidos /></RoleRoute> },
   { key: "/painel/revendedor/pedidos", match: exact("/painel/revendedor/pedidos"), render: () => <RoleRoute allow={["revendedor"]}><RevendedorPedidos /></RoleRoute> },
