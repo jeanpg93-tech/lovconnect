@@ -169,6 +169,7 @@ export default function RevendedorDashboard() {
     subscriptionBlocked: roleSubBlocked,
     packCredits,
   } = useRole();
+  const enabledMethods = useResellerEnabledMethods();
   const [loading, setLoading] = useState(true);
   const [resellerId, setResellerId] = useState<string | null>(null);
 
