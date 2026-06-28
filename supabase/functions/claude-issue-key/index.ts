@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     }
     const profitCents = saleCents - costCents;
 
-    // Check balance
+    // Pre-check balance (informational — atomic check happens at debit time)
     const { data: balanceRow } = await admin
       .from('reseller_balances')
       .select('balance_cents')
@@ -161,27 +161,24 @@ Deno.serve(async (req) => {
     const providerKeyId: string | undefined =
       providerResp?.id ?? providerResp?.key_id ?? providerResp?.data?.id;
 
-    // Debit wallet
-    const { error: debitErr } = await admin
-      .from('reseller_balances')
-      .update({ balance_cents: balance - saleCents })
-      .eq('reseller_id', reseller.id);
-    if (debitErr) {
+    // SECURITY: debit atomically via RPC (row-lock + conditional decrement).
+    // The RPC also inserts the balance_transactions row, preventing TOCTOU /
+    // double-spend under concurrent requests.
+    const { data: debited, error: debitErr } = await admin.rpc('debit_reseller_balance', {
+      _reseller_id: reseller.id,
+      _amount_cents: saleCents,
+      _kind: 'claude_key_issue',
+      _description: `Emissão chave Claude ${planCode}`,
+      _reference_id: order.id,
+    });
+    if (debitErr || debited !== true) {
       await admin.from('claude_orders').update({
         status: 'failed',
         provider_response: providerResp,
-        error_message: `debit_failed: ${debitErr.message}`,
+        error_message: `debit_failed: ${debitErr?.message ?? 'insufficient_balance'}`,
       }).eq('id', order.id);
-      return jsonResponse({ error: 'debit_failed' }, 500);
+      return jsonResponse({ error: debitErr ? 'debit_failed' : 'insufficient_balance' }, 402);
     }
-
-    await admin.from('balance_transactions').insert({
-      reseller_id: reseller.id,
-      amount_cents: -saleCents,
-      transaction_type: 'claude_key_issue',
-      description: `Emissão chave Claude ${planCode}`,
-      metadata: { order_id: order.id, plan_code: planCode },
-    }).then(() => {}, () => {}); // non-fatal
 
     const { data: updated } = await admin
       .from('claude_orders')
