@@ -158,16 +158,17 @@ Deno.serve(async (req) => {
       if (!defaultPrice || !defaultPrice.is_active) return json({ success: false, error: "plano_indisponivel" }, 400);
 
       const costCents = defaultPrice.cost_cents;
+      const resellerCostCents = (defaultPrice as any).reseller_cost_cents ?? defaultPrice.sale_price_cents;
       const saleCents = override && override.is_active
         ? computeSale(costCents, override.markup_mode, override.markup_value_cents)
         : defaultPrice.sale_price_cents;
-      const profitCents = saleCents - costCents;
+      const profitCents = saleCents - resellerCostCents;
 
       // Pre-check (informational; atomic check happens inside the RPC below)
       const { data: balRow } = await svc.from("reseller_balances").select("balance_cents").eq("reseller_id", reseller.id).maybeSingle();
       const balance = balRow?.balance_cents ?? 0;
-      if (balance < saleCents) {
-        return json({ success: false, error: "saldo_insuficiente", saldo_centavos: balance, preco_centavos: saleCents }, 402);
+      if (balance < resellerCostCents) {
+        return json({ success: false, error: "saldo_insuficiente", saldo_centavos: balance, preco_centavos: resellerCostCents }, 402);
       }
 
       const { data: order, error: oErr } = await svc.from("claude_orders").insert({
@@ -224,7 +225,7 @@ Deno.serve(async (req) => {
       // SECURITY: atomic debit via RPC to prevent TOCTOU / double-spend.
       const { data: debited, error: debitErr } = await svc.rpc("debit_reseller_balance", {
         _reseller_id: reseller.id,
-        _amount_cents: saleCents,
+        _amount_cents: resellerCostCents,
         _kind: "claude_key_issue",
         _description: `Emissão chave Claude ${planCode} (API)`,
         _reference_id: order.id,
