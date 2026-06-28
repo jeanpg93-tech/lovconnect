@@ -4509,6 +4509,9 @@ export type Database = {
           markup_mode: string
           markup_value_cents: number
           plan_code: string
+          reseller_cost_cents: number
+          reseller_cost_markup_bps: number
+          reseller_cost_mode: string
           sale_price_cents: number
           updated_at: string
         }[]
