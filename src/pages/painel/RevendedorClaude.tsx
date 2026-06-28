@@ -10,10 +10,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search, User, MessageCircle } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search, User, MessageCircle, Mail, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+
+// Conta de testes Jean Gomes — únicos com botão "Cancelar venda" no momento.
+const TEST_USER_ID = "beae9f73-5c2c-4878-bfc5-41e9e2faf15e";
 
 type PlanCode = "5x_7d" | "5x_30d" | "20x_30d";
 type MarkupMode = "percent" | "fixed_add" | "final";
@@ -55,9 +59,13 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   pending: { label: "Pendente", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
   failed: { label: "Falhou", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
   refunded: { label: "Estornada", cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
+  cancelled: { label: "Cancelada", cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
+  cancel_failed: { label: "Falha no cancelamento", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
 };
 
 export default function RevendedorClaude() {
+  const { user } = useAuth();
+  const canCancel = user?.id === TEST_USER_ID;
   const [loading, setLoading] = useState(true);
   const [prices, setPrices] = useState<PriceRow[]>([]);
   const [issuing, setIssuing] = useState<PlanCode | null>(null);
@@ -70,8 +78,11 @@ export default function RevendedorClaude() {
   const [search, setSearch] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerWhatsapp, setCustomerWhatsapp] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmChecks, setConfirmChecks] = useState({ data: false, debit: false, once: false });
+  const [cancelTarget, setCancelTarget] = useState<any | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const loadAll = async () => {
     const { data: userRes } = await supabase.auth.getUser();
@@ -84,7 +95,7 @@ export default function RevendedorClaude() {
     const [{ data: def }, { data: ov }, { data: hist }, { data: bal }] = await Promise.all([
       supabase.from("claude_plan_prices").select("plan_code, markup_mode, markup_value_cents, sale_price_cents, is_active"),
       supabase.from("claude_reseller_price_overrides").select("*").eq("reseller_id", r.id),
-      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id, customer_name, customer_whatsapp").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, cost_cents, created_at, error_message, code, provider_key_id, customer_name, customer_whatsapp, customer_email").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
     ]);
 
@@ -112,6 +123,7 @@ export default function RevendedorClaude() {
         request_id: crypto.randomUUID(),
         customer_name: customerName.trim(),
         customer_whatsapp: customerWhatsapp.replace(/\D+/g, ""),
+        customer_email: customerEmail.trim() || null,
       },
     });
     setIssuing(null);
@@ -124,10 +136,28 @@ export default function RevendedorClaude() {
       setRevealed({ code: data.code, plan });
       setCustomerName("");
       setCustomerWhatsapp("");
+      setCustomerEmail("");
       loadAll();
     } else {
       toast.error("O fornecedor não retornou o código.");
     }
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    setCancelling(true);
+    const { data, error } = await invokeAuthenticatedFunction<any>("claude-cancel-key", {
+      method: "POST",
+      body: { order_id: cancelTarget.id },
+    });
+    setCancelling(false);
+    if (error) {
+      const msg = (data as any)?.error ?? (error as any)?.message ?? "Falha ao cancelar";
+      return toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+    }
+    toast.success(`Chave cancelada. Estorno: ${fmtBRL(data?.refund_cents ?? 0)}`);
+    setCancelTarget(null);
+    loadAll();
   };
 
   const formatWhatsapp = (v: string) => {
@@ -291,6 +321,23 @@ export default function RevendedorClaude() {
             </div>
           </div>
 
+          <div className="mt-3">
+            <Label className="text-xs">
+              E-mail do cliente <span className="text-muted-foreground">(opcional — permite acompanhar o consumo de tokens)</span>
+            </Label>
+            <div className="relative mt-1.5">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="cliente@email.com"
+                type="email"
+                inputMode="email"
+                className="pl-9"
+              />
+            </div>
+          </div>
+
           <div className="mt-6 mb-3 flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">3</span>
             <h3 className="font-display text-sm font-semibold">Emitir chave</h3>
@@ -396,6 +443,19 @@ export default function RevendedorClaude() {
                     {h.status === "failed" && h.error_message && (
                       <div className="mt-2 text-[10px] text-rose-500/90 line-clamp-2">{h.error_message}</div>
                     )}
+                    {canCancel && h.status === "issued" && h.provider_key_id && (
+                      <div className="mt-2 flex justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-[11px] text-rose-500 hover:bg-rose-500/10 hover:text-rose-400"
+                          onClick={() => setCancelTarget(h)}
+                        >
+                          <Ban className="mr-1 h-3 w-3" /> Cancelar venda
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -476,6 +536,56 @@ export default function RevendedorClaude() {
             <Button variant="outline" onClick={() => setRevealed(null)}>Fechar</Button>
             <Button onClick={copy}>
               {copied ? <><Check className="mr-2 h-4 w-4" /> Copiado</> : <><Copy className="mr-2 h-4 w-4" /> Copiar chave</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Ban className="h-5 w-5 text-rose-500" /> Cancelar venda Claude
+            </DialogTitle>
+            <DialogDescription>
+              A chave será revogada no fornecedor e o valor debitado voltará ao seu saldo.
+            </DialogDescription>
+          </DialogHeader>
+
+          {cancelTarget && (
+            <div className="space-y-2 rounded-lg border border-border bg-background/40 p-3 text-sm">
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Plano</span>
+                <span className="font-semibold">{PLAN_LABELS[cancelTarget.plan_code as PlanCode] ?? cancelTarget.plan_code}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Cliente</span>
+                <span className="font-semibold truncate">{cancelTarget.customer_name || "—"}</span>
+              </div>
+              <div className="flex justify-between gap-2 border-t border-border pt-2">
+                <span className="text-muted-foreground">Estorno na carteira</span>
+                <span className="font-bold text-emerald-500">{fmtBRL(cancelTarget.cost_cents ?? 0)}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-600">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>
+              O cliente perderá o acesso imediatamente. Se o fornecedor recusar o cancelamento
+              (ex.: janela expirada), nada é debitado e a chave continua ativa.
+            </span>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={cancelling}>Voltar</Button>
+            <Button
+              className="bg-rose-500 text-white hover:bg-rose-600"
+              onClick={confirmCancel}
+              disabled={cancelling}
+            >
+              {cancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Ban className="mr-2 h-4 w-4" />}
+              Revogar chave e estornar
             </Button>
           </DialogFooter>
         </DialogContent>

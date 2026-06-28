@@ -385,10 +385,13 @@ export type Database = {
       }
       claude_orders: {
         Row: {
+          cancel_attempts: Json
+          cancelled_at: string | null
           code: string | null
           code_revealed_at: string | null
           cost_cents: number
           created_at: string
+          customer_email: string | null
           customer_identifier: string | null
           customer_name: string | null
           customer_whatsapp: string | null
@@ -405,10 +408,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cancel_attempts?: Json
+          cancelled_at?: string | null
           code?: string | null
           code_revealed_at?: string | null
           cost_cents?: number
           created_at?: string
+          customer_email?: string | null
           customer_identifier?: string | null
           customer_name?: string | null
           customer_whatsapp?: string | null
@@ -425,10 +431,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cancel_attempts?: Json
+          cancelled_at?: string | null
           code?: string | null
           code_revealed_at?: string | null
           cost_cents?: number
           created_at?: string
+          customer_email?: string | null
           customer_identifier?: string | null
           customer_name?: string | null
           customer_whatsapp?: string | null
@@ -5003,7 +5012,13 @@ export type Database = {
     Enums: {
       app_role: "gerente" | "revendedor" | "cliente"
       claude_markup_mode: "percent" | "fixed_add" | "final"
-      claude_order_status: "pending" | "issued" | "failed" | "refunded"
+      claude_order_status:
+        | "pending"
+        | "issued"
+        | "failed"
+        | "refunded"
+        | "cancelled"
+        | "cancel_failed"
       onboarding_tour_status: "pending" | "completed" | "skipped"
       recharge_plan_delivery_status:
         | "pending"
@@ -5148,7 +5163,14 @@ export const Constants = {
     Enums: {
       app_role: ["gerente", "revendedor", "cliente"],
       claude_markup_mode: ["percent", "fixed_add", "final"],
-      claude_order_status: ["pending", "issued", "failed", "refunded"],
+      claude_order_status: [
+        "pending",
+        "issued",
+        "failed",
+        "refunded",
+        "cancelled",
+        "cancel_failed",
+      ],
       onboarding_tour_status: ["pending", "completed", "skipped"],
       recharge_plan_delivery_status: [
         "pending",

@@ -236,11 +236,9 @@ function PricesTab() {
           if (!Number.isFinite(raw)) return null;
           const row = rows.find((r) => r.plan_code === pc);
           if (!row) return null;
-          // Provider returns values in BRL (reais, ex.: 70.90). Convert to cents.
-          // Heurística: se já vier como inteiro >= 1000, assume que já está em centavos.
-          const cost = Number.isInteger(raw) && raw >= 1000
-            ? raw
-            : Math.round(raw * 100);
+          // Conforme doc atualizada do fornecedor, `prices` já vem em CENTAVOS
+          // (ex.: 9000 = R$ 90,00). Apenas garantimos inteiro.
+          const cost = Math.round(raw);
           const sale = computeSale(cost, row.markup_mode, row.markup_value_cents);
           return { id: row.id, cost_cents: cost, sale_price_cents: sale };
         })
