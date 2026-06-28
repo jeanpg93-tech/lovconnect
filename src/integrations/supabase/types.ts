@@ -457,6 +457,9 @@ export type Database = {
           markup_mode: Database["public"]["Enums"]["claude_markup_mode"]
           markup_value_cents: number
           plan_code: string
+          reseller_cost_cents: number
+          reseller_cost_markup_bps: number
+          reseller_cost_mode: string
           sale_price_cents: number
           updated_at: string
         }
@@ -468,6 +471,9 @@ export type Database = {
           markup_mode?: Database["public"]["Enums"]["claude_markup_mode"]
           markup_value_cents?: number
           plan_code: string
+          reseller_cost_cents?: number
+          reseller_cost_markup_bps?: number
+          reseller_cost_mode?: string
           sale_price_cents?: number
           updated_at?: string
         }
@@ -479,6 +485,9 @@ export type Database = {
           markup_mode?: Database["public"]["Enums"]["claude_markup_mode"]
           markup_value_cents?: number
           plan_code?: string
+          reseller_cost_cents?: number
+          reseller_cost_markup_bps?: number
+          reseller_cost_mode?: string
           sale_price_cents?: number
           updated_at?: string
         }
@@ -2358,6 +2367,56 @@ export type Database = {
             foreignKeyName: "reseller_balances_reseller_id_fkey"
             columns: ["reseller_id"]
             isOneToOne: true
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reseller_claude_api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          key_hash: string
+          key_prefix: string
+          label: string | null
+          last_used_at: string | null
+          reseller_id: string
+          revoked_at: string | null
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key_hash: string
+          key_prefix: string
+          label?: string | null
+          last_used_at?: string | null
+          reseller_id: string
+          revoked_at?: string | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key_hash?: string
+          key_prefix?: string
+          label?: string | null
+          last_used_at?: string | null
+          reseller_id?: string
+          revoked_at?: string | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_claude_api_keys_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
             referencedRelation: "resellers"
             referencedColumns: ["id"]
           },
