@@ -730,16 +730,6 @@ export function AppSidebar() {
         {primaryRole === "gerente" && collapsed && (
           <div className="flex flex-col items-center gap-2 pt-3">
             <NavLink
-              to="/painel/gerente/api-provedor"
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-md border bg-blue-500/10 text-blue-500",
-                activeMethod === "flow" ? "border-blue-500 ring-1 ring-blue-500/50" : "border-blue-500/30"
-              )}
-              title={providerUsage ? `MétodoFlow — Licenças usadas: ${providerUsage.used}/${providerUsage.limit || "∞"}` : "MétodoFlow"}
-            >
-              <Zap className="h-4 w-4" />
-            </NavLink>
-            <NavLink
               to="/painel/gerente/todas-licencas?tab=api"
               className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-md border bg-violet-500/10 text-violet-500",
@@ -755,13 +745,6 @@ export function AppSidebar() {
               title={gatewayBalance ? `Saldo Gateway (MisticPay): R$ ${Number(gatewayBalance).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Saldo no Gateway"}
             >
               <CreditCard className="h-4 w-4" />
-            </NavLink>
-            <NavLink
-              to="/painel/gerente/api-recargas"
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-yellow-500/30 bg-yellow-500/10 text-yellow-500"
-              title={creditsBalance != null ? `Saldo Provedor: R$ ${Number(creditsBalance).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Saldo no Provedor"}
-            >
-              <Coins className="h-4 w-4" />
             </NavLink>
           </div>
         )}
