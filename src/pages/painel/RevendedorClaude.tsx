@@ -5,10 +5,12 @@ import { PageContainer } from "@/components/painel/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search, User, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
@@ -70,6 +72,10 @@ export default function RevendedorClaude() {
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [search, setSearch] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerWhatsapp, setCustomerWhatsapp] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmChecks, setConfirmChecks] = useState({ data: false, debit: false, once: false });
 
   const loadAll = async () => {
     const { data: userRes } = await supabase.auth.getUser();
@@ -82,7 +88,7 @@ export default function RevendedorClaude() {
     const [{ data: def }, { data: ov }, { data: hist }, { data: bal }] = await Promise.all([
       supabase.from("claude_plan_prices").select("plan_code, markup_mode, markup_value_cents, sale_price_cents, is_active"),
       supabase.from("claude_reseller_price_overrides").select("*").eq("reseller_id", r.id),
-      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id, customer_name, customer_whatsapp").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
     ]);
 
@@ -105,7 +111,12 @@ export default function RevendedorClaude() {
     setIssuing(plan);
     const { data, error, skipped } = await invokeAuthenticatedFunction<any>("claude-issue-key", {
       method: "POST",
-      body: { plan_code: plan, request_id: crypto.randomUUID() },
+      body: {
+        plan_code: plan,
+        request_id: crypto.randomUUID(),
+        customer_name: customerName.trim(),
+        customer_whatsapp: customerWhatsapp.replace(/\D+/g, ""),
+      },
     });
     setIssuing(null);
     if (skipped) return toast.error("Sessão expirada");
@@ -115,11 +126,31 @@ export default function RevendedorClaude() {
     }
     if (data?.code) {
       setRevealed({ code: data.code, plan });
+      setCustomerName("");
+      setCustomerWhatsapp("");
       loadAll();
     } else {
       toast.error("O fornecedor não retornou o código.");
     }
   };
+
+  const formatWhatsapp = (v: string) => {
+    const d = v.replace(/\D+/g, "").slice(0, 13);
+    if (d.length <= 2) return d;
+    if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length <= 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+    return `+${d.slice(0, 2)} (${d.slice(2, 4)}) ${d.slice(4, 9)}-${d.slice(9)}`;
+  };
+
+  const openConfirm = () => {
+    if (!selected?.is_active) return;
+    if (customerName.trim().length < 2) return toast.error("Informe o nome do cliente");
+    if (balance < selected.sale_price_cents) return toast.error("Saldo insuficiente");
+    setConfirmChecks({ data: false, debit: false, once: false });
+    setConfirmOpen(true);
+  };
+
+  const allChecked = confirmChecks.data && confirmChecks.debit && confirmChecks.once;
 
   const copy = async () => {
     if (!revealed) return;
@@ -137,6 +168,8 @@ export default function RevendedorClaude() {
     return (
       (h.plan_code ?? "").toLowerCase().includes(q) ||
       (PLAN_LABELS[h.plan_code as PlanCode] ?? "").toLowerCase().includes(q) ||
+      (h.customer_name ?? "").toLowerCase().includes(q) ||
+      (h.customer_whatsapp ?? "").toLowerCase().includes(q) ||
       (h.id ?? "").toLowerCase().includes(q)
     );
   });
@@ -230,11 +263,45 @@ export default function RevendedorClaude() {
 
           <div className="mt-6 mb-3 flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">2</span>
+            <h3 className="font-display text-sm font-semibold">Dados do cliente</h3>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nome do cliente <span className="text-rose-500">*</span></Label>
+              <div className="relative">
+                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Ex.: Cliente João"
+                  maxLength={120}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">WhatsApp (opcional)</Label>
+              <div className="relative">
+                <MessageCircle className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={customerWhatsapp}
+                  onChange={(e) => setCustomerWhatsapp(formatWhatsapp(e.target.value))}
+                  placeholder="(11) 91234-5678"
+                  inputMode="tel"
+                  className="pl-9"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 mb-3 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">3</span>
             <h3 className="font-display text-sm font-semibold">Emitir chave</h3>
           </div>
 
           <Button
-            onClick={() => selected && issue(selected.plan_code)}
+            onClick={openConfirm}
             disabled={!selected?.is_active || issuing !== null}
             size="lg"
             className="w-full relative overflow-hidden bg-gradient-to-r from-primary to-primary/80 text-primary-foreground transition-all hover:shadow-lg hover:shadow-primary/25"
@@ -291,6 +358,15 @@ export default function RevendedorClaude() {
                             {PLAN_LABELS[h.plan_code as PlanCode] ?? h.plan_code}
                           </span>
                         </div>
+                        {h.customer_name && (
+                          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-foreground/80 truncate">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span className="truncate">{h.customer_name}</span>
+                            {h.customer_whatsapp && (
+                              <span className="text-muted-foreground">· {h.customer_whatsapp}</span>
+                            )}
+                          </div>
+                        )}
                         <div className="mt-1 font-mono text-[10px] text-muted-foreground truncate">
                           #{(h.id ?? "").slice(0, 8).toUpperCase()}
                         </div>
@@ -331,6 +407,57 @@ export default function RevendedorClaude() {
           )}
         </div>
       </div>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" /> Confirmar emissão
+            </DialogTitle>
+            <DialogDescription>
+              Revise os dados antes de gerar a chave Claude.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 rounded-lg border border-border bg-background/40 p-3 text-sm">
+            <div className="flex justify-between gap-2"><span className="text-muted-foreground">Plano</span><span className="font-semibold">{selected && PLAN_LABELS[selected.plan_code]}</span></div>
+            <div className="flex justify-between gap-2"><span className="text-muted-foreground">Cliente</span><span className="font-semibold truncate">{customerName || "—"}</span></div>
+            {customerWhatsapp && (
+              <div className="flex justify-between gap-2"><span className="text-muted-foreground">WhatsApp</span><span className="font-semibold">{customerWhatsapp}</span></div>
+            )}
+            <div className="flex justify-between gap-2 border-t border-border pt-2"><span className="text-muted-foreground">Valor a debitar</span><span className="font-bold text-primary">{selected && fmtBRL(selected.sale_price_cents)}</span></div>
+          </div>
+
+          <div className="space-y-2.5">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <Checkbox checked={confirmChecks.data} onCheckedChange={(v) => setConfirmChecks((c) => ({ ...c, data: !!v }))} className="mt-0.5" />
+              <span className="text-xs leading-relaxed">Confirmo que os dados do cliente estão corretos.</span>
+            </label>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <Checkbox checked={confirmChecks.debit} onCheckedChange={(v) => setConfirmChecks((c) => ({ ...c, debit: !!v }))} className="mt-0.5" />
+              <span className="text-xs leading-relaxed">Estou ciente que o valor será debitado do meu saldo imediatamente.</span>
+            </label>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <Checkbox checked={confirmChecks.once} onCheckedChange={(v) => setConfirmChecks((c) => ({ ...c, once: !!v }))} className="mt-0.5" />
+              <span className="text-xs leading-relaxed">Entendo que a chave será exibida <strong>apenas uma vez</strong> e devo copiá-la.</span>
+            </label>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancelar</Button>
+            <Button
+              disabled={!allChecked || issuing !== null}
+              onClick={async () => {
+                if (!selected) return;
+                setConfirmOpen(false);
+                await issue(selected.plan_code);
+              }}
+            >
+              {issuing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</> : <><KeyRound className="mr-2 h-4 w-4" /> Confirmar e gerar</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!revealed} onOpenChange={(o) => !o && setRevealed(null)}>
         <DialogContent className="bg-card border-border">
