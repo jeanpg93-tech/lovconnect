@@ -56,7 +56,7 @@ export default function RevendedorClaude() {
     setResellerId(r.id);
 
     const [{ data: def }, { data: ov }, { data: hist }] = await Promise.all([
-      supabase.from("claude_plan_prices").select("plan_code, cost_cents, markup_mode, markup_value_cents, sale_price_cents, is_active"),
+      supabase.from("claude_plan_prices").select("plan_code, markup_mode, markup_value_cents, sale_price_cents, is_active"),
       supabase.from("claude_reseller_price_overrides").select("*").eq("reseller_id", r.id),
       supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(20),
     ]);
@@ -65,9 +65,7 @@ export default function RevendedorClaude() {
       const base: any = (def ?? []).find((x: any) => x.plan_code === pc);
       if (!base) return { plan_code: pc, sale_price_cents: 0, is_active: false };
       const override: any = (ov ?? []).find((x: any) => x.plan_code === pc && x.is_active);
-      const sale = override
-        ? computeSale(base.cost_cents, override.markup_mode, override.markup_value_cents)
-        : base.sale_price_cents;
+      const sale = override ? override.sale_price_cents : base.sale_price_cents;
       return { plan_code: pc, sale_price_cents: sale, is_active: !!base.is_active };
     });
     setPrices(merged);
