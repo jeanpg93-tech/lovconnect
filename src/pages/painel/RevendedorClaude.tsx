@@ -88,7 +88,7 @@ export default function RevendedorClaude() {
     const [{ data: def }, { data: ov }, { data: hist }, { data: bal }] = await Promise.all([
       supabase.from("claude_plan_prices").select("plan_code, markup_mode, markup_value_cents, sale_price_cents, is_active"),
       supabase.from("claude_reseller_price_overrides").select("*").eq("reseller_id", r.id),
-      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id, customer_name, customer_whatsapp").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
     ]);
 
@@ -168,6 +168,8 @@ export default function RevendedorClaude() {
     return (
       (h.plan_code ?? "").toLowerCase().includes(q) ||
       (PLAN_LABELS[h.plan_code as PlanCode] ?? "").toLowerCase().includes(q) ||
+      (h.customer_name ?? "").toLowerCase().includes(q) ||
+      (h.customer_whatsapp ?? "").toLowerCase().includes(q) ||
       (h.id ?? "").toLowerCase().includes(q)
     );
   });
