@@ -6,6 +6,9 @@ const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/function
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MISTIC_BASE = "https://api.misticpay.com/api";
+// Conta de testes — Jean Gomes (jeanpg.93). Apenas para essa conta a libera o
+// bypass da verificação MisticPay quando o painel envia o cabeçalho secreto.
+const TEST_RESELLER_ID = "68fddcfb-5e1f-492c-be75-9a8a3d2a63fa";
 // MétodoFlow tem teto de 60 dias no provedor — bloqueia 90d/365d como defesa adicional.
 const FLOW_DISALLOWED_TYPES = new Set(["90d", "365d"]);
 
