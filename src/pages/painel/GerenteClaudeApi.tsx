@@ -290,6 +290,8 @@ function TierMatrix({ plans }: { plans: PlanPrice[] }) {
   const [matrix, setMatrix] = useState<TierRow[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  // Modo de entrada por nível: "brl" (R$ absoluto) ou "pct" (% sobre custo)
+  const [tierMode, setTierMode] = useState<Record<string, "brl" | "pct">>({});
 
   const load = async () => {
     setLoading(true);
@@ -326,9 +328,17 @@ function TierMatrix({ plans }: { plans: PlanPrice[] }) {
     const k = keyOf(tierId, planCode);
     const raw = drafts[k];
     if (raw == null) return;
-    const cents = parseBRL(raw);
-    if (cents <= 0) return toast.error("Valor inválido");
     const plan = plans.find((p) => p.plan_code === planCode);
+    const mode = tierMode[tierId] ?? "brl";
+    let cents = 0;
+    if (mode === "pct") {
+      const pct = parseFloat(raw.replace(",", ".")) || 0;
+      if (!plan) return toast.error("Plano não encontrado");
+      cents = Math.round(plan.cost_cents * (1 + pct / 100));
+    } else {
+      cents = parseBRL(raw);
+    }
+    if (cents <= 0) return toast.error("Valor inválido");
     if (plan && cents < plan.cost_cents) {
       return toast.error(`Abaixo do seu custo (${fmtBRL(plan.cost_cents)})`);
     }
