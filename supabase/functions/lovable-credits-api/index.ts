@@ -760,7 +760,13 @@ Deno.serve(async (req) => {
 
     let response: Response;
     try {
-      response = await fetch(fullUrl, requestInit);
+      const ac = new AbortController();
+      const t = setTimeout(() => ac.abort(), 12_000); // 12s hard timeout
+      try {
+        response = await fetch(fullUrl, { ...requestInit, signal: ac.signal });
+      } finally {
+        clearTimeout(t);
+      }
     } catch (netErr: any) {
       console.error("Provider network error:", netErr?.message ?? netErr);
       return new Response(JSON.stringify({

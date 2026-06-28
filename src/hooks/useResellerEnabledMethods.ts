@@ -57,10 +57,10 @@ export function useResellerEnabledMethods(): EnabledMethods {
     };
     load();
 
-    const ch = supabase
-      .channel(`reseller-enabled-methods-${user?.id ?? "anon"}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "app_settings" }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "resellers" }, load)
+    const topic = `reseller-enabled-methods-${user?.id ?? "anon"}-${Math.random().toString(36).slice(2)}`;
+    const ch = supabase.channel(topic);
+    ch.on("postgres_changes" as any, { event: "*", schema: "public", table: "app_settings" }, load)
+      .on("postgres_changes" as any, { event: "*", schema: "public", table: "resellers" }, load)
       .subscribe();
 
     return () => {
