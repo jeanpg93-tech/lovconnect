@@ -5,10 +5,12 @@ import { PageContainer } from "@/components/painel/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search, User, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
@@ -70,6 +72,10 @@ export default function RevendedorClaude() {
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [search, setSearch] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerWhatsapp, setCustomerWhatsapp] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmChecks, setConfirmChecks] = useState({ data: false, debit: false, once: false });
 
   const loadAll = async () => {
     const { data: userRes } = await supabase.auth.getUser();
@@ -105,7 +111,12 @@ export default function RevendedorClaude() {
     setIssuing(plan);
     const { data, error, skipped } = await invokeAuthenticatedFunction<any>("claude-issue-key", {
       method: "POST",
-      body: { plan_code: plan, request_id: crypto.randomUUID() },
+      body: {
+        plan_code: plan,
+        request_id: crypto.randomUUID(),
+        customer_name: customerName.trim(),
+        customer_whatsapp: customerWhatsapp.replace(/\D+/g, ""),
+      },
     });
     setIssuing(null);
     if (skipped) return toast.error("Sessão expirada");
@@ -115,11 +126,31 @@ export default function RevendedorClaude() {
     }
     if (data?.code) {
       setRevealed({ code: data.code, plan });
+      setCustomerName("");
+      setCustomerWhatsapp("");
       loadAll();
     } else {
       toast.error("O fornecedor não retornou o código.");
     }
   };
+
+  const formatWhatsapp = (v: string) => {
+    const d = v.replace(/\D+/g, "").slice(0, 13);
+    if (d.length <= 2) return d;
+    if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length <= 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+    return `+${d.slice(0, 2)} (${d.slice(2, 4)}) ${d.slice(4, 9)}-${d.slice(9)}`;
+  };
+
+  const openConfirm = () => {
+    if (!selected?.is_active) return;
+    if (customerName.trim().length < 2) return toast.error("Informe o nome do cliente");
+    if (balance < selected.sale_price_cents) return toast.error("Saldo insuficiente");
+    setConfirmChecks({ data: false, debit: false, once: false });
+    setConfirmOpen(true);
+  };
+
+  const allChecked = confirmChecks.data && confirmChecks.debit && confirmChecks.once;
 
   const copy = async () => {
     if (!revealed) return;
@@ -230,11 +261,45 @@ export default function RevendedorClaude() {
 
           <div className="mt-6 mb-3 flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">2</span>
+            <h3 className="font-display text-sm font-semibold">Dados do cliente</h3>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nome do cliente <span className="text-rose-500">*</span></Label>
+              <div className="relative">
+                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Ex.: Cliente João"
+                  maxLength={120}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">WhatsApp (opcional)</Label>
+              <div className="relative">
+                <MessageCircle className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={customerWhatsapp}
+                  onChange={(e) => setCustomerWhatsapp(formatWhatsapp(e.target.value))}
+                  placeholder="(11) 91234-5678"
+                  inputMode="tel"
+                  className="pl-9"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 mb-3 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">3</span>
             <h3 className="font-display text-sm font-semibold">Emitir chave</h3>
           </div>
 
           <Button
-            onClick={() => selected && issue(selected.plan_code)}
+            onClick={openConfirm}
             disabled={!selected?.is_active || issuing !== null}
             size="lg"
             className="w-full relative overflow-hidden bg-gradient-to-r from-primary to-primary/80 text-primary-foreground transition-all hover:shadow-lg hover:shadow-primary/25"
