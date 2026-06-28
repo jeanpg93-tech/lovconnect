@@ -58,11 +58,27 @@ Deno.serve(async (req) => {
   if (!apiKey || apiKey.length < 10) return json({ success: false, error: "Missing X-API-Key" }, 401);
 
   const keyHash = await sha256Hex(apiKey);
-  const { data: keyRow } = await svc
-    .from("reseller_api_keys")
-    .select("id, reseller_id, is_active, revoked_at")
-    .eq("key_hash", keyHash)
-    .maybeSingle();
+  // Aceita chaves criadas em "reseller_claude_api_keys" (nova página dedicada do Claude)
+  // ou nas chaves genéricas legadas em "reseller_api_keys" (compatibilidade).
+  let keyRow: any = null;
+  {
+    const { data } = await svc
+      .from("reseller_claude_api_keys")
+      .select("id, reseller_id, is_active, revoked_at")
+      .eq("key_hash", keyHash)
+      .maybeSingle();
+    keyRow = data;
+  }
+  let keyTable = "reseller_claude_api_keys";
+  if (!keyRow) {
+    const { data } = await svc
+      .from("reseller_api_keys")
+      .select("id, reseller_id, is_active, revoked_at")
+      .eq("key_hash", keyHash)
+      .maybeSingle();
+    keyRow = data;
+    keyTable = "reseller_api_keys";
+  }
   if (!keyRow || !keyRow.is_active || keyRow.revoked_at) {
     return json({ success: false, error: "API Key inválida ou revogada" }, 401);
   }
@@ -78,7 +94,7 @@ Deno.serve(async (req) => {
   }
   if (!reseller.claude_enabled) return json({ success: false, error: "Claude API não habilitada para este revendedor" }, 403);
 
-  await svc.from("reseller_api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
+  await svc.from(keyTable).update({ last_used_at: new Date().toISOString() }).eq("id", keyRow.id);
 
   const resolvePrices = async () => {
     const [{ data: def }, { data: ov }] = await Promise.all([
