@@ -14,6 +14,7 @@ import { Loader2, Package, Copy, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/useRole";
 import { PackIcon } from "@/lib/pack-icons";
+import { DevReleasePixButton } from "@/components/dev/DevReleasePixButton";
 
 type Pack = {
   id: string; name: string; credits: number; price_cents: number;
@@ -154,6 +155,9 @@ export default function RevendedorComprarPacote() {
               <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
                 <ShieldCheck className="h-3 w-3 text-emerald-400" />
                 As licenças serão liberadas automaticamente após o pagamento.
+              </div>
+              <div className="flex justify-center pt-1">
+                <DevReleasePixButton kind="pack" id={pix.purchase_id} />
               </div>
             </div>
           )}

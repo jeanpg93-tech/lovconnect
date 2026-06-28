@@ -6,6 +6,9 @@ const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/function
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MISTIC_BASE = "https://api.misticpay.com/api";
+// Conta de testes — Jean Gomes (jeanpg.93). Apenas para essa conta a libera o
+// bypass da verificação MisticPay quando o painel envia o cabeçalho secreto.
+const TEST_RESELLER_ID = "68fddcfb-5e1f-492c-be75-9a8a3d2a63fa";
 // MétodoFlow tem teto de 60 dias no provedor — bloqueia 90d/365d como defesa adicional.
 const FLOW_DISALLOWED_TYPES = new Set(["90d", "365d"]);
 
@@ -277,6 +280,12 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    // Bypass de teste: somente quando o painel envia o cabeçalho com o service-role
+    // key e a transação pertence à conta de testes (Jean Gomes). Isso permite
+    // "liberar" um PIX sem o pagamento real para validar o fluxo end-to-end.
+    const bypassToken = req.headers.get("x-test-bypass-token") ?? "";
+    const __TEST_BYPASS = !!bypassToken && bypassToken === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
     const payload = await req.json().catch(() => ({}));
     console.log("misticpay-webhook payload", JSON.stringify(payload));
 
@@ -294,6 +303,13 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Wrapper local: só pula a verificação real quando o bypass de teste está
+    // ativo. Os call sites continuam idênticos.
+    const verifyTx = async (ci: any, cs: any, tx: string, resellerId?: string | null) => {
+      if (__TEST_BYPASS && resellerId === TEST_RESELLER_ID) return true;
+      return await verifyMisticTxPaid(ci, cs, tx);
+    };
+
     // Activation payment? (R$ 200 ativação do painel)
     {
       const { data: actPay } = await admin
@@ -308,7 +324,7 @@ Deno.serve(async (req) => {
         if (status === "COMPLETO") {
           // Verifica diretamente com a MisticPay antes de ativar o painel
           const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
-          const ok = await verifyMisticTxPaid(mci, mcs, txId);
+          const ok = await verifyTx(mci, mcs, txId, actPay.reseller_id);
           if (!ok) {
             console.warn("[webhook] activation tx not confirmed by MisticPay", txId);
             return json({ ok: false, reason: "unverified_transaction" }, 403);
@@ -407,7 +423,7 @@ Deno.serve(async (req) => {
       if (status === "COMPLETO") {
         // Verifica direto com a MisticPay antes de creditar a recarga
         const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
-        const ok = await verifyMisticTxPaid(mci, mcs, txId);
+        const ok = await verifyTx(mci, mcs, txId, intent.reseller_id);
         if (!ok) {
           console.warn("[webhook] recharge tx not confirmed by MisticPay", txId);
           return json({ ok: false, reason: "unverified_transaction" }, 403);
@@ -581,7 +597,7 @@ Deno.serve(async (req) => {
         if (isPaid) {
           // Confirma com a API da MisticPay
           const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
-          const ok = await verifyMisticTxPaid(mci, mcs, txId);
+          const ok = await verifyTx(mci, mcs, txId, null);
           if (!ok) {
             console.warn("[webhook] direct_sale tx not confirmed by MisticPay", txId);
             return json({ ok: false, reason: "unverified_transaction" }, 403);
@@ -616,7 +632,7 @@ Deno.serve(async (req) => {
 
         if (status === "COMPLETO" || status === "PAID" || status === "SUCCESS") {
           const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
-          const ok = await verifyMisticTxPaid(mci, mcs, txId);
+          const ok = await verifyTx(mci, mcs, txId, subCharge.reseller_id);
           if (!ok) {
             console.warn("[webhook] subscription tx not confirmed by MisticPay", txId);
             return json({ ok: false, reason: "unverified_transaction" }, 403);
@@ -698,7 +714,7 @@ Deno.serve(async (req) => {
 
         if (status === "COMPLETO" || status === "PAID" || status === "SUCCESS") {
           const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
-          const ok = await verifyMisticTxPaid(mci, mcs, txId);
+          const ok = await verifyTx(mci, mcs, txId, (packPurchase as any).reseller_id);
           if (!ok) {
             console.warn("[webhook] pack purchase tx not confirmed by MisticPay", txId);
             return json({ ok: false, reason: "unverified_transaction" }, 403);
@@ -799,10 +815,11 @@ Deno.serve(async (req) => {
         .select("misticpay_client_id, misticpay_client_secret")
         .eq("reseller_id", storeOrder.reseller_id)
         .maybeSingle();
-      const ok = await verifyMisticTxPaid(
+      const ok = await verifyTx(
         integ?.misticpay_client_id,
         integ?.misticpay_client_secret,
         txId,
+        storeOrder.reseller_id,
       );
       if (!ok) {
         console.warn("[webhook] storefront tx not confirmed by MisticPay", txId, "reseller", storeOrder.reseller_id);

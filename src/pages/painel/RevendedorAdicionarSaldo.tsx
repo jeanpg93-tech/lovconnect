@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import RevendedorTransacoes from "./RevendedorTransacoes";
+import { DevReleasePixButton } from "@/components/dev/DevReleasePixButton";
 
 type Tx = { id: string; amount_cents: number; kind: string; description: string | null; created_at: string };
 type Tier = { id: string; slug: string; name: string; color: string; min_spent_cents: number; discount_percent: number; recharge_bonus_percent: number; sort_order: number; is_active: boolean };
@@ -580,6 +581,9 @@ export default function RevendedorAdicionarSaldo() {
                   <div className="mt-4 flex items-center justify-center gap-2 rounded-md border border-border bg-background/40 px-3 py-2 text-xs text-muted-foreground">
                     <Loader2 className="h-3 w-3 animate-spin text-primary" />
                     Aguardando pagamento...
+                  </div>
+                  <div className="mt-3 flex justify-center">
+                    <DevReleasePixButton kind="recharge" id={intent.intent_id} />
                   </div>
                 </div>
               )}

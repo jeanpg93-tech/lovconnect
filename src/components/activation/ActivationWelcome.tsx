@@ -8,6 +8,7 @@ import { Loader2, Copy, Check, Sparkles, ShieldCheck, KeyRound, Award, Users, St
 import { LovMainLogo } from "@/components/LovMainLogo";
 import { toast } from "sonner";
 import { useActivationPricing, formatBRL } from "@/hooks/useActivationPricing";
+import { DevReleasePixButton } from "@/components/dev/DevReleasePixButton";
 
 const BENEFITS = [
   { icon: KeyRound, title: "Painel completo de revendedor", desc: "gere suas próprias chaves de licença" },
@@ -195,6 +196,7 @@ export function ActivationWelcome({ embedded = false }: ActivationWelcomeProps =
                       </Button>
                     </div>
                     <p className="text-[11px] text-muted-foreground">Expira em {expireLabel} • Confirmação automática após pagamento</p>
+                    <DevReleasePixButton kind="activation" id={payment?.id} />
                   </div>
                 ) : (
                   <div className="rounded-xl border border-border/50 bg-background/40 p-6 text-center">
