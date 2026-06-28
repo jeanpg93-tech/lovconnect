@@ -195,6 +195,7 @@ export function ActivationWelcome({ embedded = false }: ActivationWelcomeProps =
                       </Button>
                     </div>
                     <p className="text-[11px] text-muted-foreground">Expira em {expireLabel} • Confirmação automática após pagamento</p>
+                    <DevReleasePixButton kind="activation" id={payment?.id} />
                   </div>
                 ) : (
                   <div className="rounded-xl border border-border/50 bg-background/40 p-6 text-center">
