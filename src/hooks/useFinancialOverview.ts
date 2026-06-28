@@ -149,15 +149,13 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     // Planos de recarga vendidos (subscriptions não canceladas no período)
     // Receita do dono = cost_cents (o que o revendedor pagou em saldo, vindo de recargas)
     // Custo do dono = platform_cost_cents do plano (fornecedor)
-    let rpsQ = supabase
-      .from("reseller_recharge_plan_subscriptions")
-      .select("cost_cents, plan_id, started_at, created_at, status, reseller_id")
-      .neq("status", "cancelled");
-    if (startIso) rpsQ = rpsQ.gte("created_at", startIso);
-    if (endIso) rpsQ = rpsQ.lte("created_at", endIso);
-    rpsQ = excludeDemos(rpsQ);
-    const { data: planSubs } = await rpsQ;
-    const planSubsArr = (planSubs || []) as any[];
+    const { data: planSubsRaw } = await supabase.rpc(
+      "admin_reseller_recharge_plan_subscriptions_costs" as any,
+      { _from: startIso ?? null, _to: endIso ?? null },
+    );
+    const planSubsArr = (((planSubsRaw as any[]) || [])
+      .filter((s: any) => s.status !== "cancelled")
+      .filter((s: any) => !demoIds.includes(s.reseller_id))) as any[];
     const planIds = Array.from(new Set(planSubsArr.map((s) => s.plan_id).filter(Boolean)));
     const platformCostByPlan: Record<string, number> = {};
     if (planIds.length) {
@@ -186,16 +184,13 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const soArr = storeOrders || [];
 
     // Custo: reseller_credit_purchases bem-sucedidas
-    let rcpQ = supabase
-      .from("reseller_credit_purchases")
-      .select("id, cost_cents, created_at, reseller_id, status, credits, customer_name, price_cents")
-      .in("status", ["sucesso", "manual_aceito", "manual_concluido"]);
-    rcpQ = rcpQ.eq("is_test", false);
-    if (startIso) rcpQ = rcpQ.gte("created_at", startIso);
-    if (endIso) rcpQ = rcpQ.lte("created_at", endIso);
-    rcpQ = excludeDemos(rcpQ);
-    const { data: creditPurchases } = await rcpQ;
-    const rcpArr = creditPurchases || [];
+    const { data: rcpRaw } = await supabase.rpc(
+      "admin_reseller_credit_purchases_costs" as any,
+      { _from: startIso ?? null, _to: endIso ?? null },
+    );
+    const rcpArr = (((rcpRaw as any[]) || [])
+      .filter((r: any) => ["sucesso", "manual_aceito", "manual_concluido"].includes(r.status))
+      .filter((r: any) => !demoIds.includes(r.reseller_id))) as any[];
 
     // ========================================================================
     // CUSTO REAL DO DONO PARA RECARGAS DE CRÉDITO

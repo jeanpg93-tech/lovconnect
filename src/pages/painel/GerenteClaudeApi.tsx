@@ -209,7 +209,7 @@ function PricesTab() {
   const [syncing, setSyncing] = useState(false);
 
   const load = async () => {
-    const { data } = await supabase.from("claude_plan_prices").select("*");
+    const { data } = await supabase.rpc("admin_claude_plan_prices_full");
     const ordered = PLAN_ORDER
       .map((pc) => (data ?? []).find((d: any) => d.plan_code === pc))
       .filter(Boolean) as PlanPrice[];
