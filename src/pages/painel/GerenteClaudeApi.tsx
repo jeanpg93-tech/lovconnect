@@ -271,21 +271,6 @@ function PricesTab() {
       </div>
 
       <TierMatrix plans={rows} />
-
-      <details className="rounded-xl border border-border bg-card/40">
-        <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-muted-foreground">
-          Configuração avançada (markup de venda sugerido / ativar plano)
-        </summary>
-        <div className="space-y-3 p-3">
-      {rows.map((r) => (
-        <PriceCard
-          key={`${r.id}:${r.cost_cents}:${r.sale_price_cents}:${r.markup_mode}:${r.markup_value_cents}`}
-          row={r}
-          onSaved={(u) => setRows((rs) => rs.map((x) => x.id === u.id ? u : x))}
-        />
-      ))}
-        </div>
-      </details>
     </div>
   );
 }
