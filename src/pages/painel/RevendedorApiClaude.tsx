@@ -230,13 +230,12 @@ export default function RevendedorApiClaude() {
             <div>
               <div className="text-sm font-semibold mb-2">Emitir chave Claude</div>
               <pre className="overflow-auto rounded-lg bg-background/60 p-3 text-xs">
-{`curl -X POST ${FUNCTIONS_BASE}/reseller-claude-api/issue \\
+{`curl -X POST ${FUNCTIONS_BASE}/reseller-claude-api/chaves \\
   -H "X-API-Key: $YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "plan_code": "5x_30d",
-    "customer_identifier": "cliente@email.com",
-    "request_id": "uuid-unico-da-venda"
+    "plano": "5x_30d",
+    "id_cliente": "cliente@email.com"
   }'`}
               </pre>
               <div className="mt-2 text-xs text-muted-foreground">
@@ -248,7 +247,7 @@ export default function RevendedorApiClaude() {
             <div>
               <div className="text-sm font-semibold mb-2">Consultar saldo</div>
               <pre className="overflow-auto rounded-lg bg-background/60 p-3 text-xs">
-{`curl ${FUNCTIONS_BASE}/reseller-claude-api/balance \\
+{`curl ${FUNCTIONS_BASE}/reseller-claude-api/saldo \\
   -H "X-API-Key: $YOUR_KEY"`}
               </pre>
             </div>
