@@ -66,16 +66,12 @@ export function useSalesCatalog() {
         });
       }
 
-      // 4) Custo provedor: pega o cost_cents mais recente por credits_amount
-      const { data: purchases } = await supabase
-        .from("reseller_credit_purchases")
-        .select("credits, cost_cents, created_at")
-        .not("cost_cents", "is", null)
-        .gt("cost_cents", 0)
-        .order("created_at", { ascending: false })
-        .limit(500);
+      // 4) Custo provedor: RPC gerente — devolve o cost_cents mais recente por créditos
+      const { data: costRows } = await supabase.rpc(
+        "admin_recent_provider_cost_by_credits" as any,
+      );
       const costByCredits: Record<number, number> = {};
-      (purchases || []).forEach((p: any) => {
+      ((costRows as any[]) || []).forEach((p: any) => {
         if (!(p.credits in costByCredits)) {
           costByCredits[p.credits] = Number(p.cost_cents || 0);
         }
