@@ -92,7 +92,7 @@ export function MobileNav() {
       icon: Zap,
       url: "/painel/revendedor/recargas",
       active: pathname === "/painel/revendedor/recargas",
-      hidden: isSubscription,
+      hidden: isSubscription || !enabledMethods.recharges,
     },
     {
       label: t("mobileNav.generate"),
