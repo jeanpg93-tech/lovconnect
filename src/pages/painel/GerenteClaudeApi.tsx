@@ -230,10 +230,25 @@ function PricesTab() {
       const prices = payload?.prices;
       if (!prices || typeof prices !== "object") throw new Error("Resposta do fornecedor não contém 'prices'");
 
+      // Só usamos os preços de API. Mapeamos os códigos API do fornecedor
+      // para nossos plan_codes internos.
+      const API_KEY_MAP: Record<PlanCode, string[]> = {
+        "5x_7d":   ["api_500k_30d", "api_500k", "api_500k_daily"],
+        "5x_30d":  ["api_2_5m_30d", "api_2.5m_30d", "api_2_5m", "api_2.5m"],
+        "20x_30d": ["api_10m_30d", "api_10m"],
+      };
+      const pickApi = (pc: PlanCode): number | null => {
+        for (const k of API_KEY_MAP[pc]) {
+          const v = Number((prices as any)[k]);
+          if (Number.isFinite(v)) return v;
+        }
+        return null;
+      };
+
       const updates = PLAN_ORDER
         .map((pc) => {
-          const raw = Number(prices[pc]);
-          if (!Number.isFinite(raw)) return null;
+          const raw = pickApi(pc);
+          if (raw == null) return null;
           const row = rows.find((r) => r.plan_code === pc);
           if (!row) return null;
           // Conforme doc atualizada do fornecedor, `prices` já vem em CENTAVOS
@@ -244,7 +259,7 @@ function PricesTab() {
         })
         .filter(Boolean) as Array<{ id: string; cost_cents: number; sale_price_cents: number }>;
 
-      if (updates.length === 0) throw new Error("Nenhum plano correspondente encontrado");
+      if (updates.length === 0) throw new Error("Nenhum preço de API encontrado na resposta do fornecedor");
 
       for (const u of updates) {
         await supabase
