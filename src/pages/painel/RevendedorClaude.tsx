@@ -356,6 +356,15 @@ export default function RevendedorClaude() {
                             {PLAN_LABELS[h.plan_code as PlanCode] ?? h.plan_code}
                           </span>
                         </div>
+                        {h.customer_name && (
+                          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-foreground/80 truncate">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span className="truncate">{h.customer_name}</span>
+                            {h.customer_whatsapp && (
+                              <span className="text-muted-foreground">· {h.customer_whatsapp}</span>
+                            )}
+                          </div>
+                        )}
                         <div className="mt-1 font-mono text-[10px] text-muted-foreground truncate">
                           #{(h.id ?? "").slice(0, 8).toUpperCase()}
                         </div>
