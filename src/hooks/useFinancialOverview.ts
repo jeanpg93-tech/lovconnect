@@ -154,7 +154,8 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       { _from: startIso ?? null, _to: endIso ?? null },
     );
     const planSubsArr = (((planSubsRaw as any[]) || [])
-      .filter((s: any) => s.status !== "cancelled")) as any[];
+      .filter((s: any) => s.status !== "cancelled")
+      .filter((s: any) => !demoIds.includes(s.reseller_id))) as any[];
     const planIds = Array.from(new Set(planSubsArr.map((s) => s.plan_id).filter(Boolean)));
     const platformCostByPlan: Record<string, number> = {};
     if (planIds.length) {
@@ -187,9 +188,9 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       "admin_reseller_credit_purchases_costs" as any,
       { _from: startIso ?? null, _to: endIso ?? null },
     );
-    const rcpArr = (((rcpRaw as any[]) || []).filter((r: any) =>
-      ["sucesso", "manual_aceito", "manual_concluido"].includes(r.status),
-    )) as any[];
+    const rcpArr = (((rcpRaw as any[]) || [])
+      .filter((r: any) => ["sucesso", "manual_aceito", "manual_concluido"].includes(r.status))
+      .filter((r: any) => !demoIds.includes(r.reseller_id))) as any[];
 
     // ========================================================================
     // CUSTO REAL DO DONO PARA RECARGAS DE CRÉDITO
