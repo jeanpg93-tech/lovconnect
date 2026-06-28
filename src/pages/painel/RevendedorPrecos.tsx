@@ -43,10 +43,7 @@ export default function RevendedorPrecos() {
         </div>
       ) : (
         <Tabs value={activeTab} onValueChange={setTab} className="w-full">
-          <TabsList
-            className="mb-5 w-full justify-start overflow-x-auto md:inline-flex md:w-auto"
-            style={{ display: "grid", gridTemplateColumns: `repeat(${visibleTabs.length}, minmax(0,1fr))` }}
-          >
+          <TabsList className="mb-5 flex w-full justify-start overflow-x-auto md:inline-flex md:w-auto">
             {visibleTabs.map((t) => (
               <TabsTrigger key={t.value} value={t.value} className="gap-1.5">
                 <t.icon className="h-3.5 w-3.5" /> {t.label}
