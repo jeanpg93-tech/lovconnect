@@ -10,15 +10,6 @@ function json(b: unknown, status = 200) {
   });
 }
 
-function isServiceRoleToken(token: string): boolean {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1] ?? ""));
-    return payload?.role === "service_role";
-  } catch (_e) {
-    return false;
-  }
-}
-
 async function getManagerMisticCreds(admin: any): Promise<{ ci: string | null; cs: string | null }> {
   let ci = Deno.env.get("MISTICPAY_CLIENT_ID") ?? null;
   let cs = Deno.env.get("MISTICPAY_CLIENT_SECRET") ?? null;
@@ -44,7 +35,9 @@ Deno.serve(async (req) => {
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
     const token = authHeader.replace("Bearer ", "");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const isServiceCall = token === serviceKey || isServiceRoleToken(token);
+    // SECURITY: only accept the SERVICE_ROLE_KEY byte-for-byte. Never trust
+    // an unsigned JWT payload claiming role=service_role.
+    const isServiceCall = token === serviceKey;
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
     let userId: string | null = null;

@@ -77,7 +77,9 @@ Deno.serve(async (req) => {
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     let user: any = null;
-    const PUBLIC_ACTIONS = ["public-generate-trial", "create-pix", "public-reset-hwid"];
+    // SECURITY: `create-pix` is NOT public — it spends from the manager's
+    // MisticPay gateway. Requires gerente JWT (enforced by the role check below).
+    const PUBLIC_ACTIONS = ["public-generate-trial", "public-reset-hwid"];
     if (!PUBLIC_ACTIONS.includes(action)) {
       if (!authHeader) return json({ error: "Unauthorized" }, 401);
       const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
@@ -194,6 +196,15 @@ Deno.serve(async (req) => {
       const { amount, name, email } = body;
 
       if (!amount || !name) return json({ error: "Dados incompletos" }, 400);
+      const amountNum = Number(amount);
+      if (!Number.isFinite(amountNum) || amountNum <= 0) {
+        return json({ error: "amount inválido" }, 400);
+      }
+      // Ceiling de segurança (R$ 50.000 por cobrança) para evitar abuso caso
+      // a chave de gerente vaze.
+      if (amountNum > 50000) {
+        return json({ error: "Valor acima do limite permitido" }, 400);
+      }
 
       const { data: dbKeys } = await serviceClient
         .from("app_settings")
