@@ -408,6 +408,57 @@ export default function RevendedorClaude() {
         </div>
       </div>
 
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" /> Confirmar emissão
+            </DialogTitle>
+            <DialogDescription>
+              Revise os dados antes de gerar a chave Claude.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 rounded-lg border border-border bg-background/40 p-3 text-sm">
+            <div className="flex justify-between gap-2"><span className="text-muted-foreground">Plano</span><span className="font-semibold">{selected && PLAN_LABELS[selected.plan_code]}</span></div>
+            <div className="flex justify-between gap-2"><span className="text-muted-foreground">Cliente</span><span className="font-semibold truncate">{customerName || "—"}</span></div>
+            {customerWhatsapp && (
+              <div className="flex justify-between gap-2"><span className="text-muted-foreground">WhatsApp</span><span className="font-semibold">{customerWhatsapp}</span></div>
+            )}
+            <div className="flex justify-between gap-2 border-t border-border pt-2"><span className="text-muted-foreground">Valor a debitar</span><span className="font-bold text-primary">{selected && fmtBRL(selected.sale_price_cents)}</span></div>
+          </div>
+
+          <div className="space-y-2.5">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <Checkbox checked={confirmChecks.data} onCheckedChange={(v) => setConfirmChecks((c) => ({ ...c, data: !!v }))} className="mt-0.5" />
+              <span className="text-xs leading-relaxed">Confirmo que os dados do cliente estão corretos.</span>
+            </label>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <Checkbox checked={confirmChecks.debit} onCheckedChange={(v) => setConfirmChecks((c) => ({ ...c, debit: !!v }))} className="mt-0.5" />
+              <span className="text-xs leading-relaxed">Estou ciente que o valor será debitado do meu saldo imediatamente.</span>
+            </label>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <Checkbox checked={confirmChecks.once} onCheckedChange={(v) => setConfirmChecks((c) => ({ ...c, once: !!v }))} className="mt-0.5" />
+              <span className="text-xs leading-relaxed">Entendo que a chave será exibida <strong>apenas uma vez</strong> e devo copiá-la.</span>
+            </label>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancelar</Button>
+            <Button
+              disabled={!allChecked || issuing !== null}
+              onClick={async () => {
+                if (!selected) return;
+                setConfirmOpen(false);
+                await issue(selected.plan_code);
+              }}
+            >
+              {issuing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</> : <><KeyRound className="mr-2 h-4 w-4" /> Confirmar e gerar</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!revealed} onOpenChange={(o) => !o && setRevealed(null)}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
