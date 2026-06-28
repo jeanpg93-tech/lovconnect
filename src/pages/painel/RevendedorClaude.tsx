@@ -280,33 +280,6 @@ export default function RevendedorClaude() {
         </div>
       </div>
 
-      {/* legacy hidden block removed below */}
-      <div className="hidden">
-        <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-          <HistoryIcon className="h-4 w-4 text-primary" /> Últimas emissões
-        </div>
-        {history.length === 0 ? (
-          <div className="py-6 text-center text-sm text-muted-foreground">Nenhuma chave emitida ainda.</div>
-        ) : (
-          <div className="divide-y divide-border">
-            {history.map((h) => (
-              <div key={h.id} className="flex items-center justify-between py-2 text-sm">
-                <div>
-                  <div className="font-medium">{PLAN_LABELS[h.plan_code as PlanCode] ?? h.plan_code}</div>
-                  <div className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleString("pt-BR")}</div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs">{fmtBRL(h.sale_price_cents)}</span>
-                  <Badge variant={h.status === "issued" ? "default" : h.status === "failed" ? "destructive" : "secondary"}>
-                    {h.status}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       <Dialog open={!!revealed} onOpenChange={(o) => !o && setRevealed(null)}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
