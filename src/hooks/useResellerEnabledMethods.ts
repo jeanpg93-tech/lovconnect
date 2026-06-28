@@ -46,7 +46,9 @@ export function useResellerEnabledMethods(): EnabledMethods {
 
         setState({
           recharges: !maintenance,
-          plano3k: globallyEnabled || resellerEnabled,
+          // Plano 3K só aparece se estiver habilitado globalmente.
+          // O flag por revendedor é um gate adicional (precisa do global também).
+          plano3k: globallyEnabled && (resellerEnabled || globallyEnabled),
           flow: method !== "lovax", // padrão = flow ativo
           lovax: method === "lovax",
           loading: false,
