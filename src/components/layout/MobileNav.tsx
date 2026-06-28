@@ -251,7 +251,7 @@ export function MobileNav() {
                     </Link>
                   </Button>
 
-                  <Button
+                  {enabledMethods.recharges && <Button
                     variant="ghost"
                     className="group relative h-24 w-full bg-zinc-900/40 border border-white/5 p-0 overflow-hidden rounded-[2rem] transition-all hover:bg-zinc-800/60 active:scale-[0.98]"
                     asChild
@@ -269,7 +269,7 @@ export function MobileNav() {
                         <span className="block text-xs font-medium text-zinc-500 uppercase tracking-widest">Gerar chave API</span>
                       </div>
                     </Link>
-                  </Button>
+                  </Button>}
                 </>
               )}
 
