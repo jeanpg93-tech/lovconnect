@@ -82,7 +82,7 @@ export default function RevendedorClaude() {
     const [{ data: def }, { data: ov }, { data: hist }, { data: bal }] = await Promise.all([
       supabase.from("claude_plan_prices").select("plan_code, markup_mode, markup_value_cents, sale_price_cents, is_active"),
       supabase.from("claude_reseller_price_overrides").select("*").eq("reseller_id", r.id),
-      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
     ]);
 
@@ -303,6 +303,24 @@ export default function RevendedorClaude() {
                       <span>{new Date(h.created_at).toLocaleString("pt-BR")}</span>
                       <span className="font-semibold text-foreground">{fmtBRL(h.sale_price_cents)}</span>
                     </div>
+                    {h.code && h.status === "issued" && (
+                      <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-border bg-background/60 p-1.5">
+                        <code className="flex-1 font-mono text-[11px] truncate select-all px-1">{h.code}</code>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0"
+                          onClick={async () => {
+                            await navigator.clipboard.writeText(h.code);
+                            toast.success("Chave copiada");
+                          }}
+                          title="Copiar chave"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
                     {h.status === "failed" && h.error_message && (
                       <div className="mt-2 text-[10px] text-rose-500/90 line-clamp-2">{h.error_message}</div>
                     )}
