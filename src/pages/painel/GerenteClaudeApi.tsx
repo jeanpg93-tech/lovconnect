@@ -318,7 +318,7 @@ function TierMatrix({ plans }: { plans: PlanPrice[] }) {
     if (n.includes("bronze")) return { Icon: Medal, color: "#cd7f32", bg: "rgba(205,127,50,0.10)", border: "rgba(205,127,50,0.35)" };
     if (n.includes("prata") || n.includes("silver")) return { Icon: Award, color: "#c0c5ce", bg: "rgba(192,197,206,0.10)", border: "rgba(192,197,206,0.35)" };
     if (n.includes("ouro") || n.includes("gold")) return { Icon: Crown, color: "#f5c542", bg: "rgba(245,197,66,0.12)", border: "rgba(245,197,66,0.40)" };
-    if (n.includes("partner") || n.includes("diamond") || n.includes("platinum")) return { Icon: Gem, color: "#8ab4ff", bg: "rgba(138,180,255,0.10)", border: "rgba(138,180,255,0.40)" };
+    if (n.includes("partner") || n.includes("diamond") || n.includes("platinum")) return { Icon: Gem, color: "#22c55e", bg: "rgba(34,197,94,0.10)", border: "rgba(34,197,94,0.40)" };
     return { Icon: Layers, color: "hsl(var(--primary))", bg: "hsl(var(--primary) / 0.08)", border: "hsl(var(--primary) / 0.35)" };
   };
 
