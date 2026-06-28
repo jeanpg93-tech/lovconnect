@@ -390,6 +390,8 @@ export type Database = {
           cost_cents: number
           created_at: string
           customer_identifier: string | null
+          customer_name: string | null
+          customer_whatsapp: string | null
           error_message: string | null
           id: string
           plan_code: string
@@ -408,6 +410,8 @@ export type Database = {
           cost_cents?: number
           created_at?: string
           customer_identifier?: string | null
+          customer_name?: string | null
+          customer_whatsapp?: string | null
           error_message?: string | null
           id?: string
           plan_code: string
@@ -426,6 +430,8 @@ export type Database = {
           cost_cents?: number
           created_at?: string
           customer_identifier?: string | null
+          customer_name?: string | null
+          customer_whatsapp?: string | null
           error_message?: string | null
           id?: string
           plan_code?: string
