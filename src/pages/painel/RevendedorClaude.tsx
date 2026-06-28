@@ -27,10 +27,10 @@ const PLAN_LABELS: Record<PlanCode, string> = {
 const PLAN_ORDER: PlanCode[] = ["5x_7d", "5x_30d", "20x_30d", "pro_30d"];
 
 const PLAN_LIMITS: Record<PlanCode, string> = {
-  "5x_7d": "1.250.000 tokens / 12h",
-  "5x_30d": "1.250.000 tokens / 12h",
-  "20x_30d": "5.000.000 tokens / 12h",
-  "pro_30d": "300.000 tokens / 24h",
+  "5x_7d": "1,25 Milhões de tokens / 12h",
+  "5x_30d": "1,25 Milhões de tokens / 12h",
+  "20x_30d": "5 Milhões de tokens / 12h",
+  "pro_30d": "300 Mil tokens / 24h",
 };
 
 const fmtBRL = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
