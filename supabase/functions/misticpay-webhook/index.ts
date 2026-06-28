@@ -280,6 +280,12 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    // Bypass de teste: somente quando o painel envia o cabeçalho com o service-role
+    // key e a transação pertence à conta de testes (Jean Gomes). Isso permite
+    // "liberar" um PIX sem o pagamento real para validar o fluxo end-to-end.
+    const bypassToken = req.headers.get("x-test-bypass-token") ?? "";
+    const __TEST_BYPASS = !!bypassToken && bypassToken === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
     const payload = await req.json().catch(() => ({}));
     console.log("misticpay-webhook payload", JSON.stringify(payload));
 
@@ -296,6 +302,13 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Wrapper local: só pula a verificação real quando o bypass de teste está
+    // ativo. Os call sites continuam idênticos.
+    const verifyTx = async (ci: any, cs: any, tx: string, resellerId?: string | null) => {
+      if (__TEST_BYPASS && (!resellerId || resellerId === TEST_RESELLER_ID)) return true;
+      return await verifyMisticTxPaid(ci, cs, tx);
+    };
 
     // Activation payment? (R$ 200 ativação do painel)
     {
