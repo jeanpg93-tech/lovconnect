@@ -306,7 +306,7 @@ Deno.serve(async (req) => {
     // Wrapper local: só pula a verificação real quando o bypass de teste está
     // ativo. Os call sites continuam idênticos.
     const verifyTx = async (ci: any, cs: any, tx: string, resellerId?: string | null) => {
-      if (__TEST_BYPASS && (!resellerId || resellerId === TEST_RESELLER_ID)) return true;
+      if (__TEST_BYPASS && resellerId === TEST_RESELLER_ID) return true;
       return await verifyMisticTxPaid(ci, cs, tx);
     };
 
