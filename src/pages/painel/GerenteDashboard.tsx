@@ -5,6 +5,8 @@ import { PageHeader, StatCard } from "@/components/painel/PageHeader";
 import FallbackMetricCard from "@/components/painel/FallbackMetricCard";
 import OnlineUsersCard from "@/components/painel/OnlineUsersCard";
 import ManagerStockAlertBanner from "@/components/painel/ManagerStockAlertBanner";
+import { useProviderCommitments } from "@/hooks/useProviderCommitments";
+import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import {
   Package,
   Store,
@@ -153,6 +155,8 @@ export default function GerenteDashboard() {
   const [gatewayBalance, setGatewayBalance] = useState<string>("R$ 0,00");
   const [providerBalance, setProviderBalance] = useState<string>("R$ 0,00");
   const [todayRecharge, setTodayRecharge] = useState<{ cents: number; count: number }>({ cents: 0, count: 0 });
+  const [lovaxStock, setLovaxStock] = useState<{ used: number; limit: number } | null>(null);
+  const commitments = useProviderCommitments(true);
   const [creditMovements, setCreditMovements] = useState<{
     id: string;
     created_at: string;
@@ -232,6 +236,18 @@ export default function GerenteDashboard() {
       supabase.from("recharge_intents").select("amount_cents").not("paid_at", "is", null).gte("paid_at", todayIsoEarly),
       supabase.from("balance_transactions").select("id, created_at, amount_cents, kind, description, reseller_id, reference_id, promotion_id").order("created_at", { ascending: false }).limit(100),
     ]);
+
+    // Estoque LovaX (semelhante ao card do menu lateral)
+    try {
+      const { data: lovaxData } = await invokeAuthenticatedFunction("lovax-api?action=status", { method: "GET" });
+      const ld: any = lovaxData ?? {};
+      if (!ld?.error) {
+        const remaining = Number(ld?.remaining ?? 0);
+        const used = Number(ld?.used ?? 0);
+        const limit = Number(ld?.limit ?? ld?.max ?? used + remaining);
+        setLovaxStock({ used, limit });
+      }
+    } catch {}
 
     // Mensalistas geram licenças com price_cents=0 (sem débito), então não aparecem
     // em balance_transactions. Buscamos separadamente para mesclar no feed.
@@ -956,13 +972,13 @@ export default function GerenteDashboard() {
             </div>
             <div className="rounded-2xl border border-border bg-background/70 p-5 backdrop-blur">
               <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">
-                <Wallet className="h-3 w-3 text-primary" /> Saldo Provedor
+                <Wallet className="h-3 w-3 text-primary" /> Saldo MisticPay
               </div>
               <div className="mt-2 font-display font-black tracking-tighter text-xl">
-                {providerBalance}
+                {gatewayBalance}
               </div>
               <div className="mt-1 text-[10px] text-muted-foreground">
-                recarga disponível para recargas
+                saldo disponível no gateway
               </div>
             </div>
           </div>
@@ -986,13 +1002,6 @@ export default function GerenteDashboard() {
             accent="emerald"
           />
           <StatCard
-            label="Saldo Gateway"
-            value={gatewayBalance}
-            hint="Disponível para saque"
-            icon={Wallet}
-            accent="primary"
-          />
-          <StatCard
             label="Volume Recargas"
             value={formatBRL(stats.rechargeTotalCents)}
             hint={`${stats.rechargePaidCount} transações aprovadas`}
@@ -1005,6 +1014,36 @@ export default function GerenteDashboard() {
             hint={`${stats.ordersPending} pendentes no período`}
             icon={ShoppingCart}
             accent="sky"
+          />
+          <StatCard
+            label="Estoque LovaX"
+            value={lovaxStock ? `${lovaxStock.used}/${lovaxStock.limit || "∞"}` : "—"}
+            hint={
+              lovaxStock && lovaxStock.limit
+                ? `${Math.max(0, lovaxStock.limit - lovaxStock.used)} licenças restantes`
+                : "licenças usadas / limite"
+            }
+            icon={Database}
+            accent="violet"
+          />
+          <StatCard
+            label="Controle de Packs"
+            value={commitments.loading ? "—" : String(commitments.committed)}
+            hint={
+              commitments.loading
+                ? "carregando reserva…"
+                : Number.isFinite(commitments.realAvailable)
+                ? `${commitments.committed} comprometidas · ${commitments.realAvailable} livres`
+                : `${commitments.committed} comprometidas · ∞ livres`
+            }
+            icon={ShieldCheck}
+            accent={
+              commitments.committed > 0 &&
+              Number.isFinite(commitments.totalRemaining) &&
+              commitments.committed >= commitments.totalRemaining
+                ? "destructive"
+                : "emerald"
+            }
           />
           <OnlineUsersCard />
           <FallbackMetricCard days={30} />
