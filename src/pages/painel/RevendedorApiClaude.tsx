@@ -137,7 +137,7 @@ export default function RevendedorApiClaude() {
       <PageHeader
         title="API Claude"
         description="Integre a venda de chaves Claude no seu site, loja ou aplicativo."
-        icon={<ClaudeIcon className="text-primary" size={22} />}
+        icon={ClaudeIcon}
       />
 
       <Tabs defaultValue="keys" className="w-full">
