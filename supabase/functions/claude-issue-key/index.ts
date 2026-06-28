@@ -84,9 +84,16 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'plan_not_active' }, 400);
     }
     const costCents = defaultPrice.cost_cents;
-    // Custo cobrado do revendedor (definido pelo gerente). Fallback p/ sale_price_cents
-    // em registros antigos onde reseller_cost_cents ainda não foi preenchido.
-    const resellerCostCents = (defaultPrice as any).reseller_cost_cents ?? defaultPrice.sale_price_cents;
+    // Custo cobrado do revendedor: baseado no nível (tier) do revendedor.
+    // Fallback: reseller_cost_cents padrão; depois sale_price_cents.
+    let resellerCostCents = (defaultPrice as any).reseller_cost_cents ?? defaultPrice.sale_price_cents;
+    try {
+      const { data: tierCost } = await admin.rpc('get_reseller_claude_cost', {
+        _reseller_id: reseller.id,
+        _plan_code: planCode,
+      });
+      if (typeof tierCost === 'number' && tierCost > 0) resellerCostCents = tierCost;
+    } catch (_) { /* fallback to default */ }
     let saleCents = defaultPrice.sale_price_cents;
     if (override && override.is_active) {
       saleCents = computeSalePrice(costCents, override.markup_mode, override.markup_value_cents);
