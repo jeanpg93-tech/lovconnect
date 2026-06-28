@@ -602,55 +602,18 @@ export function AppSidebar() {
           </div>
         )}
         {primaryRole === "gerente" && !collapsed && (
-          <div className="space-y-2 px-2 pt-3">
-            <NavLink
-              to="/painel/gerente/api-provedor"
-              className={cn(
-                "group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-card p-2.5 transition-all hover:shadow-sm",
-                activeMethod === "flow"
-                  ? "border-blue-500/60 ring-1 ring-blue-500/40 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)]"
-                  : "border-border hover:border-blue-500/40"
-              )}
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-500 transition-transform group-hover:scale-110">
-                <Zap className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
-                  <span>MétodoFlow</span>
-                  {activeMethod === "flow" && (
-                    <span className="rounded-full bg-blue-500/15 px-1.5 py-[1px] text-[8px] font-bold tracking-wider text-blue-500">
-                      ATIVO
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
-                  {balanceLoading && providerUsage === null
-                    ? "—"
-                    : providerUsage
-                    ? `${providerUsage.used}/${providerUsage.limit || "∞"}`
-                    : "—"}
-                </div>
-                <div className="mt-0.5 text-[9px] text-muted-foreground/80 leading-none">Licenças usadas</div>
-                {providerUsage && providerUsage.limit ? (
-                  <div className="mt-0.5 text-[9px] font-semibold text-blue-500/90 leading-none tabular-nums">
-                    {Math.max(0, providerUsage.limit - providerUsage.used)} restantes
-                  </div>
-                ) : null}
-              </div>
-            </NavLink>
-
+          <div className="space-y-1.5 px-2 pt-3">
             <NavLink
               to="/painel/gerente/todas-licencas?tab=api"
               className={cn(
-                "group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-card p-2.5 transition-all hover:shadow-sm",
+                "group relative flex items-center gap-2.5 overflow-hidden rounded-xl border bg-card p-2 transition-all hover:shadow-sm",
                 activeMethod === "lovax"
                   ? "border-violet-500/60 ring-1 ring-violet-500/40"
                   : "border-border hover:border-violet-500/40"
               )}
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-500 transition-transform group-hover:scale-110">
-                <Sparkles className="h-4 w-4" />
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-500 transition-transform group-hover:scale-110">
+                <Sparkles className="h-3.5 w-3.5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
@@ -661,7 +624,7 @@ export function AppSidebar() {
                     </span>
                   )}
                 </div>
-                <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
+                <div className="mt-1 font-display text-xs font-bold text-foreground leading-none tabular-nums">
                   {lovaxLoading && lovaxUsage === null
                     ? "—"
                     : lovaxUsage
@@ -679,16 +642,16 @@ export function AppSidebar() {
 
             <NavLink
               to="/painel/gerente/gateway"
-              className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2.5 transition-all hover:border-purple-500/40 hover:shadow-sm"
+              className="group relative flex items-center gap-2.5 overflow-hidden rounded-xl border border-border bg-card p-2 transition-all hover:border-purple-500/40 hover:shadow-sm"
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-purple-500/20 bg-purple-500/10 text-purple-500 transition-transform group-hover:scale-110">
-                <CreditCard className="h-4 w-4" />
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-purple-500/20 bg-purple-500/10 text-purple-500 transition-transform group-hover:scale-110">
+                <CreditCard className="h-3.5 w-3.5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
                   Gateway
                 </div>
-                <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
+                <div className="mt-1 font-display text-xs font-bold text-foreground leading-none tabular-nums">
                   {gatewayLoading && gatewayBalance === null
                     ? "—"
                     : gatewayBalance != null
@@ -710,39 +673,6 @@ export function AppSidebar() {
               </button>
             </NavLink>
 
-            <NavLink
-              to="/painel/gerente/api-recargas"
-              className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-2.5 transition-all hover:border-amber-500/40 hover:shadow-sm"
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-500 transition-transform group-hover:scale-110">
-                <Coins className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
-                  Provedor
-                </div>
-                <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
-                  {creditsLoading && creditsBalance === null
-                    ? "—"
-                    : creditsBalance != null
-                    ? `R$ ${Number(creditsBalance).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                    : "—"}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  window.open("https://lojinhalovable.com/revenda/saldo", "_blank", "noopener,noreferrer");
-                }}
-                className="text-muted-foreground/60 transition-colors hover:text-amber-500"
-                title="Abrir painel do provedor"
-              >
-                <ExternalLink className="h-3 w-3" />
-              </button>
-            </NavLink>
-
             {/* Comprometido em Packs (somente método ativo) */}
             {(() => {
               const methodRemaining =
@@ -757,14 +687,14 @@ export function AppSidebar() {
                 <NavLink
                   to="/painel/gerente/pacotes"
                   className={cn(
-                    "group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-card p-2.5 transition-all hover:shadow-sm",
+                    "group relative flex items-center gap-2.5 overflow-hidden rounded-xl border bg-card p-2 transition-all hover:shadow-sm",
                     overcommitted
                       ? "border-destructive/60 ring-1 ring-destructive/40"
                       : "border-border hover:border-emerald-500/40"
                   )}
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 transition-transform group-hover:scale-110">
-                    <Package className="h-4 w-4" />
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 transition-transform group-hover:scale-110">
+                    <Package className="h-3.5 w-3.5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
@@ -775,7 +705,7 @@ export function AppSidebar() {
                         </span>
                       )}
                     </div>
-                    <div className="mt-1 font-display text-sm font-bold text-foreground leading-none tabular-nums">
+                    <div className="mt-1 font-display text-xs font-bold text-foreground leading-none tabular-nums">
                       {commitments.loading ? "—" : commitments.committed}
                     </div>
                     <div className="mt-0.5 text-[9px] text-muted-foreground/80 leading-none">
@@ -800,16 +730,6 @@ export function AppSidebar() {
         {primaryRole === "gerente" && collapsed && (
           <div className="flex flex-col items-center gap-2 pt-3">
             <NavLink
-              to="/painel/gerente/api-provedor"
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-md border bg-blue-500/10 text-blue-500",
-                activeMethod === "flow" ? "border-blue-500 ring-1 ring-blue-500/50" : "border-blue-500/30"
-              )}
-              title={providerUsage ? `MétodoFlow — Licenças usadas: ${providerUsage.used}/${providerUsage.limit || "∞"}` : "MétodoFlow"}
-            >
-              <Zap className="h-4 w-4" />
-            </NavLink>
-            <NavLink
               to="/painel/gerente/todas-licencas?tab=api"
               className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-md border bg-violet-500/10 text-violet-500",
@@ -825,13 +745,6 @@ export function AppSidebar() {
               title={gatewayBalance ? `Saldo Gateway (MisticPay): R$ ${Number(gatewayBalance).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Saldo no Gateway"}
             >
               <CreditCard className="h-4 w-4" />
-            </NavLink>
-            <NavLink
-              to="/painel/gerente/api-recargas"
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-yellow-500/30 bg-yellow-500/10 text-yellow-500"
-              title={creditsBalance != null ? `Saldo Provedor: R$ ${Number(creditsBalance).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Saldo no Provedor"}
-            >
-              <Coins className="h-4 w-4" />
             </NavLink>
           </div>
         )}
