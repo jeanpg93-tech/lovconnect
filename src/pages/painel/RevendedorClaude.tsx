@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
-import { PageContainer, PageHeader } from "@/components/painel/PageHeader";
+import { PageContainer } from "@/components/painel/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, Wallet, CheckCircle2 } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
@@ -51,6 +52,13 @@ const PLAN_BADGES: Partial<Record<PlanCode, { label: string; cls: string }>> = {
   "pro_30d": { label: "Top", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
 };
 
+const STATUS_MAP: Record<string, { label: string; cls: string }> = {
+  issued: { label: "Emitida", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
+  pending: { label: "Pendente", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+  failed: { label: "Falhou", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
+  refunded: { label: "Estornada", cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
+};
+
 export default function RevendedorClaude() {
   const [loading, setLoading] = useState(true);
   const [prices, setPrices] = useState<PriceRow[]>([]);
@@ -61,6 +69,7 @@ export default function RevendedorClaude() {
   const [history, setHistory] = useState<any[]>([]);
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
+  const [search, setSearch] = useState("");
 
   const loadAll = async () => {
     const { data: userRes } = await supabase.auth.getUser();
@@ -122,55 +131,46 @@ export default function RevendedorClaude() {
   if (loading) return <div className="flex h-40 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
 
   const selected = prices.find((p) => p.plan_code === selectedPlan) ?? prices[0];
+  const filteredHistory = history.filter((h) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (h.plan_code ?? "").toLowerCase().includes(q) ||
+      (PLAN_LABELS[h.plan_code as PlanCode] ?? "").toLowerCase().includes(q) ||
+      (h.id ?? "").toLowerCase().includes(q)
+    );
+  });
 
   return (
     <PageContainer>
-      <PageHeader title="Claude" description="Emita chaves Claude para seus clientes. O valor é debitado da sua carteira." />
+      {/* Hero — estilo da página de Licenças */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-white/[0.04] via-white/[0.02] to-transparent p-6 sm:p-10 backdrop-blur-xl">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute -left-10 bottom-0 h-56 w-56 rounded-full bg-primary/5 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.04),transparent_60%)]" />
 
-      {/* Saldo + Hero */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-500">
-              <Wallet className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Saldo da carteira</div>
-              <div className="font-display text-2xl font-bold text-emerald-500">{fmtBRL(balance)}</div>
-            </div>
+        <div className="relative space-y-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 backdrop-blur-sm w-fit">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Emissão instantânea</span>
           </div>
-        </div>
-        <div className="rounded-2xl border border-border bg-card/60 p-4 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              <ClaudeIcon className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Chaves emitidas</div>
-              <div className="font-display text-2xl font-bold">{history.length}</div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="mt-6 relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/15 via-card/80 to-card/40 p-5 sm:p-6 backdrop-blur-sm">
-        <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-        <div className="relative flex items-start gap-3 sm:gap-4">
-          <div className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-primary/20 ring-1 ring-primary/30">
-            <ClaudeIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="font-display text-lg sm:text-xl font-semibold">Nova chave Claude em segundos</h2>
-            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-              Selecione um plano abaixo. O valor é debitado da sua carteira no momento da emissão.
+          <div className="space-y-3">
+            <h1 className="font-display text-4xl md:text-5xl font-black tracking-tighter leading-[1.05] text-white">
+              Chaves <span className="italic text-primary">Claude</span>
+            </h1>
+            <p className="text-sm md:text-base text-zinc-400 leading-relaxed max-w-xl">
+              Gere acessos Claude para seus clientes em segundos — o valor é debitado direto do seu saldo, com preço definido pelo seu nível.
             </p>
           </div>
         </div>
       </div>
 
       {/* Plan picker + result */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr,1fr]">
+      <div className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
         <div className="rounded-2xl border border-border bg-card/60 p-4 sm:p-6 backdrop-blur-sm">
           <div className="mb-4 flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">1</span>
@@ -253,28 +253,62 @@ export default function RevendedorClaude() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card/60 p-4 sm:p-6 backdrop-blur-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <HistoryIcon className="h-4 w-4 text-primary" />
-            <h3 className="font-display text-sm font-semibold">Últimas emissões</h3>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <HistoryIcon className="h-4 w-4 text-primary" />
+              <h3 className="font-display text-sm font-semibold">Minhas chaves Claude</h3>
+            </div>
+            <Badge variant="outline" className="text-[10px] font-bold uppercase">{history.length}</Badge>
           </div>
-          {history.length === 0 ? (
-            <div className="py-10 text-center text-sm text-muted-foreground">Nenhuma chave emitida ainda.</div>
+
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por plano ou ID…"
+              className="pl-8 h-9 text-xs"
+            />
+          </div>
+
+          {filteredHistory.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              {history.length === 0 ? "Nenhuma chave emitida ainda." : "Nenhum resultado."}
+            </div>
           ) : (
-            <div className="divide-y divide-border">
-              {history.map((h) => (
-                <div key={h.id} className="flex items-center justify-between py-2 text-sm">
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{PLAN_LABELS[h.plan_code as PlanCode] ?? h.plan_code}</div>
-                    <div className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleString("pt-BR")}</div>
+            <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+              {filteredHistory.map((h) => {
+                const st = STATUS_MAP[h.status] ?? { label: h.status, cls: "bg-muted text-muted-foreground" };
+                return (
+                  <div
+                    key={h.id}
+                    className="rounded-xl border border-border bg-background/40 p-3 transition-colors hover:border-primary/30"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-display text-sm font-semibold truncate">
+                            {PLAN_LABELS[h.plan_code as PlanCode] ?? h.plan_code}
+                          </span>
+                        </div>
+                        <div className="mt-1 font-mono text-[10px] text-muted-foreground truncate">
+                          #{(h.id ?? "").slice(0, 8).toUpperCase()}
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", st.cls)}>
+                        {st.label}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>{new Date(h.created_at).toLocaleString("pt-BR")}</span>
+                      <span className="font-semibold text-foreground">{fmtBRL(h.sale_price_cents)}</span>
+                    </div>
+                    {h.status === "failed" && h.error_message && (
+                      <div className="mt-2 text-[10px] text-rose-500/90 line-clamp-2">{h.error_message}</div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs">{fmtBRL(h.sale_price_cents)}</span>
-                    <Badge variant={h.status === "issued" ? "default" : h.status === "failed" ? "destructive" : "secondary"}>
-                      {h.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
