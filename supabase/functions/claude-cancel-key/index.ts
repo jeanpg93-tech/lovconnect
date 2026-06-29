@@ -93,6 +93,19 @@ Deno.serve(async (req) => {
     };
 
     if (providerStatus < 200 || providerStatus >= 300) {
+      // 409 = chave já resgatada/cancelada/expirada — não estorna.
+      if (providerStatus === 409) {
+        const provStatus = String(providerResp?.status ?? '').toLowerCase();
+        await admin.from('claude_orders').update({
+          status: provStatus === 'redeemed' ? 'cancel_rejected' : (order.status),
+          cancel_attempts: [...prevAttempts, attempt],
+        }).eq('id', order.id);
+        return json({
+          error: 'already_redeemed',
+          provider_status: provStatus,
+          body: providerResp,
+        }, 409);
+      }
       await admin.from('claude_orders').update({
         status: 'cancel_failed',
         cancel_attempts: [...prevAttempts, attempt],
@@ -104,8 +117,11 @@ Deno.serve(async (req) => {
       }, 502);
     }
 
-    // Estorna saldo do revendedor (custo do revendedor, não preço final).
-    const refundCents = Number(order.cost_cents) || 0;
+    // Estorna saldo do revendedor. Prioriza valor do fornecedor; fallback no custo local.
+    const providerRefund = Number(providerResp?.refunded_amount_cents);
+    const refundCents = Number.isFinite(providerRefund) && providerRefund > 0
+      ? providerRefund
+      : (Number(order.cost_cents) || 0);
     if (refundCents > 0) {
       const { error: cErr } = await admin.rpc('credit_reseller_balance', {
         _reseller_id: reseller.id,

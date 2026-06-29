@@ -30,6 +30,7 @@ type Order = {
     dailyPercentUsed?: number;
     weeklyTokenLimit?: number;
     weeklyTokensInWindow?: number;
+    percentRemaining?: number;
   };
 };
 
@@ -158,28 +159,68 @@ export default function RevendedorMeusClientesClaude() {
                   </div>
                 ) : o.usage ? (
                   <div className="mt-3 space-y-2">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <Activity className="h-3 w-3" /> Janela {o.usage.tokenWindowHours ?? 12}h
-                      </span>
-                      <span className="font-semibold">
-                        {fmtTokens(o.usage.tokensInWindow)} / {fmtTokens(o.usage.tokenLimit)}
-                      </span>
-                    </div>
-                    {pct != null && (
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-background/60">
-                        <div
-                          className={cn(
-                            "h-full transition-all",
-                            pct >= 90 ? "bg-rose-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500",
+                    {/* Janela diária */}
+                    {(() => {
+                      const daily = o.usage.dailyPercentUsed != null
+                        ? Math.min(100, Math.round(o.usage.dailyPercentUsed))
+                        : pct;
+                      return (
+                        <div>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-muted-foreground flex items-center gap-1">
+                              <Activity className="h-3 w-3" /> Janela {o.usage.tokenWindowHours ?? 12}h
+                            </span>
+                            <span className="font-semibold">
+                              {fmtTokens(o.usage.tokensInWindow)} / {fmtTokens(o.usage.tokenLimit)}
+                              {daily != null && <span className="ml-1 text-muted-foreground">({daily}%)</span>}
+                            </span>
+                          </div>
+                          {daily != null && (
+                            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-background/60">
+                              <div
+                                className={cn(
+                                  "h-full transition-all",
+                                  daily >= 90 ? "bg-rose-500" : daily >= 70 ? "bg-amber-500" : "bg-emerald-500",
+                                )}
+                                style={{ width: `${daily}%` }}
+                              />
+                            </div>
                           )}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Janela semanal */}
+                    {o.usage.weeklyTokenLimit ? (() => {
+                      const used = o.usage.weeklyTokensInWindow ?? 0;
+                      const lim = o.usage.weeklyTokenLimit ?? 1;
+                      const wpct = Math.min(100, Math.round((used * 100) / lim));
+                      return (
+                        <div>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-muted-foreground">Semana</span>
+                            <span className="font-semibold">
+                              {fmtTokens(used)} / {fmtTokens(lim)} <span className="text-muted-foreground">({wpct}%)</span>
+                            </span>
+                          </div>
+                          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-background/60">
+                            <div
+                              className={cn(
+                                "h-full transition-all",
+                                wpct >= 90 ? "bg-rose-500" : wpct >= 70 ? "bg-amber-500" : "bg-sky-500",
+                              )}
+                              style={{ width: `${wpct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })() : null}
+
                     <div className="grid grid-cols-2 gap-2 text-[10px] text-muted-foreground">
                       <div>Total consumido: <span className="font-semibold text-foreground">{fmtTokens(o.usage.tokensConsumed)}</span></div>
-                      <div>Semana: <span className="font-semibold text-foreground">{fmtTokens(o.usage.weeklyTokensInWindow)} / {fmtTokens(o.usage.weeklyTokenLimit)}</span></div>
+                      {o.usage.redeemedAt && (
+                        <div>Resgatada: <span className="font-semibold text-foreground">{new Date(o.usage.redeemedAt).toLocaleString("pt-BR")}</span></div>
+                      )}
                       {o.usage.accountExpiresAt && (
                         <div className="col-span-2">Expira: <span className="font-semibold text-foreground">{new Date(o.usage.accountExpiresAt).toLocaleString("pt-BR")}</span></div>
                       )}

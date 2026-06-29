@@ -153,7 +153,14 @@ export default function RevendedorClaude() {
     setCancelling(false);
     if (error) {
       const msg = (data as any)?.error ?? (error as any)?.message ?? "Falha ao cancelar";
-      return toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      if (msg === "already_redeemed") {
+        toast.error("Chave já foi resgatada pelo cliente — cancelamento não é mais possível pelo fornecedor.");
+      } else {
+        toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      }
+      setCancelTarget(null);
+      loadAll();
+      return;
     }
     toast.success(`Chave cancelada. Estorno: ${fmtBRL(data?.refund_cents ?? 0)}`);
     setCancelTarget(null);
