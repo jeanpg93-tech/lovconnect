@@ -30,6 +30,7 @@ type Order = {
     dailyPercentUsed?: number;
     weeklyTokenLimit?: number;
     weeklyTokensInWindow?: number;
+    percentRemaining?: number;
   };
 };
 
