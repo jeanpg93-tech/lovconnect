@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
           tokensInWindow: match?.usage?.tokensInWindow ?? null,
           tokenWindowHours: match?.usage?.tokenWindowHours ?? null,
           dailyPercentUsed: match?.usage?.dailyPercentUsed ?? null,
+          percentRemaining: match?.usage?.percentRemaining ?? null,
           weeklyTokenLimit: match?.usage?.weeklyTokenLimit ?? null,
           weeklyTokensInWindow: match?.usage?.weeklyTokensInWindow ?? null,
         } : null,
