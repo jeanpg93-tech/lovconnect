@@ -396,15 +396,18 @@ export type Database = {
           customer_name: string | null
           customer_whatsapp: string | null
           error_message: string | null
+          expired_at: string | null
           id: string
           plan_code: string
           profit_cents: number
           provider_key_id: string | null
           provider_response: Json | null
+          redeemed_at: string | null
           request_id: string | null
           reseller_id: string
           sale_price_cents: number
           status: Database["public"]["Enums"]["claude_order_status"]
+          tokens_exhausted_at: string | null
           updated_at: string
         }
         Insert: {
@@ -419,15 +422,18 @@ export type Database = {
           customer_name?: string | null
           customer_whatsapp?: string | null
           error_message?: string | null
+          expired_at?: string | null
           id?: string
           plan_code: string
           profit_cents?: number
           provider_key_id?: string | null
           provider_response?: Json | null
+          redeemed_at?: string | null
           request_id?: string | null
           reseller_id: string
           sale_price_cents?: number
           status?: Database["public"]["Enums"]["claude_order_status"]
+          tokens_exhausted_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -442,15 +448,18 @@ export type Database = {
           customer_name?: string | null
           customer_whatsapp?: string | null
           error_message?: string | null
+          expired_at?: string | null
           id?: string
           plan_code?: string
           profit_cents?: number
           provider_key_id?: string | null
           provider_response?: Json | null
+          redeemed_at?: string | null
           request_id?: string | null
           reseller_id?: string
           sale_price_cents?: number
           status?: Database["public"]["Enums"]["claude_order_status"]
+          tokens_exhausted_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -507,6 +516,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      claude_provider_webhook_events: {
+        Row: {
+          event: string
+          id: string
+          order_id: string | null
+          payload: Json
+          processed_at: string | null
+          provider_event_id: string | null
+          provider_key_id: string | null
+          received_at: string
+          signature_ok: boolean
+        }
+        Insert: {
+          event: string
+          id?: string
+          order_id?: string | null
+          payload: Json
+          processed_at?: string | null
+          provider_event_id?: string | null
+          provider_key_id?: string | null
+          received_at?: string
+          signature_ok?: boolean
+        }
+        Update: {
+          event?: string
+          id?: string
+          order_id?: string | null
+          payload?: Json
+          processed_at?: string | null
+          provider_event_id?: string | null
+          provider_key_id?: string | null
+          received_at?: string
+          signature_ok?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claude_provider_webhook_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "claude_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       claude_reseller_price_overrides: {
         Row: {
