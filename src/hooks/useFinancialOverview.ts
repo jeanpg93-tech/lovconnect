@@ -149,10 +149,21 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     // Planos de recarga vendidos (subscriptions não canceladas no período)
     // Receita do dono = cost_cents (o que o revendedor pagou em saldo, vindo de recargas)
     // Custo do dono = platform_cost_cents do plano (fornecedor)
-    const { data: planSubsRaw } = await supabase.rpc(
+    let { data: planSubsRaw, error: planSubsErr } = await supabase.rpc(
       "admin_reseller_recharge_plan_subscriptions_costs" as any,
       { _from: startIso ?? null, _to: endIso ?? null },
     );
+    if (planSubsErr || !planSubsRaw) {
+      // Fallback: tabela direta (caso a RPC falhe por permissão/timeout)
+      console.warn("[financeiro] plansubs RPC falhou, usando fallback", planSubsErr);
+      let q = supabase
+        .from("reseller_recharge_plan_subscriptions")
+        .select("cost_cents, plan_id, started_at, created_at, status, reseller_id");
+      if (startIso) q = q.gte("created_at", startIso);
+      if (endIso) q = q.lt("created_at", endIso);
+      const { data: fb } = await q;
+      planSubsRaw = fb as any;
+    }
     const planSubsArr = (((planSubsRaw as any[]) || [])
       .filter((s: any) => s.status !== "cancelled")
       .filter((s: any) => !demoIds.includes(s.reseller_id))) as any[];
