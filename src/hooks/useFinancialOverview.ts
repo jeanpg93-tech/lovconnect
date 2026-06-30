@@ -252,6 +252,9 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       // o revendedor pagou em saldo (= receita do dono já contabilizada na
       // recarga). Custo upstream real de uma chave de extensão é ~0.
       if (o.product_type === "extension") return 0;
+      // Planos de recarga: o custo real (platform_cost_cents) já é contabilizado
+      // separadamente em rechargePlanCostCents. Evita dupla contagem.
+      if (o.product_type === "recharge_plan") return 0;
       // Outros produtos: mantém cost_cents atual
       return Number(o.cost_cents || 0);
     };
