@@ -777,6 +777,19 @@ Deno.serve(async (req) => {
             console.warn("[webhook] pack notify failed", e);
           }
 
+          // Após creditar o pack, tenta liberar vendas em espera (pack ou saldo)
+          try {
+            const { data: released } = await admin.rpc("try_release_pending_orders", {
+              _reseller_id: (packPurchase as any).reseller_id,
+            });
+            const ids = Array.isArray(released) ? released.filter(Boolean) : [];
+            if (ids.length > 0) {
+              triggerReleasePending(ids as string[]);
+            }
+          } catch (e) {
+            console.warn("try_release_pending_orders (pack) failed", e);
+          }
+
           return json({ ok: true, kind: "pack_purchase" });
         }
 
