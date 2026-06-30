@@ -44,7 +44,7 @@ export default function ClaudePriceTable() {
       const [{ data: base }, { data: ov }] = await Promise.all([
         supabase
           .from("claude_plan_prices")
-          .select("plan_code, reseller_cost_cents, sale_price_cents, is_active"),
+          .select("plan_code, sale_price_cents, is_active"),
         rid
           ? supabase
               .from("claude_reseller_price_overrides")
@@ -73,7 +73,7 @@ export default function ClaudePriceTable() {
         const b: any = (base ?? []).find((x: any) => x.plan_code === pc);
         return {
           plan_code: pc,
-          reseller_cost_cents: tierCosts[pc] ?? b?.reseller_cost_cents ?? 0,
+          reseller_cost_cents: tierCosts[pc] ?? 0,
           suggested_sale_cents: b?.sale_price_cents ?? 0,
           override_sale_cents: ovMap.has(pc) ? (ovMap.get(pc) as number) : null,
           is_active: !!b?.is_active,
