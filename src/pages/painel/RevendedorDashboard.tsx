@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActivation } from "@/hooks/useActivation";
@@ -649,6 +650,11 @@ export default function RevendedorDashboard() {
               <Button asChild size="sm" className="rounded-xl shadow-red-glow bg-primary text-primary-foreground hover:bg-primary/90">
                 <Link to="/painel/revendedor/licencas">
                   <ShoppingCart className="mr-2 h-4 w-4" /> Licenças
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="rounded-xl">
+                <Link to="/painel/revendedor/claude">
+                  <ClaudeIcon className="mr-2 h-4 w-4" /> Claude
                 </Link>
               </Button>
               {enabledMethods.plano3k && (
