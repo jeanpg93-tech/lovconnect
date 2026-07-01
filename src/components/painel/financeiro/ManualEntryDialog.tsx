@@ -22,6 +22,16 @@ const toCents = (s: string): number => {
 };
 const fromCents = (c: number) => (c / 100).toFixed(2).replace(".", ",");
 
+// Data local (do navegador do usuário) no formato YYYY-MM-DD.
+// Evita drift de fuso que ocorre com new Date().toISOString().slice(0,10) (UTC).
+const localTodayISO = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,7 +50,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
   const [selectedPackId, setSelectedPackId] = useState<string>("");
   const [selectedLicense, setSelectedLicense] = useState<string>("");
   const [category, setCategory] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => localTodayISO());
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
