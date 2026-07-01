@@ -102,14 +102,21 @@ export default function RevendedorClaude() {
       supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
     ]);
 
-    const merged: PriceRow[] = PLAN_ORDER.map((pc) => {
-      const base: any = (def ?? []).find((x: any) => x.plan_code === pc);
-      if (!base) return { plan_code: pc, sale_price_cents: 0, is_active: false };
-      const override: any = (ov ?? []).find((x: any) => x.plan_code === pc && x.is_active);
-      const sale = override ? override.sale_price_cents : base.sale_price_cents;
-      return { plan_code: pc, sale_price_cents: sale, is_active: !!base.is_active };
-    });
+    const merged: PriceRow[] = PLAN_ORDER
+      .map((pc) => {
+        const base: any = (def ?? []).find((x: any) => x.plan_code === pc);
+        if (!base || !base.is_active) return null;
+        const override: any = (ov ?? []).find((x: any) => x.plan_code === pc && x.is_active);
+        const sale = override ? override.sale_price_cents : base.sale_price_cents;
+        return { plan_code: pc, sale_price_cents: sale, is_active: true } as PriceRow;
+      })
+      .filter((x): x is PriceRow => x !== null);
     setPrices(merged);
+    setSelectedPlan((prev) =>
+      merged.some((m) => m.plan_code === prev)
+        ? prev
+        : (merged.find((m) => m.plan_code === "20x_30d")?.plan_code ?? merged[0]?.plan_code ?? prev)
+    );
     setHistory(hist ?? []);
     setBalance(Number((bal as any)?.balance_cents ?? 0));
     setLoading(false);
