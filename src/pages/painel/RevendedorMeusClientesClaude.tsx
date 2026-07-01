@@ -4,11 +4,10 @@ import { PageContainer } from "@/components/painel/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity } from "lucide-react";
+import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity, Copy, KeyRound } from "lucide-react";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Copy, KeyRound } from "lucide-react";
 
 type Order = {
   id: string;
