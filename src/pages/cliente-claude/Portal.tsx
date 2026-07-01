@@ -548,6 +548,23 @@ export default function ClienteClaudePortal() {
                           </Button>
                         </div>
                       )}
+                      {["issued", "redeemed"].includes(o.status) && !o.cancel_requested_at && (
+                        <div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+                            onClick={() => { setCancelOrder(o); setCancelNote(""); }}
+                          >
+                            <Ban className="h-3.5 w-3.5 mr-1" /> Solicitar cancelamento
+                          </Button>
+                        </div>
+                      )}
+                      {o.cancel_requested_at && (
+                        <div className="text-[11px] rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
+                          Cancelamento solicitado em {fmtDate(o.cancel_requested_at)} — aguardando o revendedor concluir.
+                        </div>
+                      )}
                     </div>
                     <div
                       className="px-3 py-1 rounded-full text-xs font-semibold self-start sm:self-center"
