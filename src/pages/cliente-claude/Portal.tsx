@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2, Store, Ban } from "lucide-react";
+import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2, Store, Ban, Puzzle } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -34,6 +34,19 @@ type Order = {
   created_at: string;
   sale_price_cents: number;
   cancel_requested_at?: string | null;
+};
+
+type ExtensionKey = {
+  id: string;
+  extension_id: string;
+  extension_name: string;
+  license_type: string | null;
+  license_key: string;
+  status: string;
+  cancellation_status?: string | null;
+  price_cents: number;
+  created_at: string;
+  expires_at?: string | null;
 };
 
 type Usage = {
@@ -125,6 +138,7 @@ export default function ClienteClaudePortal() {
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [extensionKeys, setExtensionKeys] = useState<ExtensionKey[]>([]);
   const [usage, setUsage] = useState<Usage>(null);
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -216,6 +230,7 @@ export default function ClienteClaudePortal() {
         if (cancelled) return;
         setCustomer(usageResp.customer as Customer);
         setOrders(usageResp.orders ?? []);
+        setExtensionKeys(usageResp.extension_keys ?? []);
         setUsage(usageResp.usage ?? null);
         setPlans(usageResp.plans ?? []);
         setReseller(usageResp.reseller ?? null);
