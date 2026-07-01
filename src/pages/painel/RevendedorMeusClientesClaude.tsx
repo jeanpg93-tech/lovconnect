@@ -4,9 +4,10 @@ import { PageContainer } from "@/components/painel/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity } from "lucide-react";
+import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity, Copy, KeyRound } from "lucide-react";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type Order = {
   id: string;
@@ -18,6 +19,7 @@ type Order = {
   created_at: string;
   sale_price_cents: number;
   provider_key_id: string | null;
+  code: string | null;
   usage: null | {
     email: string;
     status?: string;
@@ -39,6 +41,18 @@ const PLAN_LABELS: Record<string, string> = {
   "5x_7d": "5x · 7 dias",
   "5x_30d": "5x · 30 dias",
   "20x_30d": "20x · 30 dias",
+};
+
+const STATUS_META: Record<string, { label: string; className: string }> = {
+  issued: { label: "Entregue", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-500" },
+  pending: { label: "Pendente", className: "border-amber-500/40 bg-amber-500/10 text-amber-500" },
+  awaiting_balance: { label: "Aguardando saldo", className: "border-amber-500/40 bg-amber-500/10 text-amber-500" },
+  awaiting_payment: { label: "Aguardando pagamento", className: "border-amber-500/40 bg-amber-500/10 text-amber-500" },
+  paid: { label: "Pago", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-500" },
+  cancelled: { label: "Cancelado", className: "border-rose-500/40 bg-rose-500/10 text-rose-500" },
+  expired: { label: "Expirado", className: "border-rose-500/40 bg-rose-500/10 text-rose-500" },
+  failed: { label: "Falhou", className: "border-rose-500/40 bg-rose-500/10 text-rose-500" },
+  refunded: { label: "Reembolsado", className: "border-muted-foreground/40 bg-muted/40 text-muted-foreground" },
 };
 
 const fmtTokens = (n?: number | null) => {
@@ -149,10 +163,33 @@ export default function RevendedorMeusClientesClaude() {
                       </div>
                     )}
                   </div>
-                  <Badge variant="outline" className="text-[10px] font-bold uppercase shrink-0">
-                    {o.status}
-                  </Badge>
+                  {(() => {
+                    const meta = STATUS_META[o.status] ?? { label: o.status, className: "border-border bg-muted/40 text-foreground" };
+                    return (
+                      <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", meta.className)}>
+                        {meta.label}
+                      </Badge>
+                    );
+                  })()}
                 </div>
+
+                {o.code && (
+                  <div className="mt-2 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1.5">
+                    <KeyRound className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <code className="flex-1 truncate font-mono text-[11px] text-foreground/90">{o.code}</code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2"
+                      onClick={() => {
+                        navigator.clipboard.writeText(o.code!);
+                        toast.success("Chave copiada");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
 
                 {noEmail ? (
                   <div className="mt-3 rounded-lg border border-dashed border-border bg-background/40 p-3 text-[11px] text-muted-foreground">
