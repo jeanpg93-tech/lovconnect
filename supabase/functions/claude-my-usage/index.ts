@@ -12,6 +12,14 @@ const CLAUDE_BASE_URL = (Deno.env.get("CLAUDE_RESELLER_API_BASE_URL") ?? "").rep
 const json = (d: unknown, s = 200) =>
   new Response(JSON.stringify(d), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+const PLAN_CODES = ["5x_7d", "5x_30d", "20x_30d"] as const;
+
+function computeSalePrice(cost: number, mode: string, value: number) {
+  if (mode === "percent") return Math.max(0, Math.round((cost * (10000 + value)) / 10000));
+  if (mode === "fixed_add") return Math.max(0, cost + value);
+  return Math.max(0, value);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -53,6 +61,22 @@ Deno.serve(async (req) => {
       seen.add(o.id);
       return true;
     });
+
+    // Planos disponíveis para renovação (sale price com override do revendedor)
+    const [{ data: defaults }, { data: overrides }, { data: storefront }, { data: reseller }] = await Promise.all([
+      admin.from("claude_plan_prices").select("plan_code, sale_price_cents, cost_cents, is_active").in("plan_code", PLAN_CODES as any),
+      admin.from("claude_reseller_price_overrides").select("plan_code, markup_mode, markup_value_cents, is_active").eq("reseller_id", customer.reseller_id),
+      admin.from("reseller_storefronts").select("contact_whatsapp, support_whatsapp, slug").eq("reseller_id", customer.reseller_id).maybeSingle(),
+      admin.from("resellers").select("display_name, claude_enabled").eq("id", customer.reseller_id).maybeSingle(),
+    ]);
+    const overrideMap = new Map((overrides ?? []).map((o: any) => [o.plan_code, o]));
+    const plans = (defaults ?? [])
+      .filter((p: any) => p.is_active)
+      .map((p: any) => {
+        const ov = overrideMap.get(p.plan_code);
+        const sale = ov && ov.is_active ? computeSalePrice(p.cost_cents, ov.markup_mode, ov.markup_value_cents) : p.sale_price_cents;
+        return { plan_code: p.plan_code, sale_price_cents: sale };
+      });
 
     // Consumo no provedor (best-effort)
     let providerUser: any = null;
@@ -98,6 +122,13 @@ Deno.serve(async (req) => {
       customer: { id: customer.id, name: customer.name, email: customer.email },
       orders,
       usage,
+      plans,
+      reseller: {
+        display_name: reseller?.display_name ?? null,
+        claude_enabled: !!reseller?.claude_enabled,
+        whatsapp: storefront?.support_whatsapp ?? storefront?.contact_whatsapp ?? null,
+        slug: storefront?.slug ?? null,
+      },
       provider_error: providerError,
     });
   } catch (e) {
