@@ -1292,7 +1292,7 @@ export default function PublicStorefront() {
                 )
               )}
 
-                {showReset && activeTab === "extension" && (
+                {(store as any).show_device_reset !== false && activeTab === "extension" && (
                   <section className="max-w-md mx-auto w-full">
                     <div
                       className="relative h-full overflow-hidden rounded-2xl border bg-card/40 backdrop-blur-md p-6 text-center transition-all hover:shadow-xl hover:bg-card/60 group"
