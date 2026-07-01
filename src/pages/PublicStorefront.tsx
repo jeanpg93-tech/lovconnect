@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { StorefrontBackground } from "@/components/storefront/StorefrontBackground";
 import { StorefrontVisualEffects, type VisualEffect } from "@/components/storefront/StorefrontVisualEffects";
 import { ReportStoreDialog } from "@/components/storefront/ReportStoreDialog";
+import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -753,7 +754,7 @@ export default function PublicStorefront() {
                   )}
                   style={activeTab === "claude" ? { background: color, color: '#fff' } : { background: `${color}1a`, color }}
                 >
-                  <Sparkles className="h-4 w-4" />
+                  <ClaudeIcon className="h-4 w-4" />
                 </div>
                 <div className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap" style={{ color: activeTab === "claude" ? color : undefined }}>Planos Claude</div>
                 <div
@@ -1224,7 +1225,7 @@ export default function PublicStorefront() {
                   <div className="w-full max-w-3xl mx-auto">
                     <div className="flex flex-col items-center gap-2 mb-6 text-center">
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
-                        <Sparkles className="h-3 w-3" /> Claude AI · Chaves API
+                        <ClaudeIcon className="h-3 w-3" /> Claude AI · Chaves API
                       </div>
                       <h2 className="text-2xl font-black uppercase tracking-tight">Planos Claude</h2>
                       <p className="text-xs text-muted-foreground">Chave API oficial da Anthropic · Ativação instantânea via PIX</p>
@@ -1259,7 +1260,7 @@ export default function PublicStorefront() {
                               <div className="text-[10px] font-black uppercase tracking-widest text-primary">Claude</div>
                               <div className="text-sm font-bold mt-1">{p.label}</div>
                             </div>
-                            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                            <ClaudeIcon className="h-4 w-4 text-primary shrink-0" />
                           </div>
                           <div className="mt-4 flex items-end justify-between">
                             <div>
