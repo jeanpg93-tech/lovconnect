@@ -21,6 +21,24 @@ Você é um engenheiro sênior. Implemente a integração abaixo no projeto **se
 
 Em resumo: o painel do cliente é uma **UI + proxy seguro**. Toda decisão de negócio é delegada à API do fornecedor.
 
+## 🧭 Antes de começar — escolha o MODO de integração
+
+Pergunte ao dono do projeto (ou detecte pelo código) em qual cenário você está e siga **apenas** o modo correspondente. Não misture os dois.
+
+- **MODO A — Instalação nova (from scratch):** o projeto ainda **não** tem área/portal de cliente para Claude. Nesse caso siga o roteiro completo abaixo: crie edge function, cliente TS, **páginas novas** (\`/integracoes/claude\` e histórico) e adicione item no menu **Integrações**.
+- **MODO B — Adaptação (o revendedor JÁ tem portal/loja/área de cliente próprio):** **NÃO** crie páginas novas, **NÃO** adicione itens de menu, **NÃO** invente rotas. Entregue apenas:
+  1. A edge function proxy \`claude-proxy\` (item 1).
+  2. O cliente TypeScript tipado em \`src/integrations/claude/client.ts\` (item 2).
+  3. **Componentes plugáveis** que o dev do revendedor encaixa nas páginas que já existem:
+     - \`<ClaudeSaldoCard/>\` — mostra saldo (usa \`getSaldo()\`).
+     - \`<EmitirChaveClaudeForm/>\` — formulário de emissão + modal com a chave (usa \`getPlanos()\` + \`emitirChave()\`).
+     - \`<HistoricoPedidosClaude/>\` — tabela dos últimos pedidos (usa \`listarPedidos()\`).
+     - \`<ConsumoTokensCard customerEmail=... />\` — opcional, exibe consumo do cliente final quando o portal já tiver identidade do cliente.
+  4. O receiver de webhook (item 7) — **sem** criar UI.
+  Pergunte ao dev onde ele quer plugar cada componente; **não** decida por ele. Se ele já tiver algo equivalente (ex.: card de saldo, tabela de pedidos), diga como consumir só o cliente TS em vez de importar os componentes.
+
+> Regras que valem para **ambos** os modos: nada de remover/renomear rotas, menus, tabelas, funções ou componentes existentes; a \`CLAUDE_RESELLER_API_KEY\` nunca vai pro frontend; todo valor/estado vem da API do fornecedor.
+
 ## 🎯 Objetivo
 Integrar a API Claude do meu provedor para que meu painel possa:
 1. Consultar meu saldo.
@@ -100,10 +118,12 @@ Crie a edge function **\`claude-proxy\`** que:
 Crie \`src/integrations/claude/client.ts\` com funções tipadas: \`getSaldo()\`, \`getPlanos()\`, \`emitirChave(input)\`, \`listarPedidos(limit?)\`, \`getPedido(id)\`. Todas chamando a edge function \`claude-proxy\`.
 
 ### 3. Páginas novas (NÃO substituir páginas existentes)
+> Apenas no **MODO A**. No **MODO B**, pule esta seção inteira e entregue os componentes plugáveis descritos no topo.
 - **\`/integracoes/claude\`** — Card com saldo. Grid dos planos ativos (buscados de \`/planos\`). Formulário "Emitir chave" (plano + dados do cliente + botão). Modal exibindo a \`chave\` uma única vez, com botão de copiar. Tabela com últimos 20 pedidos.
 - **\`/integracoes/claude/historico\`** — Histórico paginado completo.
 
 ### 4. Sidebar / Menu
+> Apenas no **MODO A**. No **MODO B**, **não** adicione item de menu — o revendedor já tem o próprio.
 Adicione um novo item ao grupo **"Integrações"** (crie o grupo se não existir):
 - 🤖 **Claude (Revenda)** → \`/integracoes/claude\`
 
