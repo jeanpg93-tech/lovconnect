@@ -688,13 +688,6 @@ export default function RevendedorApiClaude() {
         actions={<CopyAllDocsButton containerRef={docsRef} fileName="api-claude-revendedor.md" />}
       />
 
-      <ApiKeysCard
-        keys={keys}
-        loading={loading}
-        onNew={handleNew}
-        onRevoke={revoke}
-      />
-
       <Tabs defaultValue="inicio" className="mt-6 space-y-4">
         <TabsList className="bg-secondary/40">
           <TabsTrigger value="inicio"><Zap className="mr-1.5 h-3.5 w-3.5" /> Início Rápido</TabsTrigger>
