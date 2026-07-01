@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
     const [{ data: defaults }, { data: overrides }, { data: storefront }, { data: reseller }] = await Promise.all([
       admin.from("claude_plan_prices").select("plan_code, sale_price_cents, cost_cents, is_active").in("plan_code", PLAN_CODES as any),
       admin.from("claude_reseller_price_overrides").select("plan_code, markup_mode, markup_value_cents, is_active").eq("reseller_id", customer.reseller_id),
-      admin.from("reseller_storefronts").select("contact_whatsapp, support_whatsapp, slug").eq("reseller_id", customer.reseller_id).maybeSingle(),
+      admin.from("reseller_storefronts").select("contact_whatsapp, support_whatsapp, slug, store_name, primary_color, background_color, logo_url, logo_size, background_effect, visual_effect").eq("reseller_id", customer.reseller_id).maybeSingle(),
       admin.from("resellers").select("display_name, claude_enabled").eq("id", customer.reseller_id).maybeSingle(),
     ]);
     const overrideMap = new Map((overrides ?? []).map((o: any) => [o.plan_code, o]));
@@ -183,6 +183,13 @@ Deno.serve(async (req) => {
         claude_enabled: !!reseller?.claude_enabled,
         whatsapp: storefront?.support_whatsapp ?? storefront?.contact_whatsapp ?? null,
         slug: storefront?.slug ?? null,
+        store_name: storefront?.store_name ?? null,
+        primary_color: storefront?.primary_color ?? null,
+        background_color: storefront?.background_color ?? null,
+        logo_url: storefront?.logo_url ?? null,
+        logo_size: storefront?.logo_size ?? null,
+        background_effect: storefront?.background_effect ?? null,
+        visual_effect: storefront?.visual_effect ?? null,
       },
       provider_error: providerError,
     });

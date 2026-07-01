@@ -45,7 +45,17 @@ type Usage = {
 } | null;
 
 type Plan = { plan_code: string; sale_price_cents: number };
-type ResellerInfo = { display_name: string | null; whatsapp: string | null; slug: string | null; claude_enabled: boolean };
+type ResellerInfo = {
+  display_name: string | null;
+  whatsapp: string | null;
+  slug: string | null;
+  claude_enabled: boolean;
+  store_name?: string | null;
+  primary_color?: string | null;
+  background_color?: string | null;
+  logo_url?: string | null;
+  logo_size?: number | null;
+};
 
 const PLAN_LABELS: Record<string, string> = {
   "pro_30d": "Plano Pro — 30 dias",
@@ -75,6 +85,30 @@ function fmtTokens(n?: number | null) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return String(n);
+}
+
+// Converte hex (#RRGGBB) → "H S% L%" para CSS var HSL
+function hexToHslString(hex?: string | null): string | null {
+  if (!hex) return null;
+  const m = hex.trim().replace("#", "");
+  if (!/^([0-9a-f]{6}|[0-9a-f]{3})$/i.test(m)) return null;
+  const full = m.length === 3 ? m.split("").map((c) => c + c).join("") : m;
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0; const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
 export default function ClienteClaudePortal() {
@@ -273,37 +307,83 @@ export default function ClienteClaudePortal() {
     ? Math.min(100, (usage.weeklyTokensInWindow / usage.weeklyTokenLimit) * 100)
     : null;
 
+  const brandHsl = hexToHslString(reseller?.primary_color) ?? "263 70% 60%";
+  const bgHsl = hexToHslString(reseller?.background_color) ?? "240 10% 4%";
+  const storeName = reseller?.store_name ?? reseller?.display_name ?? "Portal";
+  const themeStyle = {
+    ["--brand" as any]: brandHsl,
+    ["--brand-bg" as any]: bgHsl,
+  } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold">Olá, {customer?.name}</h1>
-            <p className="text-sm text-muted-foreground">{customer?.email}</p>
+    <div
+      className="min-h-screen p-4 sm:p-6 relative overflow-hidden"
+      style={{
+        ...themeStyle,
+        background: `radial-gradient(1200px 600px at 10% -10%, hsl(var(--brand) / 0.25), transparent 60%), radial-gradient(900px 500px at 100% 0%, hsl(var(--brand) / 0.12), transparent 55%), hsl(var(--brand-bg))`,
+        color: "hsl(0 0% 98%)",
+      }}
+    >
+      {/* Grid tech pattern */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.08]"
+        style={{
+          backgroundImage:
+            "linear-gradient(hsl(var(--brand)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--brand)) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+          maskImage: "radial-gradient(ellipse at top, black 40%, transparent 80%)",
+        }}
+      />
+      <div className="max-w-5xl mx-auto space-y-6 relative">
+        {/* Header dashboard */}
+        <header className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 shadow-2xl animate-fade-in">
+          <div className="flex items-center gap-3 min-w-0">
+            {reseller?.logo_url ? (
+              <img
+                src={reseller.logo_url}
+                alt={storeName}
+                className="h-11 w-11 rounded-xl object-cover ring-2 ring-white/10 shadow-lg"
+                style={{ boxShadow: `0 0 24px hsl(var(--brand) / 0.55)` }}
+              />
+            ) : (
+              <div
+                className="h-11 w-11 rounded-xl flex items-center justify-center font-bold text-lg"
+                style={{ background: `hsl(var(--brand) / 0.2)`, color: `hsl(var(--brand))`, boxShadow: `0 0 24px hsl(var(--brand) / 0.4)` }}
+              >
+                {storeName?.slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="text-xs uppercase tracking-widest opacity-60">{storeName}</div>
+              <h1 className="text-lg sm:text-xl font-semibold truncate">
+                Olá, <span style={{ color: `hsl(var(--brand))` }}>{customer?.name}</span>
+              </h1>
+              <p className="text-xs opacity-60 truncate">{customer?.email}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {(reseller?.slug || storeSlug) && (
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" asChild className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale">
                 <Link to={`/loja/${reseller?.slug ?? storeSlug}`}>
                   <Store className="h-4 w-4 mr-2" /> Loja
                 </Link>
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={signOut}>
+            <Button variant="outline" size="sm" onClick={signOut} className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale">
               <LogOut className="h-4 w-4 mr-2" /> Sair
             </Button>
           </div>
-        </div>
+        </header>
 
         {customer?.must_change_password && (
-          <Card className="border-amber-500/40 bg-amber-500/5">
+          <Card className="border-amber-500/40 bg-amber-500/10 backdrop-blur-xl animate-fade-in">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
                 <ShieldAlert className="h-5 w-5" /> Defina uma nova senha
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm opacity-80">
                 Por segurança, troque a senha inicial gerada automaticamente.
               </p>
               <div className="space-y-2">
@@ -314,9 +394,15 @@ export default function ClienteClaudePortal() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Mínimo 8 caracteres"
+                  className="bg-white/5 border-white/10"
                 />
               </div>
-              <Button onClick={changePassword} disabled={saving}>
+              <Button
+                onClick={changePassword}
+                disabled={saving}
+                style={{ background: `hsl(var(--brand))`, color: "white", boxShadow: `0 0 20px hsl(var(--brand) / 0.5)` }}
+                className="hover-scale"
+              >
                 {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Salvar nova senha
               </Button>
@@ -324,64 +410,107 @@ export default function ClienteClaudePortal() {
           </Card>
         )}
 
+        {/* Grid dashboard */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <div
+            className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 hover-scale transition-all"
+            style={{ boxShadow: expiresIn != null && expiresIn <= 3 ? "0 0 30px hsl(0 84% 60% / 0.4)" : `0 0 20px hsl(var(--brand) / 0.15)` }}
+          >
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider opacity-60">
+              <Clock className="h-4 w-4" /> Expira em
+            </div>
+            <div className="mt-2 text-3xl font-bold" style={{ color: expiresIn != null && expiresIn <= 3 ? "hsl(0 84% 65%)" : `hsl(var(--brand))` }}>
+              {expiresIn ?? "—"}<span className="text-base font-normal opacity-60 ml-1">dias</span>
+            </div>
+            <div className="text-xs opacity-60 mt-1">{fmtDate(usage?.accountExpiresAt)}</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 hover-scale transition-all"
+            style={{ boxShadow: `0 0 20px hsl(var(--brand) / 0.15)` }}>
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider opacity-60">
+              <KeyRound className="h-4 w-4" /> Chaves ativas
+            </div>
+            <div className="mt-2 text-3xl font-bold" style={{ color: `hsl(var(--brand))` }}>{activeKeys.length}</div>
+            <div className="text-xs opacity-60 mt-1">Emitidas via {storeName}</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 hover-scale transition-all"
+            style={{ boxShadow: `0 0 20px hsl(var(--brand) / 0.15)` }}>
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider opacity-60">
+              <Zap className="h-4 w-4" /> Janela atual
+            </div>
+            <div className="mt-2 text-3xl font-bold" style={{ color: `hsl(var(--brand))` }}>
+              {dailyUsed != null ? `${Math.round(dailyUsed)}%` : "—"}
+            </div>
+            <div className="text-xs opacity-60 mt-1">{fmtTokens(usage?.tokensInWindow)} / {fmtTokens(usage?.tokenLimit)}</div>
+          </div>
+        </div>
+
         {usage && (
-          <Card className="border-primary/20">
+          <Card className="border-white/10 bg-white/[0.03] backdrop-blur-xl animate-fade-in" style={{ boxShadow: `0 0 30px hsl(var(--brand) / 0.1)` }}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-primary" /> Consumo de tokens
+                <Zap className="h-5 w-5" style={{ color: `hsl(var(--brand))` }} /> Consumo de tokens
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {expiresIn != null && (
-                <div className={`flex items-center gap-2 text-sm ${expiresIn <= 3 ? "text-destructive" : "text-muted-foreground"}`}>
-                  <Clock className="h-4 w-4" />
-                  Sua chave expira em <b>{expiresIn} dia{expiresIn === 1 ? "" : "s"}</b> ({fmtDate(usage.accountExpiresAt)})
-                </div>
-              )}
               {dailyUsed != null && (
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span>Janela de {usage.tokenWindowHours ?? 5}h</span>
-                    <span>{fmtTokens(usage.tokensInWindow)} / {fmtTokens(usage.tokenLimit)}</span>
+                    <span className="opacity-80">Janela de {usage.tokenWindowHours ?? 5}h</span>
+                    <span className="font-mono">{fmtTokens(usage.tokensInWindow)} / {fmtTokens(usage.tokenLimit)}</span>
                   </div>
-                  <Progress value={dailyUsed} />
+                  <div className="h-2 rounded-full overflow-hidden bg-white/10">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${dailyUsed}%`, background: `linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.6))`, boxShadow: `0 0 12px hsl(var(--brand) / 0.7)` }}
+                    />
+                  </div>
                 </div>
               )}
               {weeklyUsed != null && (
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span>Janela semanal</span>
-                    <span>{fmtTokens(usage.weeklyTokensInWindow)} / {fmtTokens(usage.weeklyTokenLimit)}</span>
+                    <span className="opacity-80">Janela semanal</span>
+                    <span className="font-mono">{fmtTokens(usage.weeklyTokensInWindow)} / {fmtTokens(usage.weeklyTokenLimit)}</span>
                   </div>
-                  <Progress value={weeklyUsed} />
+                  <div className="h-2 rounded-full overflow-hidden bg-white/10">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${weeklyUsed}%`, background: `linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.6))`, boxShadow: `0 0 12px hsl(var(--brand) / 0.7)` }}
+                    />
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
         )}
 
-        <Card>
+        <Card className="border-white/10 bg-white/[0.03] backdrop-blur-xl animate-fade-in" style={{ boxShadow: `0 0 30px hsl(var(--brand) / 0.1)` }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <KeyRound className="h-5 w-5" /> Suas chaves Claude
+              <KeyRound className="h-5 w-5" style={{ color: `hsl(var(--brand))` }} /> Suas chaves Claude
             </CardTitle>
           </CardHeader>
           <CardContent>
             {orders.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Você ainda não tem chaves ativas.</p>
+              <p className="text-sm opacity-70">Você ainda não tem chaves ativas.</p>
             ) : (
               <div className="space-y-3">
                 {orders.map((o) => (
-                  <div key={o.id} className="flex flex-col gap-3 p-3 rounded-lg border bg-card/50 sm:flex-row sm:items-center sm:justify-between">
+                  <div
+                    key={o.id}
+                    className="group flex flex-col gap-3 p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 transition-all sm:flex-row sm:items-center sm:justify-between"
+                    style={{ boxShadow: `inset 0 0 0 1px transparent` }}
+                  >
                     <div className="space-y-2 min-w-0 flex-1">
                       <div className="font-medium text-sm">{PLAN_LABELS[o.plan_code] ?? o.plan_code}</div>
-                      <div className="text-xs text-muted-foreground">Emitida em {fmtDate(o.created_at)}</div>
+                      <div className="text-xs opacity-60">Emitida em {fmtDate(o.created_at)}</div>
                       {o.status === "issued" && o.code && (
-                        <div className="flex flex-col gap-2 rounded-md border bg-background/70 p-2 sm:flex-row sm:items-center">
-                          <code className="flex-1 break-all text-xs">{o.code}</code>
+                        <div className="flex flex-col gap-2 rounded-lg border border-white/10 bg-black/40 p-2 sm:flex-row sm:items-center">
+                          <code className="flex-1 break-all text-xs font-mono" style={{ color: `hsl(var(--brand))` }}>{o.code}</code>
                           <Button
                             size="sm"
                             variant="outline"
+                            className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale"
                             onClick={() => {
                               navigator.clipboard.writeText(o.code!);
                               toast.success("Chave copiada!");
@@ -392,23 +521,37 @@ export default function ClienteClaudePortal() {
                         </div>
                       )}
                     </div>
-                    <Badge variant={o.status === "issued" ? "default" : o.status === "failed" ? "destructive" : "secondary"}>
+                    <div
+                      className="px-3 py-1 rounded-full text-xs font-semibold self-start sm:self-center"
+                      style={
+                        o.status === "issued"
+                          ? { background: `hsl(var(--brand) / 0.15)`, color: `hsl(var(--brand))`, boxShadow: `0 0 12px hsl(var(--brand) / 0.35)`, border: `1px solid hsl(var(--brand) / 0.4)` }
+                          : o.status === "failed"
+                          ? { background: "hsl(0 84% 60% / 0.15)", color: "hsl(0 84% 70%)", border: "1px solid hsl(0 84% 60% / 0.4)" }
+                          : { background: "hsl(0 0% 100% / 0.08)", color: "hsl(0 0% 80%)", border: "1px solid hsl(0 0% 100% / 0.15)" }
+                      }
+                    >
                       {o.status === "issued" ? "Ativa" : o.status === "failed" ? "Falhou" : o.status}
-                    </Badge>
+                    </div>
                   </div>
                 ))}
-                <p className="text-xs text-muted-foreground pt-2">
+                <p className="text-xs opacity-60 pt-2">
                   {activeKeys.length} chave{activeKeys.length === 1 ? "" : "s"} ativa{activeKeys.length === 1 ? "" : "s"}.
                 </p>
               </div>
             )}
             {reseller?.claude_enabled && plans.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => setRenewalOpen(true)}>
+                <Button
+                  size="sm"
+                  onClick={() => setRenewalOpen(true)}
+                  style={{ background: `hsl(var(--brand))`, color: "white", boxShadow: `0 0 20px hsl(var(--brand) / 0.55)` }}
+                  className="hover-scale font-semibold"
+                >
                   <RefreshCw className="h-4 w-4 mr-2" /> Renovar chave
                 </Button>
                 {whatsappLink && (
-                  <Button size="sm" variant="outline" asChild>
+                  <Button size="sm" variant="outline" asChild className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale">
                     <a href={whatsappLink} target="_blank" rel="noreferrer">
                       <MessageCircle className="h-4 w-4 mr-2" /> Falar com o revendedor
                     </a>
