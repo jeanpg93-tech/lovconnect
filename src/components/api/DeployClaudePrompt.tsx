@@ -50,7 +50,9 @@ Integrar a API Claude do meu provedor para que meu painel possa:
 ## 🔑 Credenciais
 - **Base URL:** \`${baseUrl}\`
 - **Autenticação:** header \`x-api-key: <MINHA_CHAVE>\` em **todas** as requisições.
-- A chave deve ser armazenada como **segredo do backend** (nunca exposta no frontend). Crie o secret \`CLAUDE_RESELLER_API_KEY\` e peça ao usuário para preenchê-lo.
+- A chave deve ser armazenada como **segredo do backend** (nunca exposta no frontend). Crie **dois** secrets e peça ao usuário para preenchê-los:
+  - \`CLAUDE_RESELLER_API_KEY\` — a API Key gerada em **Painel → API Claude → Gerar chave API** (começa com \`sk_claude_\`).
+  - \`CLAUDE_WEBHOOK_SECRET\` — o **Segredo HMAC** exibido em **Painel → API Claude → Webhook** (usado para validar \`x-signature\` dos eventos).
 
 ## 📚 Endpoints disponíveis
 
