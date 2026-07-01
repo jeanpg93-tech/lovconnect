@@ -125,11 +125,12 @@ export default function ClienteClaudePortal() {
       let customerQuery = supabase
         .from("claude_customers")
         .select("id, name, email, must_change_password, reseller_id")
-        .eq("auth_user_id", session.session.user.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .eq("auth_user_id", session.session.user.id);
       if (scopedResellerId) customerQuery = customerQuery.eq("reseller_id", scopedResellerId);
-      const { data, error } = await customerQuery.maybeSingle();
+      const { data, error } = await customerQuery
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       if (error || !data) {
         toast.error("Cliente não encontrado. Contate seu revendedor.");
         await supabase.auth.signOut();

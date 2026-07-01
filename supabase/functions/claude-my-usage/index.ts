@@ -52,11 +52,12 @@ Deno.serve(async (req) => {
     let customerQuery = admin
       .from("claude_customers")
       .select("id, email, reseller_id, name")
-      .eq("auth_user_id", userData.user.id)
-      .order("created_at", { ascending: false })
-      .limit(1);
+      .eq("auth_user_id", userData.user.id);
     if (scopedResellerId) customerQuery = customerQuery.eq("reseller_id", scopedResellerId);
-    const { data: customer } = await customerQuery.maybeSingle();
+    const { data: customer } = await customerQuery
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
     if (!customer) return json({ error: "customer_not_found" }, 404);
 
     // Pedidos: por customer_id OU (fallback) por customer_email dentro do mesmo revendedor
