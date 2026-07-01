@@ -786,6 +786,7 @@ Deno.serve(async (req) => {
           (claudeOrder as any).id,
           `Claude: renovação ${(claudeOrder as any).plan_code}`,
           paidAt,
+          feeCents,
         );
 
         // Custo do revendedor (por tier), com fallback ao default
