@@ -1285,6 +1285,60 @@ export default function PublicStorefront() {
                         Ver todos os planos e comprar →
                       </Link>
                     </div>
+
+                    {/* Onde usar / Compatibilidade */}
+                    <div className="mt-8">
+                      <div className="flex items-center gap-2 justify-center mb-3">
+                        <div className="h-px flex-1 bg-border/60 max-w-[80px]" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Onde usar · Compatibilidade</span>
+                        <div className="h-px flex-1 bg-border/60 max-w-[80px]" />
+                      </div>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                        {[
+                          { label: "VS Code" },
+                          { label: "Cursor" },
+                          { label: "IDEs" },
+                          { label: "Terminal / CLI" },
+                          { label: "Windows" },
+                          { label: "macOS" },
+                          { label: "Linux" },
+                        ].map((c) => (
+                          <div
+                            key={c.label}
+                            className="rounded-xl border border-white/5 bg-card/30 backdrop-blur-xl p-2.5 text-center"
+                          >
+                            <div className="text-[10px] font-bold">{c.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Modelos disponíveis */}
+                    <div className="mt-6">
+                      <div className="flex items-center gap-2 justify-center mb-3">
+                        <div className="h-px flex-1 bg-border/60 max-w-[80px]" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Modelos disponíveis</span>
+                        <div className="h-px flex-1 bg-border/60 max-w-[80px]" />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { name: "Claude Opus", version: "4.8" },
+                          { name: "Claude Sonnet", version: "4.6" },
+                          { name: "Claude Haiku", version: "4.5" },
+                        ].map((m) => (
+                          <div
+                            key={m.name}
+                            className="rounded-xl border border-primary/20 bg-primary/5 backdrop-blur-xl p-3 text-center"
+                          >
+                            <div className="flex items-center justify-center gap-1.5">
+                              <ClaudeIcon className="h-3.5 w-3.5 text-primary" />
+                              <span className="text-[11px] font-bold">{m.name}</span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">{m.version}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-12 text-sm text-muted-foreground">
