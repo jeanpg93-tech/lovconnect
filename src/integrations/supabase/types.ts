@@ -443,11 +443,13 @@ export type Database = {
           error_message: string | null
           expired_at: string | null
           id: string
+          is_renewal: boolean
           plan_code: string
           profit_cents: number
           provider_key_id: string | null
           provider_response: Json | null
           redeemed_at: string | null
+          renewal_note: string | null
           request_id: string | null
           reseller_id: string
           sale_price_cents: number
@@ -470,11 +472,13 @@ export type Database = {
           error_message?: string | null
           expired_at?: string | null
           id?: string
+          is_renewal?: boolean
           plan_code: string
           profit_cents?: number
           provider_key_id?: string | null
           provider_response?: Json | null
           redeemed_at?: string | null
+          renewal_note?: string | null
           request_id?: string | null
           reseller_id: string
           sale_price_cents?: number
@@ -497,11 +501,13 @@ export type Database = {
           error_message?: string | null
           expired_at?: string | null
           id?: string
+          is_renewal?: boolean
           plan_code?: string
           profit_cents?: number
           provider_key_id?: string | null
           provider_response?: Json | null
           redeemed_at?: string | null
+          renewal_note?: string | null
           request_id?: string | null
           reseller_id?: string
           sale_price_cents?: number
@@ -5126,6 +5132,7 @@ export type Database = {
         | "refunded"
         | "cancelled"
         | "cancel_failed"
+        | "renewal_requested"
       onboarding_tour_status: "pending" | "completed" | "skipped"
       recharge_plan_delivery_status:
         | "pending"
@@ -5277,6 +5284,7 @@ export const Constants = {
         "refunded",
         "cancelled",
         "cancel_failed",
+        "renewal_requested",
       ],
       onboarding_tour_status: ["pending", "completed", "skipped"],
       recharge_plan_delivery_status: [
