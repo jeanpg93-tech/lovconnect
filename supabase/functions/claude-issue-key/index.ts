@@ -208,6 +208,22 @@ Deno.serve(async (req) => {
       .select()
       .single();
 
+    // Notifica gerente via Telegram
+    try {
+      const amountBRL = 'R$ ' + (Number(saleCents || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const txt =
+        `🤖 <b>Venda Claude</b>\n` +
+        `👨‍💼 Revendedor: ${reseller.display_name ?? '—'}\n` +
+        `📦 Plano: ${planCode}\n` +
+        `💵 Valor: ${amountBRL}\n` +
+        `👤 Cliente: ${customerName ?? '—'}` +
+        (customerWhatsapp ? ` (${customerWhatsapp})` : '') +
+        `\n💳 Pagamento: Saldo da carteira`;
+      await admin.rpc('telegram_enqueue', { _text: txt });
+    } catch (e) {
+      console.warn('telegram_enqueue (claude issue) failed', e);
+    }
+
     return jsonResponse({
       order_id: order.id,
       plan_code: planCode,
