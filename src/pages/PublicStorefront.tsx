@@ -107,7 +107,8 @@ export default function PublicStorefront() {
   });
   const [activeTab, setActiveTab] = useState<"extension" | "recharge">("extension");
   const [testimonials, setTestimonials] = useState<any[]>([]);
-  const [claudePlans, setClaudePlans] = useState<{ code: string; label: string; price_cents: number }[]>([]);
+  const [claudePlans, setClaudePlans] = useState<{ code: string; label: string; price_cents: number; sort_order: number }[]>([]);
+  const [claudeLoading, setClaudeLoading] = useState(false);
   
   // Device Reset
   const [resetKey, setResetKey] = useState("");
@@ -362,17 +363,36 @@ export default function PublicStorefront() {
 
       // Planos Claude (Fase 4b — loja pública)
       if ((r as any).claude_enabled) {
+        setClaudeLoading(true);
         try {
           const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
           let priceMap: Record<string, number> | undefined;
+          let ordered: { plan_code: string; price_cents: number; sort_order: number }[] | undefined;
           if (projectId) {
             const res = await fetch(
               `https://${projectId}.supabase.co/functions/v1/claude-public-prices?slug=${encodeURIComponent(slug)}`,
             );
             const j = await res.json().catch(() => ({}));
             priceMap = j?.prices;
+            ordered = j?.ordered;
           }
-          if (priceMap) {
+          if (ordered && ordered.length) {
+            const LABELS: Record<string, string> = {
+              pro_30d: "Pro 30 dias — 500K tokens",
+              "5x_30d": "5x 30 dias — 2,5M tokens",
+              "20x_30d": "20x 30 dias — 10M tokens",
+            };
+            const list = ordered
+              .filter((o) => Number(o.price_cents) > 0)
+              .sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999))
+              .map((o) => ({
+                code: o.plan_code,
+                label: LABELS[o.plan_code] ?? o.plan_code,
+                price_cents: Number(o.price_cents),
+                sort_order: o.sort_order ?? 999,
+              }));
+            setClaudePlans(list);
+          } else if (priceMap) {
             const LABELS: Record<string, string> = {
               pro_30d: "Pro 30 dias — 500K tokens",
               "5x_30d": "5x 30 dias — 2,5M tokens",
@@ -380,10 +400,11 @@ export default function PublicStorefront() {
             };
             const list = Object.entries(priceMap)
               .filter(([, v]) => Number(v) > 0)
-              .map(([code, v]) => ({ code, label: LABELS[code] ?? code, price_cents: Number(v) }));
+              .map(([code, v]) => ({ code, label: LABELS[code] ?? code, price_cents: Number(v), sort_order: 999 }));
             setClaudePlans(list);
           }
         } catch { /* ignore */ }
+        setClaudeLoading(false);
       }
 
       setLoading(false);
