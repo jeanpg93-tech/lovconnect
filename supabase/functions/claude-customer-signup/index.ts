@@ -62,22 +62,22 @@ Deno.serve(async (req) => {
     let generatedPassword: string | null = null;
 
     if (!authUserId) {
-      // Tenta achar por email em auth.users (revendedor diferente pode ter cadastrado antes)
-      const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-      const found = list?.users?.find((u) => (u.email ?? "").toLowerCase() === email);
-      if (found) {
-        authUserId = found.id;
-      } else {
-        generatedPassword = randomPassword(16);
-        const { data: created, error: cErr } = await admin.auth.admin.createUser({
-          email,
-          password: generatedPassword,
-          email_confirm: true,
-          user_metadata: { name, claude_customer: true, reseller_id },
-        });
-        if (cErr || !created?.user) return json({ error: "auth_create_failed", detail: cErr?.message }, 500);
-        authUserId = created.user.id;
+      // SECURITY: só criamos/associamos contas para claude_customers deste revendedor.
+      // Não buscamos em auth.users por email para evitar account-takeover.
+      // Se o email já existir em auth.users mas não for um claude_customer deste
+      // revendedor, seguimos com createUser — que falhará se já cadastrado,
+      // retornando erro genérico (sem vazar magic link).
+      generatedPassword = randomPassword(16);
+      const { data: created, error: cErr } = await admin.auth.admin.createUser({
+        email,
+        password: generatedPassword,
+        email_confirm: true,
+        user_metadata: { name, claude_customer: true, reseller_id },
+      });
+      if (cErr || !created?.user) {
+        return json({ error: "email_already_registered_or_invalid" }, 409);
       }
+      authUserId = created.user.id;
     }
 
     // Upsert claude_customers
@@ -101,20 +101,23 @@ Deno.serve(async (req) => {
       await admin.from("claude_customers").update({ auth_user_id: authUserId }).eq("id", customerId);
     }
 
-    // Gera magic link
-    const { data: linkData, error: lErr } = await admin.auth.admin.generateLink({
-      type: "magiclink",
+    // SECURITY: enviamos o magic link por email via Supabase (signInWithOtp)
+    // em vez de retornar o action_link na resposta — assim apenas o dono real
+    // do email recebe o link.
+    const { error: otpErr } = await admin.auth.signInWithOtp({
       email,
-      options: { redirectTo: redirect_to },
+      options: { emailRedirectTo: redirect_to, shouldCreateUser: false },
     });
-    if (lErr) return json({ error: "magic_link_failed", detail: lErr.message }, 500);
+    if (otpErr) {
+      console.warn("[claude-customer-signup] signInWithOtp failed", otpErr.message);
+    }
 
     return json({
       success: true,
       customer_id: customerId,
       auth_user_id: authUserId,
-      generated_password: generatedPassword, // one-time (mostrar ao cliente na tela + email)
-      magic_link: linkData?.properties?.action_link ?? null,
+      generated_password: generatedPassword, // one-time (mostrar ao cliente na tela)
+      magic_link_sent: !otpErr,
     });
   } catch (e) {
     console.error("[claude-customer-signup]", e);

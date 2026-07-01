@@ -283,6 +283,33 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Helper: valida que o license_key pertence a um order do revendedor chamador
+    async function assertLicenseOwnership(license_key: string): Promise<{ ok: true } | { ok: false; res: Response }> {
+      // Gerentes têm acesso total
+      if (user) {
+        const { data: gr } = await serviceClient
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "gerente")
+          .maybeSingle();
+        if (gr) return { ok: true };
+        const { data: reseller } = await serviceClient
+          .from("resellers")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (!reseller) return { ok: false, res: json({ ok: false, error: "Forbidden" }, 403) };
+        const [{ data: o1 }, { data: o2 }] = await Promise.all([
+          serviceClient.from("orders").select("id").eq("reseller_id", reseller.id).eq("license_key", license_key).maybeSingle(),
+          serviceClient.from("storefront_orders").select("id").eq("reseller_id", reseller.id).eq("license_key", license_key).maybeSingle(),
+        ]);
+        if (!o1 && !o2) return { ok: false, res: json({ ok: false, error: "License não pertence ao revendedor" }, 404) };
+        return { ok: true };
+      }
+      return { ok: false, res: json({ ok: false, error: "Unauthorized" }, 401) };
+    }
+
     // Atalho: reset-hwid via LovaX (autenticado) — não depende de credenciais do Flow
     if (req.method === "POST" && action === "reset-hwid") {
       const activeMethod = await getActiveDeliveryMethod(serviceClient);
@@ -290,6 +317,8 @@ Deno.serve(async (req) => {
         const body = await req.json().catch(() => ({}));
         const license_key = typeof body?.license_key === "string" ? body.license_key.trim() : "";
         if (!license_key) return json({ ok: false, error: "license_key obrigatório" }, 200);
+        const own = await assertLicenseOwnership(license_key);
+        if (!own.ok) return own.res;
         console.log(`[reset-hwid] (lovax/early) key=${license_key}`);
         const r = await callLovaxResetHwid(serviceClient, license_key);
         if (!r.ok) {
@@ -476,6 +505,8 @@ Deno.serve(async (req) => {
         const body = await req.json().catch(() => ({}));
         const { license_key } = body;
         if (!license_key) return json({ ok: false, error: "license_key obrigatório" }, 200);
+        const own = await assertLicenseOwnership(license_key);
+        if (!own.ok) return own.res;
 
         // Roteia conforme o método de entrega ativo
         const activeMethod = await getActiveDeliveryMethod(serviceClient);
