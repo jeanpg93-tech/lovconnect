@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2, Store } from "lucide-react";
+import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2, Store, Ban } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -30,6 +30,7 @@ type Order = {
   code?: string | null;
   created_at: string;
   sale_price_cents: number;
+  cancel_requested_at?: string | null;
 };
 
 type Usage = {
@@ -137,6 +138,33 @@ export default function ClienteClaudePortal() {
   } | null>(null);
   const [pixStatus, setPixStatus] = useState<"waiting" | "issued" | "failed">("waiting");
   const [pixCopied, setPixCopied] = useState(false);
+  const [cancelOrder, setCancelOrder] = useState<Order | null>(null);
+  const [cancelNote, setCancelNote] = useState("");
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+
+  const REFUND_WINDOW_DAYS = 7;
+  const withinRefundWindow = (o: Order) =>
+    (Date.now() - new Date(o.created_at).getTime()) / 86_400_000 <= REFUND_WINDOW_DAYS;
+
+  const submitCancelRequest = async () => {
+    if (!cancelOrder) return;
+    setCancelSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("claude-customer-request-cancel", {
+        body: { order_id: cancelOrder.id, note: cancelNote || null },
+      });
+      if (error) throw error;
+      if (!(data as any)?.ok) throw new Error((data as any)?.error ?? "erro_desconhecido");
+      toast.success("Solicitação enviada ao revendedor.");
+      setOrders((prev) => prev.map((o) => o.id === cancelOrder.id ? { ...o, cancel_requested_at: new Date().toISOString(), status: o.status === "issued" ? "cancel_requested" : o.status } : o));
+      setCancelOrder(null);
+      setCancelNote("");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao solicitar cancelamento");
+    } finally {
+      setCancelSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
