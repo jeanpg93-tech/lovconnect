@@ -115,6 +115,17 @@ Sempre gere um \`request_id\` UUID v4 do lado do backend antes de chamar \`POST 
 ### 6. Tratamento de erros
 Toasts amigáveis: \`401\` ("Chave inválida — configure CLAUDE_RESELLER_API_KEY"), \`402\` ("Saldo insuficiente — recarregue na sua conta"), \`409\` ("Pedido já processado"), \`502\` ("Provedor indisponível, tente novamente").
 
+### 6.1 Regra de saldo (importante)
+O pagamento de cada emissão é **debitado do saldo do painel do revendedor** no provedor.
+- Se o saldo estiver menor que o custo da venda, o provedor cria o pedido com status
+  \`awaiting_balance\` e **não entrega a chave imediatamente**.
+- A chave é gerada e entregue automaticamente **assim que o revendedor recarregar
+  o painel** com valor igual ou maior ao custo da venda.
+- Trate no seu sistema: quando o \`POST /chaves\` retornar \`status: "awaiting_balance"\`,
+  informe o cliente final ("aguardando confirmação — sua chave será entregue
+  automaticamente em instantes") e escute o webhook \`claude.key.issued\` para
+  entregar a chave depois. Não tente reemitir manualmente.
+
 ### 7. Webhook receiver (opcional, recomendado)
 Crie a edge function pública \`claude-webhook\` que:
 - Recebe POST do payload acima.
