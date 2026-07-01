@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2, Package, KeyRound, Copy, Store, Receipt, GripVertical } from "lucide-react";
 import ManualEntryDialog from "./ManualEntryDialog";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
   DndContext,
   closestCenter,
