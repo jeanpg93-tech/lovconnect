@@ -212,6 +212,7 @@ Deno.serve(async (req) => {
       orders,
       usage,
       plans,
+      extension_keys: extensionKeys,
       reseller: {
         display_name: reseller?.display_name ?? null,
         claude_enabled: !!reseller?.claude_enabled,
