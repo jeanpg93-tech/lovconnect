@@ -24,6 +24,19 @@ function computeSalePrice(cost: number, mode: string, value: number) {
   return Math.max(0, value);
 }
 
+function extractProviderCode(resp: any): string | null {
+  if (!resp || typeof resp !== "object") return null;
+  return String(
+    resp?.code ??
+    resp?.key ??
+    resp?.data?.code ??
+    resp?.data?.key ??
+    resp?.credential ??
+    resp?.data?.credential ??
+    ""
+  ).trim() || null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -69,12 +82,12 @@ Deno.serve(async (req) => {
     const emailLower = String(customer.email).toLowerCase();
     const { data: byId } = await admin
       .from("claude_orders")
-      .select("id, plan_code, status, provider_key_id, created_at, sale_price_cents, customer_email")
+      .select("id, plan_code, status, provider_key_id, code, provider_response, created_at, sale_price_cents, customer_email")
       .eq("customer_id", customer.id)
       .order("created_at", { ascending: false });
     const { data: byEmail } = await admin
       .from("claude_orders")
-      .select("id, plan_code, status, provider_key_id, created_at, sale_price_cents, customer_email")
+      .select("id, plan_code, status, provider_key_id, code, provider_response, created_at, sale_price_cents, customer_email")
       .eq("reseller_id", customer.reseller_id)
       .ilike("customer_email", emailLower)
       .order("created_at", { ascending: false });
@@ -84,6 +97,18 @@ Deno.serve(async (req) => {
       if (seen.has(o.id)) return false;
       seen.add(o.id);
       return true;
+    }).map((o: any) => {
+      const code = String(o.code ?? "").trim() || extractProviderCode(o.provider_response);
+      return {
+        id: o.id,
+        plan_code: o.plan_code,
+        status: o.status,
+        provider_key_id: o.provider_key_id,
+        code,
+        created_at: o.created_at,
+        sale_price_cents: o.sale_price_cents,
+        customer_email: o.customer_email,
+      };
     });
 
     // Planos disponíveis para renovação (sale price com override do revendedor)
