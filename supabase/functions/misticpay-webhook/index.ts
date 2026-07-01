@@ -474,7 +474,7 @@ Deno.serve(async (req) => {
           console.error("credit error", credErr);
           return json({ ok: false, error: credErr.message }, 500);
         }
-        await recordMisticPayFee(admin, txId, "recharge", intent.id, `Recarga R$ ${(Number(intent.amount_cents)/100).toFixed(2)}`, paidAt);
+        await recordMisticPayFee(admin, txId, "recharge", intent.id, `Recarga R$ ${(Number(intent.amount_cents)/100).toFixed(2)}`, paidAt, feeCents);
         // Se a recarga foi parte de uma promoção ativa, marca a transação com o promotion_id
         if (intent.promotion_id) {
           try {
@@ -947,7 +947,7 @@ Deno.serve(async (req) => {
             paid_at: paidAt,
           }).eq("id", (packPurchase as any).id);
 
-          await recordMisticPayFee(admin, txId, "pack_purchase", (packPurchase as any).id, `Pack: ${(packPurchase as any).pack_name ?? "—"}`, paidAt);
+          await recordMisticPayFee(admin, txId, "pack_purchase", (packPurchase as any).id, `Pack: ${(packPurchase as any).pack_name ?? "—"}`, paidAt, feeCents);
 
           const { data: newBal, error: credErr } = await admin.rpc("pack_credit_balance", {
             _reseller_id: (packPurchase as any).reseller_id,
