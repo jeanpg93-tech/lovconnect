@@ -11,9 +11,9 @@ import { toast } from "sonner";
 type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d";
 
 const PLANS: { code: PlanCode; label: string; desc: string }[] = [
-  { code: "pro_30d", label: "Pro — 30 dias", desc: "1 chave · 500K tokens · 30 dias" },
-  { code: "5x_30d", label: "5x — 30 dias", desc: "5 chaves · 2,5M tokens · 30 dias" },
-  { code: "20x_30d", label: "20x — 30 dias", desc: "20 chaves · 10M tokens · 30 dias" },
+  { code: "pro_30d", label: "Pro — 30 dias", desc: "500K tokens · 30 dias" },
+  { code: "5x_30d", label: "5x — 30 dias", desc: "2,5M tokens · 30 dias" },
+  { code: "20x_30d", label: "20x — 30 dias", desc: "10M tokens · 30 dias" },
 ];
 
 type Reseller = { id: string; slug: string; display_name: string; claude_enabled: boolean };
