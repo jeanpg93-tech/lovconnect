@@ -22,7 +22,7 @@ const brtDayKey = (value: string | null | undefined) => {
   }).format(date);
 };
 
-function rangeWindow(
+export function rangeWindow(
   range: DateRange,
   custom?: CustomRange,
 ): { start: Date | null; end: Date | null } {
