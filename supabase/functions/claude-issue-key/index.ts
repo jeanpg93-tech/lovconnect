@@ -100,7 +100,10 @@ Deno.serve(async (req) => {
     }
     const profitCents = saleCents - resellerCostCents;
 
-    // Pre-check balance (informational — atomic check happens at debit time)
+    // Pre-check balance. Se insuficiente, criamos o pedido com status
+    // `awaiting_balance`: ele será processado automaticamente assim que o
+    // revendedor recarregar o painel (hook em `misticpay-webhook` chama
+    // `claude-release-awaiting`).
     const { data: balanceRow } = await admin
       .from('reseller_balances')
       .select('balance_cents')
@@ -108,7 +111,32 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const balance = balanceRow?.balance_cents ?? 0;
     if (balance < resellerCostCents) {
-      return jsonResponse({ error: 'insufficient_balance', balance_cents: balance, required_cents: resellerCostCents }, 402);
+      const { data: waiting, error: wErr } = await admin
+        .from('claude_orders')
+        .insert({
+          reseller_id: reseller.id,
+          plan_code: planCode,
+          customer_identifier: customerIdentifier,
+          customer_name: customerName,
+          customer_whatsapp: customerWhatsapp,
+          cost_cents: costCents,
+          sale_price_cents: saleCents,
+          profit_cents: profitCents,
+          status: 'awaiting_balance',
+          request_id: requestId,
+          error_message: 'awaiting_balance: saldo insuficiente no momento da venda',
+        })
+        .select()
+        .single();
+      if (wErr) throw wErr;
+      return jsonResponse({
+        error: 'insufficient_balance',
+        status: 'awaiting_balance',
+        message: 'Saldo insuficiente. O pedido ficou aguardando saldo e será liberado automaticamente assim que você recarregar o painel.',
+        balance_cents: balance,
+        required_cents: resellerCostCents,
+        order: waiting,
+      }, 402);
     }
 
     // Create pending order
