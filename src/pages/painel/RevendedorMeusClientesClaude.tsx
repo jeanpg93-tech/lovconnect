@@ -164,10 +164,33 @@ export default function RevendedorMeusClientesClaude() {
                       </div>
                     )}
                   </div>
-                  <Badge variant="outline" className="text-[10px] font-bold uppercase shrink-0">
-                    {o.status}
-                  </Badge>
+                  {(() => {
+                    const meta = STATUS_META[o.status] ?? { label: o.status, className: "border-border bg-muted/40 text-foreground" };
+                    return (
+                      <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", meta.className)}>
+                        {meta.label}
+                      </Badge>
+                    );
+                  })()}
                 </div>
+
+                {o.code && (
+                  <div className="mt-2 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1.5">
+                    <KeyRound className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <code className="flex-1 truncate font-mono text-[11px] text-foreground/90">{o.code}</code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2"
+                      onClick={() => {
+                        navigator.clipboard.writeText(o.code!);
+                        toast.success("Chave copiada");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
 
                 {noEmail ? (
                   <div className="mt-3 rounded-lg border border-dashed border-border bg-background/40 p-3 text-[11px] text-muted-foreground">
