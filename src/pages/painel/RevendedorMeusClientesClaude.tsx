@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity } from "lucide-react";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Copy, KeyRound } from "lucide-react";
 
 type Order = {
   id: string;
@@ -18,6 +20,7 @@ type Order = {
   created_at: string;
   sale_price_cents: number;
   provider_key_id: string | null;
+  code: string | null;
   usage: null | {
     email: string;
     status?: string;
@@ -39,6 +42,18 @@ const PLAN_LABELS: Record<string, string> = {
   "5x_7d": "5x · 7 dias",
   "5x_30d": "5x · 30 dias",
   "20x_30d": "20x · 30 dias",
+};
+
+const STATUS_META: Record<string, { label: string; className: string }> = {
+  issued: { label: "Entregue", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-500" },
+  pending: { label: "Pendente", className: "border-amber-500/40 bg-amber-500/10 text-amber-500" },
+  awaiting_balance: { label: "Aguardando saldo", className: "border-amber-500/40 bg-amber-500/10 text-amber-500" },
+  awaiting_payment: { label: "Aguardando pagamento", className: "border-amber-500/40 bg-amber-500/10 text-amber-500" },
+  paid: { label: "Pago", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-500" },
+  cancelled: { label: "Cancelado", className: "border-rose-500/40 bg-rose-500/10 text-rose-500" },
+  expired: { label: "Expirado", className: "border-rose-500/40 bg-rose-500/10 text-rose-500" },
+  failed: { label: "Falhou", className: "border-rose-500/40 bg-rose-500/10 text-rose-500" },
+  refunded: { label: "Reembolsado", className: "border-muted-foreground/40 bg-muted/40 text-muted-foreground" },
 };
 
 const fmtTokens = (n?: number | null) => {
