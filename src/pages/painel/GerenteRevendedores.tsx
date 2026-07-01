@@ -456,103 +456,57 @@ export default function GerenteRevendedores() {
   }, [monthlyRanking, resellers]);
 
   return (
-    <PageContainer>
-      <PageHeader
-        title="Revendedores"
-        description="Gerencie sua rede de parceiros, promova usuários e controle o saldo de cada revenda."
-        icon={Store}
-        actions={
-          <Button 
-            onClick={() => setOpen(true)} 
-            className="h-10 px-6 gap-2 bg-primary text-primary-foreground font-bold uppercase tracking-widest shadow-glow-sm hover:scale-[1.02] transition-all rounded-xl"
-          >
-            <Plus className="h-5 w-5" /> Novo revendedor
-          </Button>
-        }
-      />
+    <div className="mx-auto w-full max-w-7xl space-y-6">
+      {/* Header */}
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:flex-wrap sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="truncate font-display text-2xl font-semibold sm:text-3xl">Revendedores</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Gerencie sua rede de revendedores: status, saldo, chaves e configurações.
+          </p>
+        </div>
+        <Button onClick={() => setOpen(true)} className="shrink-0">
+          <Plus className="mr-1 size-4" /> Novo Revendedor
+        </Button>
+      </header>
 
-      {/* Métricas de rede */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Métricas */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Total", value: networkMetrics.total, accent: "primary" as const, icon: Store },
-          { label: "Ativos", value: networkMetrics.active, accent: "emerald" as const, icon: CheckCircle2 },
-          { label: "Novos (7 dias)", value: networkMetrics.newThisWeek, accent: "sky" as const, icon: TrendingUp },
-          { label: "Saldo da rede", value: formatBRL(networkMetrics.totalBalance), accent: "violet" as const, icon: Wallet },
+          { label: "Total", value: networkMetrics.total },
+          { label: "Ativos", value: networkMetrics.active },
+          { label: "Novos (7 dias)", value: networkMetrics.newThisWeek },
+          { label: "Saldo da rede", value: formatBRL(networkMetrics.totalBalance) },
         ].map((m) => (
-          <div key={m.label} className="rounded-2xl border border-border bg-card/60 p-4">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-              <m.icon className="h-3.5 w-3.5" /> {m.label}
-            </div>
-            <div className="mt-2 font-display text-xl sm:text-2xl font-black tracking-tight">
-              {m.value}
-            </div>
+          <div key={m.label} className="rounded-lg border border-border bg-card p-4">
+            <div className="text-xs text-muted-foreground">{m.label}</div>
+            <div className="mt-1 font-display text-xl font-semibold sm:text-2xl">{m.value}</div>
           </div>
         ))}
       </div>
 
-      {networkMetrics.negative > 0 && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Atenção</AlertTitle>
-          <AlertDescription>
-            {networkMetrics.negative} revendedor(es) com saldo negativo. Verifique para evitar prejuízo.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Pesquisar por nome ou email..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-12 bg-card/60 border-border rounded-xl"
-          />
-        </div>
-        <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-            <SelectTrigger className="flex-1 h-12 bg-card/60 border-border rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="active">Ativos</SelectItem>
-              <SelectItem value="pending">Pendentes</SelectItem>
-              <SelectItem value="inactive">Inativos</SelectItem>
-              <SelectItem value="banned">Banidos</SelectItem>
-            </SelectContent>
-          </Select>
-          {statusFilter !== "all" && (
-            <Button variant="ghost" onClick={() => setStatusFilter("all")} className="h-12 px-4 rounded-xl border border-border">Limpar</Button>
-          )}
-        </div>
-      </div>
-
-      <div className="mb-8 overflow-hidden rounded-2xl border border-border bg-card/60 shadow-sm transition-all duration-300">
-        <div className="bg-white/5 px-6 py-4 flex items-center justify-between border-b border-border">
-          <div className="flex flex-col">
-            <h2 className="font-display font-black uppercase tracking-tighter text-lg flex items-center gap-2">
-              <Crown className="h-5 w-5 text-amber-500" />
+      {/* Ranking mensal */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-4 py-3 flex items-center justify-between border-b border-border">
+          <div className="flex items-center gap-2">
+            <Crown className="h-4 w-4 text-amber-500" />
+            <h2 className="text-sm font-semibold">
               Ranking Mensal ({new Date().toLocaleString('pt-BR', { month: 'long' })})
             </h2>
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-0.5">Baseado em depósitos realizados este mês</p>
           </div>
-          <Trophy className="h-6 w-6 text-primary/40" />
+          <Trophy className="h-4 w-4 text-muted-foreground" />
         </div>
-        <div className="p-3 md:p-6">
-          <div className="grid grid-cols-3 gap-2 md:gap-6">
+        <div className="p-3 sm:p-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {rankedResellers.slice(0, 3).map((r, index) => {
               const rankColors = ["text-amber-500", "text-slate-400", "text-amber-700"];
-              const rankBorders = ["border-amber-500/20", "border-slate-400/20", "border-amber-700/20"];
               return (
-                <div key={r.id} className={cn("relative group p-2 md:p-4 rounded-xl md:rounded-2xl border bg-white/5 flex flex-col md:flex-row items-center text-center md:text-left md:items-center gap-1 md:gap-4 transition-all hover:scale-[1.02] hover:bg-white/10", rankBorders[index])}>
-                  <div className={`text-xl md:text-3xl font-black italic ${rankColors[index] || "text-muted-foreground"}`}>#{index + 1}</div>
+                <div key={r.id} className="rounded-md border border-border bg-muted/30 p-2 sm:p-3 flex flex-col sm:flex-row items-center text-center sm:text-left gap-1 sm:gap-3">
+                  <div className={cn("text-lg sm:text-2xl font-semibold", rankColors[index] || "text-muted-foreground")}>#{index + 1}</div>
                   <div className="flex-1 min-w-0 w-full">
-                    <div className="font-bold truncate text-[10px] md:text-sm text-foreground">{r.display_name}</div>
-                    <div className="text-[8px] md:text-xs text-muted-foreground mt-0.5 md:mt-1">
-                      <span className="hidden sm:inline">Este mês: </span>
-                      <span className="font-mono font-bold text-primary block sm:inline">{formatBRL(r.total_spent_cents)}</span>
+                    <div className="truncate text-xs sm:text-sm font-medium">{r.display_name}</div>
+                    <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
+                      <span className="font-mono font-semibold text-foreground">{formatBRL(r.total_spent_cents)}</span>
                     </div>
                   </div>
                 </div>
@@ -561,6 +515,41 @@ export default function GerenteRevendedores() {
           </div>
           {rankedResellers.length === 0 && <div className="text-center py-4 text-sm text-muted-foreground">Nenhum depósito registrado este mês.</div>}
         </div>
+      </div>
+
+      {networkMetrics.negative > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="size-4" />
+          <AlertTitle>Atenção</AlertTitle>
+          <AlertDescription>
+            {networkMetrics.negative} revendedor(es) com saldo negativo. Verifique para evitar prejuízo.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Filtros */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:flex-wrap">
+        <div className="relative min-w-0 sm:w-80">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-8"
+            placeholder="Buscar por nome ou email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+          <SelectTrigger className="w-[170px] shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
+            <SelectItem value="active">Ativos</SelectItem>
+            <SelectItem value="pending">Pendentes</SelectItem>
+            <SelectItem value="inactive">Inativos</SelectItem>
+            <SelectItem value="banned">Banidos</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="rounded-2xl border border-border bg-card/60 shadow-sm overflow-hidden transition-all duration-300">
@@ -1066,6 +1055,6 @@ export default function GerenteRevendedores() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </PageContainer>
+    </div>
   );
 }
