@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useManualEntries, type ManualEntry } from "@/hooks/useManualEntries";
+import { rangeWindow, type DateRange, type CustomRange } from "@/hooks/useFinancialOverview";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2, Package, KeyRound, Copy, Store, Receipt, GripVertical } from "lucide-react";
@@ -42,7 +43,13 @@ const formatEntryDate = (value: string) =>
     year: "numeric",
   }).format(new Date(value));
 
-export default function FinanceiroLancamentosManuais() {
+export default function FinanceiroLancamentosManuais({
+  range = "all",
+  customRange,
+}: {
+  range?: DateRange;
+  customRange?: CustomRange;
+} = {}) {
   const { entries, loading, create, update, remove, reorder } = useManualEntries();
   const [filter, setFilter] = useState<"all" | "revenue" | "expense">("all");
   const [open, setOpen] = useState(false);
@@ -50,8 +57,17 @@ export default function FinanceiroLancamentosManuais() {
   const [duplicating, setDuplicating] = useState<ManualEntry | null>(null);
   const [toDelete, setToDelete] = useState<ManualEntry | null>(null);
 
-  const filtered = entries.filter((e) => filter === "all" || e.entry_type === filter);
-  const dragEnabled = filter === "all";
+  const { start, end } = rangeWindow(range, customRange);
+  const startKey = start ? new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(start) : null;
+  const endKey = end ? new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(end) : null;
+  const inRange = (e: ManualEntry) => {
+    const k = (e.entry_date || "").slice(0, 10);
+    if (startKey && k < startKey) return false;
+    if (endKey && k > endKey) return false;
+    return true;
+  };
+  const filtered = entries.filter((e) => (filter === "all" || e.entry_type === filter) && inRange(e));
+  const dragEnabled = filter === "all" && !startKey && !endKey;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
