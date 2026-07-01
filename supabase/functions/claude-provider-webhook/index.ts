@@ -11,6 +11,40 @@ const json = (data: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
+function fmtCents(cents: number | null | undefined) {
+  const n = Number(cents ?? 0) / 100;
+  return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+async function notifyManagerTelegram(admin: any, text: string, refKind: string, refId: string) {
+  try {
+    const { data: settings } = await admin
+      .from('telegram_settings').select('chat_id').eq('id', 1).maybeSingle();
+    if (!settings?.chat_id) return;
+    const { data: existing } = await admin
+      .from('telegram_outbox').select('id')
+      .eq('reference_kind', refKind).eq('reference_id', refId).limit(1);
+    if (existing && existing.length > 0) return;
+    await admin.from('telegram_outbox').insert({
+      text, reference_kind: refKind, reference_id: refId,
+    });
+  } catch (e) { console.warn('[claude-webhook] telegram notify failed', e); }
+}
+
+async function notifyResellerWhatsapp(resellerId: string | null, message: string) {
+  if (!resellerId) return;
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/system-whatsapp-notify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ mode: 'manual', reseller_ids: [resellerId], message }),
+    });
+  } catch (e) { console.warn('[claude-webhook] whatsapp notify failed', e); }
+}
+
 async function hmacHex(secret: string, message: string) {
   const key = await crypto.subtle.importKey(
     'raw',
@@ -65,13 +99,15 @@ Deno.serve(async (req) => {
 
   // Match order
   let orderId: string | null = null;
+  let orderRow: any = null;
   if (providerKeyId) {
     const { data: ord } = await admin
       .from('claude_orders')
-      .select('id, status')
+      .select('id, status, reseller_id, customer_email, customer_name, plan_code, sale_price_cents')
       .eq('provider_key_id', providerKeyId)
       .maybeSingle();
     orderId = ord?.id ?? null;
+    orderRow = ord ?? null;
 
     if (orderId) {
       const now = new Date().toISOString();
@@ -101,6 +137,79 @@ Deno.serve(async (req) => {
       }
       if (Object.keys(patch).length) {
         await admin.from('claude_orders').update(patch).eq('id', orderId);
+      }
+
+      // ---------- Notificações ----------
+      const { data: reseller } = orderRow?.reseller_id
+        ? await admin.from('resellers').select('display_name').eq('id', orderRow.reseller_id).maybeSingle()
+        : { data: null } as any;
+      const resellerName = reseller?.display_name ?? '—';
+      const clientLabel = orderRow?.customer_name ?? orderRow?.customer_email ?? '—';
+      const planLabel = orderRow?.plan_code ?? '—';
+      const priceLabel = fmtCents(orderRow?.sale_price_cents);
+
+      switch (event) {
+        case 'key.redeemed': {
+          await notifyManagerTelegram(
+            admin,
+            `✅ <b>Claude — Chave resgatada</b>\n` +
+            `👨‍💼 Revendedor: ${resellerName}\n` +
+            `👤 Cliente: ${clientLabel}\n` +
+            `📦 Plano: ${planLabel}\n` +
+            `🆔 Pedido: <code>${orderId}</code>`,
+            'claude_key_redeemed', orderId,
+          );
+          await notifyResellerWhatsapp(
+            orderRow?.reseller_id,
+            `✅ Seu cliente *${clientLabel}* acabou de ativar a chave Claude (${planLabel}).`,
+          );
+          break;
+        }
+        case 'tokens.limit_reached': {
+          await notifyManagerTelegram(
+            admin,
+            `⚠️ <b>Claude — Tokens esgotados</b>\n` +
+            `👨‍💼 Revendedor: ${resellerName}\n` +
+            `👤 Cliente: ${clientLabel}\n` +
+            `📦 Plano: ${planLabel} (${priceLabel})\n` +
+            `🆔 Pedido: <code>${orderId}</code>`,
+            'claude_tokens_exhausted', orderId,
+          );
+          await notifyResellerWhatsapp(
+            orderRow?.reseller_id,
+            `⚠️ Cliente *${clientLabel}* esgotou os tokens do plano Claude (${planLabel}). ` +
+            `Oportunidade de renovação — ele já pode renovar pelo Portal.`,
+          );
+          break;
+        }
+        case 'key.expired': {
+          await notifyManagerTelegram(
+            admin,
+            `⏰ <b>Claude — Chave expirada</b>\n` +
+            `👨‍💼 Revendedor: ${resellerName}\n` +
+            `👤 Cliente: ${clientLabel}\n` +
+            `📦 Plano: ${planLabel}\n` +
+            `🆔 Pedido: <code>${orderId}</code>`,
+            'claude_key_expired', orderId,
+          );
+          await notifyResellerWhatsapp(
+            orderRow?.reseller_id,
+            `⏰ A chave Claude do cliente *${clientLabel}* (${planLabel}) expirou. Ele já pode renovar pelo Portal.`,
+          );
+          break;
+        }
+        case 'key.cancelled': {
+          await notifyManagerTelegram(
+            admin,
+            `🚫 <b>Claude — Chave cancelada</b>\n` +
+            `👨‍💼 Revendedor: ${resellerName}\n` +
+            `👤 Cliente: ${clientLabel}\n` +
+            `📦 Plano: ${planLabel}\n` +
+            `🆔 Pedido: <code>${orderId}</code>`,
+            'claude_key_cancelled', orderId,
+          );
+          break;
+        }
       }
     }
   }
