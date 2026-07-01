@@ -217,13 +217,13 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const claudePlanCodes = Array.from(new Set(claudeArr.map((c) => c.plan_code).filter(Boolean)));
     const supplierCostByPlan: Record<string, number> = {};
     if (claudePlanCodes.length) {
-      const { data: cp } = await supabase
-        .from("claude_plan_prices")
-        .select("plan_code, cost_cents")
-        .in("plan_code", claudePlanCodes);
-      ((cp as any[]) || []).forEach((p) => {
-        supplierCostByPlan[p.plan_code] = Number(p.cost_cents || 0);
-      });
+      // cost_cents é apenas para gerente — usa a RPC admin
+      const { data: cp } = await supabase.rpc("admin_claude_plan_prices_full" as any);
+      ((cp as any[]) || [])
+        .filter((p) => claudePlanCodes.includes(p.plan_code))
+        .forEach((p) => {
+          supplierCostByPlan[p.plan_code] = Number(p.cost_cents || 0);
+        });
     }
     const claudeGrossSalesCents = claudeArr.reduce((s, o) => s + Number(o.sale_price_cents || 0), 0);
     const claudeOwnerRevenueCents = claudeArr.reduce((s, o) => s + Number(o.cost_cents || 0), 0);
