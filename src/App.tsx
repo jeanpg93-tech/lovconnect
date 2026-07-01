@@ -20,6 +20,8 @@ const PublicPlano = lazy(() => lazyWithChunkRecovery(() => import("./pages/Publi
 const Banned = lazy(() => lazyWithChunkRecovery(() => import("./pages/Banned")));
 const Inactive = lazy(() => lazyWithChunkRecovery(() => import("./pages/Inactive")));
 const Install = lazy(() => lazyWithChunkRecovery(() => import("./pages/Install")));
+const ClienteClaudeLogin = lazy(() => lazyWithChunkRecovery(() => import("./pages/cliente-claude/Login")));
+const ClienteClaudePortal = lazy(() => lazyWithChunkRecovery(() => import("./pages/cliente-claude/Portal")));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,6 +95,8 @@ const App = () => (
                 <Route path="/Extension-lovax" element={<PublicExtension slug="extension-lovax" />} />
                 <Route path="/recargas/:id" element={<PublicRecharge />} />
                 <Route path="/plano/:token" element={<PublicPlano />} />
+                <Route path="/cliente-claude/login" element={<ClienteClaudeLogin />} />
+                <Route path="/cliente-claude" element={<ClienteClaudePortal />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
