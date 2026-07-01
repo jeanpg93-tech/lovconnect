@@ -157,13 +157,14 @@ export default function RevendedorMinhaLoja() {
       setActiveMethod(active);
       const { data: r } = await supabase
         .from("resellers")
-        .select("id, slug")
+        .select("id, slug, claude_enabled")
         .eq("user_id", user.id)
         .maybeSingle();
       if (!r) { setLoading(false); return; }
       setResellerId(r.id);
       setResellerSlug(r.slug);
       setSlugDraft(r.slug);
+      setClaudeEnabled(!!(r as any).claude_enabled);
 
       const [{ data: store }, { data: integ }] = await Promise.all([
         supabase.from("reseller_storefronts").select("*").eq("reseller_id", r.id).maybeSingle(),
