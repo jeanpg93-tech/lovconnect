@@ -216,8 +216,8 @@ Deno.serve(async (req) => {
         `👨‍💼 Revendedor: ${reseller.display_name ?? '—'}\n` +
         `📦 Plano: ${planCode}\n` +
         `💵 Valor: ${amountBRL}\n` +
-        `👤 Cliente: ${customer_name ?? '—'}` +
-        (customer_whatsapp ? ` (${customer_whatsapp})` : '') +
+        `👤 Cliente: ${customerName ?? '—'}` +
+        (customerWhatsapp ? ` (${customerWhatsapp})` : '') +
         `\n💳 Pagamento: Saldo da carteira`;
       await admin.rpc('telegram_enqueue', { _text: txt });
     } catch (e) {
