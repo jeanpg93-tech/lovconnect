@@ -862,23 +862,29 @@ Deno.serve(async (req) => {
         // Notifica revendedor
         try {
           const { data: r } = await admin.from("resellers").select("user_id, display_name").eq("id", resellerId).maybeSingle();
+          const isRenewal = !!(claudeOrder as any).is_renewal;
+          const title = isRenewal ? "Renovação Claude paga" : "Venda Claude paga";
+          const emoji = isRenewal ? "🔄" : "🤖";
           if ((r as any)?.user_id) {
             await admin.from("notifications").insert({
               user_id: (r as any).user_id,
-              type: "claude_renewal_paid",
-              title: "Renovação Claude paga!",
-              body: `Cliente renovou (${planCode}). Chave emitida automaticamente.`,
+              type: isRenewal ? "claude_renewal_paid" : "claude_sale_paid",
+              title: `${title}!`,
+              body: isRenewal
+                ? `Cliente renovou (${planCode}). Chave emitida automaticamente.`
+                : `Nova venda de plano ${planCode} paga via PIX. Chave emitida automaticamente.`,
               metadata: { order_id: (claudeOrder as any).id, plan_code: planCode },
             });
           }
           const amountBRL = "R$ " + (Number((claudeOrder as any).sale_price_cents ?? 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           await admin.from("telegram_outbox").insert({
             text:
-              "🔄 <b>Renovação Claude paga</b>\n" +
+              `${emoji} <b>${title}</b>\n` +
               "👨‍💼 Revendedor: " + ((r as any)?.display_name ?? "—") + "\n" +
               "👤 Cliente: " + ((claudeOrder as any).customer_name ?? "—") + "\n" +
               "📦 Plano: " + planCode + "\n" +
-              "💵 Valor: " + amountBRL,
+              "💵 Valor: " + amountBRL + "\n" +
+              "💳 Pagamento: PIX (MisticPay)",
           });
         } catch (_) {}
 
