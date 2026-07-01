@@ -154,6 +154,15 @@ Crie a edge function pública \`claude-webhook\` que:
 - Valida a assinatura HMAC \`x-signature\` (sha256) usando o secret \`CLAUDE_WEBHOOK_SECRET\`.
 - Salva em uma nova tabela \`claude_webhook_events\` (id, event, payload jsonb, received_at). Adicione RLS adequada.
 
+**IMPORTANTE — desabilite verificação de JWT** no \`supabase/config.toml\` do seu projeto, senão o webhook retorna 401 e nada é entregue:
+
+\`\`\`toml
+[functions.claude-webhook]
+verify_jwt = false
+\`\`\`
+
+O endpoint precisa aceitar chamadas **sem Authorization** (é público, assinado por HMAC).
+
 ## ✅ Critérios de aceite
 - Build passa sem erros e sem warnings novos.
 - Todas as rotas e itens de menu **antigos continuam funcionando**.
