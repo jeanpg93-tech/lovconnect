@@ -51,35 +51,20 @@ export default function CheckoutClaude() {
     let cancel = false;
     (async () => {
       setLoading(true);
-      const { data: r } = await supabase
-        .from("resellers")
-        .select("id, slug, display_name, claude_enabled")
-        .eq("slug", slug)
-        .maybeSingle();
-      if (cancel) return;
-      if (!r || !(r as any).claude_enabled) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
-      setReseller(r as any);
-
-      const [{ data: defs }, { data: ovs }] = await Promise.all([
-        supabase.from("claude_plan_prices").select("plan_code, cost_cents, sale_price_cents, is_active").eq("is_active", true),
-        supabase.from("claude_reseller_price_overrides").select("plan_code, markup_mode, markup_value_cents, is_active").eq("reseller_id", (r as any).id).eq("is_active", true),
-      ]);
-      const priceMap: Record<string, number> = {};
-      for (const d of (defs ?? []) as any[]) {
-        let sale = d.sale_price_cents as number;
-        const ov = (ovs ?? []).find((o: any) => o.plan_code === d.plan_code);
-        if (ov) {
-          if (ov.markup_mode === "percent") sale = Math.round((d.cost_cents * (10000 + ov.markup_value_cents)) / 10000);
-          else if (ov.markup_mode === "fixed_add") sale = d.cost_cents + ov.markup_value_cents;
-          else sale = ov.markup_value_cents;
+      try {
+        const projectRef = (import.meta as any).env.VITE_SUPABASE_PROJECT_ID;
+        const resp = await fetch(`https://${projectRef}.supabase.co/functions/v1/claude-public-prices?slug=${encodeURIComponent(slug)}`);
+        const j = await resp.json();
+        if (cancel) return;
+        if (!resp.ok || !j?.ok) {
+          setNotFound(true);
+        } else {
+          setReseller({ ...j.reseller, claude_enabled: true });
+          setPrices(j.prices ?? {});
         }
-        priceMap[d.plan_code] = sale;
+      } catch {
+        if (!cancel) setNotFound(true);
       }
-      setPrices(priceMap);
       setLoading(false);
     })();
     return () => { cancel = true; };
