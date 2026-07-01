@@ -310,7 +310,28 @@ function TabEndpoints() {
         body={`curl -X GET "${BASE_URL}/chaves/PEDIDO_ID" \\
   -H "X-API-Key: SUA_API_KEY"
 
-# status: pending | issued | failed`}
+# status: pending | issued | redeemed | cancel_requested |
+#         cancelled | cancel_rejected | refunded | expired | failed`}
+      />
+      <CodeBlock
+        title="POST /chaves/{id}/cancelar — Cancelar / Revogar chave"
+        body={`curl -X POST "${BASE_URL}/chaves/PEDIDO_ID/cancelar" \\
+  -H "X-API-Key: SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "force": false }'
+
+# Regra dos 7 dias
+# - Dentro dos 7 dias após emissão: cancelamento com ESTORNO AUTOMÁTICO
+#   (o valor pago volta para sua carteira do painel).
+# - Após 7 dias: retorna 409 refund_window_expired. Se quiser cancelar mesmo
+#   assim, reenvie com "force": true — a chave é revogada, mas NÃO há estorno.
+#
+# Resposta (ok)
+# { "success": true, "refund_cents": 14900, "refund_waived": false }
+#
+# Resposta (fora do prazo, sem force)
+# { "success": false, "error": "refund_window_expired",
+#   "age_days": 12, "refund_window_days": 7 }`}
       />
     </div>
   );
