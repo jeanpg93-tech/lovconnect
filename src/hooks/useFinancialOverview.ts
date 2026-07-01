@@ -208,7 +208,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     let coQ = supabase
       .from("claude_orders")
       .select("id, reseller_id, plan_code, sale_price_cents, cost_cents, paid_at, created_at, status, customer_name")
-      .in("status", ["issued", "paid", "completed"]);
+      .in("status", ["issued", "redeemed"]);
     if (startIso) coQ = coQ.gte("paid_at", startIso);
     if (endIso) coQ = coQ.lte("paid_at", endIso);
     coQ = excludeDemos(coQ);
