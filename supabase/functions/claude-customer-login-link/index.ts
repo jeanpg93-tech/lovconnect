@@ -45,10 +45,12 @@ Deno.serve(async (req) => {
     const { data: cust } = await customerQuery.limit(1).maybeSingle();
     if (!cust) return json({ success: true }); // resposta genérica p/ não enumerar
 
-    const { error } = await admin.auth.admin.generateLink({
-      type: "magiclink",
+    const { error } = await admin.auth.signInWithOtp({
       email,
-      options: { redirectTo: redirect_to },
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: redirect_to,
+      },
     });
     if (error) return json({ error: "magic_link_failed", detail: error.message }, 500);
 
