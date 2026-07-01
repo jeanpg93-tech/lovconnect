@@ -560,6 +560,7 @@ export type Database = {
           reseller_cost_markup_bps: number
           reseller_cost_mode: string
           sale_price_cents: number
+          sort_order: number
           updated_at: string
         }
         Insert: {
@@ -574,6 +575,7 @@ export type Database = {
           reseller_cost_markup_bps?: number
           reseller_cost_mode?: string
           sale_price_cents?: number
+          sort_order?: number
           updated_at?: string
         }
         Update: {
@@ -588,6 +590,7 @@ export type Database = {
           reseller_cost_markup_bps?: number
           reseller_cost_mode?: string
           sale_price_cents?: number
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
