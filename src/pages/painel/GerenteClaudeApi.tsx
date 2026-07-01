@@ -294,7 +294,7 @@ function PricesTab() {
         </Button>
       </div>
 
-      <TierMatrix plans={rows} />
+      <TierMatrix plans={rows.filter((r) => r.is_active)} />
     </div>
   );
 }
