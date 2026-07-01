@@ -712,6 +712,7 @@ export default function RevendedorApiClaude() {
             testResult={testResult}
           />
         </TabsContent>
+        <TabsContent value="implantar"><DeployClaudePrompt /></TabsContent>
       </Tabs>
 
       {/* Espelho oculto usado pelo "Copiar documentação completa" */}
