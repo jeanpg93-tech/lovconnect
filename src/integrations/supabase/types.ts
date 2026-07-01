@@ -2539,6 +2539,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          key_full: string | null
           key_hash: string
           key_prefix: string
           label: string | null
@@ -2552,6 +2553,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          key_full?: string | null
           key_hash: string
           key_prefix: string
           label?: string | null
@@ -2565,6 +2567,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          key_full?: string | null
           key_hash?: string
           key_prefix?: string
           label?: string | null
