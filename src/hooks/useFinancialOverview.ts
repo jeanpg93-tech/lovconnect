@@ -61,6 +61,10 @@ export type FinancialOverview = {
   rechargePlanRevenueCents: number;
   rechargePlanCostCents: number;
   rechargePlanCount: number;
+  claudeCount: number;
+  claudeGrossSalesCents: number;      // preço pago pelos clientes finais (informativo)
+  claudeOwnerRevenueCents: number;    // saldo debitado do revendedor (= receita do dono via Claude, já parte de recargas)
+  claudeSupplierCostCents: number;    // custo real do dono (fornecedor)
   costCents: number;
   costCreditsCents: number;
   gatewayFeeCents: number;
@@ -82,7 +86,7 @@ export type FinancialOverview = {
   resellerSalesDetails: Record<string, Array<{
     id: string;
     date: string;
-    kind: "credits_storefront" | "credits_api" | "license_storefront" | "recharge" | "pack" | "recharge_plan";
+    kind: "credits_storefront" | "credits_api" | "license_storefront" | "recharge" | "pack" | "recharge_plan" | "claude";
     description: string;
     revenue_cents: number;
     cost_cents: number;
