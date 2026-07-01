@@ -647,7 +647,7 @@ User-Agent: LovConnect-Webhook/1.0
 
 const raw = await req.text();
 const expected = "sha256=" + crypto
-  .createHmac("sha256", process.env.WEBHOOK_SECRET)
+  .createHmac("sha256", process.env.CLAUDE_WEBHOOK_SECRET)
   .update(raw).digest("hex");
 
 if (req.headers.get("x-signature") !== expected) {
@@ -788,6 +788,12 @@ export default function RevendedorApiClaude() {
     setTestingWebhook(true);
     setTestResult(null);
     try {
+      const { error: saveError } = await supabase
+        .from("reseller_claude_api_keys")
+        .update({ webhook_url: webhookUrl || null, webhook_secret: webhookSecret || null })
+        .eq("reseller_id", resellerId)
+        .eq("label", "__webhook_config__");
+      if (saveError) throw saveError;
       const { data, error } = await supabase.functions.invoke("claude-webhook-test", { body: {} });
       if (error) throw error;
       if ((data as any)?.success) {
@@ -796,7 +802,8 @@ export default function RevendedorApiClaude() {
       } else {
         const d = (data as any) ?? {};
         const base = d.error || d.reason || `Falha (HTTP ${d.status ?? "?"})`;
-        const full = d.hint ? `${base}\n\n${d.hint}` : (d.response_body ? `${base}\n\n${d.response_body}` : base);
+        const body = d.response_body ? `\n\nResposta da URL:\n${d.response_body}` : "";
+        const full = d.hint ? `${base}${body}\n\n${d.hint}` : (body ? `${base}${body}` : base);
         setTestResult({ ok: false, msg: full });
         toast.error(d.hint ? "Webhook não aceitou a chamada — veja a dica abaixo" : "Falha ao entregar webhook");
       }

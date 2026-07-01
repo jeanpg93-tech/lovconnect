@@ -13,6 +13,30 @@ async function hmacSha256Hex(secret: string, payload: string) {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+async function getWebhookConfig(svc: any, resellerId: string) {
+  const { data: dedicated } = await svc
+    .from("reseller_claude_api_keys")
+    .select("webhook_url, webhook_secret")
+    .eq("reseller_id", resellerId)
+    .eq("label", "__webhook_config__")
+    .not("webhook_url", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (dedicated?.webhook_url) return dedicated;
+
+  const { data: legacy } = await svc
+    .from("reseller_claude_api_keys")
+    .select("webhook_url, webhook_secret")
+    .eq("reseller_id", resellerId)
+    .eq("is_active", true)
+    .not("webhook_url", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return legacy;
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -39,17 +63,15 @@ Deno.serve(async (req) => {
   const { data: reseller } = await svc.from("resellers").select("id").eq("user_id", u.user.id).maybeSingle();
   if (!reseller) return json({ success: false, error: "reseller_not_found" }, 403);
 
-  const { data: cfg } = await svc
-    .from("reseller_claude_api_keys")
-    .select("webhook_url, webhook_secret")
-    .eq("reseller_id", reseller.id)
-    .eq("is_active", true)
-    .not("webhook_url", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const cfg = await getWebhookConfig(svc, reseller.id);
 
-  if (!cfg?.webhook_url) return json({ success: false, reason: "no_webhook_configured" }, 400);
+  if (!cfg?.webhook_url) {
+    return json({
+      success: false,
+      reason: "no_webhook_configured",
+      hint: "Nenhum webhook salvo foi encontrado. Clique em Salvar webhook antes de enviar o teste.",
+    });
+  }
 
   const body = JSON.stringify({
     event: "claude.webhook.test",
@@ -77,8 +99,10 @@ Deno.serve(async (req) => {
     const respBody = (await r.text().catch(() => "")).slice(0, 400);
     let hint: string | null = null;
     if (r.status === 401) {
-      hint =
-        "A sua função retornou 401 (JWT obrigatório). No projeto Supabase da sua loja, adicione no supabase/config.toml:\n\n[functions.claude-webhook]\nverify_jwt = false\n\ne reimplante. Webhooks públicos precisam aceitar chamadas sem Authorization.";
+      const lower = respBody.toLowerCase();
+      hint = lower.includes("invalid_signature") || lower.includes("signature")
+        ? "A URL respondeu 401 por assinatura inválida. Confira se o segredo salvo na sua loja é exatamente igual ao Segredo HMAC exibido neste painel, sem espaços antes/depois."
+        : "A URL respondeu 401. Se a mensagem for JWT/autorização, a função pública do webhook precisa aceitar chamadas sem Authorization. Se a mensagem for invalid_signature, o segredo HMAC da loja está diferente do painel.";
     } else if (r.status === 404) {
       hint = "A URL respondeu 404. Verifique se a função 'claude-webhook' está implantada e se a URL está correta.";
     } else if (r.status === 0) {

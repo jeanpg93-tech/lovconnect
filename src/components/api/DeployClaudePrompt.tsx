@@ -151,7 +151,9 @@ O pagamento de cada emissão é **debitado do saldo do painel do revendedor** no
 ### 7. Webhook receiver (opcional, recomendado)
 Crie a edge function pública \`claude-webhook\` que:
 - Recebe POST do payload acima.
-- Valida a assinatura HMAC \`x-signature\` (sha256) usando o secret \`CLAUDE_WEBHOOK_SECRET\`.
+- Valida a assinatura HMAC \`x-signature\` (sha256) usando exatamente o secret \`CLAUDE_WEBHOOK_SECRET\`.
+- Aceita o header em caixa alta/baixa e assinatura no formato \`sha256=<hex>\`.
+- Para evitar falso negativo por encoding, calcule o HMAC sobre o corpo cru da requisição, antes de fazer \`JSON.parse\`.
 - Salva em uma nova tabela \`claude_webhook_events\` (id, event, payload jsonb, received_at). Adicione RLS adequada.
 
 **IMPORTANTE — desabilite verificação de JWT** no \`supabase/config.toml\` do seu projeto, senão o webhook retorna 401 e nada é entregue:
