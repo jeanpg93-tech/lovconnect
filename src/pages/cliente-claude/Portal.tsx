@@ -364,7 +364,7 @@ export default function ClienteClaudePortal() {
       />
       <div className="max-w-5xl mx-auto space-y-6 relative">
         {/* Header dashboard */}
-        <header className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 shadow-2xl animate-fade-in">
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 shadow-2xl animate-fade-in">
           <div className="flex items-center gap-3 min-w-0">
             {reseller?.logo_url ? (
               <img
@@ -389,15 +389,15 @@ export default function ClienteClaudePortal() {
               <p className="text-xs opacity-60 truncate">{customer?.email}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {(reseller?.slug || storeSlug) && (
-              <Button variant="outline" size="sm" asChild className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale">
+              <Button variant="outline" size="sm" asChild className="flex-1 sm:flex-none border-white/15 bg-white/5 hover:bg-white/10 hover-scale">
                 <Link to={`/loja/${reseller?.slug ?? storeSlug}`}>
                   <Store className="h-4 w-4 mr-2" /> Loja
                 </Link>
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={signOut} className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale">
+            <Button variant="outline" size="sm" onClick={signOut} className="flex-1 sm:flex-none border-white/15 bg-white/5 hover:bg-white/10 hover-scale">
               <LogOut className="h-4 w-4 mr-2" /> Sair
             </Button>
           </div>
