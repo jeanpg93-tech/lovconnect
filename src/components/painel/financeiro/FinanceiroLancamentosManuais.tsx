@@ -37,7 +37,12 @@ import {
 const brl = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const formatEntryDate = (value: string) =>
-  format(new Date(value), "dd 'de' MMM yyyy", { locale: ptBR });
+  new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
 
 export default function FinanceiroLancamentosManuais() {
   const { entries, loading, create, update, remove, reorder } = useManualEntries();
