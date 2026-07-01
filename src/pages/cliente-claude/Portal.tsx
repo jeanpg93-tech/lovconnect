@@ -769,6 +769,9 @@ export default function ClienteClaudePortal() {
           </DialogContent>
         </Dialog>
       </div>
+      <div className="max-w-5xl mx-auto mt-8 pb-4 flex justify-center relative">
+        <PortalFooterBrand />
+      </div>
     </div>
   );
 }
