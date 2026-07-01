@@ -46,9 +46,22 @@ async function hmacSha256Hex(secret: string, payload: string) {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function dispatchWebhook(svc: any, resellerId: string, event: string, payload: Record<string, unknown>) {
-  // Busca a config de webhook mais recente ativa do revendedor
-  const { data } = await svc
+async function getWebhookConfig(svc: any, resellerId: string) {
+  // Configuração atual: linha interna dedicada ao webhook. Ela fica inativa para
+  // não ser aceita como API key, mas continua sendo a fonte oficial do webhook.
+  const { data: dedicated } = await svc
+    .from("reseller_claude_api_keys")
+    .select("id, webhook_url, webhook_secret")
+    .eq("reseller_id", resellerId)
+    .eq("label", "__webhook_config__")
+    .not("webhook_url", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (dedicated?.webhook_url) return dedicated;
+
+  // Compatibilidade com registros antigos, quando o webhook ficava em uma API key ativa.
+  const { data: legacy } = await svc
     .from("reseller_claude_api_keys")
     .select("id, webhook_url, webhook_secret")
     .eq("reseller_id", resellerId)
@@ -57,6 +70,11 @@ async function dispatchWebhook(svc: any, resellerId: string, event: string, payl
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  return legacy;
+}
+
+async function dispatchWebhook(svc: any, resellerId: string, event: string, payload: Record<string, unknown>) {
+  const data = await getWebhookConfig(svc, resellerId);
   if (!data?.webhook_url) return { delivered: false, reason: "no_webhook_configured" };
   const body = JSON.stringify({ event, ...payload, sent_at: new Date().toISOString() });
   const sig = data.webhook_secret ? `sha256=${await hmacSha256Hex(data.webhook_secret, body)}` : "";
