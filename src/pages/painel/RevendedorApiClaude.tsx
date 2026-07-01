@@ -585,6 +585,22 @@ function TabWebhook({
             <Button type="button" variant="outline" size="sm" onClick={() => setWebhookSecret(genWebhookSecret())}>
               Gerar
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!webhookSecret}
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(webhookSecret);
+                  toast.success("Segredo HMAC copiado");
+                } catch {
+                  toast.error("Não foi possível copiar");
+                }
+              }}
+            >
+              <Copy className="mr-1 h-4 w-4" /> Copiar
+            </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
             Este é o valor que sua loja pede como <code className="font-mono">CLAUDE_WEBHOOK_SECRET</code>.
