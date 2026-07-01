@@ -12,7 +12,7 @@ const CLAUDE_BASE_URL = (Deno.env.get("CLAUDE_RESELLER_API_BASE_URL") ?? "").rep
 const json = (d: unknown, s = 200) =>
   new Response(JSON.stringify(d), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-const PLAN_CODES = ["5x_7d", "5x_30d", "20x_30d"] as const;
+const PLAN_CODES = ["pro_30d", "5x_30d", "20x_30d"] as const;
 
 function computeSalePrice(cost: number, mode: string, value: number) {
   if (mode === "percent") return Math.max(0, Math.round((cost * (10000 + value)) / 10000));
@@ -34,11 +34,29 @@ Deno.serve(async (req) => {
     if (uErr || !userData?.user) return json({ error: "unauthorized" }, 401);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    const { data: customer } = await admin
+    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+    const url = new URL(req.url);
+    const resellerSlug = String(body?.reseller_slug ?? url.searchParams.get("reseller_slug") ?? "").trim().toLowerCase();
+    const resellerIdIn = String(body?.reseller_id ?? url.searchParams.get("reseller_id") ?? "").trim();
+
+    let scopedResellerId = resellerIdIn || "";
+    if (resellerSlug && !scopedResellerId) {
+      const { data: scopedReseller } = await admin
+        .from("resellers")
+        .select("id")
+        .eq("slug", resellerSlug)
+        .maybeSingle();
+      scopedResellerId = scopedReseller?.id ?? "";
+    }
+
+    let customerQuery = admin
       .from("claude_customers")
       .select("id, email, reseller_id, name")
       .eq("auth_user_id", userData.user.id)
-      .maybeSingle();
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (scopedResellerId) customerQuery = customerQuery.eq("reseller_id", scopedResellerId);
+    const { data: customer } = await customerQuery.maybeSingle();
     if (!customer) return json({ error: "customer_not_found" }, 404);
 
     // Pedidos: por customer_id OU (fallback) por customer_email dentro do mesmo revendedor

@@ -11,7 +11,7 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MISTIC_BASE = "https://api.misticpay.com/api";
 
 const PLAN_LABELS: Record<string, string> = {
-  "5x_7d": "5x — 7 dias",
+  "pro_30d": "Pro — 30 dias",
   "5x_30d": "5x — 30 dias",
   "20x_30d": "20x — 30 dias",
 };

@@ -239,7 +239,9 @@ export default function CheckoutClaude() {
                 </div>
               )}
               <Button asChild className="w-full" size="lg">
-                <Link to="/cliente-claude/login">Acessar portal do cliente</Link>
+                <Link to={`/cliente-claude/login?loja=${encodeURIComponent(slug)}${email ? `&email=${encodeURIComponent(email)}` : ""}`}>
+                  Acessar portal do cliente
+                </Link>
               </Button>
             </CardContent>
           </Card>

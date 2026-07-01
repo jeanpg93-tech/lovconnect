@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2, Store } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -48,6 +48,7 @@ type Plan = { plan_code: string; sale_price_cents: number };
 type ResellerInfo = { display_name: string | null; whatsapp: string | null; slug: string | null; claude_enabled: boolean };
 
 const PLAN_LABELS: Record<string, string> = {
+  "pro_30d": "Plano Pro — 30 dias",
   "5x_7d": "Plano 5x — 7 dias",
   "5x_30d": "Plano 5x — 30 dias",
   "20x_30d": "Plano 20x — 30 dias",
@@ -78,6 +79,8 @@ function fmtTokens(n?: number | null) {
 
 export default function ClienteClaudePortal() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const storeSlug = searchParams.get("loja")?.trim() ?? "";
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -106,23 +109,38 @@ export default function ClienteClaudePortal() {
     (async () => {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
-        navigate("/cliente-claude/login", { replace: true });
+        navigate(`/cliente-claude/login${storeSlug ? `?loja=${encodeURIComponent(storeSlug)}` : ""}`, { replace: true });
         return;
       }
-      const { data, error } = await supabase
+      let scopedResellerId: string | null = null;
+      if (storeSlug) {
+        const { data: r } = await supabase
+          .from("resellers")
+          .select("id")
+          .eq("slug", storeSlug)
+          .maybeSingle();
+        scopedResellerId = r?.id ?? null;
+      }
+
+      let customerQuery = supabase
         .from("claude_customers")
         .select("id, name, email, must_change_password, reseller_id")
         .eq("auth_user_id", session.session.user.id)
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (scopedResellerId) customerQuery = customerQuery.eq("reseller_id", scopedResellerId);
+      const { data, error } = await customerQuery.maybeSingle();
       if (error || !data) {
         toast.error("Cliente não encontrado. Contate seu revendedor.");
         await supabase.auth.signOut();
-        navigate("/cliente-claude/login", { replace: true });
+        navigate(`/cliente-claude/login${storeSlug ? `?loja=${encodeURIComponent(storeSlug)}` : ""}`, { replace: true });
         return;
       }
       setCustomer(data as Customer);
       // Carrega chaves + consumo
-      const { data: usageResp } = await supabase.functions.invoke("claude-my-usage");
+      const { data: usageResp } = await supabase.functions.invoke("claude-my-usage", {
+        body: { reseller_slug: storeSlug || null },
+      });
       if (usageResp?.ok) {
         setOrders(usageResp.orders ?? []);
         setUsage(usageResp.usage ?? null);
@@ -131,7 +149,7 @@ export default function ClienteClaudePortal() {
       }
       setLoading(false);
     })();
-  }, [navigate]);
+  }, [navigate, storeSlug]);
 
   const changePassword = async () => {
     if (newPassword.length < 8) return toast.error("Senha precisa de ao menos 8 caracteres");
@@ -262,14 +280,23 @@ export default function ClienteClaudePortal() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">Olá, {customer?.name}</h1>
             <p className="text-sm text-muted-foreground">{customer?.email}</p>
           </div>
-          <Button variant="outline" size="sm" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-2" /> Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            {(reseller?.slug || storeSlug) && (
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/loja/${reseller?.slug ?? storeSlug}`}>
+                  <Store className="h-4 w-4 mr-2" /> Loja
+                </Link>
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-2" /> Sair
+            </Button>
+          </div>
         </div>
 
         {customer?.must_change_password && (
