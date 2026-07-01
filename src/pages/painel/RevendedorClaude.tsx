@@ -19,20 +19,22 @@ import { useAuth } from "@/hooks/useAuth";
 // Conta de testes Jean Gomes — únicos com botão "Cancelar venda" no momento.
 const TEST_USER_ID = "beae9f73-5c2c-4878-bfc5-41e9e2faf15e";
 
-type PlanCode = "5x_7d" | "5x_30d" | "20x_30d";
+type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d";
 type MarkupMode = "percent" | "fixed_add" | "final";
 
 const PLAN_LABELS: Record<PlanCode, string> = {
+  "pro_30d": "Pro · 30 dias",
   "5x_7d": "5x · 7 dias",
   "5x_30d": "5x · 30 dias",
   "20x_30d": "20x · 30 dias",
 };
-const PLAN_ORDER: PlanCode[] = ["5x_7d", "5x_30d", "20x_30d"];
+const PLAN_ORDER: PlanCode[] = ["pro_30d", "5x_7d", "5x_30d", "20x_30d"];
 
 const PLAN_LIMITS: Record<PlanCode, string> = {
+  "pro_30d": "500 mil tokens / 12h",
   "5x_7d": "1,25 Milhões de tokens / 12h",
-  "5x_30d": "1,25 Milhões de tokens / 12h",
-  "20x_30d": "5 Milhões de tokens / 12h",
+  "5x_30d": "2,5 Milhões de tokens / 12h",
+  "20x_30d": "10 Milhões de tokens / 12h",
 };
 
 const fmtBRL = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -46,6 +48,7 @@ function computeSale(cost: number, mode: MarkupMode, value: number) {
 type PriceRow = { plan_code: PlanCode; sale_price_cents: number; is_active: boolean };
 
 const PLAN_GRADIENTS: Record<PlanCode, string> = {
+  "pro_30d": "from-emerald-500/20 via-emerald-500/5 to-transparent",
   "5x_7d": "from-sky-500/20 via-sky-500/5 to-transparent",
   "5x_30d": "from-blue-500/20 via-blue-500/5 to-transparent",
   "20x_30d": "from-primary/25 via-primary/5 to-transparent",
@@ -99,14 +102,21 @@ export default function RevendedorClaude() {
       supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
     ]);
 
-    const merged: PriceRow[] = PLAN_ORDER.map((pc) => {
-      const base: any = (def ?? []).find((x: any) => x.plan_code === pc);
-      if (!base) return { plan_code: pc, sale_price_cents: 0, is_active: false };
-      const override: any = (ov ?? []).find((x: any) => x.plan_code === pc && x.is_active);
-      const sale = override ? override.sale_price_cents : base.sale_price_cents;
-      return { plan_code: pc, sale_price_cents: sale, is_active: !!base.is_active };
-    });
+    const merged: PriceRow[] = PLAN_ORDER
+      .map((pc) => {
+        const base: any = (def ?? []).find((x: any) => x.plan_code === pc);
+        if (!base || !base.is_active) return null;
+        const override: any = (ov ?? []).find((x: any) => x.plan_code === pc && x.is_active);
+        const sale = override ? override.sale_price_cents : base.sale_price_cents;
+        return { plan_code: pc, sale_price_cents: sale, is_active: true } as PriceRow;
+      })
+      .filter((x): x is PriceRow => x !== null);
     setPrices(merged);
+    setSelectedPlan((prev) =>
+      merged.some((m) => m.plan_code === prev)
+        ? prev
+        : (merged.find((m) => m.plan_code === "20x_30d")?.plan_code ?? merged[0]?.plan_code ?? prev)
+    );
     setHistory(hist ?? []);
     setBalance(Number((bal as any)?.balance_cents ?? 0));
     setLoading(false);
