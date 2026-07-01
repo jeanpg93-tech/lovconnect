@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-type PlanCode = "5x_7d" | "5x_30d" | "20x_30d";
-const PLAN_ORDER: PlanCode[] = ["5x_7d", "5x_30d", "20x_30d"];
-const PLAN_LABELS: Record<PlanCode, string> = {
+type PlanCode = string;
+const PLAN_LABELS: Record<string, string> = {
+  pro_30d: "Pro · 30 dias",
   "5x_7d": "5x · 7 dias",
   "5x_30d": "5x · 30 dias",
   "20x_30d": "20x · 30 dias",
@@ -44,7 +44,9 @@ export default function ClaudePriceTable() {
       const [{ data: base }, { data: ov }] = await Promise.all([
         supabase
           .from("claude_plan_prices")
-          .select("plan_code, sale_price_cents, is_active"),
+          .select("plan_code, sale_price_cents, is_active, sort_order")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
         rid
           ? supabase
               .from("claude_reseller_price_overrides")
@@ -56,11 +58,12 @@ export default function ClaudePriceTable() {
       ((ov ?? []) as any[]).forEach((o) => {
         if (o.is_active) ovMap.set(o.plan_code, o.sale_price_cents);
       });
-      // Per-tier cost lookup
+      const activeCodes = ((base ?? []) as any[]).map((b) => b.plan_code as string);
+      // Per-tier cost lookup só para os planos ativos
       const tierCosts: Record<string, number> = {};
       if (rid) {
         await Promise.all(
-          PLAN_ORDER.map(async (pc) => {
+          activeCodes.map(async (pc) => {
             const { data } = await supabase.rpc("get_reseller_claude_cost", {
               _reseller_id: rid,
               _plan_code: pc,
@@ -69,16 +72,13 @@ export default function ClaudePriceTable() {
           }),
         );
       }
-      const merged: PlanRow[] = PLAN_ORDER.map((pc) => {
-        const b: any = (base ?? []).find((x: any) => x.plan_code === pc);
-        return {
-          plan_code: pc,
-          reseller_cost_cents: tierCosts[pc] ?? 0,
-          suggested_sale_cents: b?.sale_price_cents ?? 0,
-          override_sale_cents: ovMap.has(pc) ? (ovMap.get(pc) as number) : null,
-          is_active: !!b?.is_active,
-        };
-      });
+      const merged: PlanRow[] = ((base ?? []) as any[]).map((b) => ({
+        plan_code: b.plan_code,
+        reseller_cost_cents: tierCosts[b.plan_code] ?? 0,
+        suggested_sale_cents: b.sale_price_cents ?? 0,
+        override_sale_cents: ovMap.has(b.plan_code) ? (ovMap.get(b.plan_code) as number) : null,
+        is_active: !!b.is_active,
+      }));
       setRows(merged);
       setLoading(false);
     })();
@@ -175,7 +175,7 @@ export default function ClaudePriceTable() {
                       <ClaudeIcon size={16} />
                     </div>
                     <div>
-                      <div className="font-display font-semibold">{PLAN_LABELS[row.plan_code]}</div>
+                      <div className="font-display font-semibold">{PLAN_LABELS[row.plan_code] ?? row.plan_code}</div>
                       <div className="text-[11px] text-muted-foreground">
                         {row.is_active ? "Disponível" : "Indisponível"}
                       </div>
