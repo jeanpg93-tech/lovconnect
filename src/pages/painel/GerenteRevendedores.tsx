@@ -294,6 +294,28 @@ export default function GerenteRevendedores() {
     setTestKeysDialog(null);
   };
 
+  const setForcedTier = async (resellerId: string, tierId: string | null) => {
+    const existing = states[resellerId];
+    if (existing) {
+      const { error } = await supabase.from("reseller_tier_state")
+        .update({ forced_tier_id: tierId }).eq("reseller_id", resellerId);
+      if (error) return toast.error(error.message);
+    } else {
+      const { error } = await supabase.from("reseller_tier_state")
+        .insert({ reseller_id: resellerId, total_spent_cents: 0, forced_tier_id: tierId });
+      if (error) return toast.error(error.message);
+    }
+    setStates((prev) => ({
+      ...prev,
+      [resellerId]: {
+        reseller_id: resellerId,
+        total_spent_cents: prev[resellerId]?.total_spent_cents ?? 0,
+        forced_tier_id: tierId,
+      },
+    }));
+    toast.success(tierId ? "Nível atualizado — preços recalculados automaticamente" : "Nível voltou para automático");
+  };
+
   const openEdit = (r: Reseller) => {
     const prof = profilesByUser[r.user_id];
     setEditDialog(r);
@@ -561,11 +583,37 @@ export default function GerenteRevendedores() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-center">
-                          {tier ? (
-                            <span className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest" style={{ background: `${tier.color}22`, color: tier.color }}>
-                              <Crown className="h-3 w-3" /> {tier.name}
-                            </span>
-                          ) : "—"}
+                          <div className="flex flex-col items-center gap-1">
+                            <Select
+                              value={states[r.id]?.forced_tier_id ?? "auto"}
+                              onValueChange={(v) => setForcedTier(r.id, v === "auto" ? null : v)}
+                            >
+                              <SelectTrigger
+                                className="h-7 w-[130px] px-2 text-[10px] font-bold uppercase tracking-widest border-white/10"
+                                style={tier ? { background: `${tier.color}22`, color: tier.color, borderColor: `${tier.color}55` } : undefined}
+                              >
+                                <SelectValue>
+                                  <span className="inline-flex items-center gap-1">
+                                    <Crown className="h-3 w-3" /> {tier?.name ?? "—"}
+                                  </span>
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">Automático</SelectItem>
+                                {tiers.filter((t) => t.is_active).map((t) => (
+                                  <SelectItem key={t.id} value={t.id}>
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <span className="h-2 w-2 rounded-full" style={{ background: t.color }} />
+                                      {t.name}
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {states[r.id]?.forced_tier_id && (
+                              <span className="text-[9px] uppercase tracking-widest text-amber-500/80">Manual</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-center min-w-[150px]">
                           {progress ? (
@@ -721,10 +769,30 @@ export default function GerenteRevendedores() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <p className="text-[10px] uppercase font-bold text-muted-foreground/60">Nível</p>
-                        {tier && (
-                          <span className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest" style={{ background: `${tier.color}22`, color: tier.color }}>
-                            {tier.name}
-                          </span>
+                        <Select
+                          value={states[r.id]?.forced_tier_id ?? "auto"}
+                          onValueChange={(v) => setForcedTier(r.id, v === "auto" ? null : v)}
+                        >
+                          <SelectTrigger
+                            className="h-8 w-full px-2 text-[10px] font-bold uppercase tracking-widest border-white/10"
+                            style={tier ? { background: `${tier.color}22`, color: tier.color, borderColor: `${tier.color}55` } : undefined}
+                          >
+                            <SelectValue>{tier?.name ?? "—"}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="auto">Automático</SelectItem>
+                            {tiers.filter((t) => t.is_active).map((t) => (
+                              <SelectItem key={t.id} value={t.id}>
+                                <span className="inline-flex items-center gap-1.5">
+                                  <span className="h-2 w-2 rounded-full" style={{ background: t.color }} />
+                                  {t.name}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {states[r.id]?.forced_tier_id && (
+                          <span className="text-[9px] uppercase tracking-widest text-amber-500/80">Manual</span>
                         )}
                       </div>
                       <div className="space-y-1">
