@@ -7,8 +7,8 @@ const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const CLAUDE_API_KEY = Deno.env.get('CLAUDE_RESELLER_API_KEY')!;
 const CLAUDE_BASE_URL = (Deno.env.get('CLAUDE_RESELLER_API_BASE_URL') ?? '').replace(/\/$/, '');
 
-// Conta de testes Jean Gomes — ÚNICA com acesso inicial ao fluxo de cancelamento.
-const TEST_USER_ID = 'beae9f73-5c2c-4878-bfc5-41e9e2faf15e';
+// Janela de cancelamento com estorno automático (dias corridos)
+const REFUND_WINDOW_DAYS = 7;
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -32,11 +32,9 @@ Deno.serve(async (req) => {
     if (userErr || !userData?.user) return json({ error: 'unauthorized' }, 401);
     const userId = userData.user.id;
 
-    // Gate inicial: somente Jean Gomes pode acionar (Fase 1 controlada).
-    if (userId !== TEST_USER_ID) return json({ error: 'feature_locked' }, 403);
-
     const body = await req.json().catch(() => ({}));
     const orderId = String(body?.order_id ?? '').trim();
+    const force = Boolean(body?.force);
     if (!orderId) return json({ error: 'missing_order_id' }, 400);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -57,15 +55,30 @@ Deno.serve(async (req) => {
     if (oErr) throw oErr;
     if (!order) return json({ error: 'order_not_found' }, 404);
     if (order.status !== 'issued') return json({ error: 'invalid_status', status: order.status }, 409);
-    if (!order.provider_key_id) return json({ error: 'missing_provider_key_id' }, 422);
+    // Fallback: se o fornecedor não devolveu um ID separado, o próprio "code" é o identificador.
+    const providerKeyRef = String(order.provider_key_id ?? order.code ?? '').trim();
+    if (!providerKeyRef) return json({ error: 'missing_provider_key_id' }, 422);
     if (!CLAUDE_BASE_URL) return json({ error: 'provider_not_configured' }, 500);
+
+    // Regra dos 7 dias: fora da janela precisa de `force` e NÃO estorna.
+    const createdAtMs = new Date(order.created_at).getTime();
+    const ageDays = (Date.now() - createdAtMs) / 86_400_000;
+    const withinWindow = ageDays <= REFUND_WINDOW_DAYS;
+    if (!withinWindow && !force) {
+      return json({
+        error: 'refund_window_expired',
+        message: `Prazo de ${REFUND_WINDOW_DAYS} dias para cancelamento com estorno já expirou. Envie force=true para cancelar mesmo assim (sem estorno).`,
+        age_days: Math.floor(ageDays),
+        refund_window_days: REFUND_WINDOW_DAYS,
+      }, 409);
+    }
 
     // Chama fornecedor — usa MINHA api key (revendedor nunca fala direto).
     let providerStatus = 0;
     let providerResp: any = null;
     try {
       const r = await fetch(
-        `${CLAUDE_BASE_URL}/api/rsl/keys/${encodeURIComponent(order.provider_key_id)}/cancel`,
+        `${CLAUDE_BASE_URL}/api/rsl/keys/${encodeURIComponent(providerKeyRef)}/cancel`,
         {
           method: 'POST',
           headers: {
@@ -118,10 +131,12 @@ Deno.serve(async (req) => {
     }
 
     // Estorna saldo do revendedor. Prioriza valor do fornecedor; fallback no custo local.
+    // Fora da janela: NÃO devolve nada, mesmo que force=true.
     const providerRefund = Number(providerResp?.refunded_amount_cents);
-    const refundCents = Number.isFinite(providerRefund) && providerRefund > 0
+    const baseRefund = Number.isFinite(providerRefund) && providerRefund > 0
       ? providerRefund
       : (Number(order.cost_cents) || 0);
+    const refundCents = withinWindow ? baseRefund : 0;
     if (refundCents > 0) {
       const { error: cErr } = await admin.rpc('credit_reseller_balance', {
         _reseller_id: reseller.id,
@@ -145,6 +160,7 @@ Deno.serve(async (req) => {
     await admin.from('claude_orders').update({
       status: 'cancelled',
       cancelled_at: now,
+      refund_waived: !withinWindow,
       cancel_attempts: [...prevAttempts, attempt],
     }).eq('id', order.id);
 
@@ -152,6 +168,8 @@ Deno.serve(async (req) => {
       ok: true,
       order_id: order.id,
       refund_cents: refundCents,
+      refund_waived: !withinWindow,
+      age_days: Math.floor(ageDays),
       provider_response: providerResp,
     });
   } catch (e) {
