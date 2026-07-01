@@ -351,6 +351,9 @@ function TabErros() {
     ["500", "provider_not_configured", "Fornecedor não configurado — contate o suporte"],
     ["502", "provider_error", "Fornecedor retornou erro — carteira não foi debitada"],
     ["502", "provider_network_error", "Falha de rede com o fornecedor — retry seguro com mesma Idempotency-Key"],
+    ["409", "refund_window_expired", "Cancelamento após 7 dias — reenvie com force=true para revogar sem estorno"],
+    ["409", "invalid_status", "Pedido não está em estado cancelável (ex.: já cancelado)"],
+    ["422", "missing_provider_key_id", "Pedido sem identificação da chave no fornecedor"],
   ];
 
   return (
