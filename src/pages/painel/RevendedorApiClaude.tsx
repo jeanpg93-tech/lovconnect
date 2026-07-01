@@ -52,6 +52,8 @@ export default function RevendedorApiClaude() {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
   const [savingWebhook, setSavingWebhook] = useState(false);
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [testResult, setTestResult] = useState<null | { ok: boolean; msg: string }>(null);
 
   const load = async () => {
     const { data: u } = await supabase.auth.getUser();
@@ -120,6 +122,29 @@ export default function RevendedorApiClaude() {
     setSavingWebhook(false);
     if (error) return toast.error(error.message);
     toast.success("Webhook salvo");
+  };
+
+  const sendTestWebhook = async () => {
+    if (!webhookUrl) return toast.error("Salve uma URL de webhook primeiro.");
+    setTestingWebhook(true);
+    setTestResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("claude-webhook-test", { body: {} });
+      if (error) throw error;
+      if ((data as any)?.success) {
+        setTestResult({ ok: true, msg: `Entregue — HTTP ${(data as any).status ?? 200}` });
+        toast.success("Webhook entregue com sucesso");
+      } else {
+        const d = (data as any) ?? {};
+        setTestResult({ ok: false, msg: d.error || d.reason || `Falha (HTTP ${d.status ?? "?"})` });
+        toast.error("Falha ao entregar webhook");
+      }
+    } catch (e: any) {
+      setTestResult({ ok: false, msg: e?.message ?? String(e) });
+      toast.error(e?.message ?? "Erro ao testar webhook");
+    } finally {
+      setTestingWebhook(false);
+    }
   };
 
   const copyToClipboard = async (text: string) => {
@@ -590,23 +615,79 @@ print("chave:", data["codigo"])
         </TabsContent>
 
         <TabsContent value="webhook" className="mt-5 space-y-4">
-          <div className="rounded-xl border border-border bg-card/60 p-5 space-y-3 max-w-2xl">
-            <div className="text-sm text-muted-foreground">
-              Receba notificações HTTP quando uma chave for emitida com sucesso ou falhar.
-              Enviamos um POST JSON assinado com seu segredo no header <code className="text-xs">X-Signature</code>.
+          <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+            <div className="rounded-xl border border-border bg-card/60 p-5 space-y-3">
+              <div>
+                <h3 className="text-base font-semibold flex items-center gap-2">
+                  <WebhookIcon className="h-4 w-4 text-primary" /> Webhook de eventos
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enviamos um <code className="text-[11px]">POST</code> JSON assinado com seu segredo no header{" "}
+                  <code className="text-[11px]">X-Signature: sha256=…</code> sempre que uma chave é emitida.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>URL do webhook</Label>
+                <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://seusite.com/webhooks/claude" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Segredo (HMAC)</Label>
+                <Input type="password" value={webhookSecret} onChange={(e) => setWebhookSecret(e.target.value)} placeholder="qualquer string secreta (guarde no seu servidor)" />
+                <p className="text-[11px] text-muted-foreground">
+                  Use este segredo para validar a assinatura antes de confiar no payload.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button onClick={saveWebhook} disabled={savingWebhook}>
+                  {savingWebhook && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Salvar webhook
+                </Button>
+                <Button variant="outline" onClick={sendTestWebhook} disabled={testingWebhook || !webhookUrl}>
+                  {testingWebhook && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Enviar evento de teste
+                </Button>
+              </div>
+              {testResult && (
+                <div className={`text-xs rounded-md border p-2 ${testResult.ok ? "border-emerald-500/40 text-emerald-500" : "border-destructive/40 text-destructive"}`}>
+                  {testResult.ok ? "✅" : "⚠️"} {testResult.msg}
+                </div>
+              )}
             </div>
-            <div className="space-y-1.5">
-              <Label>URL do webhook</Label>
-              <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://seusite.com/webhooks/claude" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Segredo (HMAC)</Label>
-              <Input value={webhookSecret} onChange={(e) => setWebhookSecret(e.target.value)} placeholder="qualquer string secreta" />
-            </div>
-            <div className="pt-2">
-              <Button onClick={saveWebhook} disabled={savingWebhook}>
-                {savingWebhook && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Salvar webhook
-              </Button>
+
+            <div className="rounded-xl border border-border bg-card/40 p-5 space-y-3">
+              <h4 className="text-sm font-semibold">Formato do evento</h4>
+              <pre className="text-[11px] leading-relaxed bg-background/60 border border-border rounded-md p-3 overflow-auto">
+{`POST ${webhookUrl || "<sua URL>"}
+Content-Type: application/json
+X-Signature: sha256=<hex hmac do body>
+User-Agent: LovConnect-Webhook/1.0
+
+{
+  "event": "claude.key.issued",
+  "pedido_id": "uuid",
+  "plano": "5x_30d",
+  "preco_centavos": 14900,
+  "codigo": "sk-ant-...",
+  "provider_key_id": "abc123",
+  "id_cliente": "cliente@exemplo.com",
+  "sent_at": "2026-07-01T12:34:56Z"
+}`}
+              </pre>
+              <h4 className="text-sm font-semibold pt-2">Validando a assinatura (Node.js)</h4>
+              <pre className="text-[11px] leading-relaxed bg-background/60 border border-border rounded-md p-3 overflow-auto">
+{`import crypto from "node:crypto";
+
+const raw = await req.text();
+const expected = "sha256=" + crypto
+  .createHmac("sha256", process.env.WEBHOOK_SECRET)
+  .update(raw).digest("hex");
+
+if (req.headers.get("x-signature") !== expected) {
+  return new Response("invalid signature", { status: 401 });
+}`}
+              </pre>
+              <div className="text-[11px] text-muted-foreground">
+                Responda <code>2xx</code> em até 8s. Timeouts / 5xx não são reenviados automaticamente por enquanto —
+                mantenha idempotência usando <code>pedido_id</code>.
+              </div>
             </div>
           </div>
         </TabsContent>
