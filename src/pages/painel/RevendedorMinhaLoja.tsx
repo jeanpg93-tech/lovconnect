@@ -997,6 +997,25 @@ export default function RevendedorMinhaLoja() {
                   <div className="flex items-center justify-between pt-3 border-t border-dashed">
                     <div className="space-y-0.5">
                       <div className="text-sm font-bold flex items-center gap-2">
+                        <Sparkles className="h-3.5 w-3.5 text-orange-500" /> Venda de Planos Claude
+                        {!claudeEnabled && (
+                          <span className="text-[10px] uppercase tracking-wide rounded-full bg-muted text-muted-foreground px-2 py-0.5">
+                            indisponível
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {claudeEnabled
+                          ? "Exibe os planos Claude (tokens/dias) na loja para venda via PIX."
+                          : "Seu acesso à revenda Claude ainda não foi liberado pelo gerente."}
+                      </div>
+                    </div>
+                    <Switch checked={showClaude && claudeEnabled} disabled={!claudeEnabled} onCheckedChange={setShowClaude} />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-dashed">
+                    <div className="space-y-0.5">
+                      <div className="text-sm font-bold flex items-center gap-2">
                         <KeyRound className="h-3.5 w-3.5 text-blue-500" /> Venda de Chaves da extensão
                       </div>
                       <div className="text-xs text-muted-foreground">Exibe o catálogo de chaves/licenças para compra.</div>
