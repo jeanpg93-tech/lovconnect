@@ -6,7 +6,6 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const CLAUDE_API_KEY = Deno.env.get('CLAUDE_RESELLER_API_KEY')!;
 const CLAUDE_BASE_URL = (Deno.env.get('CLAUDE_RESELLER_API_BASE_URL') ?? '').replace(/\/$/, '');
 const PROJECT_REF = (Deno.env.get('SUPABASE_URL') ?? '').match(/https?:\/\/([^.]+)\./)?.[1] ?? '';
-const ADMIN_USER_ID = 'beae9f73-5c2c-4878-bfc5-41e9e2faf15e';
 
 const json = (d: unknown, s = 200) =>
   new Response(JSON.stringify(d), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -22,7 +21,11 @@ Deno.serve(async (req) => {
   });
   const { data: u } = await userClient.auth.getUser();
   if (!u?.user) return json({ error: 'unauthorized' }, 401);
-  if (u.user.id !== ADMIN_USER_ID) return json({ error: 'forbidden' }, 403);
+  const { data: isManager } = await userClient.rpc('has_role', {
+    _user_id: u.user.id,
+    _role: 'gerente',
+  });
+  if (!isManager) return json({ error: 'forbidden' }, 403);
 
   if (!CLAUDE_BASE_URL) return json({ error: 'provider_not_configured' }, 500);
 
