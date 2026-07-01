@@ -52,6 +52,8 @@ export default function RevendedorApiClaude() {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
   const [savingWebhook, setSavingWebhook] = useState(false);
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [testResult, setTestResult] = useState<null | { ok: boolean; msg: string }>(null);
 
   const load = async () => {
     const { data: u } = await supabase.auth.getUser();
@@ -120,6 +122,44 @@ export default function RevendedorApiClaude() {
     setSavingWebhook(false);
     if (error) return toast.error(error.message);
     toast.success("Webhook salvo");
+  };
+
+  const sendTestWebhook = async () => {
+    if (!webhookUrl) return toast.error("Salve uma URL de webhook primeiro.");
+    setTestingWebhook(true);
+    setTestResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("reseller-claude-api", {
+        method: "POST",
+        // rota interna: usa a mesma edge function com header customizado
+        body: { __test_webhook: true },
+      });
+      // Fallback: chama via fetch com header X-API-Key da primeira chave conhecida — não temos a chave em claro aqui,
+      // então o teste é disparado pelo servidor via RPC dedicada.
+      const activeKey = keys.find((k) => k.is_active);
+      if (!activeKey) throw new Error("Nenhuma chave ativa encontrada.");
+      // Fluxo real: usamos a rota /webhook/test protegida — o revendedor precisa colar sua chave para testar.
+      const apiKey = window.prompt("Cole sua API Key (sk_claude_…) para autenticar o teste:");
+      if (!apiKey) { setTestingWebhook(false); return; }
+      const r = await fetch(`${FUNCTIONS_BASE}/reseller-claude-api/webhook/test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+      });
+      const j = await r.json().catch(() => ({}));
+      if (j?.success) {
+        setTestResult({ ok: true, msg: `Entregue — HTTP ${j.status ?? 200}` });
+        toast.success("Webhook entregue com sucesso");
+      } else {
+        setTestResult({ ok: false, msg: j?.error || j?.reason || `Falha (HTTP ${j?.status ?? "?"})` });
+        toast.error("Falha ao entregar webhook");
+      }
+      void data; void error;
+    } catch (e: any) {
+      setTestResult({ ok: false, msg: e?.message ?? String(e) });
+      toast.error(e?.message ?? "Erro ao testar webhook");
+    } finally {
+      setTestingWebhook(false);
+    }
   };
 
   const copyToClipboard = async (text: string) => {
