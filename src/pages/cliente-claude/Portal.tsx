@@ -420,6 +420,18 @@ export default function ClienteClaudePortal() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {whatsappLink && (
+              <Button
+                size="sm"
+                asChild
+                className="flex-1 sm:flex-none bg-[#25D366] hover:bg-[#1ebe57] text-white border-0 hover-scale"
+                style={{ boxShadow: `0 0 18px rgba(37, 211, 102, 0.45)` }}
+              >
+                <a href={whatsappLink} target="_blank" rel="noreferrer" aria-label="Falar com o revendedor no WhatsApp">
+                  <MessageCircle className="h-4 w-4 mr-2" /> WhatsApp
+                </a>
+              </Button>
+            )}
             {(reseller?.slug || storeSlug) && (
               <Button variant="outline" size="sm" asChild className="flex-1 sm:flex-none border-white/15 bg-white/5 hover:bg-white/10 hover-scale">
                 <Link to={`/loja/${reseller?.slug ?? storeSlug}`}>
