@@ -16,6 +16,7 @@ export default function RevendedorPrecos() {
   const methods = useResellerEnabledMethods();
 
   const visibleTabs = useMemo(() => {
+    if (methods.loading) return [] as { value: string; label: string; icon: any; render: () => JSX.Element }[];
     const t: { value: string; label: string; icon: any; render: () => JSX.Element }[] = [];
     if (methods.flow) t.push({ value: "promptflow", label: "MétodoFlow", icon: Sparkles, render: () => <MethodPriceTable method="flow" /> });
     t.push({ value: "lovax", label: "LovaX", icon: Beaker, render: () => <MethodPriceTable method="lovax" /> });
@@ -23,7 +24,7 @@ export default function RevendedorPrecos() {
     if (methods.recharges) t.push({ value: "recargas", label: "Recargas", icon: Zap, render: () => <RevendedorCreditos /> });
     if (methods.plano3k) t.push({ value: "plano", label: "Plano 3K", icon: CalendarClock, render: () => <RevendedorPlanoPreco /> });
     return t;
-  }, [methods.flow, methods.recharges, methods.plano3k]);
+  }, [methods.loading, methods.flow, methods.recharges, methods.plano3k]);
 
   const [tab, setTab] = useState<string>(() => {
     const p = new URLSearchParams(window.location.search).get("tab");
@@ -40,7 +41,11 @@ export default function RevendedorPrecos() {
 
       {issues.length > 0 && <PricingIssuesBanner issues={issues} className="mb-5" />}
 
-      {visibleTabs.length === 0 ? (
+      {methods.loading ? (
+        <div className="rounded-xl border border-border bg-card/60 p-10 text-center text-sm text-muted-foreground">
+          Carregando…
+        </div>
+      ) : visibleTabs.length === 0 ? (
         <div className="rounded-xl border border-border bg-card/60 p-10 text-center text-sm text-muted-foreground">
           Nenhum método de venda habilitado no momento.
         </div>
