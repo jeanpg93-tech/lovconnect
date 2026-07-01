@@ -13,7 +13,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
 
 type Customer = {
   id: string;
@@ -92,7 +91,6 @@ export default function ClienteClaudePortal() {
   const [reseller, setReseller] = useState<ResellerInfo | null>(null);
   const [renewalOpen, setRenewalOpen] = useState(false);
   const [renewalPlan, setRenewalPlan] = useState<string>("");
-  const [renewalNote, setRenewalNote] = useState("");
   const [renewalSubmitting, setRenewalSubmitting] = useState(false);
   const [pixOpen, setPixOpen] = useState(false);
   const [pixData, setPixData] = useState<{
@@ -188,46 +186,31 @@ export default function ClienteClaudePortal() {
     if (!renewalPlan) return toast.error("Escolha um plano");
     setRenewalSubmitting(true);
     try {
-      // 1) Tenta o fluxo automático PIX (MisticPay do revendedor)
       const { data: pix, error: pixErr } = await supabase.functions.invoke("claude-customer-checkout-renewal", {
         body: { plan_code: renewalPlan, reseller_slug: storeSlug || null },
       });
-      const pixErrorCode = (pix as any)?.error;
-      if (!pixErr && (pix as any)?.ok) {
-        setPixData({
-          order_id: (pix as any).order_id,
-          qr_code_base64: (pix as any).qr_code_base64 ?? null,
-          copy_paste: (pix as any).copy_paste ?? null,
-          pix_expires_at: (pix as any).pix_expires_at ?? null,
-          sale_price_cents: (pix as any).sale_price_cents ?? 0,
-          plan_code: renewalPlan,
-        });
-        setPixStatus("waiting");
-        setPixCopied(false);
-        setRenewalOpen(false);
-        setPixOpen(true);
-        return;
-      }
-      // 2) Fallback: revendedor sem MisticPay configurado → solicitação manual
-      if (pixErrorCode && pixErrorCode !== "reseller_misticpay_not_configured") {
-        throw new Error(pixErrorCode);
-      }
-      const { data, error } = await supabase.functions.invoke("claude-customer-request-renewal", {
-        body: { plan_code: renewalPlan, note: renewalNote || null, reseller_slug: storeSlug || null },
+      if (pixErr) throw pixErr;
+      const payload = pix as any;
+      if (!payload?.ok) throw new Error(payload?.error ?? "erro_desconhecido");
+      setPixData({
+        order_id: payload.order_id,
+        qr_code_base64: payload.qr_code_base64 ?? null,
+        copy_paste: payload.copy_paste ?? null,
+        pix_expires_at: payload.pix_expires_at ?? null,
+        sale_price_cents: payload.sale_price_cents ?? 0,
+        plan_code: renewalPlan,
       });
-      if (error) throw error;
-      if ((data as any)?.error === "already_requested") {
-        toast.info("Você já tem uma solicitação em aberto para esse plano.");
-      } else if ((data as any)?.ok) {
-        toast.success("Solicitação enviada! O revendedor foi notificado.");
-        setRenewalOpen(false);
-        setRenewalNote("");
-        setRenewalPlan("");
-      } else {
-        throw new Error((data as any)?.error ?? "erro_desconhecido");
-      }
+      setPixStatus("waiting");
+      setPixCopied(false);
+      setRenewalOpen(false);
+      setPixOpen(true);
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao enviar solicitação");
+      const msg = e?.message ?? "Falha ao gerar PIX";
+      if (msg === "reseller_misticpay_not_configured") {
+        toast.error("O revendedor ainda não configurou o PIX. Fale com ele pelo WhatsApp.");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setRenewalSubmitting(false);
     }
@@ -439,10 +422,10 @@ export default function ClienteClaudePortal() {
         <Dialog open={renewalOpen} onOpenChange={setRenewalOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Solicitar renovação</DialogTitle>
+              <DialogTitle>Nova chave / Renovação</DialogTitle>
               <DialogDescription>
-                Escolha o plano desejado. Sua solicitação será enviada ao revendedor
-                {reseller?.display_name ? ` (${reseller.display_name})` : ""} para confirmação e pagamento.
+                Escolha o plano e pague via PIX. Uma nova chave será emitida automaticamente após a confirmação
+                {reseller?.display_name ? ` (revendedor: ${reseller.display_name})` : ""}.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -462,22 +445,12 @@ export default function ClienteClaudePortal() {
                   </label>
                 ))}
               </RadioGroup>
-              <div className="space-y-2">
-                <Label htmlFor="note">Observação (opcional)</Label>
-                <Textarea
-                  id="note"
-                  value={renewalNote}
-                  onChange={(e) => setRenewalNote(e.target.value)}
-                  placeholder="Ex.: prefiro pagar via PIX"
-                  maxLength={500}
-                />
-              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setRenewalOpen(false)}>Cancelar</Button>
               <Button onClick={submitRenewal} disabled={renewalSubmitting || !renewalPlan}>
                 {renewalSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Enviar solicitação
+                Gerar PIX
               </Button>
             </DialogFooter>
           </DialogContent>
