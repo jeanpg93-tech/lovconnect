@@ -433,6 +433,7 @@ export type Database = {
           cancelled_at: string | null
           code: string | null
           code_revealed_at: string | null
+          copy_paste: string | null
           cost_cents: number
           created_at: string
           customer_email: string | null
@@ -444,10 +445,14 @@ export type Database = {
           expired_at: string | null
           id: string
           is_renewal: boolean
+          paid_at: string | null
+          pix_expires_at: string | null
           plan_code: string
           profit_cents: number
           provider_key_id: string | null
           provider_response: Json | null
+          provider_transaction_id: string | null
+          qr_code_base64: string | null
           redeemed_at: string | null
           renewal_note: string | null
           request_id: string | null
@@ -462,6 +467,7 @@ export type Database = {
           cancelled_at?: string | null
           code?: string | null
           code_revealed_at?: string | null
+          copy_paste?: string | null
           cost_cents?: number
           created_at?: string
           customer_email?: string | null
@@ -473,10 +479,14 @@ export type Database = {
           expired_at?: string | null
           id?: string
           is_renewal?: boolean
+          paid_at?: string | null
+          pix_expires_at?: string | null
           plan_code: string
           profit_cents?: number
           provider_key_id?: string | null
           provider_response?: Json | null
+          provider_transaction_id?: string | null
+          qr_code_base64?: string | null
           redeemed_at?: string | null
           renewal_note?: string | null
           request_id?: string | null
@@ -491,6 +501,7 @@ export type Database = {
           cancelled_at?: string | null
           code?: string | null
           code_revealed_at?: string | null
+          copy_paste?: string | null
           cost_cents?: number
           created_at?: string
           customer_email?: string | null
@@ -502,10 +513,14 @@ export type Database = {
           expired_at?: string | null
           id?: string
           is_renewal?: boolean
+          paid_at?: string | null
+          pix_expires_at?: string | null
           plan_code?: string
           profit_cents?: number
           provider_key_id?: string | null
           provider_response?: Json | null
+          provider_transaction_id?: string | null
+          qr_code_base64?: string | null
           redeemed_at?: string | null
           renewal_note?: string | null
           request_id?: string | null
@@ -5133,6 +5148,8 @@ export type Database = {
         | "cancelled"
         | "cancel_failed"
         | "renewal_requested"
+        | "awaiting_payment"
+        | "awaiting_balance"
       onboarding_tour_status: "pending" | "completed" | "skipped"
       recharge_plan_delivery_status:
         | "pending"
@@ -5285,6 +5302,8 @@ export const Constants = {
         "cancelled",
         "cancel_failed",
         "renewal_requested",
+        "awaiting_payment",
+        "awaiting_balance",
       ],
       onboarding_tour_status: ["pending", "completed", "skipped"],
       recharge_plan_delivery_status: [
