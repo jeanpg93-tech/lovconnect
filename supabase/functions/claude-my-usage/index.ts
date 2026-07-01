@@ -52,6 +52,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
       scopedResellerId = scopedReseller?.id ?? "";
     }
+    if ((resellerSlug || resellerIdIn) && !scopedResellerId) return json({ error: "customer_not_found" }, 404);
 
     let customerQuery = admin
       .from("claude_customers")

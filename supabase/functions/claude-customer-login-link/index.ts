@@ -39,6 +39,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
       scopedResellerId = reseller?.id ?? "";
     }
+    if ((resellerSlug || resellerIdIn) && !scopedResellerId) return json({ success: true });
 
     // Verifica se é cliente claude (não vaza se não for)
     let customerQuery = admin
