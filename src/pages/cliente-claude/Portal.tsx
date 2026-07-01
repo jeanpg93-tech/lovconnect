@@ -13,6 +13,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { StorefrontBackground } from "@/components/storefront/StorefrontBackground";
+import { StorefrontVisualEffects, type VisualEffect } from "@/components/storefront/StorefrontVisualEffects";
+import { PortalFooterBrand } from "@/components/cliente-claude/PortalFooterBrand";
 
 type Customer = {
   id: string;
@@ -56,6 +59,9 @@ type ResellerInfo = {
   background_color?: string | null;
   logo_url?: string | null;
   logo_size?: number | null;
+  background_effect?: string | null;
+  visual_effect?: string | null;
+  tagline?: string | null;
 };
 
 const PLAN_LABELS: Record<string, string> = {
@@ -362,6 +368,13 @@ export default function ClienteClaudePortal() {
           maskImage: "radial-gradient(ellipse at top, black 40%, transparent 80%)",
         }}
       />
+      {/* Efeitos da loja do revendedor (padroniza com o storefront) */}
+      {reseller?.background_effect && reseller.background_effect !== "none" && (
+        <StorefrontBackground effect={reseller.background_effect as any} color={reseller.primary_color ?? "#7c3aed"} />
+      )}
+      {reseller?.visual_effect && reseller.visual_effect !== "none" && (
+        <StorefrontVisualEffects effect={reseller.visual_effect as VisualEffect} color={reseller.primary_color ?? "#7c3aed"} />
+      )}
       <div className="max-w-5xl mx-auto space-y-6 relative">
         {/* Header dashboard */}
         <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 shadow-2xl animate-fade-in">
@@ -755,6 +768,9 @@ export default function ClienteClaudePortal() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      </div>
+      <div className="max-w-5xl mx-auto mt-8 pb-4 flex justify-center relative">
+        <PortalFooterBrand />
       </div>
     </div>
   );
