@@ -47,3 +47,15 @@ verify_jwt = true
 
 [functions.claude-customer-login-link]
 verify_jwt = false
+
+[functions.claude-public-prices]
+verify_jwt = false
+
+[functions.claude-public-checkout]
+verify_jwt = false
+
+[functions.claude-public-order-status]
+verify_jwt = false
+
+[functions.claude-customer-signup]
+verify_jwt = false

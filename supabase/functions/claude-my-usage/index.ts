@@ -1,7 +1,11 @@
 // Endpoint do cliente final: retorna suas próprias chaves Claude + consumo de tokens.
 // Auth: JWT do cliente (auth.users), casa com claude_customers.auth_user_id.
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -12,12 +16,25 @@ const CLAUDE_BASE_URL = (Deno.env.get("CLAUDE_RESELLER_API_BASE_URL") ?? "").rep
 const json = (d: unknown, s = 200) =>
   new Response(JSON.stringify(d), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-const PLAN_CODES = ["5x_7d", "5x_30d", "20x_30d"] as const;
+const PLAN_CODES = ["pro_30d", "5x_30d", "20x_30d"] as const;
 
 function computeSalePrice(cost: number, mode: string, value: number) {
   if (mode === "percent") return Math.max(0, Math.round((cost * (10000 + value)) / 10000));
   if (mode === "fixed_add") return Math.max(0, cost + value);
   return Math.max(0, value);
+}
+
+function extractProviderCode(resp: any): string | null {
+  if (!resp || typeof resp !== "object") return null;
+  return String(
+    resp?.code ??
+    resp?.key ??
+    resp?.data?.code ??
+    resp?.data?.key ??
+    resp?.credential ??
+    resp?.data?.credential ??
+    ""
+  ).trim() || null;
 }
 
 Deno.serve(async (req) => {
@@ -34,10 +51,30 @@ Deno.serve(async (req) => {
     if (uErr || !userData?.user) return json({ error: "unauthorized" }, 401);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    const { data: customer } = await admin
+    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+    const url = new URL(req.url);
+    const resellerSlug = String(body?.reseller_slug ?? url.searchParams.get("reseller_slug") ?? "").trim().toLowerCase();
+    const resellerIdIn = String(body?.reseller_id ?? url.searchParams.get("reseller_id") ?? "").trim();
+
+    let scopedResellerId = resellerIdIn || "";
+    if (resellerSlug && !scopedResellerId) {
+      const { data: scopedReseller } = await admin
+        .from("resellers")
+        .select("id")
+        .eq("slug", resellerSlug)
+        .maybeSingle();
+      scopedResellerId = scopedReseller?.id ?? "";
+    }
+    if ((resellerSlug || resellerIdIn) && !scopedResellerId) return json({ error: "customer_not_found" }, 404);
+
+    let customerQuery = admin
       .from("claude_customers")
-      .select("id, email, reseller_id, name")
-      .eq("auth_user_id", userData.user.id)
+      .select("id, email, reseller_id, name, must_change_password")
+      .eq("auth_user_id", userData.user.id);
+    if (scopedResellerId) customerQuery = customerQuery.eq("reseller_id", scopedResellerId);
+    const { data: customer } = await customerQuery
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (!customer) return json({ error: "customer_not_found" }, 404);
 
@@ -45,12 +82,12 @@ Deno.serve(async (req) => {
     const emailLower = String(customer.email).toLowerCase();
     const { data: byId } = await admin
       .from("claude_orders")
-      .select("id, plan_code, status, provider_key_id, created_at, sale_price_cents, customer_email")
+      .select("id, plan_code, status, provider_key_id, code, provider_response, created_at, sale_price_cents, customer_email")
       .eq("customer_id", customer.id)
       .order("created_at", { ascending: false });
     const { data: byEmail } = await admin
       .from("claude_orders")
-      .select("id, plan_code, status, provider_key_id, created_at, sale_price_cents, customer_email")
+      .select("id, plan_code, status, provider_key_id, code, provider_response, created_at, sale_price_cents, customer_email")
       .eq("reseller_id", customer.reseller_id)
       .ilike("customer_email", emailLower)
       .order("created_at", { ascending: false });
@@ -60,6 +97,18 @@ Deno.serve(async (req) => {
       if (seen.has(o.id)) return false;
       seen.add(o.id);
       return true;
+    }).map((o: any) => {
+      const code = String(o.code ?? "").trim() || extractProviderCode(o.provider_response);
+      return {
+        id: o.id,
+        plan_code: o.plan_code,
+        status: o.status,
+        provider_key_id: o.provider_key_id,
+        code,
+        created_at: o.created_at,
+        sale_price_cents: o.sale_price_cents,
+        customer_email: o.customer_email,
+      };
     });
 
     // Planos disponíveis para renovação (sale price com override do revendedor)
@@ -119,7 +168,13 @@ Deno.serve(async (req) => {
 
     return json({
       ok: true,
-      customer: { id: customer.id, name: customer.name, email: customer.email },
+      customer: {
+        id: customer.id,
+        name: customer.name,
+        email: customer.email,
+        reseller_id: customer.reseller_id,
+        must_change_password: !!customer.must_change_password,
+      },
       orders,
       usage,
       plans,

@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2, Store } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -28,6 +28,7 @@ type Order = {
   plan_code: string;
   status: string;
   provider_key_id: string | null;
+  code?: string | null;
   created_at: string;
   sale_price_cents: number;
 };
@@ -48,6 +49,7 @@ type Plan = { plan_code: string; sale_price_cents: number };
 type ResellerInfo = { display_name: string | null; whatsapp: string | null; slug: string | null; claude_enabled: boolean };
 
 const PLAN_LABELS: Record<string, string> = {
+  "pro_30d": "Plano Pro — 30 dias",
   "5x_7d": "Plano 5x — 7 dias",
   "5x_30d": "Plano 5x — 30 dias",
   "20x_30d": "Plano 20x — 30 dias",
@@ -78,6 +80,8 @@ function fmtTokens(n?: number | null) {
 
 export default function ClienteClaudePortal() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const storeSlug = searchParams.get("loja")?.trim() ?? "";
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -103,35 +107,60 @@ export default function ClienteClaudePortal() {
   const [pixCopied, setPixCopied] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    const loginPath = `/cliente-claude/login${storeSlug ? `?loja=${encodeURIComponent(storeSlug)}` : ""}`;
+    const waitForSession = async () => {
+      const first = await supabase.auth.getSession();
+      if (first.data.session) return first.data.session;
+      return await new Promise<typeof first.data.session>((resolve) => {
+        let subscription: { unsubscribe: () => void } | null = null;
+        const timeout = window.setTimeout(async () => {
+          subscription?.unsubscribe();
+          const latest = await supabase.auth.getSession();
+          resolve(latest.data.session ?? null);
+        }, 1800);
+        const sub = supabase.auth.onAuthStateChange((_event, session) => {
+          if (!session) return;
+          window.clearTimeout(timeout);
+          subscription?.unsubscribe();
+          resolve(session);
+        });
+        subscription = sub.data.subscription;
+      });
+    };
+
     (async () => {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session) {
-        navigate("/cliente-claude/login", { replace: true });
-        return;
-      }
-      const { data, error } = await supabase
-        .from("claude_customers")
-        .select("id, name, email, must_change_password, reseller_id")
-        .eq("auth_user_id", session.session.user.id)
-        .maybeSingle();
-      if (error || !data) {
-        toast.error("Cliente não encontrado. Contate seu revendedor.");
-        await supabase.auth.signOut();
-        navigate("/cliente-claude/login", { replace: true });
-        return;
-      }
-      setCustomer(data as Customer);
-      // Carrega chaves + consumo
-      const { data: usageResp } = await supabase.functions.invoke("claude-my-usage");
-      if (usageResp?.ok) {
+      try {
+        const session = await waitForSession();
+        if (cancelled) return;
+        if (!session) {
+          navigate(loginPath, { replace: true });
+          return;
+        }
+        const { data: usageResp, error } = await supabase.functions.invoke("claude-my-usage", {
+          body: { reseller_slug: storeSlug || null },
+        });
+        if (error) throw error;
+        if (!usageResp?.ok || !usageResp.customer) {
+          toast.error("Cliente não encontrado. Contate seu revendedor.");
+          await supabase.auth.signOut();
+          navigate(loginPath, { replace: true });
+          return;
+        }
+        if (cancelled) return;
+        setCustomer(usageResp.customer as Customer);
         setOrders(usageResp.orders ?? []);
         setUsage(usageResp.usage ?? null);
         setPlans(usageResp.plans ?? []);
         setReseller(usageResp.reseller ?? null);
+      } catch (e: any) {
+        if (!cancelled) toast.error(e?.message ?? "Erro ao abrir o portal");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     })();
-  }, [navigate]);
+    return () => { cancelled = true; };
+  }, [navigate, storeSlug]);
 
   const changePassword = async () => {
     if (newPassword.length < 8) return toast.error("Senha precisa de ao menos 8 caracteres");
@@ -152,7 +181,7 @@ export default function ClienteClaudePortal() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    navigate("/cliente-claude/login", { replace: true });
+    navigate(`/cliente-claude/login${storeSlug ? `?loja=${encodeURIComponent(storeSlug)}` : ""}`, { replace: true });
   };
 
   const submitRenewal = async () => {
@@ -161,7 +190,7 @@ export default function ClienteClaudePortal() {
     try {
       // 1) Tenta o fluxo automático PIX (MisticPay do revendedor)
       const { data: pix, error: pixErr } = await supabase.functions.invoke("claude-customer-checkout-renewal", {
-        body: { plan_code: renewalPlan },
+        body: { plan_code: renewalPlan, reseller_slug: storeSlug || null },
       });
       const pixErrorCode = (pix as any)?.error;
       if (!pixErr && (pix as any)?.ok) {
@@ -184,7 +213,7 @@ export default function ClienteClaudePortal() {
         throw new Error(pixErrorCode);
       }
       const { data, error } = await supabase.functions.invoke("claude-customer-request-renewal", {
-        body: { plan_code: renewalPlan, note: renewalNote || null },
+        body: { plan_code: renewalPlan, note: renewalNote || null, reseller_slug: storeSlug || null },
       });
       if (error) throw error;
       if ((data as any)?.error === "already_requested") {
@@ -219,7 +248,9 @@ export default function ClienteClaudePortal() {
         setPixStatus("issued");
         toast.success("Pagamento confirmado! Chave emitida.");
         // recarrega dados
-        const { data: usageResp } = await supabase.functions.invoke("claude-my-usage");
+        const { data: usageResp } = await supabase.functions.invoke("claude-my-usage", {
+          body: { reseller_slug: storeSlug || null },
+        });
         if (usageResp?.ok) {
           setOrders(usageResp.orders ?? []);
           setUsage(usageResp.usage ?? null);
@@ -262,14 +293,23 @@ export default function ClienteClaudePortal() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">Olá, {customer?.name}</h1>
             <p className="text-sm text-muted-foreground">{customer?.email}</p>
           </div>
-          <Button variant="outline" size="sm" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-2" /> Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            {(reseller?.slug || storeSlug) && (
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/loja/${reseller?.slug ?? storeSlug}`}>
+                  <Store className="h-4 w-4 mr-2" /> Loja
+                </Link>
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-2" /> Sair
+            </Button>
+          </div>
         </div>
 
         {customer?.must_change_password && (
@@ -349,10 +389,25 @@ export default function ClienteClaudePortal() {
             ) : (
               <div className="space-y-3">
                 {orders.map((o) => (
-                  <div key={o.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
-                    <div className="space-y-1">
+                  <div key={o.id} className="flex flex-col gap-3 p-3 rounded-lg border bg-card/50 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-2 min-w-0 flex-1">
                       <div className="font-medium text-sm">{PLAN_LABELS[o.plan_code] ?? o.plan_code}</div>
                       <div className="text-xs text-muted-foreground">Emitida em {fmtDate(o.created_at)}</div>
+                      {o.status === "issued" && o.code && (
+                        <div className="flex flex-col gap-2 rounded-md border bg-background/70 p-2 sm:flex-row sm:items-center">
+                          <code className="flex-1 break-all text-xs">{o.code}</code>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              navigator.clipboard.writeText(o.code!);
+                              toast.success("Chave copiada!");
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     <Badge variant={o.status === "issued" ? "default" : o.status === "failed" ? "destructive" : "secondary"}>
                       {o.status === "issued" ? "Ativa" : o.status === "failed" ? "Falhou" : o.status}

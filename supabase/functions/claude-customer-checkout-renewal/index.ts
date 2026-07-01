@@ -2,8 +2,12 @@
 // Cria claude_orders (status='awaiting_payment', is_renewal=true) e usa o
 // MisticPay do PRÓPRIO revendedor (mesmas creds da loja pública) para gerar o QR.
 // O misticpay-webhook confirma o pagamento e chama a emissão da chave.
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -11,7 +15,7 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MISTIC_BASE = "https://api.misticpay.com/api";
 
 const PLAN_LABELS: Record<string, string> = {
-  "5x_7d": "5x — 7 dias",
+  "pro_30d": "Pro — 30 dias",
   "5x_30d": "5x — 30 dias",
   "20x_30d": "20x — 30 dias",
 };
@@ -44,14 +48,31 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const planCode = String(body?.plan_code ?? "").trim();
     const payerDocument = String(body?.payer_document ?? "00000000000").replace(/\D/g, "");
+    const resellerSlug = String(body?.reseller_slug ?? "").trim().toLowerCase();
+    const resellerIdIn = String(body?.reseller_id ?? "").trim();
     if (!PLAN_CODES.has(planCode)) return json({ error: "invalid_plan_code" }, 400);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    const { data: customer } = await admin
+    let scopedResellerId = resellerIdIn || "";
+    if (resellerSlug && !scopedResellerId) {
+      const { data: scopedReseller } = await admin
+        .from("resellers")
+        .select("id")
+        .eq("slug", resellerSlug)
+        .maybeSingle();
+      scopedResellerId = scopedReseller?.id ?? "";
+    }
+    if ((resellerSlug || resellerIdIn) && !scopedResellerId) return json({ error: "customer_not_found" }, 404);
+
+    let customerQuery = admin
       .from("claude_customers")
       .select("id, name, email, whatsapp, reseller_id")
-      .eq("auth_user_id", userData.user.id)
+      .eq("auth_user_id", userData.user.id);
+    if (scopedResellerId) customerQuery = customerQuery.eq("reseller_id", scopedResellerId);
+    const { data: customer } = await customerQuery
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (!customer) return json({ error: "customer_not_found" }, 404);
 

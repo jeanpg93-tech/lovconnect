@@ -650,6 +650,7 @@ export default function PublicStorefront() {
   const bgColor = store.background_color || undefined;
   const bgEffect = (store.background_effect ?? "none") as BgEffect;
   const layoutMode = (store.layout_mode ?? "grid") as LayoutMode;
+  const showClaudePortal = !!reseller.claude_enabled && (store as any)?.show_claude !== false;
 
   return (
     <div className="relative min-h-screen bg-background overflow-x-hidden" style={bgColor ? { backgroundColor: bgColor } : undefined}>
@@ -766,6 +767,16 @@ export default function PublicStorefront() {
                 />
               </button>
             </div>
+          )}
+
+          {showClaudePortal && !order && !selLic && !selRec && !selPlan && (
+            <Link
+              to={`/cliente-claude/login?loja=${encodeURIComponent(slug ?? "")}`}
+              className="inline-flex items-center gap-1.5 rounded-full border bg-card/30 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors hover:bg-card/60"
+              style={{ borderColor: `${color}50`, color }}
+            >
+              <ClaudeIcon className="h-3.5 w-3.5" /> Portal do cliente
+            </Link>
           )}
         </header>
 

@@ -6,15 +6,23 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, Mail, KeyRound, AlertTriangle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 export default function ClienteClaudeLogin() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const storeSlug = searchParams.get("loja")?.trim() ?? "";
+  const emailFromUrl = searchParams.get("email")?.trim() ?? "";
+  const portalPath = `/cliente-claude${storeSlug ? `?loja=${encodeURIComponent(storeSlug)}` : ""}`;
   const [mode, setMode] = useState<"magic" | "password">("magic");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [expiredLink, setExpiredLink] = useState<null | { code: string; description: string }>(null);
+
+  useEffect(() => {
+    if (emailFromUrl) setEmail(emailFromUrl);
+  }, [emailFromUrl]);
 
   useEffect(() => {
     // Detecta erro do magic link expirado retornado pelo Supabase no fragmento da URL
@@ -39,7 +47,7 @@ export default function ClienteClaudeLogin() {
     setLoading(true);
     try {
       const { error } = await supabase.functions.invoke("claude-customer-login-link", {
-        body: { email, redirect_to: `${window.location.origin}/cliente-claude` },
+        body: { email, reseller_slug: storeSlug || null, redirect_to: `${window.location.origin}${portalPath}` },
       });
       if (error) throw error;
       toast.success("Se o e-mail existir, você receberá um link em instantes.");
@@ -57,7 +65,7 @@ export default function ClienteClaudeLogin() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      navigate("/cliente-claude");
+      navigate(portalPath);
     } catch (e: any) {
       toast.error(e?.message ?? "Credenciais inválidas");
     } finally {
@@ -71,6 +79,11 @@ export default function ClienteClaudeLogin() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Portal do Cliente Claude</CardTitle>
           <p className="text-sm text-muted-foreground">Acompanhe suas chaves, consumo e renove.</p>
+          {storeSlug && (
+            <Button asChild variant="ghost" size="sm" className="mt-2">
+              <Link to={`/loja/${storeSlug}`}>Voltar para a loja</Link>
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {expiredLink && (
