@@ -3471,6 +3471,7 @@ export type Database = {
           product_emojis: Json
           reseller_id: string
           reset_device_enabled: boolean
+          show_claude: boolean
           show_credits: boolean | null
           show_extensions: boolean | null
           show_free_trial: boolean | null
@@ -3506,6 +3507,7 @@ export type Database = {
           product_emojis?: Json
           reseller_id: string
           reset_device_enabled?: boolean
+          show_claude?: boolean
           show_credits?: boolean | null
           show_extensions?: boolean | null
           show_free_trial?: boolean | null
@@ -3541,6 +3543,7 @@ export type Database = {
           product_emojis?: Json
           reseller_id?: string
           reset_device_enabled?: boolean
+          show_claude?: boolean
           show_credits?: boolean | null
           show_extensions?: boolean | null
           show_free_trial?: boolean | null
