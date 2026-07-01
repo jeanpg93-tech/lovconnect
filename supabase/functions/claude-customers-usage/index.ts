@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     // Vendas Claude desse revendedor (para casar por email)
     const { data: orders } = await admin
       .from('claude_orders')
-      .select('id, plan_code, status, customer_email, customer_name, customer_whatsapp, created_at, sale_price_cents, provider_key_id')
+      .select('id, plan_code, status, customer_email, customer_name, customer_whatsapp, created_at, sale_price_cents, provider_key_id, code')
       .eq('reseller_id', reseller.id)
       .order('created_at', { ascending: false })
       .limit(500);
