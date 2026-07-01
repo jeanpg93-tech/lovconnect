@@ -5,10 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Copy, CheckCircle2, QrCode, KeyRound, Sparkles } from "lucide-react";
+import { Loader2, Copy, CheckCircle2, QrCode, KeyRound, Sparkles, ArrowLeft, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d";
+
+// ID da conta de testes (revendedor Jean Gomes / jeanpg.93).
+// Só nesse revendedor o botão "Liberar PIX (teste)" aparece.
+const TEST_RESELLER_ID = "68fddcfb-5e1f-492c-be75-9a8a3d2a63fa";
 
 const PLANS: { code: PlanCode; label: string; desc: string }[] = [
   { code: "pro_30d", label: "Pro — 30 dias", desc: "500K tokens · 30 dias" },
@@ -117,6 +121,27 @@ export default function CheckoutClaude() {
     toast.success("Copiado!");
   };
 
+  const [releasing, setReleasing] = useState(false);
+  const releaseTestPix = async () => {
+    if (!pix?.order_id) return;
+    setReleasing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("dev-release-pix", {
+        body: { kind: "claude", id: pix.order_id },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("PIX liberado (teste)!");
+      setStatus("issued");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao liberar PIX");
+    } finally {
+      setReleasing(false);
+    }
+  };
+
+  const isTestReseller = reseller?.id === TEST_RESELLER_ID;
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -136,6 +161,13 @@ export default function CheckoutClaude() {
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
+        <div>
+          <Button asChild variant="ghost" size="sm" className="gap-2">
+            <Link to={`/loja/${slug}`}>
+              <ArrowLeft className="h-4 w-4" /> Voltar para a loja
+            </Link>
+          </Button>
+        </div>
         <header className="text-center space-y-1">
           <div className="inline-flex items-center gap-2 text-xs font-medium text-primary bg-primary/10 rounded-full px-3 py-1">
             <Sparkles className="h-3 w-3" /> Claude API
@@ -202,6 +234,18 @@ export default function CheckoutClaude() {
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Aguardando confirmação do pagamento…
               </div>
+              {isTestReseller && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2 border-dashed"
+                  onClick={releaseTestPix}
+                  disabled={releasing}
+                >
+                  {releasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                  Liberar PIX (conta de testes)
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (

@@ -12,7 +12,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-type Kind = "recharge" | "pack" | "activation" | "subscription" | "storefront";
+type Kind = "recharge" | "pack" | "activation" | "subscription" | "storefront" | "claude";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -48,6 +48,11 @@ async function resolveTxId(admin: any, kind: Kind, id: string): Promise<{ txId: 
         .select("provider_transaction_id, reseller_id").eq("id", id).maybeSingle();
       return { txId: data?.provider_transaction_id ?? null, resellerId: data?.reseller_id ?? null };
     }
+    case "claude": {
+      const { data } = await admin.from("claude_orders")
+        .select("provider_transaction_id, reseller_id").eq("id", id).maybeSingle();
+      return { txId: data?.provider_transaction_id ?? null, resellerId: data?.reseller_id ?? null };
+    }
   }
 }
 
@@ -56,27 +61,31 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {
-    // 1) Autentica o chamador via JWT (cabeçalho Authorization)
-    const authHeader = req.headers.get("Authorization") ?? "";
-    if (!authHeader.startsWith("Bearer ")) return json({ error: "missing_auth" }, 401);
-    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData } = await userClient.auth.getUser();
-    const user = userData?.user;
-    if (!user) return json({ error: "invalid_token" }, 401);
-
-    // 2) Trava: SOMENTE Jean Gomes pode usar
-    if (user.id !== TEST_USER_ID) {
-      return json({ error: "forbidden", reason: "test_account_only" }, 403);
-    }
-
     const body = await req.json().catch(() => ({} as any));
     const kind = String(body?.kind ?? "") as Kind;
     const id = String(body?.id ?? "");
-    const allowed: Kind[] = ["recharge", "pack", "activation", "subscription", "storefront"];
+    const allowed: Kind[] = ["recharge", "pack", "activation", "subscription", "storefront", "claude"];
     if (!allowed.includes(kind) || !id) {
       return json({ error: "bad_request", detail: "kind+id required" }, 400);
+    }
+
+    // Autenticação:
+    // - Para checkout público do Claude (kind === "claude") NÃO exigimos JWT
+    //   (a página do checkout não tem sessão). A trava é feita pelo reseller_id
+    //   do pedido logo abaixo: só libera se pertencer à conta de testes.
+    // - Para os demais fluxos (painel logado), exigimos JWT + user = Jean.
+    if (kind !== "claude") {
+      const authHeader = req.headers.get("Authorization") ?? "";
+      if (!authHeader.startsWith("Bearer ")) return json({ error: "missing_auth" }, 401);
+      const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData } = await userClient.auth.getUser();
+      const user = userData?.user;
+      if (!user) return json({ error: "invalid_token" }, 401);
+      if (user.id !== TEST_USER_ID) {
+        return json({ error: "forbidden", reason: "test_account_only" }, 403);
+      }
     }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
