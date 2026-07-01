@@ -142,6 +142,44 @@ export default function CheckoutClaude() {
 
   const isTestReseller = reseller?.id === TEST_RESELLER_ID;
 
+  const runTestFlow = async () => {
+    if (!reseller) return;
+    setSubmitting(true);
+    try {
+      const testName = name || "Teste Jean";
+      const testEmail = email || `teste+${Date.now()}@jeanpg.dev`;
+      const testWhats = whatsapp || "(11) 99999-0000";
+      setName(testName); setEmail(testEmail); setWhatsapp(testWhats);
+      const { data, error } = await supabase.functions.invoke("claude-public-checkout", {
+        body: {
+          reseller_slug: slug,
+          plan_code: plan,
+          name: testName,
+          email: testEmail,
+          whatsapp: testWhats,
+          payer_document: document_,
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const pixData = data as any;
+      setPix(pixData);
+      setStatus("awaiting_payment");
+      // Libera imediatamente
+      const { data: rel, error: relErr } = await supabase.functions.invoke("dev-release-pix", {
+        body: { kind: "claude", id: pixData.order_id },
+      });
+      if (relErr) throw relErr;
+      if ((rel as any)?.error) throw new Error((rel as any).error);
+      setStatus("issued");
+      toast.success("PIX gerado e liberado (teste)!");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha no fluxo de teste");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -301,6 +339,18 @@ export default function CheckoutClaude() {
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Gerar PIX de {currentPrice ? brl(currentPrice) : "—"}
               </Button>
+              {isTestReseller && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2 border-dashed"
+                  onClick={runTestFlow}
+                  disabled={submitting || !currentPrice}
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                  Gerar + Liberar PIX (conta de testes)
+                </Button>
+              )}
               <p className="text-xs text-center text-muted-foreground">
                 Após o pagamento, sua chave é emitida automaticamente e enviada para o portal do cliente.
               </p>
