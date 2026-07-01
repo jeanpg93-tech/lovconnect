@@ -161,6 +161,18 @@ export default function ClienteClaudePortal() {
   const [cancelOrder, setCancelOrder] = useState<Order | null>(null);
   const [cancelNote, setCancelNote] = useState("");
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
+  const [baseUrlCopied, setBaseUrlCopied] = useState(false);
+  const CLAUDE_BASE_URL = "https://claude-ss.ia.br/";
+  const copyBaseUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(CLAUDE_BASE_URL);
+      setBaseUrlCopied(true);
+      toast.success("URL copiada!");
+      setTimeout(() => setBaseUrlCopied(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
 
   const REFUND_WINDOW_DAYS = 7;
   const withinRefundWindow = (o: Order) =>
@@ -444,6 +456,52 @@ export default function ClienteClaudePortal() {
             </Button>
           </div>
         </header>
+
+        {/* URL Base fixa para configuração */}
+        <div
+          className="rounded-2xl border bg-white/[0.03] backdrop-blur-xl p-4 sm:p-5 animate-fade-in"
+          style={{
+            borderColor: `hsl(var(--brand) / 0.35)`,
+            boxShadow: `0 0 30px hsl(var(--brand) / 0.25)`,
+          }}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div
+              className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center"
+              style={{ background: `hsl(var(--brand) / 0.2)`, color: `hsl(var(--brand))` }}
+            >
+              <Zap className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs uppercase tracking-widest opacity-70">
+                URL Base para configuração
+              </div>
+              <div className="mt-1 flex items-center gap-2">
+                <code
+                  className="font-mono text-sm sm:text-base font-semibold truncate"
+                  style={{ color: `hsl(var(--brand))` }}
+                >
+                  {CLAUDE_BASE_URL}
+                </code>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={copyBaseUrl}
+                  className="h-7 px-2 border border-white/10 hover:bg-white/10"
+                >
+                  {baseUrlCopied ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs opacity-70 mt-1.5">
+                Use no Cursor, Cline ou qualquer ferramenta compatível. Sua chave abaixo é o token de autenticação.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {customer?.must_change_password && (
           <Card className="border-amber-500/40 bg-amber-500/10 backdrop-blur-xl animate-fade-in">
