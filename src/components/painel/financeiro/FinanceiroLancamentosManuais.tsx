@@ -36,6 +36,9 @@ import {
 
 const brl = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const formatEntryDate = (value: string) =>
+  format(new Date(value), "dd 'de' MMM yyyy", { locale: ptBR });
+
 export default function FinanceiroLancamentosManuais() {
   const { entries, loading, create, update, remove, reorder } = useManualEntries();
   const [filter, setFilter] = useState<"all" | "revenue" | "expense">("all");
@@ -209,7 +212,7 @@ function Row({ entry: e, onEdit, onDuplicate, onDelete, dragHandle }: RowProps) 
         </div>
         <div className="flex items-center gap-2 flex-wrap mt-0.5">
           <p className="text-[10px] text-muted-foreground">
-            {format(new Date(e.entry_date), "dd 'de' MMM yyyy", { locale: ptBR })}
+            {formatEntryDate(e.entry_date)}
           </p>
           {isSale && (e.cost_cents || 0) > 0 && (
             <p className="text-[10px] text-muted-foreground">
