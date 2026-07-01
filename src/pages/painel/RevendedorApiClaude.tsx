@@ -547,7 +547,7 @@ function TabWebhook({
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Segredo (HMAC)</Label>
+          <Label>Segredo HMAC · <code className="font-mono text-[11px]">CLAUDE_WEBHOOK_SECRET</code></Label>
           <div className="flex gap-2">
             <Input
               type="text"
@@ -567,7 +567,8 @@ function TabWebhook({
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Use este segredo para validar a assinatura antes de confiar no payload.
+            Este é o valor que sua loja pede como <code className="font-mono">CLAUDE_WEBHOOK_SECRET</code>.
+            Usado para validar a assinatura <code className="font-mono">x-signature</code> antes de confiar no payload.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 pt-2">
