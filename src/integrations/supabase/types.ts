@@ -383,6 +383,50 @@ export type Database = {
           },
         ]
       }
+      claude_customers: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string
+          email: string
+          id: string
+          must_change_password: boolean
+          name: string
+          reseller_id: string
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          must_change_password?: boolean
+          name: string
+          reseller_id: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          must_change_password?: boolean
+          name?: string
+          reseller_id?: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claude_customers_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claude_orders: {
         Row: {
           cancel_attempts: Json
@@ -392,6 +436,7 @@ export type Database = {
           cost_cents: number
           created_at: string
           customer_email: string | null
+          customer_id: string | null
           customer_identifier: string | null
           customer_name: string | null
           customer_whatsapp: string | null
@@ -418,6 +463,7 @@ export type Database = {
           cost_cents?: number
           created_at?: string
           customer_email?: string | null
+          customer_id?: string | null
           customer_identifier?: string | null
           customer_name?: string | null
           customer_whatsapp?: string | null
@@ -444,6 +490,7 @@ export type Database = {
           cost_cents?: number
           created_at?: string
           customer_email?: string | null
+          customer_id?: string | null
           customer_identifier?: string | null
           customer_name?: string | null
           customer_whatsapp?: string | null
@@ -463,6 +510,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "claude_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "claude_customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "claude_orders_reseller_id_fkey"
             columns: ["reseller_id"]
