@@ -535,7 +535,7 @@ Deno.serve(async (req) => {
 
         await admin.from("recharge_intents").update({
           status: "paid",
-          paid_at: new Date().toISOString(),
+          paid_at: paidAt,
           raw_response: payload,
         }).eq("id", intent.id);
 
