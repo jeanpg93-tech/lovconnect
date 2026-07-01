@@ -212,7 +212,7 @@ export default function GerenteFinanceiroGeral() {
           <FinanceiroMensalidades range={dateFilter} customRange={customRange} />
         </TabsContent>
         <TabsContent value="manual" className="mt-0">
-          <FinanceiroLancamentosManuais />
+          <FinanceiroLancamentosManuais range={dateFilter} customRange={customRange} />
         </TabsContent>
       </Tabs>
     </PageContainer>
