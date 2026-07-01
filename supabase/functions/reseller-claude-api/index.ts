@@ -192,19 +192,6 @@ Deno.serve(async (req) => {
       return json({ success: true, chave: data });
     }
 
-    // Envia um evento de teste para o webhook configurado
-    if (action === "webhook" && subId === "test" && req.method === "POST") {
-      const result = await dispatchWebhook(svc, reseller.id, "claude.webhook.test", {
-        pedido_id: "test-" + crypto.randomUUID(),
-        plano: "5x_30d",
-        preco_centavos: 14900,
-        codigo: "TEST-XXXXX-XXXXX",
-        provider_key_id: "test_prov_key",
-        id_cliente: "teste@exemplo.com",
-      });
-      return json({ success: !!result.delivered, ...result });
-    }
-
     if (action === "chaves" && req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       const planCode = String(body?.plano ?? body?.plan_code ?? "").trim();
