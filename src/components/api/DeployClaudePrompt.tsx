@@ -165,6 +165,8 @@ verify_jwt = false
 
 O endpoint precisa aceitar chamadas **sem Authorization** (é público, assinado por HMAC).
 
+**Teste do painel + eventos desconhecidos:** o botão "Enviar evento de teste" do meu painel envia um payload fixo \`{"event":"webhook.test", ...}\` assinado com o mesmo \`CLAUDE_WEBHOOK_SECRET\`. Sua função **deve responder 2xx para qualquer \`event\` desconhecido** (apenas registre/ignore), em vez de devolver 4xx. Só rejeite com 401 quando a assinatura HMAC não bater. Assim novos tipos de evento no futuro não quebram a integração.
+
 ## ✅ Critérios de aceite
 - Build passa sem erros e sem warnings novos.
 - Todas as rotas e itens de menu **antigos continuam funcionando**.
