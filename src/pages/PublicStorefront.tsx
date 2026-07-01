@@ -105,7 +105,7 @@ export default function PublicStorefront() {
     enabled: false,
     message: "",
   });
-  const [activeTab, setActiveTab] = useState<"extension" | "recharge">("extension");
+  const [activeTab, setActiveTab] = useState<"extension" | "claude">("extension");
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [claudePlans, setClaudePlans] = useState<{ code: string; label: string; price_cents: number; sort_order: number }[]>([]);
   const [claudeLoading, setClaudeLoading] = useState(false);
@@ -355,9 +355,9 @@ export default function PublicStorefront() {
         "Estamos em manutenção. Novas recargas estarão disponíveis em breve.";
       setRechargeMaintenance({ enabled: maintEnabled, message: maintMessage });
 
-      // Default active tab based on what is enabled
-      if (s && !(s as any).show_extensions && (s as any).show_credits) {
-        setActiveTab("recharge");
+      // Default active tab: se a loja não vende extensão mas tem Claude, abre Claude direto
+      if (s && !(s as any).show_extensions) {
+        setActiveTab("claude");
       }
 
       // Planos Claude (Fase 4b — loja pública)
