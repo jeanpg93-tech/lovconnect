@@ -13,8 +13,8 @@ import {
   Package,
   ChevronDown,
   ChevronRight,
-  Sparkles,
 } from "lucide-react";
+import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -105,9 +105,9 @@ export default function FinanceiroVisaoGeral({ range, customRange }: { range: Da
         <KpiCard
           label="Claude (chaves)"
           value={brlSigned(data.claudeGrossSalesCents, "+")}
-          icon={Sparkles}
+          icon={ClaudeIcon}
           hint={`${data.claudeCount} chave(s) · lucro ${brlSigned(data.claudeOwnerRevenueCents - data.claudeSupplierCostCents, (data.claudeOwnerRevenueCents - data.claudeSupplierCostCents) >= 0 ? "+" : "-")}`}
-          color="fuchsia"
+          color="claude"
         />
         <KpiCard
           label="Recargas"
@@ -137,7 +137,7 @@ export default function FinanceiroVisaoGeral({ range, customRange }: { range: Da
             { label: "Créditos vendidos", hint: "custo do provedor", value: data.costCreditsCents, color: "#3b82f6" },
             { label: "Taxa gateway", hint: "R$ 0,50 / recarga", value: data.gatewayFeeCents, color: "#eab308" },
             { label: "Planos de recarga", hint: "meu custo (fornecedor)", value: data.rechargePlanCostCents, color: "#14b8a6" },
-            { label: "Claude (fornecedor)", hint: `${data.claudeCount} chave(s)`, value: data.claudeSupplierCostCents, color: "#a855f7" },
+            { label: "Claude (fornecedor)", hint: `${data.claudeCount} chave(s)`, value: data.claudeSupplierCostCents, color: "#cc785c" },
             { label: "Gastos manuais", hint: "lançamentos manuais", value: data.manualExpenseCents, color: "#ec4899" },
           ]}
         />
@@ -152,7 +152,7 @@ export default function FinanceiroVisaoGeral({ range, customRange }: { range: Da
             { label: "Mensalidades", hint: "revendedores mensalistas", value: data.subscriptionRevenueCents, color: "#0ea5e9" },
             { label: "Pacotes (Pack)", hint: "revendedores Pack", value: data.packRevenueCents, color: "#10b981" },
             { label: "Planos de recarga", hint: `${data.rechargePlanCount} venda(s)`, value: data.rechargePlanRevenueCents, color: "#14b8a6" },
-            { label: "Claude (via saldo)", hint: `${data.claudeCount} chave(s) · já inclusa em Recargas`, value: data.claudeOwnerRevenueCents, color: "#a855f7" },
+            { label: "Claude (via saldo)", hint: `${data.claudeCount} chave(s) · já inclusa em Recargas`, value: data.claudeOwnerRevenueCents, color: "#cc785c" },
             { label: "Receitas manuais", hint: "lançamentos manuais", value: data.manualRevenueCents, color: "#8b5cf6" },
             { label: "LovaStore", hint: `loja própria${data.lovastoreCount ? ` · ${data.lovastoreCount} venda(s)` : ""}`, value: data.lovastoreRevenueCents, color: "#f97316" },
           ]}
@@ -414,6 +414,7 @@ const colorMap = {
   violet: { text: "text-violet-500", ring: "ring-violet-500/20", glow: "from-violet-500/10", bg: "bg-violet-500/10" },
   amber: { text: "text-amber-500", ring: "ring-amber-500/20", glow: "from-amber-500/10", bg: "bg-amber-500/10" },
   fuchsia: { text: "text-fuchsia-500", ring: "ring-fuchsia-500/25", glow: "from-fuchsia-500/15", bg: "bg-fuchsia-500/10" },
+  claude: { text: "text-[#cc785c]", ring: "ring-[#cc785c]/30", glow: "from-[#cc785c]/15", bg: "bg-[#cc785c]/10" },
 } as const;
 
 function KpiCard({
