@@ -1121,6 +1121,10 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Se a venda saiu da LOJA PRÓPRIA do gerente (LovaStore), registra automaticamente
+    // a receita no Financeiro. Idempotente pelo id do storefront_order.
+    await recordLovaStoreRevenue(admin, storeOrder, paidAt);
+
     // ============================================================
     // Venda de Plano de Recarga (3.000 créditos / 30 dias etc) pela loja
     // ============================================================
