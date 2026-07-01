@@ -74,8 +74,29 @@ Deno.serve(async (req) => {
       body,
       signal: AbortSignal.timeout(8000),
     });
-    return json({ success: r.ok, status: r.status });
+    const respBody = (await r.text().catch(() => "")).slice(0, 400);
+    let hint: string | null = null;
+    if (r.status === 401) {
+      hint =
+        "A sua função retornou 401 (JWT obrigatório). No projeto Supabase da sua loja, adicione no supabase/config.toml:\n\n[functions.claude-webhook]\nverify_jwt = false\n\ne reimplante. Webhooks públicos precisam aceitar chamadas sem Authorization.";
+    } else if (r.status === 404) {
+      hint = "A URL respondeu 404. Verifique se a função 'claude-webhook' está implantada e se a URL está correta.";
+    } else if (r.status === 0) {
+      hint = "Não foi possível conectar. Verifique se a URL está pública e acessível.";
+    }
+    return json({
+      success: r.ok,
+      status: r.status,
+      response_body: respBody,
+      hint,
+      target_url: cfg.webhook_url,
+    });
   } catch (e) {
-    return json({ success: false, error: String((e as Error)?.message ?? e) }, 200);
+    return json({
+      success: false,
+      error: String((e as Error)?.message ?? e),
+      hint: "Falha de rede/timeout ao chamar a URL. Confirme que o endpoint está no ar e acessível pela internet.",
+      target_url: cfg.webhook_url,
+    }, 200);
   }
 });
