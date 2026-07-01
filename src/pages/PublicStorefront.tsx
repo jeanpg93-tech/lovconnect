@@ -678,6 +678,31 @@ export default function PublicStorefront() {
       <StorefrontBackground effect={bgEffect} color={color} />
       <StorefrontVisualEffects effect={(store.visual_effect ?? "none") as VisualEffect} color={color} />
 
+      {showClaudePortal && !order && !selLic && !selRec && !selPlan && (
+        <Link
+          to={`/cliente-claude/login?loja=${encodeURIComponent(slug ?? "")}`}
+          className="group fixed top-3 right-3 sm:top-5 sm:right-5 z-30 inline-flex items-center gap-2 rounded-full border-2 px-4 py-2.5 sm:px-5 sm:py-3 text-xs sm:text-sm font-black uppercase tracking-widest bg-card/80 backdrop-blur-xl shadow-2xl transition-all hover:scale-105 hover:-translate-y-0.5 animate-fade-in"
+          style={{
+            borderColor: color,
+            color,
+            boxShadow: `0 8px 32px -8px ${color}cc, 0 0 0 1px ${color}22 inset`,
+          }}
+        >
+          <span
+            className="relative flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full"
+            style={{ background: color }}
+          >
+            <ClaudeIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+            <span
+              className="absolute inset-0 rounded-full animate-ping opacity-40"
+              style={{ background: color }}
+            />
+          </span>
+          <span className="hidden sm:inline">Portal do Cliente</span>
+          <span className="sm:hidden">Portal</span>
+        </Link>
+      )}
+
       <div className="relative z-10 min-h-screen flex flex-col items-center px-4 py-10 sm:py-16">
         {/* Hero centralizado */}
         <header className="w-full max-w-3xl text-center flex flex-col items-center gap-4 mb-10">
