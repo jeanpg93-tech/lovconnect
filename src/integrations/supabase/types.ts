@@ -5153,6 +5153,7 @@ export type Database = {
         | "renewal_requested"
         | "awaiting_payment"
         | "awaiting_balance"
+        | "expired"
       onboarding_tour_status: "pending" | "completed" | "skipped"
       recharge_plan_delivery_status:
         | "pending"
@@ -5307,6 +5308,7 @@ export const Constants = {
         "renewal_requested",
         "awaiting_payment",
         "awaiting_balance",
+        "expired",
       ],
       onboarding_tour_status: ["pending", "completed", "skipped"],
       recharge_plan_delivery_status: [
