@@ -321,11 +321,11 @@ export default function RevendedorMeusClientesClaude() {
                 )}
 
                 {["issued", "redeemed", "cancel_requested"].includes(o.status) && (
-                  <div className="mt-3 flex justify-end">
+                  <div className="mt-3 flex justify-stretch sm:justify-end">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-7 border-rose-500/40 text-rose-500 hover:bg-rose-500/10"
+                      className="h-8 w-full sm:w-auto border-rose-500/40 text-rose-500 hover:bg-rose-500/10"
                       onClick={() => setCancelTarget(o)}
                     >
                       <Ban className="mr-1 h-3 w-3" /> Cancelar / Revogar chave
@@ -339,7 +339,7 @@ export default function RevendedorMeusClientesClaude() {
       )}
 
       <AlertDialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar chave Claude</AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -360,11 +360,11 @@ export default function RevendedorMeusClientesClaude() {
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancelling}>Voltar</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+            <AlertDialogCancel disabled={cancelling} className="mt-0 w-full sm:w-auto">Voltar</AlertDialogCancel>
             <AlertDialogAction
               disabled={cancelling}
-              className="bg-rose-600 hover:bg-rose-700"
+              className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700"
               onClick={(e) => { e.preventDefault(); doCancel(!cancelTarget?.within_refund_window); }}
             >
               {cancelling ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Ban className="mr-1 h-3.5 w-3.5" />}
