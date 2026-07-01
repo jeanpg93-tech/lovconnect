@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Tag, Users, Loader2, RefreshCw, Save, Wallet, Layers, Medal, Award, Crown, Gem } from "lucide-react";
+import { BarChart3, Tag, Users, Loader2, RefreshCw, Save, Wallet, Layers, Medal, Award, Crown, Gem, Webhook, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -57,10 +57,12 @@ export default function GerenteClaudeApi() {
           <TabsTrigger value="saldo" className="gap-2"><BarChart3 className="h-4 w-4" /> Saldo / Estoque</TabsTrigger>
           <TabsTrigger value="precos" className="gap-2"><Tag className="h-4 w-4" /> Preços</TabsTrigger>
           <TabsTrigger value="revendedores" className="gap-2"><Users className="h-4 w-4" /> Revendedores</TabsTrigger>
+          <TabsTrigger value="webhook" className="gap-2"><Webhook className="h-4 w-4" /> Webhook</TabsTrigger>
         </TabsList>
         <TabsContent value="saldo" className="mt-6"><BalanceTab /></TabsContent>
         <TabsContent value="precos" className="mt-6"><PricesTab /></TabsContent>
         <TabsContent value="revendedores" className="mt-6"><ResellersTab /></TabsContent>
+        <TabsContent value="webhook" className="mt-6"><WebhookTab /></TabsContent>
       </Tabs>
     </PageContainer>
   );
@@ -205,6 +207,70 @@ function BalanceTab() {
           </details>
         </>
       )}
+    </div>
+  );
+}
+
+function WebhookTab() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
+
+  const register = async () => {
+    setLoading(true);
+    setResult(null);
+    const { data, error } = await invokeAuthenticatedFunction<any>("claude-register-webhook", { method: "POST", body: {} });
+    setLoading(false);
+    if (error && !data) { toast.error("Falha ao registrar webhook"); return; }
+    setResult(data);
+    if (data?.ok) toast.success("Webhook registrado no fornecedor");
+    else toast.error("Fornecedor recusou o registro");
+  };
+
+  const webhookKey: string | null =
+    result?.provider_response?.webhookKey ??
+    result?.provider_response?.data?.webhookKey ??
+    result?.provider_response?.secret ?? null;
+
+  const copy = async () => {
+    if (!webhookKey) return;
+    try { await navigator.clipboard.writeText(webhookKey); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-card/60 p-5 space-y-3">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold flex items-center gap-2"><Webhook className="h-4 w-4" /> Registrar webhook no fornecedor</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Chama <code>POST /api/rsl/webhooks</code> e assina os eventos: <code>key.created</code>, <code>key.redeemed</code>, <code>key.cancelled</code>, <code>key.expired</code>, <code>tokens.limit_reached</code>.
+            </p>
+          </div>
+          <Button onClick={register} disabled={loading} className="gap-2">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Webhook className="h-4 w-4" />}
+            Registrar
+          </Button>
+        </div>
+        {result?.webhook_url && (
+          <div className="text-xs text-muted-foreground break-all">URL: <code>{result.webhook_url}</code></div>
+        )}
+        {webhookKey && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+            <div className="text-sm font-medium text-amber-600 dark:text-amber-400">webhookKey retornado — salve em CLAUDE_PROVIDER_WEBHOOK_SECRET</div>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 truncate rounded bg-background px-2 py-1 text-xs">{webhookKey}</code>
+              <Button size="sm" variant="outline" onClick={copy} className="gap-1">
+                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                {copied ? "Copiado" : "Copiar"}
+              </Button>
+            </div>
+          </div>
+        )}
+        {result && !result.ok && (
+          <pre className="text-xs whitespace-pre-wrap rounded bg-muted p-3 max-h-64 overflow-auto">{JSON.stringify(result, null, 2)}</pre>
+        )}
+      </div>
     </div>
   );
 }
