@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { StorefrontBackground } from "@/components/storefront/StorefrontBackground";
 import { StorefrontVisualEffects, type VisualEffect } from "@/components/storefront/StorefrontVisualEffects";
 import { ReportStoreDialog } from "@/components/storefront/ReportStoreDialog";
+import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import {
   AlertDialog,
   AlertDialogAction,
