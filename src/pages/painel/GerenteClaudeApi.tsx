@@ -233,15 +233,13 @@ function PricesTab() {
       const prices = payload?.prices;
       if (!prices || typeof prices !== "object") throw new Error("Resposta do fornecedor não contém 'prices'");
 
-      // Só usamos os preços de API. Mapeamos os códigos API do fornecedor
-      // para nossos plan_codes internos.
-      // Mapeamento conforme documentação do fornecedor (tabela "Tipos de plano"):
-      //  pro_30d  → 300K tokens / 24h  · 30 dias
-      //  5x_7d    → 1.25M tokens / 12h · 7 dias
+      // Mapeamento conforme confirmado com o fornecedor:
+      //  pro_30d  → 500K tokens / 24h  · 30 dias (desativado no painel se necessário)
+      //  5x_7d    → 1.25M tokens / 12h · 7 dias  (DESATIVADO — não revendemos)
       //  5x_30d   → 1.25M tokens / 12h · 30 dias
       //  20x_30d  → 5M    tokens / 12h · 30 dias
       const API_KEY_MAP: Record<PlanCode, string[]> = {
-        "pro_30d": ["api_300k_30d", "api_500k_30d", "api_300k", "api_500k", "pro_30d"],
+        "pro_30d": ["api_500k_30d", "api_300k_30d", "api_500k", "api_300k", "pro_30d"],
         "5x_7d":   ["api_1_25m_7d", "api_1.25m_7d", "api_1_25m", "api_1.25m", "5x_7d"],
         "5x_30d":  ["api_1_25m_30d", "api_1.25m_30d", "5x_30d"],
         "20x_30d": ["api_5m_30d", "api_5m", "20x_30d"],
