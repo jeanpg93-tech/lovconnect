@@ -294,6 +294,28 @@ export default function GerenteRevendedores() {
     setTestKeysDialog(null);
   };
 
+  const setForcedTier = async (resellerId: string, tierId: string | null) => {
+    const existing = states[resellerId];
+    if (existing) {
+      const { error } = await supabase.from("reseller_tier_state")
+        .update({ forced_tier_id: tierId }).eq("reseller_id", resellerId);
+      if (error) return toast.error(error.message);
+    } else {
+      const { error } = await supabase.from("reseller_tier_state")
+        .insert({ reseller_id: resellerId, total_spent_cents: 0, forced_tier_id: tierId });
+      if (error) return toast.error(error.message);
+    }
+    setStates((prev) => ({
+      ...prev,
+      [resellerId]: {
+        reseller_id: resellerId,
+        total_spent_cents: prev[resellerId]?.total_spent_cents ?? 0,
+        forced_tier_id: tierId,
+      },
+    }));
+    toast.success(tierId ? "Nível atualizado — preços recalculados automaticamente" : "Nível voltou para automático");
+  };
+
   const openEdit = (r: Reseller) => {
     const prof = profilesByUser[r.user_id];
     setEditDialog(r);
