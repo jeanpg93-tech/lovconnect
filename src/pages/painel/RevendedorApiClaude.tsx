@@ -148,11 +148,25 @@ function ApiKeysCard({
                         )}
                       </td>
                       <td className="px-3 py-2 text-right">
-                        {k.is_active && (
-                          <Button size="sm" variant="ghost" onClick={() => onRevoke(k.id)} className="h-6 w-6 p-0 text-destructive hover:text-destructive">
-                            <Trash2 className="h-3 w-3" />
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              navigator.clipboard.writeText(k.key_prefix);
+                              toast.success("Prefixo copiado");
+                            }}
+                            className="h-6 w-6 p-0"
+                            title="Copiar prefixo"
+                          >
+                            <Copy className="h-3 w-3" />
                           </Button>
-                        )}
+                          {k.is_active && (
+                            <Button size="sm" variant="ghost" onClick={() => onRevoke(k.id)} className="h-6 w-6 p-0 text-destructive hover:text-destructive" title="Revogar">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
