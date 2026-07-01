@@ -647,11 +647,35 @@ export default function RevendedorApiClaude() {
     const { data: r } = await supabase.from("resellers").select("id").eq("user_id", user.id).maybeSingle();
     if (!r) { setLoading(false); return; }
     setResellerId(r.id);
-    const { data: ks } = await supabase
+    let { data: ks } = await supabase
       .from("reseller_claude_api_keys")
       .select("id, label, key_prefix, webhook_url, webhook_secret, is_active, last_used_at, created_at, revoked_at")
       .eq("reseller_id", r.id)
       .order("created_at", { ascending: false });
+    // Auto-provisiona chave + segredo do webhook no primeiro acesso
+    if (!ks || ks.length === 0) {
+      const key = genKey();
+      const hash = await sha256Hex(key);
+      const secret = genWebhookSecret();
+      const { error } = await supabase.from("reseller_claude_api_keys").insert({
+        reseller_id: r.id,
+        label: "API Claude",
+        key_prefix: key.slice(0, 16),
+        key_hash: hash,
+        webhook_secret: secret,
+        is_active: true,
+      });
+      if (!error) {
+        setCreatedKey(key);
+        setNewOpen(true);
+        const res = await supabase
+          .from("reseller_claude_api_keys")
+          .select("id, label, key_prefix, webhook_url, webhook_secret, is_active, last_used_at, created_at, revoked_at")
+          .eq("reseller_id", r.id)
+          .order("created_at", { ascending: false });
+        ks = res.data;
+      }
+    }
     setKeys((ks ?? []) as ApiKey[]);
     const first = (ks ?? [])[0] as any;
     if (first) {
@@ -671,15 +695,18 @@ export default function RevendedorApiClaude() {
     try {
       const key = genKey();
       const hash = await sha256Hex(key);
+      const secret = webhookSecret || genWebhookSecret();
       const { error } = await supabase.from("reseller_claude_api_keys").insert({
         reseller_id: resellerId,
         label,
         key_prefix: key.slice(0, 16),
         key_hash: hash,
+        webhook_secret: secret,
         is_active: true,
       });
       if (error) throw error;
       setCreatedKey(key);
+      setWebhookSecret(secret);
       load();
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao criar chave");
