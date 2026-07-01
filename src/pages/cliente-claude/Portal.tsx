@@ -608,7 +608,7 @@ export default function ClienteClaudePortal() {
         </Card>
 
         <Dialog open={renewalOpen} onOpenChange={setRenewalOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Nova chave / Renovação</DialogTitle>
               <DialogDescription>
@@ -645,7 +645,7 @@ export default function ClienteClaudePortal() {
         </Dialog>
 
         <Dialog open={!!cancelOrder} onOpenChange={(o) => { if (!o) { setCancelOrder(null); setCancelNote(""); } }}>
-          <DialogContent>
+          <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Solicitar cancelamento da chave</DialogTitle>
               <DialogDescription>
@@ -689,7 +689,7 @@ export default function ClienteClaudePortal() {
         </Dialog>
 
         <Dialog open={pixOpen} onOpenChange={(o) => { if (!o) { setPixOpen(false); setPixData(null); } }}>
-          <DialogContent>
+          <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Pagamento via PIX</DialogTitle>
               <DialogDescription>
