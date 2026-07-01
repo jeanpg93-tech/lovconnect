@@ -753,7 +753,7 @@ export default function PublicStorefront() {
                   )}
                   style={activeTab === "claude" ? { background: color, color: '#fff' } : { background: `${color}1a`, color }}
                 >
-                  <Sparkles className="h-4 w-4" />
+                  <ClaudeIcon className="h-4 w-4" />
                 </div>
                 <div className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap" style={{ color: activeTab === "claude" ? color : undefined }}>Planos Claude</div>
                 <div
