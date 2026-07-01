@@ -12,6 +12,7 @@ export type EnabledMethods = {
   plano3k: boolean;   // Plano 3K (recharge plans) habilitado
   flow: boolean;      // PromptFlow / MétodoFlow (entrega ativa)
   lovax: boolean;     // LovaX (entrega ativa)
+  claude: boolean;    // Claude habilitado individualmente pelo gerente
   loading: boolean;
 };
 
@@ -22,6 +23,7 @@ export function useResellerEnabledMethods(): EnabledMethods {
     plano3k: false,
     flow: true,
     lovax: true,
+    claude: false,
     loading: true,
   });
 
@@ -34,7 +36,7 @@ export function useResellerEnabledMethods(): EnabledMethods {
           supabase.from("app_settings").select("value").eq("key", "recharge_plans_enabled_globally").maybeSingle(),
           supabase.from("app_settings").select("value").eq("key", "licencas.delivery.method").maybeSingle(),
           user?.id
-            ? supabase.from("resellers").select("recharge_plans_enabled").eq("user_id", user.id).maybeSingle()
+            ? supabase.from("resellers").select("recharge_plans_enabled,claude_enabled").eq("user_id", user.id).maybeSingle()
             : Promise.resolve({ data: null } as any),
         ]);
         if (cancelled) return;
@@ -42,6 +44,7 @@ export function useResellerEnabledMethods(): EnabledMethods {
         const maintenance = !!(rechargeRes.data?.value as any)?.maintenance_enabled;
         const globallyEnabled = (planoGlobalRes.data?.value as any) === true;
         const resellerEnabled = !!(resellerRes?.data as any)?.recharge_plans_enabled;
+        const claudeEnabled = !!(resellerRes?.data as any)?.claude_enabled;
         const method = (methodRes.data?.value as any)?.method;
 
         setState({
@@ -51,6 +54,7 @@ export function useResellerEnabledMethods(): EnabledMethods {
           plano3k: globallyEnabled,
           flow: method !== "lovax", // padrão = flow ativo
           lovax: method === "lovax",
+          claude: claudeEnabled,
           loading: false,
         });
       } catch {
