@@ -361,7 +361,7 @@ export default function PublicStorefront() {
       }
 
       // Planos Claude (Fase 4b — loja pública)
-      if ((r as any).claude_enabled) {
+      if ((r as any).claude_enabled && ((s as any)?.show_claude !== false)) {
         setClaudeLoading(true);
         try {
           const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
