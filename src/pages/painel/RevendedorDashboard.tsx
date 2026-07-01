@@ -651,6 +651,11 @@ export default function RevendedorDashboard() {
                   <ShoppingCart className="mr-2 h-4 w-4" /> Licenças
                 </Link>
               </Button>
+              <Button asChild size="sm" variant="outline" className="rounded-xl">
+                <Link to="/painel/revendedor/claude">
+                  <ClaudeIcon className="mr-2 h-4 w-4" /> Claude
+                </Link>
+              </Button>
               {enabledMethods.plano3k && (
                 <Button asChild size="sm" variant="outline" className="rounded-xl">
                   <Link to="/painel/revendedor/planos-vendidos">
