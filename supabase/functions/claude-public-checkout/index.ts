@@ -97,21 +97,29 @@ Deno.serve(async (req) => {
     let authUserId = (existingCustomer as any)?.auth_user_id as string | null | undefined;
 
     if (!authUserId) {
-      const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-      const found = list?.users?.find((u) => (u.email ?? "").toLowerCase() === email);
-      if (found) {
-        authUserId = found.id;
-      } else {
-        generatedPassword = randomPassword(14);
-        const { data: created, error: cErr } = await admin.auth.admin.createUser({
-          email,
-          password: generatedPassword,
-          email_confirm: true,
-          user_metadata: { name, claude_customer: true, reseller_id: resellerId },
-        });
-        if (cErr || !created?.user) return json({ error: "auth_create_failed", detail: cErr?.message }, 500);
-        authUserId = created.user.id;
+      // SECURITY: nunca vincular esse pedido a um usuário existente no auth.users
+      // apenas por e-mail — isso permite account takeover (o atacante conhece o
+      // e-mail da vítima e passa a criar pedidos/cobranças vinculados à conta dela).
+      // Sempre cria um novo usuário auth. Se o e-mail já existir, o próprio
+      // Supabase Auth retorna erro e o cliente deve fazer login primeiro.
+      generatedPassword = randomPassword(14);
+      const { data: created, error: cErr } = await admin.auth.admin.createUser({
+        email,
+        password: generatedPassword,
+        email_confirm: true,
+        user_metadata: { name, claude_customer: true, reseller_id: resellerId },
+      });
+      if (cErr || !created?.user) {
+        const msg = String(cErr?.message ?? "").toLowerCase();
+        if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
+          return json({
+            error: "email_already_registered",
+            detail: "Este e-mail já possui conta. Faça login antes de comprar para vincular o pedido à sua conta.",
+          }, 409);
+        }
+        return json({ error: "auth_create_failed", detail: cErr?.message }, 500);
       }
+      authUserId = created.user.id;
     }
 
     if (!customerId) {
