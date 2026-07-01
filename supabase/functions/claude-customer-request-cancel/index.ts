@@ -1,6 +1,7 @@
 // Cliente final solicita ao revendedor o cancelamento da chave Claude.
 // Não cancela — apenas marca cancel_requested_at, atualiza status para 'cancel_requested'
-// (se ainda estiver 'issued') e notifica o revendedor (Telegram + notification).
+// (se ainda estiver 'issued') e notifica o revendedor (WhatsApp via Evolution, se
+// configurado, + notificação no painel). Revendedores NÃO usam Telegram.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -11,11 +12,75 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const EVO_BASE = (Deno.env.get("EVOLUTION_BASE_URL") ?? "").replace(/\/+$/, "");
+const EVO_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
 
 const REFUND_WINDOW_DAYS = 7;
 
 const json = (d: unknown, s = 200) =>
   new Response(JSON.stringify(d), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+async function instanceTokenFor(resellerId: string) {
+  const hash = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`lovconnect:evolution-go:${resellerId}`),
+  );
+  const chars = Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 32)
+    .split("");
+  chars[12] = "4";
+  chars[16] = ((parseInt(chars[16], 16) & 0x3) | 0x8).toString(16);
+  const hex = chars.join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+function normalizeBrPhone(raw: string): string | null {
+  const d = (raw ?? "").replace(/\D+/g, "");
+  if (!d) return null;
+  if (d.length === 10 || d.length === 11) return "55" + d;
+  if (d.length >= 12) return d;
+  return null;
+}
+
+async function notifyResellerWhatsapp(admin: any, resellerId: string, text: string) {
+  if (!EVO_BASE || !EVO_KEY) return { skipped: "evolution_not_configured" };
+  const { data: integ } = await admin
+    .from("reseller_integrations")
+    .select("evolution_enabled, evolution_instance, connection_status")
+    .eq("reseller_id", resellerId)
+    .maybeSingle();
+  if (!integ?.evolution_enabled || !integ.evolution_instance || integ.connection_status !== "connected") {
+    return { skipped: "not_enabled_or_not_connected" };
+  }
+  const { data: r } = await admin.from("resellers").select("user_id, is_demo").eq("id", resellerId).maybeSingle();
+  if (r?.is_demo) return { skipped: "demo_account" };
+  if (!r?.user_id) return { skipped: "no_reseller_user" };
+  const { data: prof } = await admin
+    .from("profiles").select("whatsapp, phone").eq("id", r.user_id).maybeSingle();
+  const to = normalizeBrPhone(prof?.whatsapp ?? prof?.phone ?? "");
+  if (!to) return { skipped: "reseller_has_no_phone" };
+  const token = await instanceTokenFor(resellerId);
+  try {
+    const resp = await fetch(`${EVO_BASE}/send/text`, {
+      method: "POST",
+      headers: { apikey: token, "Content-Type": "application/json" },
+      body: JSON.stringify({ number: to, text }),
+    });
+    if (!resp.ok) {
+      const resp2 = await fetch(`${EVO_BASE}/message/sendText/${encodeURIComponent(integ.evolution_instance)}`, {
+        method: "POST",
+        headers: { apikey: EVO_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ number: to, text }),
+      });
+      return resp2.ok ? { ok: true, via: "legacy" } : { skipped: "send_failed" };
+    }
+    return { ok: true, via: "evolution-go" };
+  } catch (e) {
+    return { skipped: "send_error", error: String(e) };
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -72,15 +137,14 @@ Deno.serve(async (req) => {
       .eq("id", order.reseller_id)
       .maybeSingle();
 
-    const msg =
-      `❌ <b>Solicitação de cancelamento Claude</b>\n` +
-      `Revendedor: <b>${reseller?.display_name ?? order.reseller_id}</b>\n` +
-      `Cliente: <b>${customer.name}</b> (${customer.email})\n` +
-      `Plano: <b>${order.plan_code}</b>\n` +
-      `Chave: <code>${order.code ?? "—"}</code>\n` +
-      `Prazo estorno: <b>${withinWindow ? "dentro dos 7 dias ✅" : "expirado ⚠️ (sem estorno)"}</b>` +
+    const waText =
+      `❌ *Solicitação de cancelamento Claude*\n` +
+      `Cliente: *${customer.name}* (${customer.email})\n` +
+      `Plano: *${order.plan_code}*\n` +
+      `Chave: ${order.code ?? "—"}\n` +
+      `Prazo estorno: *${withinWindow ? "dentro dos 7 dias ✅" : "expirado ⚠️ (sem estorno)"}*` +
       (note ? `\nObs.: ${note}` : "");
-    try { await admin.rpc("telegram_enqueue", { _text: msg }); } catch (_) {}
+    try { await notifyResellerWhatsapp(admin, order.reseller_id, waText); } catch (_) {}
     try {
       if (reseller?.user_id) {
         await admin.from("notifications").insert({
