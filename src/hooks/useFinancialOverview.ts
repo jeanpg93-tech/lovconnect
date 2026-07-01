@@ -328,7 +328,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const costCreditsCents =
       soArr.reduce((s, o: any) => s + ownerCostForSoItem(o), 0) +
       rcpArr.reduce((s, o: any) => s + ownerCostForRcpItem(o), 0);
-    const salesCount = soArr.length + rcpArr.length;
+    const salesCount = soArr.length + rcpArr.length + claudeCount;
 
     // Lançamentos manuais
     let mQ = supabase
@@ -361,7 +361,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const revenueCents =
       rechargesRevenueCents + manualRevenueCents + lovastoreRevenueCents + activationRevenueCents + subscriptionRevenueCents + packRevenueCents + rechargePlanRevenueCents;
     const totalGatewayFeeCents = gatewayFeeCents + manualMisticFeeCents;
-    const costCents = costCreditsCents + totalGatewayFeeCents + manualExpenseCents + manualRevenueCostCents + rechargePlanCostCents;
+    const costCents = costCreditsCents + totalGatewayFeeCents + manualExpenseCents + manualRevenueCostCents + rechargePlanCostCents + claudeSupplierCostCents;
     const profitCents = revenueCents - costCents;
     const marginPct = revenueCents > 0 ? (profitCents / revenueCents) * 100 : 0;
 
