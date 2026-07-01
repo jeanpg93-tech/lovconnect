@@ -1672,6 +1672,7 @@ export default function PublicStorefront() {
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
                         <Quote className="h-3 w-3" /> Clientes Satisfeitos
                       </div>
+                      <p className="sr-only">clientes</p>
                       <h2 className="text-2xl font-black uppercase tracking-tight">O que dizem sobre nós</h2>
                     </div>
                     <Carousel opts={{ align: "start", loop: true }} className="w-full">
