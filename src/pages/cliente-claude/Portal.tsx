@@ -644,6 +644,50 @@ export default function ClienteClaudePortal() {
           </DialogContent>
         </Dialog>
 
+        <Dialog open={!!cancelOrder} onOpenChange={(o) => { if (!o) { setCancelOrder(null); setCancelNote(""); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Solicitar cancelamento da chave</DialogTitle>
+              <DialogDescription>
+                O cancelamento é feito pelo revendedor. Vamos avisá-lo agora — em seguida ele entrará em contato para concluir.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              {cancelOrder && (
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                  <div className="font-medium">{PLAN_LABELS[cancelOrder.plan_code] ?? cancelOrder.plan_code}</div>
+                  <div className="text-xs opacity-70">Emitida em {fmtDate(cancelOrder.created_at)}</div>
+                </div>
+              )}
+              {cancelOrder && withinRefundWindow(cancelOrder) ? (
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-300 text-xs">
+                  ✅ Dentro do prazo de 7 dias — se o revendedor concluir o cancelamento, o valor pago poderá ser estornado.
+                </div>
+              ) : (
+                <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-rose-300 text-xs">
+                  ⚠️ Fora do prazo de 7 dias — o cancelamento pode ser solicitado, mas <b>não há direito a estorno</b> (política do serviço).
+                </div>
+              )}
+              <div>
+                <Label className="text-xs">Motivo (opcional)</Label>
+                <Input
+                  value={cancelNote}
+                  onChange={(e) => setCancelNote(e.target.value)}
+                  placeholder="Ex.: comprei o plano errado"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCancelOrder(null)}>Voltar</Button>
+              <Button onClick={submitCancelRequest} disabled={cancelSubmitting}>
+                {cancelSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Enviar solicitação
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={pixOpen} onOpenChange={(o) => { if (!o) { setPixOpen(false); setPixData(null); } }}>
           <DialogContent>
             <DialogHeader>
