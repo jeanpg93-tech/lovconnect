@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     const [{ data: def }, { data: ov }, { data: reseller }] = await Promise.all([
       admin.from("claude_plan_prices").select("cost_cents, sale_price_cents, is_active").eq("plan_code", planCode).maybeSingle(),
       admin.from("claude_reseller_price_overrides").select("markup_mode, markup_value_cents, is_active").eq("reseller_id", customer.reseller_id).eq("plan_code", planCode).maybeSingle(),
-      admin.from("resellers").select("display_name, claude_enabled").eq("id", customer.reseller_id).maybeSingle(),
+      admin.from("resellers").select("display_name, claude_enabled, user_id").eq("id", customer.reseller_id).maybeSingle(),
     ]);
     if (!def?.is_active) return json({ error: "plan_not_active" }, 400);
     if (!reseller?.claude_enabled) return json({ error: "reseller_disabled" }, 403);
@@ -110,14 +110,15 @@ Deno.serve(async (req) => {
       (note ? `\nObs.: ${note}` : "");
     try { await admin.rpc("telegram_enqueue", { _text: msg }); } catch (_) {}
     try {
-      await admin.from("notifications").insert({
-        user_id: null,
-        reseller_id: customer.reseller_id,
-        kind: "claude_renewal_request",
-        title: "Solicitação de renovação Claude",
-        message: `${customer.name} solicitou renovação (${PLAN_LABELS[planCode]}).`,
-        data: { order_id: order.id, plan_code: planCode, sale_price_cents: sale, customer_email: customer.email },
-      });
+      if (reseller?.user_id) {
+        await admin.from("notifications").insert({
+          user_id: reseller.user_id,
+          type: "claude_renewal_request",
+          title: "Solicitação de renovação Claude",
+          body: `${customer.name} solicitou renovação (${PLAN_LABELS[planCode]}) — ${fmtBRL(sale)}.`,
+          metadata: { order_id: order.id, plan_code: planCode, sale_price_cents: sale, customer_email: customer.email },
+        });
+      }
     } catch (_) {}
 
     return json({ ok: true, order_id: order.id, sale_price_cents: sale });
