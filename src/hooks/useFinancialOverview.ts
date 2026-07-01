@@ -157,7 +157,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       // Fallback: tabela direta (caso a RPC falhe por permissão/timeout)
       console.warn("[financeiro] plansubs RPC falhou, usando fallback", planSubsErr);
       let q = supabase
-        .from("reseller_recharge_plan_subscriptions")
+        .from("reseller_recharge_plan_subscriptions_admin" as any)
         .select("cost_cents, plan_id, started_at, created_at, status, reseller_id");
       if (startIso) q = q.gte("created_at", startIso);
       if (endIso) q = q.lt("created_at", endIso);
