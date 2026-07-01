@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { DeployClaudePrompt } from "@/components/api/DeployClaudePrompt";
+import { WalletBalanceRuleNotice } from "@/components/painel/WalletBalanceRuleNotice";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/reseller-claude-api`;
@@ -688,6 +689,10 @@ export default function RevendedorApiClaude() {
         icon={ClaudeIcon}
         actions={<CopyAllDocsButton containerRef={docsRef} fileName="api-claude-revendedor.md" />}
       />
+
+      <div className="mt-4">
+        <WalletBalanceRuleNotice product="chaves Claude" />
+      </div>
 
       <Tabs defaultValue="inicio" className="mt-6 space-y-4">
         <TabsList className="bg-secondary/40">
