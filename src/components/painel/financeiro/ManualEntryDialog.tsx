@@ -60,7 +60,8 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         setSelectedLicense(src.reference_meta?.license_type || "");
         setCategory(src.category || "");
         // ao duplicar, usa data de hoje; ao editar, mantém data original
-        setDate(initial ? src.entry_date.slice(0, 10) : new Date().toISOString().slice(0, 10));
+        // usa data LOCAL (não UTC) para evitar drift de fuso ao gerar o default
+        setDate(initial ? src.entry_date.slice(0, 10) : localTodayISO());
       } else {
         setMode("revenue");
         setDescription("");
@@ -69,7 +70,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         setSelectedPackId("");
         setSelectedLicense("");
         setCategory("");
-        setDate(new Date().toISOString().slice(0, 10));
+        setDate(localTodayISO());
       }
     }
   }, [open, initial, prefill]);
@@ -137,9 +138,10 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         reference_kind,
         reference_meta,
         category: category.trim() || (mode === "misticpay_fee" ? "Taxa MisticPay" : mode === "lovastore" ? "LovaStore" : null),
-        // Salva como meia-noite LOCAL (não UTC) para alinhar com filtros do dashboard.
-        // new Date("YYYY-MM-DD") é interpretado como UTC; usar "YYYY-MM-DDT00:00:00" força local.
-        entry_date: new Date(`${date}T00:00:00`).toISOString(),
+        // Salva ao MEIO-DIA UTC do dia escolhido. Isso mantém o mesmo calendário em
+        // qualquer fuso (-11h a +11h), evitando que a data selecionada apareça no
+        // dia anterior/posterior por causa de conversão de fuso horário.
+        entry_date: new Date(`${date}T12:00:00Z`).toISOString(),
       });
       toast({ title: initial ? "Lançamento atualizado" : "Lançamento criado" });
       onOpenChange(false);
