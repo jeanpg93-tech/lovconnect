@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
 
     let customerQuery = admin
       .from("claude_customers")
-      .select("id, email, reseller_id, name, must_change_password")
+      .select("id, email, whatsapp, reseller_id, name, must_change_password")
       .eq("auth_user_id", userData.user.id);
     if (scopedResellerId) customerQuery = customerQuery.eq("reseller_id", scopedResellerId);
     const { data: customer } = await customerQuery
@@ -127,6 +127,40 @@ Deno.serve(async (req) => {
         return { plan_code: p.plan_code, sale_price_cents: sale };
       });
 
+    // Chaves de EXTENSÃO do mesmo cliente (match por reseller_id + whatsapp normalizado)
+    const digits = (v: any) => String(v ?? "").replace(/\D+/g, "");
+    const custWa = digits(customer.whatsapp);
+    let extensionKeys: any[] = [];
+    if (custWa) {
+      const { data: sfo } = await admin
+        .from("storefront_orders")
+        .select("id, extension_id, license_type, license_key, status, buyer_name, buyer_whatsapp, price_cents, created_at, paid_at, expires_at, cancellation_status")
+        .eq("reseller_id", customer.reseller_id)
+        .not("license_key", "is", null)
+        .in("status", ["paid", "issued", "completed"] as any)
+        .order("created_at", { ascending: false });
+      const mine = (sfo ?? []).filter((o: any) => digits(o.buyer_whatsapp) === custWa);
+      const extIds = Array.from(new Set(mine.map((o: any) => o.extension_id).filter(Boolean)));
+      let extMap = new Map<string, string>();
+      if (extIds.length) {
+        const { data: exts } = await admin.from("extensions").select("id, name").in("id", extIds as any);
+        extMap = new Map((exts ?? []).map((e: any) => [e.id, e.name]));
+      }
+      extensionKeys = mine.map((o: any) => ({
+        id: o.id,
+        extension_id: o.extension_id,
+        extension_name: extMap.get(o.extension_id) ?? "Extensão",
+        license_type: o.license_type,
+        license_key: o.license_key,
+        status: o.status,
+        cancellation_status: o.cancellation_status ?? null,
+        price_cents: o.price_cents,
+        created_at: o.created_at,
+        paid_at: o.paid_at,
+        expires_at: o.expires_at,
+      }));
+    }
+
     // Consumo no provedor (best-effort)
     let providerUser: any = null;
     let providerError: string | null = null;
@@ -178,6 +212,7 @@ Deno.serve(async (req) => {
       orders,
       usage,
       plans,
+      extension_keys: extensionKeys,
       reseller: {
         display_name: reseller?.display_name ?? null,
         claude_enabled: !!reseller?.claude_enabled,
