@@ -12,13 +12,15 @@ const TEST_RESELLER_ID = "68fddcfb-5e1f-492c-be75-9a8a3d2a63fa";
 // MétodoFlow tem teto de 60 dias no provedor — bloqueia 90d/365d como defesa adicional.
 const FLOW_DISALLOWED_TYPES = new Set(["90d", "365d"]);
 
-// Taxa por transação cobrada pela MisticPay sobre cada DEPOSITO recebido.
+// Taxa padrão por transação (fallback quando o webhook não envia `fee`).
+// Na prática a MisticPay envia o campo `fee` em reais (ex.: 0.50 ou 0.55) e
+// esse valor real é o que registramos como despesa.
 const MISTICPAY_FEE_CENTS = 50;
 
 /**
- * Registra automaticamente a taxa MisticPay (R$0,50) como despesa no Financeiro do gerente,
- * referenciando a transação que originou a cobrança. Idempotente (índice único parcial em
- * manual_financial_entries por reference_meta->>'tx_id' quando reference_kind='misticpay_fee').
+ * Registra automaticamente a taxa MisticPay como despesa no Financeiro do gerente,
+ * usando o VALOR REAL da taxa enviado no payload do webhook (`payload.fee`, em reais).
+ * Se `feeCents` não vier informado, cai no padrão de R$ 0,50. Idempotente por `tx_id`.
  */
 async function recordMisticPayFee(
   admin: any,
@@ -27,11 +29,36 @@ async function recordMisticPayFee(
   originId: string | null,
   originLabel: string,
   entryDate?: string | null,
+  feeCents?: number | null,
 ) {
-  // Desativado temporariamente a pedido do usuário — lançamento manual continua sendo feito
-  // pelo painel. Reativar quando o fluxo automatizado for redesenhado.
-  void admin; void txId; void originKind; void originId; void originLabel; void entryDate;
-  return;
+  try {
+    if (!txId) return;
+    const amount_cents = Number.isFinite(feeCents as number) && (feeCents as number) > 0
+      ? Math.round(feeCents as number)
+      : MISTICPAY_FEE_CENTS;
+    const feeBRL = (amount_cents / 100).toFixed(2).replace(".", ",");
+    const dateIso = entryDate ?? new Date().toISOString();
+    const entry_date = dateIso.slice(0, 10);
+    // Idempotência: já existe lançamento automático para esse tx_id?
+    const { data: existing } = await admin
+      .from("manual_financial_entries")
+      .select("id")
+      .eq("reference_kind", "misticpay_fee")
+      .contains("reference_meta", { tx_id: txId })
+      .limit(1);
+    if (existing && existing.length > 0) return;
+    await admin.from("manual_financial_entries").insert({
+      entry_type: "expense",
+      category: "gateway_fee",
+      description: `Taxa MisticPay (R$ ${feeBRL}) — ${originLabel}`,
+      amount_cents,
+      entry_date,
+      reference_kind: "misticpay_fee",
+      reference_meta: { tx_id: txId, origin: originKind, origin_id: originId, fee_cents: amount_cents },
+    });
+  } catch (e) {
+    console.error("recordMisticPayFee failed", e);
+  }
 }
 
 /**
