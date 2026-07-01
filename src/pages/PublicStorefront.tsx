@@ -244,19 +244,40 @@ export default function PublicStorefront() {
     (async () => {
       if (!slug) return;
       setLoading(true);
-      const { data: r } = await supabase
-        .from("resellers")
-        .select("id, display_name, slug, is_active, recharge_plans_enabled, claude_enabled")
-        .eq("slug", slug)
-        .maybeSingle();
+      // Retry-friendly loader — evita "Loja não encontrada" quando o problema
+      // real é uma falha transitória de rede/CDN. Tentamos 3x com backoff curto.
+      let r: any = null;
+      let rErr: any = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const res = await supabase
+          .from("resellers")
+          .select("id, display_name, slug, is_active, recharge_plans_enabled, claude_enabled")
+          .ilike("slug", slug)
+          .maybeSingle();
+        r = res.data;
+        rErr = res.error;
+        if (r || !rErr) break;
+        await new Promise((res) => setTimeout(res, 400 * (attempt + 1)));
+      }
+      if (rErr && !r) {
+        console.error("[PublicStorefront] falha ao carregar reseller", rErr);
+        setLoading(false);
+        return;
+      }
       if (!r || !r.is_active) { setLoading(false); return; }
       setReseller(r as Reseller);
 
-      const { data: s } = await supabase
-        .from("reseller_storefronts")
-        .select("*")
-        .eq("reseller_id", r.id)
-        .maybeSingle();
+      let s: any = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const res = await supabase
+          .from("reseller_storefronts")
+          .select("*")
+          .eq("reseller_id", r.id)
+          .maybeSingle();
+        s = res.data;
+        if (s || !res.error) break;
+        await new Promise((res) => setTimeout(res, 400 * (attempt + 1)));
+      }
       if (!s || !s.is_enabled) { setLoading(false); return; }
       setStore(s as any);
 
