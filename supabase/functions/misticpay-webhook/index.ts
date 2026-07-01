@@ -28,28 +28,10 @@ async function recordMisticPayFee(
   originLabel: string,
   entryDate?: string | null,
 ) {
-  if (!txId) return;
-  try {
-    const { error } = await admin.from("manual_financial_entries").insert({
-      entry_type: "expense",
-      amount_cents: MISTICPAY_FEE_CENTS,
-      description: `Taxa MisticPay — ${originLabel}`,
-      category: "gateway_fee",
-      reference_kind: "misticpay_fee",
-      reference_meta: {
-        tx_id: txId,
-        origin_kind: originKind,
-        origin_id: originId,
-        origin_label: originLabel,
-      },
-      entry_date: entryDate ?? new Date().toISOString(),
-    });
-    if (error && !String(error.message ?? "").toLowerCase().includes("duplicate")) {
-      console.warn("[recordMisticPayFee] insert failed", error);
-    }
-  } catch (e) {
-    console.warn("[recordMisticPayFee] exception", e);
-  }
+  // Desativado temporariamente a pedido do usuário — lançamento manual continua sendo feito
+  // pelo painel. Reativar quando o fluxo automatizado for redesenhado.
+  void admin; void txId; void originKind; void originId; void originLabel; void entryDate;
+  return;
 }
 
 /**
