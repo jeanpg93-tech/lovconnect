@@ -560,6 +560,21 @@ Deno.serve(async (req) => {
           console.warn("try_release_pending_orders failed", e);
         }
 
+        // Também tenta liberar pedidos Claude que ficaram "awaiting_balance"
+        try {
+          const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/claude-release-awaiting`;
+          fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({ reseller_id: intent.reseller_id }),
+          }).catch(() => {});
+        } catch (e) {
+          console.warn("claude-release-awaiting trigger failed", e);
+        }
+
         return json({ ok: true, kind: "recharge" });
       }
 

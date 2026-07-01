@@ -223,11 +223,31 @@ Deno.serve(async (req) => {
         : defaultPrice.sale_price_cents;
       const profitCents = saleCents - resellerCostCents;
 
-      // Pre-check (informational; atomic check happens inside the RPC below)
+      // Pre-check: se sem saldo, cria pedido `awaiting_balance` que será
+      // processado automaticamente após a próxima recarga do revendedor.
       const { data: balRow } = await svc.from("reseller_balances").select("balance_cents").eq("reseller_id", reseller.id).maybeSingle();
       const balance = balRow?.balance_cents ?? 0;
       if (balance < resellerCostCents) {
-        return json({ success: false, error: "saldo_insuficiente", saldo_centavos: balance, preco_centavos: resellerCostCents }, 402);
+        const { data: waiting } = await svc.from("claude_orders").insert({
+          reseller_id: reseller.id,
+          plan_code: planCode,
+          customer_identifier: customerId,
+          cost_cents: costCents,
+          sale_price_cents: saleCents,
+          profit_cents: profitCents,
+          status: "awaiting_balance",
+          request_id: requestId,
+          error_message: "awaiting_balance: saldo insuficiente no momento da venda (API)",
+        }).select().maybeSingle();
+        return json({
+          success: false,
+          error: "saldo_insuficiente",
+          status: "awaiting_balance",
+          message: "Saldo insuficiente. O pedido ficou aguardando saldo e será liberado (chave gerada e webhook disparado) assim que você recarregar o painel com valor suficiente.",
+          saldo_centavos: balance,
+          preco_centavos: resellerCostCents,
+          pedido_id: waiting?.id ?? null,
+        }, 202);
       }
 
       const { data: order, error: oErr } = await svc.from("claude_orders").insert({
