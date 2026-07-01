@@ -52,7 +52,7 @@ type Storefront = {
 };
 
 
-type Reseller = { id: string; display_name: string; slug: string; is_active: boolean };
+type Reseller = { id: string; display_name: string; slug: string; is_active: boolean; claude_enabled?: boolean };
 type Plan = { license_type: string; label: string; price_cents: number; customer_price_cents: number; is_active: boolean };
 type Pack = { license_type: string; price_cents: number; extension_id?: string | null; method?: "flow" | "lovax"; label?: string; desc?: string };
 type Recharge = { id: string; credits_amount: number; price_cents: number };
@@ -107,6 +107,7 @@ export default function PublicStorefront() {
   });
   const [activeTab, setActiveTab] = useState<"extension" | "recharge">("extension");
   const [testimonials, setTestimonials] = useState<any[]>([]);
+  const [claudePlans, setClaudePlans] = useState<{ code: string; label: string; price_cents: number }[]>([]);
   
   // Device Reset
   const [resetKey, setResetKey] = useState("");
@@ -243,7 +244,7 @@ export default function PublicStorefront() {
       setLoading(true);
       const { data: r } = await supabase
         .from("resellers")
-        .select("id, display_name, slug, is_active, recharge_plans_enabled")
+        .select("id, display_name, slug, is_active, recharge_plans_enabled, claude_enabled")
         .eq("slug", slug)
         .maybeSingle();
       if (!r || !r.is_active) { setLoading(false); return; }
@@ -357,6 +358,32 @@ export default function PublicStorefront() {
       // Default active tab based on what is enabled
       if (s && !(s as any).show_extensions && (s as any).show_credits) {
         setActiveTab("recharge");
+      }
+
+      // Planos Claude (Fase 4b — loja pública)
+      if ((r as any).claude_enabled) {
+        try {
+          const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
+          let priceMap: Record<string, number> | undefined;
+          if (projectId) {
+            const res = await fetch(
+              `https://${projectId}.supabase.co/functions/v1/claude-public-prices?slug=${encodeURIComponent(slug)}`,
+            );
+            const j = await res.json().catch(() => ({}));
+            priceMap = j?.prices;
+          }
+          if (priceMap) {
+            const LABELS: Record<string, string> = {
+              pro_30d: "Pro 30 dias — 500K tokens",
+              "5x_30d": "5x 30 dias — 2,5M tokens",
+              "20x_30d": "20x 30 dias — 10M tokens",
+            };
+            const list = Object.entries(priceMap)
+              .filter(([, v]) => Number(v) > 0)
+              .map(([code, v]) => ({ code, label: LABELS[code] ?? code, price_cents: Number(v) }));
+            setClaudePlans(list);
+          }
+        } catch { /* ignore */ }
       }
 
       setLoading(false);
@@ -1627,6 +1654,54 @@ export default function PublicStorefront() {
                           )}
                         </div>
                       </div>
+                    </div>
+                  </section>
+                )}
+
+                {claudePlans.length > 0 && (
+                  <section className="w-full mt-12">
+                    <div className="flex flex-col items-center gap-2 mb-8 text-center">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
+                        <Sparkles className="h-3 w-3" /> Claude AI · Chaves API
+                      </div>
+                      <h2 className="text-2xl font-black uppercase tracking-tight">Planos Claude</h2>
+                      <p className="text-xs text-muted-foreground">Chave API oficial da Anthropic · Ativação instantânea via PIX</p>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {claudePlans.map((p) => (
+                        <Link
+                          key={p.code}
+                          to={`/checkout/claude/${slug}?plan=${p.code}`}
+                          className="group relative overflow-hidden rounded-2xl border border-white/5 bg-card/30 backdrop-blur-xl p-5 transition-all hover:bg-card/50 hover:border-primary/40"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[10px] font-black uppercase tracking-widest text-primary">Claude</div>
+                              <div className="text-sm font-bold mt-1">{p.label}</div>
+                            </div>
+                            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                          </div>
+                          <div className="mt-4 flex items-end justify-between">
+                            <div>
+                              <div className="text-[10px] text-muted-foreground uppercase tracking-widest">por</div>
+                              <div className="text-2xl font-black tracking-tight">
+                                R$ {(p.price_cents / 100).toFixed(2).replace(".", ",")}
+                              </div>
+                            </div>
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-primary group-hover:underline">
+                              Comprar →
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="mt-4 text-center">
+                      <Link
+                        to={`/checkout/claude/${slug}`}
+                        className="text-[11px] text-muted-foreground hover:text-primary underline underline-offset-4"
+                      >
+                        Ver todos os planos e comprar →
+                      </Link>
                     </div>
                   </section>
                 )}
