@@ -28,6 +28,7 @@ type Order = {
   plan_code: string;
   status: string;
   provider_key_id: string | null;
+  code?: string | null;
   created_at: string;
   sale_price_cents: number;
 };
@@ -355,10 +356,25 @@ export default function ClienteClaudePortal() {
             ) : (
               <div className="space-y-3">
                 {orders.map((o) => (
-                  <div key={o.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
-                    <div className="space-y-1">
+                  <div key={o.id} className="flex flex-col gap-3 p-3 rounded-lg border bg-card/50 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-2 min-w-0 flex-1">
                       <div className="font-medium text-sm">{PLAN_LABELS[o.plan_code] ?? o.plan_code}</div>
                       <div className="text-xs text-muted-foreground">Emitida em {fmtDate(o.created_at)}</div>
+                      {o.status === "issued" && o.code && (
+                        <div className="flex flex-col gap-2 rounded-md border bg-background/70 p-2 sm:flex-row sm:items-center">
+                          <code className="flex-1 break-all text-xs">{o.code}</code>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              navigator.clipboard.writeText(o.code!);
+                              toast.success("Chave copiada!");
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     <Badge variant={o.status === "issued" ? "default" : o.status === "failed" ? "destructive" : "secondary"}>
                       {o.status === "issued" ? "Ativa" : o.status === "failed" ? "Falhou" : o.status}
