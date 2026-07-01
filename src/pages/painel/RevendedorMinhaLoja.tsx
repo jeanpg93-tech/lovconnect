@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { StorefrontPreview } from "@/components/storefront/StorefrontPreview";
 import { StorefrontVisualEffects, VISUAL_EFFECTS, type VisualEffect } from "@/components/storefront/StorefrontVisualEffects";
+import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import {
   Accordion,
   AccordionContent,
