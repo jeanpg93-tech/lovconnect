@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     // Vendas Claude desse revendedor (para casar por email)
     const { data: orders } = await admin
       .from('claude_orders')
-      .select('id, plan_code, status, customer_email, customer_name, customer_whatsapp, created_at, sale_price_cents, provider_key_id, code')
+      .select('id, plan_code, status, customer_email, customer_name, customer_whatsapp, created_at, sale_price_cents, provider_key_id, code, cancelled_at, redeemed_at, expired_at, cancel_requested_at, cancel_request_note, refund_waived')
       .eq('reseller_id', reseller.id)
       .order('created_at', { ascending: false })
       .limit(500);
@@ -72,11 +72,69 @@ Deno.serve(async (req) => {
       if (email) byEmail.set(email, u);
     }
 
+    // Reconcilia status no fornecedor (best-effort) para pedidos ainda "issued".
+    // Alguns provedores expõem GET /api/rsl/keys/:id retornando status: active|redeemed|cancelled|expired.
+    async function fetchProviderKey(ref: string) {
+      try {
+        const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/keys/${encodeURIComponent(ref)}`, {
+          headers: { Authorization: `Bearer ${CLAUDE_API_KEY}`, Accept: 'application/json' },
+        });
+        if (!r.ok) return null;
+        return await r.json().catch(() => null);
+      } catch { return null; }
+    }
+
+    const providerKeyByOrder = new Map<string, any>();
+    const targets = (orders ?? []).filter((o) => o.status === 'issued' && (o.provider_key_id || o.code));
+    const CONCURRENCY = 6;
+    for (let i = 0; i < targets.length; i += CONCURRENCY) {
+      const slice = targets.slice(i, i + CONCURRENCY);
+      await Promise.all(slice.map(async (o) => {
+        const ref = String(o.provider_key_id ?? o.code ?? '').trim();
+        if (!ref) return;
+        const data = await fetchProviderKey(ref);
+        if (data) providerKeyByOrder.set(o.id, data);
+      }));
+    }
+
+    // Espelha status terminais recebidos do provedor no banco (sem esperar webhook).
+    const patches: Array<{ id: string; patch: Record<string, unknown> }> = [];
+    for (const [orderId, pk] of providerKeyByOrder.entries()) {
+      const provStatus = String(pk?.status ?? '').toLowerCase();
+      const patch: Record<string, unknown> = {};
+      if (provStatus === 'redeemed' && !patches.find((p) => p.id === orderId)) {
+        patch.status = 'redeemed';
+        if (pk?.redeemedAt) patch.redeemed_at = pk.redeemedAt;
+      } else if (provStatus === 'cancelled' || provStatus === 'canceled' || provStatus === 'revoked') {
+        patch.status = 'cancelled';
+        patch.cancelled_at = pk?.cancelledAt ?? new Date().toISOString();
+      } else if (provStatus === 'expired') {
+        patch.status = 'expired';
+        patch.expired_at = pk?.expiredAt ?? new Date().toISOString();
+      }
+      if (Object.keys(patch).length) patches.push({ id: orderId, patch });
+    }
+    await Promise.all(patches.map((p) =>
+      admin.from('claude_orders').update(p.patch).eq('id', p.id)
+    ));
+
+    const REFUND_WINDOW_DAYS = 7;
     const enriched = (orders ?? []).map((o) => {
       const email = String(o.customer_email ?? '').trim().toLowerCase();
       const match = email ? byEmail.get(email) : null;
+      const pk = providerKeyByOrder.get(o.id);
+      const patched = patches.find((p) => p.id === o.id)?.patch as { status?: string } | undefined;
+      const effectiveStatus = (patched?.status as string) ?? o.status;
+      const providerStatus = String(pk?.status ?? '').toLowerCase() || null;
+      const createdMs = new Date(o.created_at).getTime();
+      const refundDeadlineMs = createdMs + REFUND_WINDOW_DAYS * 86_400_000;
+      const withinRefundWindow = Date.now() <= refundDeadlineMs;
       return {
         ...o,
+        status: effectiveStatus,
+        provider_status: providerStatus,
+        refund_deadline_at: new Date(refundDeadlineMs).toISOString(),
+        within_refund_window: withinRefundWindow,
         usage: match ? {
           email: match.email,
           kind: match.kind,
@@ -100,6 +158,7 @@ Deno.serve(async (req) => {
       provider_error: providerError,
       provider_total: providerUsers.length,
       orders: enriched,
+      refund_window_days: REFUND_WINDOW_DAYS,
     });
   } catch (e) {
     console.error('[claude-customers-usage] error', e);

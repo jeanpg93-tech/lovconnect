@@ -430,6 +430,8 @@ export type Database = {
       claude_orders: {
         Row: {
           cancel_attempts: Json
+          cancel_request_note: string | null
+          cancel_requested_at: string | null
           cancelled_at: string | null
           code: string | null
           code_revealed_at: string | null
@@ -454,6 +456,7 @@ export type Database = {
           provider_transaction_id: string | null
           qr_code_base64: string | null
           redeemed_at: string | null
+          refund_waived: boolean
           renewal_note: string | null
           request_id: string | null
           reseller_id: string
@@ -464,6 +467,8 @@ export type Database = {
         }
         Insert: {
           cancel_attempts?: Json
+          cancel_request_note?: string | null
+          cancel_requested_at?: string | null
           cancelled_at?: string | null
           code?: string | null
           code_revealed_at?: string | null
@@ -488,6 +493,7 @@ export type Database = {
           provider_transaction_id?: string | null
           qr_code_base64?: string | null
           redeemed_at?: string | null
+          refund_waived?: boolean
           renewal_note?: string | null
           request_id?: string | null
           reseller_id: string
@@ -498,6 +504,8 @@ export type Database = {
         }
         Update: {
           cancel_attempts?: Json
+          cancel_request_note?: string | null
+          cancel_requested_at?: string | null
           cancelled_at?: string | null
           code?: string | null
           code_revealed_at?: string | null
@@ -522,6 +530,7 @@ export type Database = {
           provider_transaction_id?: string | null
           qr_code_base64?: string | null
           redeemed_at?: string | null
+          refund_waived?: boolean
           renewal_note?: string | null
           request_id?: string | null
           reseller_id?: string
@@ -5300,6 +5309,9 @@ export type Database = {
         | "awaiting_payment"
         | "awaiting_balance"
         | "expired"
+        | "redeemed"
+        | "cancel_rejected"
+        | "cancel_requested"
       onboarding_tour_status: "pending" | "completed" | "skipped"
       recharge_plan_delivery_status:
         | "pending"
@@ -5455,6 +5467,9 @@ export const Constants = {
         "awaiting_payment",
         "awaiting_balance",
         "expired",
+        "redeemed",
+        "cancel_rejected",
+        "cancel_requested",
       ],
       onboarding_tour_status: ["pending", "completed", "skipped"],
       recharge_plan_delivery_status: [

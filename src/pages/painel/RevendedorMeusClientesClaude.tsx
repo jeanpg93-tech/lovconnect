@@ -4,10 +4,14 @@ import { PageContainer } from "@/components/painel/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity, Copy, KeyRound } from "lucide-react";
+import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity, Copy, KeyRound, Ban, ShieldAlert } from "lucide-react";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Order = {
   id: string;
@@ -20,6 +24,12 @@ type Order = {
   sale_price_cents: number;
   provider_key_id: string | null;
   code: string | null;
+  provider_status?: string | null;
+  refund_deadline_at?: string | null;
+  within_refund_window?: boolean;
+  cancel_requested_at?: string | null;
+  cancel_request_note?: string | null;
+  refund_waived?: boolean;
   usage: null | {
     email: string;
     status?: string;
@@ -45,6 +55,9 @@ const PLAN_LABELS: Record<string, string> = {
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   issued: { label: "Entregue", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-500" },
+  redeemed: { label: "Ativada", className: "border-sky-500/40 bg-sky-500/10 text-sky-500" },
+  cancel_requested: { label: "Cancelamento solicitado", className: "border-amber-500/40 bg-amber-500/10 text-amber-500" },
+  cancel_rejected: { label: "Cancelamento negado", className: "border-rose-500/40 bg-rose-500/10 text-rose-500" },
   pending: { label: "Pendente", className: "border-amber-500/40 bg-amber-500/10 text-amber-500" },
   awaiting_balance: { label: "Aguardando saldo", className: "border-amber-500/40 bg-amber-500/10 text-amber-500" },
   awaiting_payment: { label: "Aguardando pagamento", className: "border-amber-500/40 bg-amber-500/10 text-amber-500" },
@@ -68,6 +81,8 @@ export default function RevendedorMeusClientesClaude() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [providerError, setProviderError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const load = async (silent = false) => {
     if (silent) setRefreshing(true); else setLoading(true);
@@ -80,6 +95,30 @@ export default function RevendedorMeusClientesClaude() {
     }
     setLoading(false);
     setRefreshing(false);
+  };
+
+  const doCancel = async (force: boolean) => {
+    if (!cancelTarget) return;
+    setCancelling(true);
+    try {
+      const { data, error } = await invokeAuthenticatedFunction<any>("claude-cancel-key", {
+        method: "POST",
+        body: { order_id: cancelTarget.id, force },
+      });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.message ?? (data as any)?.error ?? "Falha ao cancelar");
+      } else {
+        toast.success(
+          data?.refund_waived
+            ? "Chave cancelada — sem estorno (fora dos 7 dias)."
+            : `Chave cancelada e estorno de R$ ${((data?.refund_cents ?? 0) / 100).toFixed(2)} devolvido à carteira.`,
+        );
+        setCancelTarget(null);
+        load(true);
+      }
+    } finally {
+      setCancelling(false);
+    }
   };
 
   useEffect(() => {
@@ -172,6 +211,17 @@ export default function RevendedorMeusClientesClaude() {
                     );
                   })()}
                 </div>
+
+                {o.cancel_requested_at && !["cancelled", "refunded"].includes(o.status) && (
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 text-[11px] text-amber-600">
+                    <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold">Cliente solicitou cancelamento</div>
+                      <div>Em {new Date(o.cancel_requested_at).toLocaleString("pt-BR")}{o.within_refund_window ? " — dentro dos 7 dias (estorno automático)." : " — fora do prazo (sem estorno)."}</div>
+                      {o.cancel_request_note && <div className="mt-0.5 italic opacity-80">"{o.cancel_request_note}"</div>}
+                    </div>
+                  </div>
+                )}
 
                 {o.code && (
                   <div className="mt-2 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1.5">
@@ -269,11 +319,60 @@ export default function RevendedorMeusClientesClaude() {
                     Cliente ainda não resgatou ou e-mail não encontrado no fornecedor.
                   </div>
                 )}
+
+                {["issued", "redeemed", "cancel_requested"].includes(o.status) && (
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 border-rose-500/40 text-rose-500 hover:bg-rose-500/10"
+                      onClick={() => setCancelTarget(o)}
+                    >
+                      <Ban className="mr-1 h-3 w-3" /> Cancelar / Revogar chave
+                    </Button>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
+
+      <AlertDialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar chave Claude</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <div>
+                  Cliente: <b>{cancelTarget?.customer_name ?? "—"}</b> ({cancelTarget?.customer_email ?? "—"})
+                </div>
+                <div>Plano: <b>{PLAN_LABELS[cancelTarget?.plan_code ?? ""] ?? cancelTarget?.plan_code}</b></div>
+                {cancelTarget?.within_refund_window ? (
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2 text-emerald-600">
+                    ✅ Dentro dos 7 dias — o valor debitado será <b>estornado automaticamente</b> na carteira.
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-2 text-rose-500">
+                    ⚠️ Fora do prazo de 7 dias — o cancelamento pode ser feito mesmo assim, mas <b>NÃO haverá estorno</b>.
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelling}>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={cancelling}
+              className="bg-rose-600 hover:bg-rose-700"
+              onClick={(e) => { e.preventDefault(); doCancel(!cancelTarget?.within_refund_window); }}
+            >
+              {cancelling ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Ban className="mr-1 h-3.5 w-3.5" />}
+              {cancelTarget?.within_refund_window ? "Cancelar com estorno" : "Cancelar sem estorno"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageContainer>
   );
 }

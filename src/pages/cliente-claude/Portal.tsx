@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2, Store } from "lucide-react";
+import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2, Store, Ban } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -30,6 +30,7 @@ type Order = {
   code?: string | null;
   created_at: string;
   sale_price_cents: number;
+  cancel_requested_at?: string | null;
 };
 
 type Usage = {
@@ -137,6 +138,33 @@ export default function ClienteClaudePortal() {
   } | null>(null);
   const [pixStatus, setPixStatus] = useState<"waiting" | "issued" | "failed">("waiting");
   const [pixCopied, setPixCopied] = useState(false);
+  const [cancelOrder, setCancelOrder] = useState<Order | null>(null);
+  const [cancelNote, setCancelNote] = useState("");
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+
+  const REFUND_WINDOW_DAYS = 7;
+  const withinRefundWindow = (o: Order) =>
+    (Date.now() - new Date(o.created_at).getTime()) / 86_400_000 <= REFUND_WINDOW_DAYS;
+
+  const submitCancelRequest = async () => {
+    if (!cancelOrder) return;
+    setCancelSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("claude-customer-request-cancel", {
+        body: { order_id: cancelOrder.id, note: cancelNote || null },
+      });
+      if (error) throw error;
+      if (!(data as any)?.ok) throw new Error((data as any)?.error ?? "erro_desconhecido");
+      toast.success("Solicitação enviada ao revendedor.");
+      setOrders((prev) => prev.map((o) => o.id === cancelOrder.id ? { ...o, cancel_requested_at: new Date().toISOString(), status: o.status === "issued" ? "cancel_requested" : o.status } : o));
+      setCancelOrder(null);
+      setCancelNote("");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao solicitar cancelamento");
+    } finally {
+      setCancelSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -520,6 +548,23 @@ export default function ClienteClaudePortal() {
                           </Button>
                         </div>
                       )}
+                      {["issued", "redeemed"].includes(o.status) && !o.cancel_requested_at && (
+                        <div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+                            onClick={() => { setCancelOrder(o); setCancelNote(""); }}
+                          >
+                            <Ban className="h-3.5 w-3.5 mr-1" /> Solicitar cancelamento
+                          </Button>
+                        </div>
+                      )}
+                      {o.cancel_requested_at && (
+                        <div className="text-[11px] rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
+                          Cancelamento solicitado em {fmtDate(o.cancel_requested_at)} — aguardando o revendedor concluir.
+                        </div>
+                      )}
                     </div>
                     <div
                       className="px-3 py-1 rounded-full text-xs font-semibold self-start sm:self-center"
@@ -594,6 +639,50 @@ export default function ClienteClaudePortal() {
               <Button onClick={submitRenewal} disabled={renewalSubmitting || !renewalPlan}>
                 {renewalSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Gerar PIX
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!cancelOrder} onOpenChange={(o) => { if (!o) { setCancelOrder(null); setCancelNote(""); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Solicitar cancelamento da chave</DialogTitle>
+              <DialogDescription>
+                O cancelamento é feito pelo revendedor. Vamos avisá-lo agora — em seguida ele entrará em contato para concluir.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              {cancelOrder && (
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                  <div className="font-medium">{PLAN_LABELS[cancelOrder.plan_code] ?? cancelOrder.plan_code}</div>
+                  <div className="text-xs opacity-70">Emitida em {fmtDate(cancelOrder.created_at)}</div>
+                </div>
+              )}
+              {cancelOrder && withinRefundWindow(cancelOrder) ? (
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-300 text-xs">
+                  ✅ Dentro do prazo de 7 dias — se o revendedor concluir o cancelamento, o valor pago poderá ser estornado.
+                </div>
+              ) : (
+                <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-rose-300 text-xs">
+                  ⚠️ Fora do prazo de 7 dias — o cancelamento pode ser solicitado, mas <b>não há direito a estorno</b> (política do serviço).
+                </div>
+              )}
+              <div>
+                <Label className="text-xs">Motivo (opcional)</Label>
+                <Input
+                  value={cancelNote}
+                  onChange={(e) => setCancelNote(e.target.value)}
+                  placeholder="Ex.: comprei o plano errado"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCancelOrder(null)}>Voltar</Button>
+              <Button onClick={submitCancelRequest} disabled={cancelSubmitting}>
+                {cancelSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Enviar solicitação
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -310,7 +310,28 @@ function TabEndpoints() {
         body={`curl -X GET "${BASE_URL}/chaves/PEDIDO_ID" \\
   -H "X-API-Key: SUA_API_KEY"
 
-# status: pending | issued | failed`}
+# status: pending | issued | redeemed | cancel_requested |
+#         cancelled | cancel_rejected | refunded | expired | failed`}
+      />
+      <CodeBlock
+        title="POST /chaves/{id}/cancelar — Cancelar / Revogar chave"
+        body={`curl -X POST "${BASE_URL}/chaves/PEDIDO_ID/cancelar" \\
+  -H "X-API-Key: SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "force": false }'
+
+# Regra dos 7 dias
+# - Dentro dos 7 dias após emissão: cancelamento com ESTORNO AUTOMÁTICO
+#   (o valor pago volta para sua carteira do painel).
+# - Após 7 dias: retorna 409 refund_window_expired. Se quiser cancelar mesmo
+#   assim, reenvie com "force": true — a chave é revogada, mas NÃO há estorno.
+#
+# Resposta (ok)
+# { "success": true, "refund_cents": 14900, "refund_waived": false }
+#
+# Resposta (fora do prazo, sem force)
+# { "success": false, "error": "refund_window_expired",
+#   "age_days": 12, "refund_window_days": 7 }`}
       />
     </div>
   );
@@ -330,6 +351,9 @@ function TabErros() {
     ["500", "provider_not_configured", "Fornecedor não configurado — contate o suporte"],
     ["502", "provider_error", "Fornecedor retornou erro — carteira não foi debitada"],
     ["502", "provider_network_error", "Falha de rede com o fornecedor — retry seguro com mesma Idempotency-Key"],
+    ["409", "refund_window_expired", "Cancelamento após 7 dias — reenvie com force=true para revogar sem estorno"],
+    ["409", "invalid_status", "Pedido não está em estado cancelável (ex.: já cancelado)"],
+    ["422", "missing_provider_key_id", "Pedido sem identificação da chave no fornecedor"],
   ];
 
   return (
