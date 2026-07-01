@@ -540,6 +540,19 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
         profit_cents: Number(o.cost_cents || 0) - cost,
       });
     });
+    claudeArr.forEach((o: any) => {
+      const supplier = supplierCostByPlan[o.plan_code] ?? 0;
+      const ownerRev = Number(o.cost_cents || 0);
+      pushDetail(o.reseller_id, {
+        id: `claude-${o.id}`,
+        date: o.paid_at || o.created_at,
+        kind: "claude",
+        description: `Claude ${o.plan_code}${o.customer_name ? ` — ${o.customer_name}` : ""}`,
+        revenue_cents: ownerRev,
+        cost_cents: supplier,
+        profit_cents: ownerRev - supplier,
+      });
+    });
     Object.values(perResellerDetails).forEach((arr) =>
       arr.sort((a, b) => (a.date < b.date ? 1 : -1)),
     );
@@ -594,6 +607,10 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       rechargePlanRevenueCents,
       rechargePlanCostCents,
       rechargePlanCount,
+      claudeCount,
+      claudeGrossSalesCents,
+      claudeOwnerRevenueCents,
+      claudeSupplierCostCents,
       costCents,
       costCreditsCents,
       gatewayFeeCents: totalGatewayFeeCents,
