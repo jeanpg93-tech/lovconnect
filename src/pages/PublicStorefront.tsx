@@ -105,7 +105,7 @@ export default function PublicStorefront() {
     enabled: false,
     message: "",
   });
-  const [activeTab, setActiveTab] = useState<"extension" | "recharge">("extension");
+  const [activeTab, setActiveTab] = useState<"extension" | "claude">("extension");
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [claudePlans, setClaudePlans] = useState<{ code: string; label: string; price_cents: number; sort_order: number }[]>([]);
   const [claudeLoading, setClaudeLoading] = useState(false);
@@ -355,9 +355,9 @@ export default function PublicStorefront() {
         "Estamos em manutenção. Novas recargas estarão disponíveis em breve.";
       setRechargeMaintenance({ enabled: maintEnabled, message: maintMessage });
 
-      // Default active tab based on what is enabled
-      if (s && !(s as any).show_extensions && (s as any).show_credits) {
-        setActiveTab("recharge");
+      // Default active tab: se a loja não vende extensão mas tem Claude, abre Claude direto
+      if (s && !(s as any).show_extensions) {
+        setActiveTab("claude");
       }
 
       // Planos Claude (Fase 4b — loja pública)
@@ -705,7 +705,7 @@ export default function PublicStorefront() {
             </Button>
           )}
 
-          {store.show_credits && store.show_extensions && !order && !selLic && !selRec && !selPlan && (
+          {store.show_extensions && (claudePlans.length > 0 || claudeLoading) && !order && !selLic && !selRec && !selPlan && (
             <div className="flex items-center gap-3 mt-6">
               <button
                 onClick={() => setActiveTab("extension")}
@@ -737,31 +737,31 @@ export default function PublicStorefront() {
               </button>
 
               <button
-                onClick={() => setActiveTab("recharge")}
+                onClick={() => setActiveTab("claude")}
                 className={cn(
                   "flex-1 min-w-[140px] p-3 rounded-2xl border transition-all flex flex-col items-center gap-1.5 group shadow-sm",
-                  activeTab === "recharge" 
+                  activeTab === "claude" 
                     ? "bg-card scale-105 z-10" 
                     : "bg-card/40 border-white/5 hover:border-white/20 hover:bg-card/60"
                 )}
-                style={activeTab === "recharge" ? { borderColor: `${color}80`, boxShadow: `0 0 0 1px ${color}33, 0 1px 2px 0 ${color}0D` } : {}}
+                style={activeTab === "claude" ? { borderColor: `${color}80`, boxShadow: `0 0 0 1px ${color}33, 0 1px 2px 0 ${color}0D` } : {}}
               >
                 <div
                   className={cn(
                     "p-2 rounded-xl transition-colors",
-                    activeTab === "recharge" ? "" : "group-hover:bg-opacity-30"
+                    activeTab === "claude" ? "" : "group-hover:bg-opacity-30"
                   )}
-                  style={activeTab === "recharge" ? { background: color, color: '#fff' } : { background: `${color}1a`, color }}
+                  style={activeTab === "claude" ? { background: color, color: '#fff' } : { background: `${color}1a`, color }}
                 >
-                  <Coins className="h-4 w-4" />
+                  <Sparkles className="h-4 w-4" />
                 </div>
-                <div className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap" style={{ color: activeTab === "recharge" ? color : undefined }}>Recargas na conta</div>
+                <div className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap" style={{ color: activeTab === "claude" ? color : undefined }}>Planos Claude</div>
                 <div
                   className={cn(
                     "h-1 w-1 rounded-full mt-0.5 transition-all",
-                    activeTab === "recharge" ? "scale-100" : "bg-transparent scale-0"
+                    activeTab === "claude" ? "scale-100" : "bg-transparent scale-0"
                   )}
-                  style={activeTab === "recharge" ? { background: color } : {}}
+                  style={activeTab === "claude" ? { background: color } : {}}
                 />
               </button>
             </div>
@@ -1219,468 +1219,10 @@ export default function PublicStorefront() {
                 )}
                 </>
               ) : (
-                /* Catálogo de Recargas */
-                (rechargeMaintenance.enabled ? sellablePlans.length === 0 : (recharges.length === 0 && sellablePlans.length === 0)) ? (
-                  <div className="text-center py-12 text-sm text-muted-foreground">
-                    {rechargeMaintenance.enabled
-                      ? rechargeMaintenance.message
-                      : "Nenhuma opção de recargas disponível."}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2.5 max-w-xl mx-auto">
-                    {(() => {
-                      const isAuto = rechargeMode === "automatico";
-                      const modeLabel = isAuto ? "Automático" : "Manual";
-                      const modeDesc = isAuto
-                        ? "Suas recargas são creditadas instantaneamente após o pagamento via PIX."
-                        : "Suas recargas são processadas manualmente pelo vendedor após o pagamento.";
-                      return (
-                        <div
-                          className="relative overflow-hidden rounded-[2rem] border bg-background/80 backdrop-blur-xl p-5 text-left shadow-2xl mb-2"
-                          style={{ borderColor: `${color}70`, boxShadow: `0 20px 70px -24px ${color}99` }}
-                        >
-                          <div
-                            className="absolute inset-y-0 left-0 w-1.5"
-                            style={{ background: `linear-gradient(to bottom, transparent, ${color}, transparent)` }}
-                          />
-                          <div
-                            className="absolute inset-0 opacity-[0.08]"
-                            style={{ backgroundImage: `linear-gradient(135deg, ${color} 1px, transparent 1px)`, backgroundSize: "18px 18px" }}
-                          />
-                          <div className="relative z-10 flex items-center gap-4">
-                            <div
-                              className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ring-1 ring-inset ring-background/20"
-                              style={{ background: `linear-gradient(135deg, ${color}, ${color}99)`, color: "#fff" }}
-                            >
-                              {isAuto ? <Zap className="h-6 w-6" /> : <Hand className="h-6 w-6" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-[9px] font-black uppercase tracking-widest" style={{ color }}>
-                                  Método de entrega
-                                </span>
-                                <span
-                                  className="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full border bg-background/70"
-                                  style={{ color, borderColor: `${color}60` }}
-                                >
-                                  {isAuto ? "Ativo agora" : "Sob revisão"}
-                                </span>
-                              </div>
-                              <div className="font-black text-2xl mt-1 leading-none tracking-normal">
-                                {modeLabel}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                                {modeDesc}
-                              </div>
-                            </div>
-                            <ShieldCheck className="hidden sm:block h-6 w-6 shrink-0" style={{ color }} />
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    {sellablePlans.length > 0 && (
-                      <div className="space-y-2.5 pb-1">
-                        <div className="flex items-center gap-2 mt-1 mb-1">
-                          <Sparkles className="h-3.5 w-3.5" style={{ color }} />
-                          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>
-                            Planos com entrega diária
-                          </span>
-                        </div>
-                        {sellablePlans.map((p) => (
-                          <button
-                            key={p.plan_id}
-                            onClick={() => setSelPlan(p.plan_id)}
-                            className={cn(
-                              "group relative overflow-hidden w-full rounded-2xl border bg-gradient-to-r from-card/90 to-card/60 backdrop-blur p-4 text-left",
-                              "flex items-center gap-4 transition-all hover:shadow-xl hover:-translate-y-0.5",
-                            )}
-                            style={{ borderColor: `${color}55` }}
-                          >
-                            <div
-                              className="absolute inset-y-0 left-0 w-1.5"
-                              style={{ background: `linear-gradient(to bottom, ${color}, ${color}80)` }}
-                            />
-                            <div
-                              className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 shadow-inner"
-                              style={{ background: `${color}1f`, color }}
-                            >
-                              <Sparkles className="h-5 w-5" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-extrabold text-base leading-tight">{p.name}</div>
-                              <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                                {p.credits_per_day} recargas/dia • {p.duration_days} dias • até {p.total_credits_cap.toLocaleString("pt-BR")}
-                              </div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <div className="font-extrabold text-lg leading-none" style={{ color }}>
-                                {formatBRL(p.sale_price_cents)}
-                              </div>
-                              <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
-                                Plano
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {rechargeMaintenance.enabled && recharges.length > 0 && (
-                      <div
-                        className="rounded-2xl border bg-background/70 backdrop-blur p-4 text-center text-xs text-muted-foreground"
-                        style={{ borderColor: `${color}55` }}
-                      >
-                        <span className="font-black uppercase tracking-widest text-[10px] block mb-1" style={{ color }}>
-                          Recargas avulsas em manutenção
-                        </span>
-                        {rechargeMaintenance.message}
-                      </div>
-                    )}
-                    {!rechargeMaintenance.enabled && recharges.map((rec) => (
-                      <button
-                        key={rec.id}
-                        onClick={() => setSelRec(rec.id)}
-                        className={cn(
-                          "group relative overflow-hidden rounded-2xl border bg-gradient-to-r from-card/90 to-card/60 backdrop-blur p-4 text-left",
-                          "flex items-center gap-4 transition-all hover:shadow-xl hover:-translate-y-0.5",
-                        )}
-                        style={{ borderColor: `${color}33` }}
-                      >
-                        <div
-                          className="absolute inset-y-0 left-0 w-1"
-                          style={{ background: `linear-gradient(to bottom, ${color}, ${color}60)` }}
-                        />
-                        <div
-                          className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 shadow-inner"
-                          style={{ background: `${color}1f`, color }}
-                        >
-                          <Coins className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-extrabold text-base leading-tight">
-                            {rec.credits_amount} <span className="text-xs font-medium text-muted-foreground">Recargas</span>
-                          </div>
-                          <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1">
-                            <Sparkles className="h-2.5 w-2.5" /> Recargas Imediata via PIX
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="font-extrabold text-lg leading-none" style={{ color }}>
-                            {formatBRL(rec.price_cents)}
-                          </div>
-                          <div className="text-[9px] text-muted-foreground uppercase tracking-wider mt-1">
-                            à vista
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )
-              )}
-            </div>
-          )}
-
-          {/* Seções Adicionais */}
-          {(() => {
-            const s: any = store;
-            const showExt = !!s.access_extension_enabled;
-            const showReset = !!s.reset_device_enabled;
-            const showSupport = !!s.support_enabled && !!s.support_value;
-            const count = [showExt, showReset, showSupport].filter(Boolean).length;
-            if (count === 0) return null;
-
-            const gridCls =
-              count === 1 ? "grid-cols-1 max-w-md mx-auto" :
-              count === 2 ? "md:grid-cols-2" :
-                            "md:grid-cols-2 lg:grid-cols-3";
-
-            const supportCh = s.support_channel as "whatsapp" | "discord" | "telegram" | null;
-            const supportVal: string = s.support_value ?? "";
-            const supportHref =
-              supportCh === "whatsapp"
-                ? `https://wa.me/${supportVal.replace(/\D+/g, "")}`
-                : supportVal;
-            const supportLabel =
-              supportCh === "whatsapp" ? "WhatsApp" :
-              supportCh === "discord"  ? "Discord"  :
-              supportCh === "telegram" ? "Telegram" : "Suporte";
-
-            const SupportIcon = () => {
-              if (supportCh === "whatsapp") {
-                return (
-                  <svg className="fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                  </svg>
-                );
-              }
-              if (supportCh === "discord") {
-                return (
-                  <svg className="fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 14.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.23 10.23 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.54-13.66a.06.06 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-                  </svg>
-                );
-              }
-              if (supportCh === "telegram") {
-                return (
-                  <svg className="fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.056 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.762 5.319-1.083 7.257-.136.82-.44.109-.732.136-.637.058-1.444.132-2.1.606-.642.467-1.003.739-1.61 1.144-.727.487-.256.753.158 1.18.1.103 1.935 1.77 2.27 2.148.375.423.703.623 1.066.63.259.006.598-.103.829-.339.21-.213.298-.52.298-.82l-.001-.132c.022-.246.035-.58.035-1.047 0-1.067-.03-2.18-.03-2.18l-.002-.132a.114.114 0 0 0-.062-.1c-.1-.05-.27-.039-.377-.02l-2.136.216c-.173.018-.4.018-.4-.109l-.002-.132c0-.12.1-.225.225-.225h.132c.162 0 .428-.01.428-.216 0-.206-.216-.428-.428-.428H10.1c-.21 0-.428.216-.428.428 0 .206.266.216.428.216h.132c.125 0 .225.105.225.225l-.002.132c0 .127-.227.127-.4.109l-2.136-.216c-.107-.011-.277-.03-.377.02a.114.114 0 0 0-.062.1l-.002.132c0 0-.03 1.113-.03 2.18 0 .467.013.801.035 1.047l-.001.132c0 .3-.088.607-.298.82-.231.236-.57.345-.829.339-.363-.007-.691-.207-1.066-.63-.335-.378-2.17-2.045-2.27-2.148-.414-.427-.885-.693-.158-1.18.607-.405.968-.677 1.61-1.144.656-.474 1.463-.548 2.1-.606.292-.027.596-.027.732-.136.321-1.938.903-5.359 1.083-7.257.016-.166.004-.379.02-.472a.506.506 0 0 1 .171-.325c.144-.117.365-.142.465-.14z"/>
-                  </svg>
-                );
-              }
-              return <MessageCircle className="h-8 w-8" />;
-            };
-
-            return (
-              <div className="w-full space-y-6 mt-12 mb-8">
-                {(showExt || showSupport) && (
-                  <div className={cn(
-                    "grid gap-4",
-                    (showExt && showSupport) ? "grid-cols-2" : "max-w-md mx-auto"
-                  )}>
-                    {showExt && (
-                      <section>
-                        <div
-                          className="relative h-full overflow-hidden rounded-2xl border bg-card/40 backdrop-blur-md p-5 text-center transition-all hover:shadow-2xl hover:bg-card/60 group border-white/10"
-                          style={{ borderColor: `${color}25` }}
-                        >
-                          <div
-                            className="absolute -top-10 -right-10 h-40 w-40 rounded-full blur-[80px] opacity-[0.08] transition-all group-hover:opacity-20 group-hover:scale-110"
-                            style={{ background: color }}
-                          />
-                          <div className="relative z-10 flex flex-col h-full">
-                            <div
-                              className="mb-4 mx-auto inline-flex items-center justify-center w-12 h-12 rounded-2xl shadow-md transform transition-transform group-hover:scale-110 group-hover:rotate-3"
-                              style={{ background: `linear-gradient(135deg, ${color}cc, ${color}80)`, color: '#fff' }}
-                            >
-                              <Download className="h-6 w-6" />
-                            </div>
-                            <h2 className="text-base font-bold tracking-tight mb-1">Acessar Extensão</h2>
-                            <p className="text-[11px] text-muted-foreground mb-4 flex-1 leading-relaxed">
-                              Baixe a versão mais recente e comece a usar agora.
-                            </p>
-                            <Button
-                              size="sm"
-                              onClick={handleAccessExtension}
-                              disabled={downloadingExt}
-                              className="w-full h-10 font-bold transition-all hover:brightness-110 active:scale-95 shadow-md"
-                              style={{ background: `linear-gradient(135deg, ${color}e6, ${color}b3)`, color: '#fff' }}
-                            >
-                              {downloadingExt ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              ) : (
-                                <Download className="mr-2 h-4 w-4" />
-                              )}
-                              Baixar
-                            </Button>
-                          </div>
-                        </div>
-                      </section>
-                    )}
-
-                    {showSupport && (
-                      <section>
-                        <div
-                          className="relative h-full overflow-hidden rounded-2xl border bg-card/40 backdrop-blur-md p-5 text-center transition-all hover:shadow-2xl hover:bg-card/60 group"
-                          style={{ borderColor: `${color}35` }}
-                        >
-                          <div
-                            className="absolute -bottom-10 -right-10 h-40 w-40 rounded-full blur-[80px] opacity-[0.1] transition-all group-hover:opacity-25"
-                            style={{ background: color }}
-                          />
-                          <div className="relative z-10 flex flex-col h-full items-center">
-                            <div
-                              className="mb-4 inline-flex items-center justify-center w-12 h-12 rounded-2xl shadow-md transform transition-all group-hover:scale-110 group-hover:rotate-6"
-                              style={{ background: `linear-gradient(135deg, ${color}cc, ${color}80)`, color: '#fff' }}
-                            >
-                              <div className="h-6 w-6">
-                                <SupportIcon />
-                              </div>
-                            </div>
-                            <h2 className="text-base font-bold tracking-tight mb-1">Suporte Rápido</h2>
-                            <p className="text-[11px] text-muted-foreground mb-4 flex-1 leading-relaxed">
-                              Nossa equipe está online para te ajudar agora.
-                            </p>
-                            <Button
-                              size="sm"
-                              asChild
-                              className="w-full h-10 font-bold transition-all hover:brightness-110 active:scale-95 shadow-md"
-                              style={{ background: `linear-gradient(135deg, ${color}e6, ${color}b3)`, color: '#fff' }}
-                            >
-                              <a href={supportHref} target="_blank" rel="noopener noreferrer">
-                                <div className="mr-2 h-4 w-4">
-                                  <SupportIcon />
-                                </div>
-                                {supportLabel}
-                              </a>
-                            </Button>
-                          </div>
-                        </div>
-                      </section>
-                    )}
-                  </div>
-                )}
-
-                {showReset && activeTab === "extension" && (
-                  <section className="max-w-md mx-auto w-full">
-                    <div
-                      className="relative h-full overflow-hidden rounded-2xl border bg-card/40 backdrop-blur-md p-6 text-center transition-all hover:shadow-xl hover:bg-card/60 group"
-                      style={{ borderColor: `${color}30` }}
-                    >
-                      <div
-                        className="absolute bottom-0 left-0 h-32 w-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-20"
-                        style={{ background: color }}
-                      />
-                      <div className="relative z-10 flex flex-col h-full">
-                        <div
-                          className="mb-4 mx-auto inline-flex items-center justify-center w-12 h-12 rounded-xl"
-                          style={{ background: `${color}15`, color }}
-                        >
-                          <RefreshCw className={cn("h-6 w-6", resetting && "animate-spin")} />
-                        </div>
-                        <h2 className="text-xl font-bold tracking-tight mb-2">Desvincular Licença</h2>
-                        <p className="text-xs text-muted-foreground mb-6">
-                          Desvincule sua licença do computador atual para usar em outro.
-                        </p>
-                        <div className="space-y-3 mt-auto">
-                          <div className="relative">
-                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                            <Input
-                              placeholder="Sua chave de licença"
-                              value={resetKey}
-                              onChange={(e) => setResetKey(e.target.value)}
-                              className="pl-9 h-10 text-xs bg-background/50 border-border/50"
-                            />
-                          </div>
-                          <Button
-                            variant="outline"
-                            className="w-full h-11 font-semibold transition-all hover:scale-[1.02]"
-                            onClick={handleResetDevice}
-                            disabled={resetting}
-                            style={{ borderColor: `${color}40`, color }}
-                          >
-                            {resetting ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="mr-2 h-4 w-4" />
-                            )}
-                            Desvincular Agora
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                )}
-
-                {showReset && activeTab === "recharge" && (
-                  <section className="max-w-md mx-auto w-full">
-                    <div
-                      className="relative h-full overflow-hidden rounded-2xl border bg-card/40 backdrop-blur-md p-6 text-center transition-all hover:shadow-xl hover:bg-card/60 group"
-                      style={{ borderColor: `${color}30` }}
-                    >
-                      <div
-                        className="absolute bottom-0 left-0 h-32 w-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-20"
-                        style={{ background: color }}
-                      />
-                      <div className="relative z-10 flex flex-col h-full">
-                        <div
-                          className="mb-4 mx-auto inline-flex items-center justify-center w-12 h-12 rounded-xl"
-                          style={{ background: `${color}15`, color }}
-                        >
-                          <QrCode className="h-6 w-6" />
-                        </div>
-                        <h2 className="text-xl font-bold tracking-tight mb-2">Verificar Pedido</h2>
-                        <p className="text-xs text-muted-foreground mb-6">
-                          Acompanhe o status da sua recargas informando o ID do pedido.
-                        </p>
-                        <div className="space-y-3 mt-auto">
-                          <div className="relative">
-                            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                            <Input
-                              placeholder="ID do pedido"
-                              value={checkOrderId}
-                              onChange={(e) => setCheckOrderId(e.target.value)}
-                              className="pl-9 h-10 text-xs bg-background/50 border-border/50"
-                            />
-                          </div>
-                          <Button
-                            variant="outline"
-                            className="w-full h-11 font-semibold transition-all hover:scale-[1.02]"
-                            onClick={handleCheckOrder}
-                            disabled={checkingOrder}
-                            style={{ borderColor: `${color}40`, color }}
-                          >
-                            {checkingOrder ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <CheckCircle2 className="mr-2 h-4 w-4" />
-                            )}
-                            Verificar Agora
-                          </Button>
-                          {checkedOrder && (
-                            <div
-                              className="mt-2 rounded-lg border bg-background/40 p-3 text-left text-xs space-y-1"
-                              style={{ borderColor: `${color}30` }}
-                            >
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Status</span>
-                                <span className="font-bold uppercase" style={{ color }}>
-                                  {checkedOrder.status === "completed"
-                                    ? "Concluído"
-                                    : checkedOrder.status === "failed"
-                                    ? "Falhou"
-                                    : checkedOrder.status === "pending"
-                                    ? "Pendente"
-                                    : checkedOrder.status === "awaiting_balance"
-                                    ? "Aguardando lojista"
-                                    : checkedOrder.status}
-                                </span>
-                              </div>
-                              {checkedOrder.buyer_name && (
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Comprador</span>
-                                  <span className="font-medium">{checkedOrder.buyer_name}</span>
-                                </div>
-                              )}
-                              {typeof checkedOrder.price_cents === "number" && (
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Valor</span>
-                                  <span className="font-medium">
-                                    {(checkedOrder.price_cents / 100).toLocaleString("pt-BR", {
-                                      style: "currency",
-                                      currency: "BRL",
-                                    })}
-                                  </span>
-                                </div>
-                              )}
-                              {checkedOrder.paid_at && (
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Pago em</span>
-                                  <span className="font-medium">
-                                    {new Date(checkedOrder.paid_at).toLocaleString("pt-BR")}
-                                  </span>
-                                </div>
-                              )}
-                              {checkedOrder.status === "completed" && checkedOrder.invite_link && (
-                                <a
-                                  href={checkedOrder.invite_link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-bold text-white"
-                                  style={{ backgroundColor: color }}
-                                >
-                                  Acessar minhas recargas
-                                </a>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                )}
-
-                {(claudeLoading || claudePlans.length > 0) && (
-                  <section className="w-full mt-12">
-                    <div className="flex flex-col items-center gap-2 mb-8 text-center">
+                /* Catálogo Claude */
+                (claudeLoading || claudePlans.length > 0) ? (
+                  <div className="w-full max-w-3xl mx-auto">
+                    <div className="flex flex-col items-center gap-2 mb-6 text-center">
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
                         <Sparkles className="h-3 w-3" /> Claude AI · Chaves API
                       </div>
@@ -1742,8 +1284,66 @@ export default function PublicStorefront() {
                         Ver todos os planos e comprar →
                       </Link>
                     </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-sm text-muted-foreground">
+                    Nenhum plano Claude disponível no momento.
+                  </div>
+                )
+              )}
+
+                {(store as any).show_device_reset !== false && activeTab === "extension" && (
+                  <section className="max-w-md mx-auto w-full">
+                    <div
+                      className="relative h-full overflow-hidden rounded-2xl border bg-card/40 backdrop-blur-md p-6 text-center transition-all hover:shadow-xl hover:bg-card/60 group"
+                      style={{ borderColor: `${color}30` }}
+                    >
+                      <div
+                        className="absolute bottom-0 left-0 h-32 w-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-20"
+                        style={{ background: color }}
+                      />
+                      <div className="relative z-10 flex flex-col h-full">
+                        <div
+                          className="mb-4 mx-auto inline-flex items-center justify-center w-12 h-12 rounded-xl"
+                          style={{ background: `${color}15`, color }}
+                        >
+                          <RefreshCw className={cn("h-6 w-6", resetting && "animate-spin")} />
+                        </div>
+                        <h2 className="text-xl font-bold tracking-tight mb-2">Desvincular Licença</h2>
+                        <p className="text-xs text-muted-foreground mb-6">
+                          Desvincule sua licença do computador atual para usar em outro.
+                        </p>
+                        <div className="space-y-3 mt-auto">
+                          <div className="relative">
+                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <Input
+                              placeholder="Sua chave de licença"
+                              value={resetKey}
+                              onChange={(e) => setResetKey(e.target.value)}
+                              className="pl-9 h-10 text-xs bg-background/50 border-border/50"
+                            />
+                          </div>
+                          <Button
+                            variant="outline"
+                            className="w-full h-11 font-semibold transition-all hover:scale-[1.02]"
+                            onClick={handleResetDevice}
+                            disabled={resetting}
+                            style={{ borderColor: `${color}40`, color }}
+                          >
+                            {resetting ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                            )}
+                            Desvincular Agora
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </section>
                 )}
+
+
 
                 {testimonials.length > 0 && (
                   <section className="w-full mt-12">
@@ -1792,8 +1392,7 @@ export default function PublicStorefront() {
                   </section>
                 )}
               </div>
-            );
-          })()}
+          )}
         </main>
 
         <footer className="mt-16 text-center text-xs text-muted-foreground space-y-1">

@@ -8,10 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Loader2, Copy, CheckCircle2, QrCode, KeyRound, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-type PlanCode = "5x_7d" | "5x_30d" | "20x_30d";
+type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d";
 
 const PLANS: { code: PlanCode; label: string; desc: string }[] = [
-  { code: "5x_7d", label: "5x — 7 dias", desc: "5 chaves de acesso · 7 dias" },
+  { code: "pro_30d", label: "Pro — 30 dias", desc: "1 chave · 500K tokens · 30 dias" },
   { code: "5x_30d", label: "5x — 30 dias", desc: "5 chaves · 2,5M tokens · 30 dias" },
   { code: "20x_30d", label: "20x — 30 dias", desc: "20 chaves · 10M tokens · 30 dias" },
 ];
