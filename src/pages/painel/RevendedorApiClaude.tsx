@@ -653,19 +653,42 @@ export default function RevendedorApiClaude() {
     const { data: r } = await supabase.from("resellers").select("id").eq("user_id", user.id).maybeSingle();
     if (!r) { setLoading(false); return; }
     setResellerId(r.id);
-    const { data: ks } = await supabase
+    let { data: ks } = await supabase
       .from("reseller_claude_api_keys")
       .select("id, label, key_prefix, webhook_url, webhook_secret, is_active, last_used_at, created_at, revoked_at")
       .eq("reseller_id", r.id)
       .order("created_at", { ascending: false });
-    setKeys((ks ?? []) as ApiKey[]);
-    const first = (ks ?? [])[0] as any;
-    if (first) {
-      setWebhookUrl(first.webhook_url ?? "");
-      setWebhookSecret(first.webhook_secret ?? genWebhookSecret());
-    } else {
-      // Sem chave ainda — já sugere um segredo HMAC pronto para uso.
-      setWebhookSecret((prev) => prev || genWebhookSecret());
+    // Garante linha dedicada ao webhook (com HMAC auto-gerado), sem expor uma API key.
+    const WEBHOOK_LABEL = "__webhook_config__";
+    let webhookRow = (ks ?? []).find((k: any) => k.label === WEBHOOK_LABEL) as any;
+    if (!webhookRow) {
+      const secret = genWebhookSecret();
+      const dummy = genKey();
+      const dummyHash = await sha256Hex(dummy + ":webhook-only");
+      const { data: inserted, error } = await supabase
+        .from("reseller_claude_api_keys")
+        .insert({
+          reseller_id: r.id,
+          label: WEBHOOK_LABEL,
+          key_prefix: "webhook",
+          key_hash: dummyHash,
+          webhook_secret: secret,
+          is_active: false,
+          revoked_at: new Date().toISOString(),
+        })
+        .select("id, label, key_prefix, webhook_url, webhook_secret, is_active, last_used_at, created_at, revoked_at")
+        .maybeSingle();
+      if (!error && inserted) {
+        webhookRow = inserted;
+        ks = [inserted, ...(ks ?? [])];
+      }
+    }
+    // Esconde a linha interna do webhook na tabela de chaves.
+    const visible = (ks ?? []).filter((k: any) => k.label !== WEBHOOK_LABEL);
+    setKeys(visible as ApiKey[]);
+    if (webhookRow) {
+      setWebhookUrl(webhookRow.webhook_url ?? "");
+      setWebhookSecret(webhookRow.webhook_secret ?? genWebhookSecret());
     }
     setLoading(false);
   };
@@ -710,12 +733,13 @@ export default function RevendedorApiClaude() {
   };
 
   const saveWebhook = async () => {
-    if (!resellerId || keys.length === 0) return toast.error("Crie uma chave primeiro.");
+    if (!resellerId) return;
     setSavingWebhook(true);
     const { error } = await supabase
       .from("reseller_claude_api_keys")
       .update({ webhook_url: webhookUrl || null, webhook_secret: webhookSecret || null })
-      .eq("reseller_id", resellerId);
+      .eq("reseller_id", resellerId)
+      .eq("label", "__webhook_config__");
     setSavingWebhook(false);
     if (error) return toast.error(error.message);
     toast.success("Webhook salvo");
