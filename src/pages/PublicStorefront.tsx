@@ -1392,6 +1392,7 @@ export default function PublicStorefront() {
                   </section>
                 )}
               </div>
+          )}
         </main>
 
         <footer className="mt-16 text-center text-xs text-muted-foreground space-y-1">
