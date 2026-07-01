@@ -20,11 +20,11 @@ export default function RevendedorPrecos() {
     const t: { value: string; label: string; icon: any; render: () => JSX.Element }[] = [];
     if (methods.flow) t.push({ value: "promptflow", label: "MétodoFlow", icon: Sparkles, render: () => <MethodPriceTable method="flow" /> });
     t.push({ value: "lovax", label: "LovaX", icon: Beaker, render: () => <MethodPriceTable method="lovax" /> });
-    t.push({ value: "claude", label: "Claude", icon: ClaudeIcon as any, render: () => <ClaudePriceTable /> });
+    if (methods.claude) t.push({ value: "claude", label: "Claude", icon: ClaudeIcon as any, render: () => <ClaudePriceTable /> });
     if (methods.recharges) t.push({ value: "recargas", label: "Recargas", icon: Zap, render: () => <RevendedorCreditos /> });
     if (methods.plano3k) t.push({ value: "plano", label: "Plano 3K", icon: CalendarClock, render: () => <RevendedorPlanoPreco /> });
     return t;
-  }, [methods.loading, methods.flow, methods.recharges, methods.plano3k]);
+  }, [methods.loading, methods.flow, methods.recharges, methods.plano3k, methods.claude]);
 
   const [tab, setTab] = useState<string>(() => {
     const p = new URLSearchParams(window.location.search).get("tab");
