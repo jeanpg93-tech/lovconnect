@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Mail, KeyRound, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 export default function ClienteClaudeLogin() {
@@ -14,11 +14,11 @@ export default function ClienteClaudeLogin() {
   const storeSlug = searchParams.get("loja")?.trim() ?? "";
   const emailFromUrl = searchParams.get("email")?.trim() ?? "";
   const portalPath = `/cliente-claude${storeSlug ? `?loja=${encodeURIComponent(storeSlug)}` : ""}`;
-  const [mode, setMode] = useState<"magic" | "password">("magic");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [expiredLink, setExpiredLink] = useState<null | { code: string; description: string }>(null);
+  const [sendingRecovery, setSendingRecovery] = useState(false);
 
   useEffect(() => {
     if (emailFromUrl) setEmail(emailFromUrl);
@@ -33,7 +33,6 @@ export default function ClienteClaudeLogin() {
     const err = params.get("error");
     const code = params.get("error_code") ?? "";
     if (!err) return;
-    setMode("magic");
     setExpiredLink({
       code,
       description: params.get("error_description")?.replace(/\+/g, " ") ?? "Link inválido ou expirado.",
@@ -42,20 +41,20 @@ export default function ClienteClaudeLogin() {
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
   }, []);
 
-  const sendMagicLink = async () => {
-    if (!email) return toast.error("Informe seu e-mail");
-    setLoading(true);
+  const sendRecovery = async () => {
+    if (!email) return toast.error("Informe seu e-mail para receber o link de redefinição");
+    setSendingRecovery(true);
     try {
       const { error } = await supabase.functions.invoke("claude-customer-login-link", {
         body: { email, reseller_slug: storeSlug || null, redirect_to: `${window.location.origin}${portalPath}` },
       });
       if (error) throw error;
-      toast.success("Se o e-mail existir, você receberá um link em instantes.");
+      toast.success("Se o e-mail existir, você receberá um link para definir uma nova senha.");
       setExpiredLink(null);
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao enviar link");
     } finally {
-      setLoading(false);
+      setSendingRecovery(false);
     }
   };
 
@@ -96,27 +95,11 @@ export default function ClienteClaudeLogin() {
                     : "Não foi possível validar o link."}
                 </p>
                 <p className="text-xs opacity-90">
-                  Informe seu e-mail abaixo e clique em <b>Reenviar link</b>.
+                  Informe seu e-mail abaixo e clique em <b>Esqueci minha senha</b> para receber um novo link.
                 </p>
               </div>
             </div>
           )}
-          <div className="flex gap-2 p-1 bg-muted/40 rounded-md">
-            <button
-              type="button"
-              onClick={() => setMode("magic")}
-              className={`flex-1 py-2 rounded text-sm font-medium transition ${mode === "magic" ? "bg-background shadow" : "text-muted-foreground"}`}
-            >
-              <Mail className="h-4 w-4 inline mr-1" /> Link mágico
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("password")}
-              className={`flex-1 py-2 rounded text-sm font-medium transition ${mode === "password" ? "bg-background shadow" : "text-muted-foreground"}`}
-            >
-              <KeyRound className="h-4 w-4 inline mr-1" /> Senha
-            </button>
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>
@@ -130,34 +113,36 @@ export default function ClienteClaudeLogin() {
             />
           </div>
 
-          {mode === "password" && (
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="password">Senha</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          </div>
+
+          <Button className="w-full" disabled={loading} onClick={signInWithPassword}>
+            {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Entrar
+          </Button>
 
           <Button
-            className="w-full"
-            disabled={loading}
-            onClick={mode === "magic" ? sendMagicLink : signInWithPassword}
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="w-full text-xs"
+            disabled={sendingRecovery}
+            onClick={sendRecovery}
           >
-            {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {mode === "magic"
-              ? expiredLink
-                ? "Reenviar link para meu e-mail"
-                : "Enviar link para meu e-mail"
-              : "Entrar"}
+            {sendingRecovery && <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />}
+            Esqueci minha senha / primeiro acesso
           </Button>
 
           <p className="text-xs text-muted-foreground text-center">
-            Novo por aqui? A conta é criada automaticamente na sua primeira compra.
+            Novo por aqui? A conta é criada automaticamente na sua primeira compra — use "Esqueci minha senha" para definir a sua.
           </p>
         </CardContent>
       </Card>
