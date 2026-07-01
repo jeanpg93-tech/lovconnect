@@ -635,8 +635,65 @@ export default function ClienteClaudePortal() {
           </CardContent>
         </Card>
 
+        {extensionKeys.length > 0 && (
+          <Card className="border-white/10 bg-white/[0.03] backdrop-blur-xl animate-fade-in" style={{ boxShadow: `0 0 30px hsl(var(--brand) / 0.1)` }}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Puzzle className="h-5 w-5" style={{ color: `hsl(var(--brand))` }} /> Suas chaves de Extensão
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {extensionKeys.map((k) => {
+                  const active = k.status !== "failed" && k.cancellation_status !== "revoked";
+                  return (
+                    <div
+                      key={k.id}
+                      className="group flex flex-col gap-3 p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 transition-all sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="space-y-2 min-w-0 flex-1">
+                        <div className="font-medium text-sm truncate">{k.extension_name}{k.license_type ? ` — ${k.license_type}` : ""}</div>
+                        <div className="text-xs opacity-60">
+                          Emitida em {fmtDate(k.created_at)}
+                          {k.expires_at ? ` · Expira em ${fmtDate(k.expires_at)}` : ""}
+                        </div>
+                        <div className="flex flex-col gap-2 rounded-lg border border-white/10 bg-black/40 p-2 sm:flex-row sm:items-center">
+                          <code className="flex-1 break-all text-xs font-mono" style={{ color: `hsl(var(--brand))` }}>{k.license_key}</code>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale"
+                            onClick={() => {
+                              navigator.clipboard.writeText(k.license_key);
+                              toast.success("Chave copiada!");
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+                          </Button>
+                        </div>
+                      </div>
+                      <div
+                        className="px-3 py-1 rounded-full text-xs font-semibold self-start sm:self-center"
+                        style={
+                          active
+                            ? { background: `hsl(var(--brand) / 0.15)`, color: `hsl(var(--brand))`, boxShadow: `0 0 12px hsl(var(--brand) / 0.35)`, border: `1px solid hsl(var(--brand) / 0.4)` }
+                            : { background: "hsl(0 84% 60% / 0.15)", color: "hsl(0 84% 70%)", border: "1px solid hsl(0 84% 60% / 0.4)" }
+                        }
+                      >
+                        {k.cancellation_status === "revoked" ? "Revogada" : active ? "Ativa" : "Falhou"}
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="text-xs opacity-60 pt-2">
+                  {extensionKeys.length} chave{extensionKeys.length === 1 ? "" : "s"} de extensão.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Dialog open={renewalOpen} onOpenChange={setRenewalOpen}>
-        {/* placeholder anchor */}
           <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Nova chave / Renovação</DialogTitle>
