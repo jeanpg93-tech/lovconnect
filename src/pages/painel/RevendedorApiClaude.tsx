@@ -34,6 +34,11 @@ function genKey() {
   const hex = Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
   return `sk_claude_${hex}`;
 }
+function genWebhookSecret() {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 type ApiKey = {
   id: string; label: string | null; key_prefix: string;
