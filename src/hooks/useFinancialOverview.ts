@@ -405,6 +405,11 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
       bucket[k].cost += ownerCostForRcpItem(o);
     });
+    claudeArr.forEach((o: any) => {
+      const k = key(o.paid_at || o.created_at);
+      bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
+      bucket[k].cost += supplierCostByPlan[o.plan_code] ?? 0;
+    });
     manualArr.forEach((m: any) => {
       const k = key(m.entry_date);
       bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
