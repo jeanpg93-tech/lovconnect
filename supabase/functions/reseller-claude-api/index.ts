@@ -6,6 +6,8 @@
 //   POST /chaves              -> issue Claude key. Body: { plano: "<plan_code>", id_cliente?: string }
 //   GET  /chaves              -> list recent orders (max 50)
 //   GET  /chaves/{id}         -> get a specific order (no `code` field)
+//   POST /chaves/{id}/cancelar -> cancel key. { force?: boolean }
+//                                Refund window: 7 days from created_at.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
