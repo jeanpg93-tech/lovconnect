@@ -769,10 +769,30 @@ export default function GerenteRevendedores() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <p className="text-[10px] uppercase font-bold text-muted-foreground/60">Nível</p>
-                        {tier && (
-                          <span className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest" style={{ background: `${tier.color}22`, color: tier.color }}>
-                            {tier.name}
-                          </span>
+                        <Select
+                          value={states[r.id]?.forced_tier_id ?? "auto"}
+                          onValueChange={(v) => setForcedTier(r.id, v === "auto" ? null : v)}
+                        >
+                          <SelectTrigger
+                            className="h-8 w-full px-2 text-[10px] font-bold uppercase tracking-widest border-white/10"
+                            style={tier ? { background: `${tier.color}22`, color: tier.color, borderColor: `${tier.color}55` } : undefined}
+                          >
+                            <SelectValue>{tier?.name ?? "—"}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="auto">Automático</SelectItem>
+                            {tiers.filter((t) => t.is_active).map((t) => (
+                              <SelectItem key={t.id} value={t.id}>
+                                <span className="inline-flex items-center gap-1.5">
+                                  <span className="h-2 w-2 rounded-full" style={{ background: t.color }} />
+                                  {t.name}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {states[r.id]?.forced_tier_id && (
+                          <span className="text-[9px] uppercase tracking-widest text-amber-500/80">Manual</span>
                         )}
                       </div>
                       <div className="space-y-1">
