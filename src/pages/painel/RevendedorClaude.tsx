@@ -246,6 +246,8 @@ export default function RevendedorClaude() {
         </div>
       </div>
 
+      <WalletBalanceRuleNotice product="chaves Claude" />
+
       {/* Plan picker + result */}
       <div className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
         <div className="rounded-2xl border border-border bg-card/60 p-4 sm:p-6 backdrop-blur-sm">
