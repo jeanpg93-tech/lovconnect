@@ -44,3 +44,6 @@ verify_jwt = true
 
 [functions.recharge-plan-cancel]
 verify_jwt = true
+
+[functions.claude-customer-login-link]
+verify_jwt = false
