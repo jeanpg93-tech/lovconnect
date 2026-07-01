@@ -312,9 +312,8 @@ export default function PublicStorefront() {
         .eq("key", "recharge_plans_enabled_globally")
         .maybeSingle();
       const plansGloballyEnabled = (gFlag?.value as any) === true;
-      const plansEnabledForReseller =
-        plansGloballyEnabled || !!(r as any).recharge_plans_enabled;
-      const [{ data: planPrices }, { data: publicPlans }] = plansEnabledForReseller
+      // Plano 3K só aparece quando o gate global está ativo (mesma regra do painel).
+      const [{ data: planPrices }, { data: publicPlans }] = plansGloballyEnabled
         ? await Promise.all([
           supabase
             .from("reseller_recharge_plan_prices")
