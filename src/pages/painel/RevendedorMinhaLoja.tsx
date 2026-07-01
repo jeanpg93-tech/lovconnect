@@ -105,6 +105,8 @@ export default function RevendedorMinhaLoja() {
   const [showProducts, setShowProducts] = useState(true);
   const [showFreeTrial, setShowFreeTrial] = useState(true);
   const [showCredits, setShowCredits] = useState(true);
+  const [showClaude, setShowClaude] = useState(true);
+  const [claudeEnabled, setClaudeEnabled] = useState(false);
 
   const [accessExtEnabled, setAccessExtEnabled] = useState(false);
   const [accessExtMode, setAccessExtMode] = useState<"native" | "custom">("native");
