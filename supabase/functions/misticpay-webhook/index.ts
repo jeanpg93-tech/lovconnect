@@ -26,6 +26,7 @@ async function recordMisticPayFee(
   originKind: string,
   originId: string | null,
   originLabel: string,
+  entryDate?: string | null,
 ) {
   if (!txId) return;
   try {
@@ -41,7 +42,7 @@ async function recordMisticPayFee(
         origin_id: originId,
         origin_label: originLabel,
       },
-      entry_date: new Date().toISOString(),
+      entry_date: entryDate ?? new Date().toISOString(),
     });
     if (error && !String(error.message ?? "").toLowerCase().includes("duplicate")) {
       console.warn("[recordMisticPayFee] insert failed", error);
@@ -292,6 +293,7 @@ Deno.serve(async (req) => {
     const txId = String(payload?.transactionId ?? "");
     const status = String(payload?.status ?? "").toUpperCase();
     const type = String(payload?.transactionType ?? "").toUpperCase();
+    const paidAt = new Date().toISOString();
     if (!txId) return json({ ok: false, reason: "missing transactionId" }, 200);
 
     if (type && type !== "DEPOSITO") {
@@ -342,11 +344,11 @@ Deno.serve(async (req) => {
 
           await admin.from("activation_payments").update({
             status: "paid",
-            paid_at: new Date().toISOString(),
+            paid_at: paidAt,
             raw_response: payload,
           }).eq("id", actPay.id);
 
-          await recordMisticPayFee(admin, txId, "activation_payment", actPay.id, `Ativação de painel #${String(actPay.id).slice(0,8)}`);
+          await recordMisticPayFee(admin, txId, "activation_payment", actPay.id, `Ativação de painel #${String(actPay.id).slice(0,8)}`, paidAt);
 
           const { error: actErr } = await admin.rpc("activate_reseller", {
             _reseller_id: actPay.reseller_id,
@@ -457,7 +459,7 @@ Deno.serve(async (req) => {
           console.error("credit error", credErr);
           return json({ ok: false, error: credErr.message }, 500);
         }
-        await recordMisticPayFee(admin, txId, "recharge", intent.id, `Recarga R$ ${(Number(intent.amount_cents)/100).toFixed(2)}`);
+        await recordMisticPayFee(admin, txId, "recharge", intent.id, `Recarga R$ ${(Number(intent.amount_cents)/100).toFixed(2)}`, paidAt);
         // Se a recarga foi parte de uma promoção ativa, marca a transação com o promotion_id
         if (intent.promotion_id) {
           try {
@@ -623,7 +625,7 @@ Deno.serve(async (req) => {
             raw_response: payload
           }).eq("id", directSale.id);
 
-          await recordMisticPayFee(admin, txId, "direct_sale", directSale.id, `Venda direta #${String(directSale.id).slice(0,8)}`);
+          await recordMisticPayFee(admin, txId, "direct_sale", directSale.id, `Venda direta #${String(directSale.id).slice(0,8)}`, paidAt);
           console.log(`[webhook] Venda direta ${directSale.id} marcada como paga`);
           return json({ ok: true, kind: "direct_sale" });
         }
@@ -654,11 +656,11 @@ Deno.serve(async (req) => {
           }
           const updates: Record<string, unknown> = {
             status: "paid",
-            paid_at: new Date().toISOString(),
+            paid_at: paidAt,
           };
           await admin.from("reseller_subscription_charges").update(updates).eq("id", subCharge.id);
 
-          await recordMisticPayFee(admin, txId, "subscription_charge", subCharge.id, `Mensalidade #${String(subCharge.id).slice(0,8)}`);
+          await recordMisticPayFee(admin, txId, "subscription_charge", subCharge.id, `Mensalidade #${String(subCharge.id).slice(0,8)}`, paidAt);
 
           // If onboarding charge, mark onboarding completed and unblock reseller
           if (subCharge.is_onboarding) {
@@ -758,7 +760,7 @@ Deno.serve(async (req) => {
         }
 
         await admin.from("claude_orders").update({
-          paid_at: new Date().toISOString(),
+          paid_at: paidAt,
           provider_response: payload,
         }).eq("id", (claudeOrder as any).id);
 
@@ -768,6 +770,7 @@ Deno.serve(async (req) => {
           "claude_renewal",
           (claudeOrder as any).id,
           `Claude: renovação ${(claudeOrder as any).plan_code}`,
+          paidAt,
         );
 
         // Custo do revendedor (por tier), com fallback ao default
@@ -926,10 +929,10 @@ Deno.serve(async (req) => {
 
           await admin.from("reseller_pack_purchases").update({
             status: "paid",
-            paid_at: new Date().toISOString(),
+            paid_at: paidAt,
           }).eq("id", (packPurchase as any).id);
 
-          await recordMisticPayFee(admin, txId, "pack_purchase", (packPurchase as any).id, `Pack: ${(packPurchase as any).pack_name ?? "—"}`);
+          await recordMisticPayFee(admin, txId, "pack_purchase", (packPurchase as any).id, `Pack: ${(packPurchase as any).pack_name ?? "—"}`, paidAt);
 
           const { data: newBal, error: credErr } = await admin.rpc("pack_credit_balance", {
             _reseller_id: (packPurchase as any).reseller_id,
@@ -1051,11 +1054,11 @@ Deno.serve(async (req) => {
       // marca pedido como pago (já recebemos o PIX do cliente)
       await admin.from("storefront_orders").update({
         status: "paid",
-        paid_at: new Date().toISOString(),
+        paid_at: paidAt,
         raw_response: payload,
       }).eq("id", storeOrder.id);
 
-      await recordMisticPayFee(admin, txId, "storefront_recharge_plan", storeOrder.id, `Loja: Plano de Recarga #${storeOrder.short_code ?? String(storeOrder.id).slice(0,8)}`);
+      await recordMisticPayFee(admin, txId, "storefront_recharge_plan", storeOrder.id, `Loja: Plano de Recarga #${storeOrder.short_code ?? String(storeOrder.id).slice(0,8)}`, paidAt);
 
       const planId = storeOrder.recharge_plan_id;
       if (!planId) {
@@ -1160,11 +1163,11 @@ Deno.serve(async (req) => {
       // Marca como pago (recebemos o PIX), agora tenta cobrar custo do revendedor
       await admin.from("storefront_orders").update({
         status: "paid",
-        paid_at: new Date().toISOString(),
+        paid_at: paidAt,
         raw_response: payload,
       }).eq("id", storeOrder.id);
 
-      await recordMisticPayFee(admin, txId, "storefront_credits", storeOrder.id, `Loja: ${storeOrder.credit_amount ?? 0} créditos #${storeOrder.short_code ?? String(storeOrder.id).slice(0,8)}`);
+      await recordMisticPayFee(admin, txId, "storefront_credits", storeOrder.id, `Loja: ${storeOrder.credit_amount ?? 0} créditos #${storeOrder.short_code ?? String(storeOrder.id).slice(0,8)}`, paidAt);
 
       // Calcula custo do pacote para o revendedor
       let credits_cost = 0;
@@ -1293,11 +1296,11 @@ Deno.serve(async (req) => {
     // Mark paid then provision
     await admin.from("storefront_orders").update({
       status: "paid",
-      paid_at: new Date().toISOString(),
+      paid_at: paidAt,
       raw_response: payload,
     }).eq("id", storeOrder.id);
 
-    await recordMisticPayFee(admin, txId, "storefront_license", storeOrder.id, `Loja: ${storeOrder.license_type ?? "licença"} #${storeOrder.short_code ?? String(storeOrder.id).slice(0,8)}`);
+    await recordMisticPayFee(admin, txId, "storefront_license", storeOrder.id, `Loja: ${storeOrder.license_type ?? "licença"} #${storeOrder.short_code ?? String(storeOrder.id).slice(0,8)}`, paidAt);
 
     // Lovax é o único método ativo. Flow descontinuado — toda entrega vai por Lovax.
     const method: "lovax" = "lovax";
