@@ -790,15 +790,6 @@ export default function PublicStorefront() {
             </div>
           )}
 
-          {showClaudePortal && !order && !selLic && !selRec && !selPlan && (
-            <Link
-              to={`/cliente-claude/login?loja=${encodeURIComponent(slug ?? "")}`}
-              className="inline-flex items-center gap-1.5 rounded-full border bg-card/30 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors hover:bg-card/60"
-              style={{ borderColor: `${color}50`, color }}
-            >
-              <ClaudeIcon className="h-3.5 w-3.5" /> Portal do cliente
-            </Link>
-          )}
         </header>
 
         <main className="w-full max-w-3xl flex-1 flex flex-col items-center">
