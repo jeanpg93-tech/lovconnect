@@ -62,3 +62,9 @@ verify_jwt = false
 
 [functions.public-extension-download]
 verify_jwt = false
+
+[functions.claude-provider-webhook]
+verify_jwt = false
+
+[functions.claude-webhook-test]
+verify_jwt = false
