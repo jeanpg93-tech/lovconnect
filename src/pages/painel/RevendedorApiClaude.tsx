@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Loader2, KeyRound, Copy, Check, AlertTriangle, Plus, Trash2,
-  BookOpen, Webhook as WebhookIcon, Code2,
+  BookOpen, Webhook as WebhookIcon, Code2, Download, FileText,
 } from "lucide-react";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
@@ -128,6 +128,408 @@ export default function RevendedorApiClaude() {
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const buildFullDocsMarkdown = () => {
+    const base = `${FUNCTIONS_BASE}/reseller-claude-api`;
+    return `# API Claude — Documentação para Revendedores
+
+Integre a venda de chaves Claude no seu site, loja ou aplicativo próprio.
+Cada chamada é autenticada por uma API Key exclusiva do seu painel e as
+cobranças são feitas automaticamente na sua **carteira**.
+
+---
+
+## Sumário
+
+1. Base URL & Autenticação
+2. Formato de resposta e códigos de erro
+3. Endpoints
+   - GET  /status
+   - GET  /planos
+   - GET  /saldo
+   - POST /chaves     — emitir chave (venda)
+   - GET  /chaves     — listar pedidos
+   - GET  /chaves/{id} — detalhe do pedido
+4. Idempotência
+5. Webhook (notificação assíncrona)
+6. Exemplos por linguagem (cURL, Node.js, PHP, Python)
+7. Boas práticas
+
+---
+
+## 1. Base URL & Autenticação
+
+**Base URL:**
+\`\`\`
+${base}
+\`\`\`
+
+Envie sua chave de API no header \`X-API-Key\` em **toda** requisição:
+
+\`\`\`
+X-API-Key: sk_claude_xxxxxxxxxxxxxxxx...
+Content-Type: application/json
+\`\`\`
+
+> A chave é exibida **uma única vez** quando você a gera no painel.
+> Trate como senha — nunca comite no repositório nem exponha no front-end.
+> Se vazar, revogue imediatamente e gere outra.
+
+---
+
+## 2. Formato de resposta
+
+Todas as respostas são JSON e sempre trazem o campo booleano \`success\`.
+
+**Sucesso**
+\`\`\`json
+{ "success": true, "...": "..." }
+\`\`\`
+
+**Erro**
+\`\`\`json
+{ "success": false, "error": "codigo_do_erro" }
+\`\`\`
+
+### Códigos HTTP mais comuns
+
+| HTTP | Quando acontece |
+|------|-----------------|
+| 200  | Requisição concluída |
+| 400  | \`invalid_plano\`, \`plano_indisponivel\` — payload inválido |
+| 401  | \`Missing X-API-Key\` ou chave inválida/revogada |
+| 402  | \`saldo_insuficiente\` — carteira não cobre o custo |
+| 403  | Revendedor inativo, ativação pendente ou Claude desabilitado |
+| 404  | Pedido não encontrado |
+| 500  | \`provider_not_configured\` — contate o suporte |
+| 502  | \`provider_error\` / \`provider_network_error\` — falha no fornecedor |
+
+---
+
+## 3. Endpoints
+
+### GET /status
+
+Verifica se sua chave está ativa e se o Claude está habilitado.
+
+\`\`\`bash
+curl ${base}/status -H "X-API-Key: $YOUR_KEY"
+\`\`\`
+
+\`\`\`json
+{ "success": true, "claude_enabled": true }
+\`\`\`
+
+---
+
+### GET /planos
+
+Retorna o catálogo com o **seu preço final** (já aplicando o markup do seu painel).
+
+\`\`\`bash
+curl ${base}/planos -H "X-API-Key: $YOUR_KEY"
+\`\`\`
+
+\`\`\`json
+{
+  "success": true,
+  "planos": [
+    { "plano": "5x_7d",   "preco_centavos": 4900,  "preco": "49.00",  "disponivel": true },
+    { "plano": "5x_30d",  "preco_centavos": 14900, "preco": "149.00", "disponivel": true },
+    { "plano": "20x_30d", "preco_centavos": 24900, "preco": "249.00", "disponivel": true }
+  ]
+}
+\`\`\`
+
+**Códigos de plano válidos:**
+
+| Código      | Descrição                                        |
+|-------------|--------------------------------------------------|
+| \`5x_7d\`   | 5x uso · 7 dias  (pode estar desativado)         |
+| \`5x_30d\`  | 5x uso · 30 dias (2,5M de tokens)                |
+| \`20x_30d\` | 20x uso · 30 dias (10M de tokens)                |
+
+---
+
+### GET /saldo
+
+Consulta seu saldo em BRL (centavos).
+
+\`\`\`bash
+curl ${base}/saldo -H "X-API-Key: $YOUR_KEY"
+\`\`\`
+
+\`\`\`json
+{ "success": true, "saldo_centavos": 125000, "saldo": "1250.00" }
+\`\`\`
+
+---
+
+### POST /chaves — **emitir uma chave (venda)**
+
+Debita o custo do plano da sua carteira e emite uma chave Claude nova pelo
+fornecedor. A chave é retornada **uma única vez** no campo \`codigo\`.
+
+**Request**
+\`\`\`bash
+curl -X POST ${base}/chaves \\
+  -H "X-API-Key: $YOUR_KEY" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: pedido-42-do-meu-sistema" \\
+  -d '{
+    "plano": "5x_30d",
+    "id_cliente": "cliente@email.com"
+  }'
+\`\`\`
+
+**Body**
+
+| Campo        | Tipo   | Obrigatório | Descrição |
+|--------------|--------|-------------|-----------|
+| \`plano\`    | string | sim         | Um dos códigos listados em \`/planos\` |
+| \`id_cliente\` | string | não       | Identificador do seu cliente (email, id interno etc). Usado só para rastreio. |
+| \`request_id\` | string | não       | Chave de idempotência (alternativa ao header \`Idempotency-Key\`). |
+
+**Response — sucesso**
+\`\`\`json
+{
+  "success": true,
+  "pedido_id": "e3b0c442-...",
+  "plano": "5x_30d",
+  "preco_centavos": 14900,
+  "codigo": "CLAUDE-XXXXX-XXXXX",
+  "provider_key_id": "prov_abc123"
+}
+\`\`\`
+
+**Response — sem saldo**
+\`\`\`json
+{
+  "success": false,
+  "error": "saldo_insuficiente",
+  "saldo_centavos": 3000,
+  "preco_centavos": 14900
+}
+\`\`\`
+> HTTP 402. **Nenhum débito é feito.** Recarregue e tente novamente.
+
+**Response — falha no fornecedor**
+\`\`\`json
+{ "success": false, "error": "provider_error", "status": 500, "body": { "..." : "..." } }
+\`\`\`
+> HTTP 502. **Não descontamos da carteira** e marcamos o pedido como
+> \`failed\`. Repita a chamada usando o mesmo \`Idempotency-Key\` para forçar
+> uma nova tentativa segura.
+
+---
+
+### GET /chaves
+
+Lista os últimos 50 pedidos.
+
+\`\`\`bash
+curl ${base}/chaves -H "X-API-Key: $YOUR_KEY"
+\`\`\`
+
+\`\`\`json
+{
+  "success": true,
+  "chaves": [
+    {
+      "id": "e3b0c442-...",
+      "plan_code": "5x_30d",
+      "status": "issued",
+      "sale_price_cents": 14900,
+      "provider_key_id": "prov_abc123",
+      "created_at": "2026-07-01T18:00:00Z",
+      "error_message": null
+    }
+  ]
+}
+\`\`\`
+
+> O campo \`code\` **não** é retornado aqui por segurança. Ele só aparece na
+> resposta imediata do \`POST /chaves\` e no webhook.
+
+---
+
+### GET /chaves/{id}
+
+Detalhe de um pedido específico.
+
+\`\`\`bash
+curl ${base}/chaves/e3b0c442-... -H "X-API-Key: $YOUR_KEY"
+\`\`\`
+
+**Status possíveis:** \`pending\`, \`issued\`, \`failed\`.
+
+---
+
+## 4. Idempotência
+
+Toda venda deve ir com um identificador único, seja pelo header
+\`Idempotency-Key\` ou pelo campo \`request_id\` no body. Se a mesma chave
+chegar de novo (por retry, timeout de rede, etc.), devolvemos **o mesmo
+pedido**, sem cobrar duas vezes:
+
+\`\`\`json
+{
+  "success": true,
+  "idempotent": true,
+  "pedido": {
+    "id": "e3b0c442-...",
+    "plan_code": "5x_30d",
+    "status": "issued",
+    "sale_price_cents": 14900,
+    "provider_key_id": "prov_abc123",
+    "code": "CLAUDE-XXXXX-XXXXX"
+  }
+}
+\`\`\`
+
+**Regra prática:** use o ID do pedido no *seu* sistema (\`pedido-42\`,
+\`checkout-abc123\`) — assim tentativas duplicadas do seu próprio código
+ficam seguras.
+
+---
+
+## 5. Webhook
+
+Configure uma URL na aba **Webhook**. Sempre que uma chave for emitida ou
+falhar, enviamos um \`POST\` JSON assinado com HMAC-SHA256 do body usando o
+segredo cadastrado.
+
+**Headers enviados**
+\`\`\`
+Content-Type: application/json
+X-Signature: sha256=<hex hmac do body com seu segredo>
+\`\`\`
+
+**Body (chave emitida)**
+\`\`\`json
+{
+  "event": "claude.key.issued",
+  "pedido_id": "e3b0c442-...",
+  "plano": "5x_30d",
+  "preco_centavos": 14900,
+  "codigo": "CLAUDE-XXXXX-XXXXX",
+  "provider_key_id": "prov_abc123",
+  "id_cliente": "cliente@email.com",
+  "created_at": "2026-07-01T18:00:00Z"
+}
+\`\`\`
+
+**Body (falha)**
+\`\`\`json
+{
+  "event": "claude.key.failed",
+  "pedido_id": "e3b0c442-...",
+  "plano": "5x_30d",
+  "error": "provider_500"
+}
+\`\`\`
+
+**Validando a assinatura em Node.js**
+\`\`\`js
+import crypto from "node:crypto";
+
+function verify(rawBody, signatureHeader, secret) {
+  const [, hex] = (signatureHeader || "").split("=");
+  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+  return crypto.timingSafeEqual(Buffer.from(hex, "hex"), Buffer.from(expected, "hex"));
+}
+\`\`\`
+
+---
+
+## 6. Exemplos por linguagem
+
+### Node.js (fetch)
+\`\`\`js
+const res = await fetch("${base}/chaves", {
+  method: "POST",
+  headers: {
+    "X-API-Key": process.env.CLAUDE_RESELLER_KEY,
+    "Content-Type": "application/json",
+    "Idempotency-Key": "pedido-" + orderId,
+  },
+  body: JSON.stringify({ plano: "5x_30d", id_cliente: customerEmail }),
+});
+const data = await res.json();
+if (!data.success) throw new Error(data.error);
+console.log("chave:", data.codigo);
+\`\`\`
+
+### PHP (cURL)
+\`\`\`php
+$ch = curl_init("${base}/chaves");
+curl_setopt_array($ch, [
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_POST => true,
+  CURLOPT_HTTPHEADER => [
+    "X-API-Key: " . getenv("CLAUDE_RESELLER_KEY"),
+    "Content-Type: application/json",
+    "Idempotency-Key: pedido-" . \$orderId,
+  ],
+  CURLOPT_POSTFIELDS => json_encode([
+    "plano" => "5x_30d",
+    "id_cliente" => \$customerEmail,
+  ]),
+]);
+\$data = json_decode(curl_exec(\$ch), true);
+\`\`\`
+
+### Python (requests)
+\`\`\`python
+import os, requests
+r = requests.post(
+    "${base}/chaves",
+    headers={
+        "X-API-Key": os.environ["CLAUDE_RESELLER_KEY"],
+        "Content-Type": "application/json",
+        "Idempotency-Key": f"pedido-{order_id}",
+    },
+    json={"plano": "5x_30d", "id_cliente": customer_email},
+    timeout=30,
+)
+data = r.json()
+assert data["success"], data
+print("chave:", data["codigo"])
+\`\`\`
+
+---
+
+## 7. Boas práticas
+
+- **Nunca** exponha a \`X-API-Key\` no front-end. Faça a chamada sempre do seu
+  back-end.
+- Envie **sempre** \`Idempotency-Key\` na emissão de chave.
+- Cheque \`success\` no JSON antes do HTTP status — nossa API sempre retorna
+  ambos.
+- Salve o \`pedido_id\` no seu banco: ele é a chave para consultar/rastrear.
+- Tratamento sugerido para \`saldo_insuficiente\`: pausar novas vendas,
+  avisar o admin e recarregar a carteira.
+- Configure webhook + retry no seu lado: aceitar 200 rápido e processar
+  assíncrono.
+`;
+  };
+
+  const downloadDocs = () => {
+    const md = buildFullDocsMarkdown();
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "api-claude-revendedor.md";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+  const copyDocs = async () => {
+    await navigator.clipboard.writeText(buildFullDocsMarkdown());
+    toast.success("Documentação copiada!");
+  };
+
   if (loading) {
     return <div className="flex h-40 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
   }
@@ -210,6 +612,25 @@ export default function RevendedorApiClaude() {
         </TabsContent>
 
         <TabsContent value="docs" className="mt-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-semibold flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" /> Documentação completa
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Todos os endpoints, autenticação, webhook, códigos de erro e exemplos por linguagem.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={copyDocs}>
+                <Copy className="mr-1 h-4 w-4" /> Copiar Markdown
+              </Button>
+              <Button size="sm" onClick={downloadDocs}>
+                <Download className="mr-1 h-4 w-4" /> Baixar .md
+              </Button>
+            </div>
+          </div>
+
           <div className="rounded-xl border border-border bg-card/60 p-5 space-y-4 max-w-3xl">
             <div>
               <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">URL base</div>
@@ -222,43 +643,56 @@ export default function RevendedorApiClaude() {
               </div>
             </div>
 
-            <div>
+            <div className="text-sm">
               <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Autenticação</div>
-              <div className="text-sm">Envie sua chave no header <code className="rounded bg-background/60 px-1 py-0.5 text-xs">X-API-Key: sk_claude_...</code></div>
+              Envie sua chave em <code className="rounded bg-background/60 px-1 py-0.5 text-xs">X-API-Key: sk_claude_...</code> em toda requisição.
             </div>
 
             <div>
-              <div className="text-sm font-semibold mb-2">Emitir chave Claude</div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Endpoints</div>
+              <ul className="text-sm space-y-1 font-mono">
+                <li><span className="text-emerald-500">GET</span>  /status</li>
+                <li><span className="text-emerald-500">GET</span>  /planos</li>
+                <li><span className="text-emerald-500">GET</span>  /saldo</li>
+                <li><span className="text-amber-500">POST</span> /chaves&nbsp;&nbsp;— emitir chave (venda)</li>
+                <li><span className="text-emerald-500">GET</span>  /chaves&nbsp;&nbsp;— listar pedidos</li>
+                <li><span className="text-emerald-500">GET</span>  /chaves/{'{id}'}</li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="text-sm font-semibold mb-2">Emitir chave (exemplo)</div>
               <pre className="overflow-auto rounded-lg bg-background/60 p-3 text-xs">
 {`curl -X POST ${FUNCTIONS_BASE}/reseller-claude-api/chaves \\
   -H "X-API-Key: $YOUR_KEY" \\
   -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: pedido-42" \\
   -d '{
     "plano": "5x_30d",
     "id_cliente": "cliente@email.com"
   }'`}
               </pre>
-              <div className="mt-2 text-xs text-muted-foreground">
-                Planos disponíveis: <code>5x_7d</code>, <code>5x_30d</code>, <code>20x_30d</code>.
-                O preço é debitado da sua carteira.
-              </div>
             </div>
 
-            <div>
-              <div className="text-sm font-semibold mb-2">Consultar saldo</div>
-              <pre className="overflow-auto rounded-lg bg-background/60 p-3 text-xs">
-{`curl ${FUNCTIONS_BASE}/reseller-claude-api/saldo \\
-  -H "X-API-Key: $YOUR_KEY"`}
-              </pre>
+            <div className="text-sm">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Planos</div>
+              <code>5x_7d</code> · <code>5x_30d</code> · <code>20x_30d</code>. Preço final (com seu markup) em <code>/planos</code>.
             </div>
 
-            <div>
-              <div className="text-sm font-semibold mb-2">Idempotência</div>
-              <div className="text-sm text-muted-foreground">
-                Sempre envie um <code>request_id</code> único por venda. Se a requisição for repetida com o mesmo
-                <code>request_id</code>, retornamos a mesma chave sem cobrar de novo.
-              </div>
+            <div className="text-sm">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Idempotência</div>
+              Sempre envie <code>Idempotency-Key</code> (ou <code>request_id</code> no body). Requisições duplicadas retornam o mesmo pedido sem cobrar de novo.
             </div>
+
+            <div className="text-sm">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Webhook</div>
+              Cadastre uma URL na aba <b>Webhook</b>. Enviamos <code>POST</code> assinado com HMAC-SHA256 no header <code>X-Signature</code> quando a chave é emitida ou falha.
+            </div>
+
+            <p className="text-xs text-muted-foreground pt-2 border-t border-border">
+              Precisa da versão completa (todos os campos, códigos de erro, exemplos em Node.js/PHP/Python)?
+              Use os botões <b>Copiar Markdown</b> ou <b>Baixar .md</b> acima.
+            </p>
           </div>
         </TabsContent>
       </Tabs>
