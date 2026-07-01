@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { StorefrontPreview } from "@/components/storefront/StorefrontPreview";
 import { StorefrontVisualEffects, VISUAL_EFFECTS, type VisualEffect } from "@/components/storefront/StorefrontVisualEffects";
+import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import {
   Accordion,
   AccordionContent,
@@ -74,6 +75,7 @@ const EMOJI_LICENSES: { value: string; label: string; placeholder: string }[] = 
 export default function RevendedorMinhaLoja() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const enabledMethods = useResellerEnabledMethods();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -984,17 +986,19 @@ export default function RevendedorMinhaLoja() {
               </AccordionTrigger>
               <AccordionContent className="space-y-6 pb-6 pt-2">
                 <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <div className="text-sm font-bold flex items-center gap-2">
-                        <Coins className="h-3.5 w-3.5 text-emerald-500" /> Venda de Recargas na conta
+                  {enabledMethods.recharges && (
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <div className="text-sm font-bold flex items-center gap-2">
+                          <Coins className="h-3.5 w-3.5 text-emerald-500" /> Venda de Recargas na conta
+                        </div>
+                        <div className="text-xs text-muted-foreground">Permite que clientes comprem recargas diretamente.</div>
                       </div>
-                      <div className="text-xs text-muted-foreground">Permite que clientes comprem recargas diretamente.</div>
+                      <Switch checked={showCredits} onCheckedChange={setShowCredits} />
                     </div>
-                    <Switch checked={showCredits} onCheckedChange={setShowCredits} />
-                  </div>
+                  )}
 
-                  <div className="flex items-center justify-between pt-3 border-t border-dashed">
+                  <div className={cn("flex items-center justify-between", enabledMethods.recharges && "pt-3 border-t border-dashed")}>
                     <div className="space-y-0.5">
                       <div className="text-sm font-bold flex items-center gap-2">
                         <Sparkles className="h-3.5 w-3.5 text-orange-500" /> Venda de Planos Claude
