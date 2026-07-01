@@ -107,28 +107,57 @@ export default function ClienteClaudePortal() {
   const [pixCopied, setPixCopied] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session) {
-        navigate(`/cliente-claude/login${storeSlug ? `?loja=${encodeURIComponent(storeSlug)}` : ""}`, { replace: true });
-        return;
-      }
-      const { data: usageResp } = await supabase.functions.invoke("claude-my-usage", {
-        body: { reseller_slug: storeSlug || null },
+    let cancelled = false;
+    const loginPath = `/cliente-claude/login${storeSlug ? `?loja=${encodeURIComponent(storeSlug)}` : ""}`;
+    const waitForSession = async () => {
+      const first = await supabase.auth.getSession();
+      if (first.data.session) return first.data.session;
+      return await new Promise<typeof first.data.session>((resolve) => {
+        const timeout = window.setTimeout(async () => {
+          sub.data.subscription.unsubscribe();
+          const latest = await supabase.auth.getSession();
+          resolve(latest.data.session ?? null);
+        }, 1800);
+        const sub = supabase.auth.onAuthStateChange((_event, session) => {
+          if (!session) return;
+          window.clearTimeout(timeout);
+          sub.data.subscription.unsubscribe();
+          resolve(session);
+        });
       });
-      if (!usageResp?.ok || !usageResp.customer) {
-        toast.error("Cliente não encontrado. Contate seu revendedor.");
-        await supabase.auth.signOut();
-        navigate(`/cliente-claude/login${storeSlug ? `?loja=${encodeURIComponent(storeSlug)}` : ""}`, { replace: true });
-        return;
+    };
+
+    (async () => {
+      try {
+        const session = await waitForSession();
+        if (cancelled) return;
+        if (!session) {
+          navigate(loginPath, { replace: true });
+          return;
+        }
+        const { data: usageResp, error } = await supabase.functions.invoke("claude-my-usage", {
+          body: { reseller_slug: storeSlug || null },
+        });
+        if (error) throw error;
+        if (!usageResp?.ok || !usageResp.customer) {
+          toast.error("Cliente não encontrado. Contate seu revendedor.");
+          await supabase.auth.signOut();
+          navigate(loginPath, { replace: true });
+          return;
+        }
+        if (cancelled) return;
+        setCustomer(usageResp.customer as Customer);
+        setOrders(usageResp.orders ?? []);
+        setUsage(usageResp.usage ?? null);
+        setPlans(usageResp.plans ?? []);
+        setReseller(usageResp.reseller ?? null);
+      } catch (e: any) {
+        if (!cancelled) toast.error(e?.message ?? "Erro ao abrir o portal");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setCustomer(usageResp.customer as Customer);
-      setOrders(usageResp.orders ?? []);
-      setUsage(usageResp.usage ?? null);
-      setPlans(usageResp.plans ?? []);
-      setReseller(usageResp.reseller ?? null);
-      setLoading(false);
     })();
+    return () => { cancelled = true; };
   }, [navigate, storeSlug]);
 
   const changePassword = async () => {
