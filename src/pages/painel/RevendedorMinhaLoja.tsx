@@ -105,6 +105,8 @@ export default function RevendedorMinhaLoja() {
   const [showProducts, setShowProducts] = useState(true);
   const [showFreeTrial, setShowFreeTrial] = useState(true);
   const [showCredits, setShowCredits] = useState(true);
+  const [showClaude, setShowClaude] = useState(true);
+  const [claudeEnabled, setClaudeEnabled] = useState(false);
 
   const [accessExtEnabled, setAccessExtEnabled] = useState(false);
   const [accessExtMode, setAccessExtMode] = useState<"native" | "custom">("native");
@@ -155,13 +157,14 @@ export default function RevendedorMinhaLoja() {
       setActiveMethod(active);
       const { data: r } = await supabase
         .from("resellers")
-        .select("id, slug")
+        .select("id, slug, claude_enabled")
         .eq("user_id", user.id)
         .maybeSingle();
       if (!r) { setLoading(false); return; }
       setResellerId(r.id);
       setResellerSlug(r.slug);
       setSlugDraft(r.slug);
+      setClaudeEnabled(!!(r as any).claude_enabled);
 
       const [{ data: store }, { data: integ }] = await Promise.all([
         supabase.from("reseller_storefronts").select("*").eq("reseller_id", r.id).maybeSingle(),
@@ -188,6 +191,7 @@ export default function RevendedorMinhaLoja() {
         setShowProducts(!!(store as any).show_products);
         setShowFreeTrial(!!(store as any).show_free_trial);
         setShowCredits(!!(store as any).show_credits);
+        setShowClaude((store as any).show_claude !== false);
         const storedMethod = (store as any).extension_method === "lovax" ? "lovax" : "flow";
         setExtensionMethod(active === storedMethod ? storedMethod : active);
         setAccessExtEnabled(!!(store as any).access_extension_enabled);
@@ -466,6 +470,7 @@ export default function RevendedorMinhaLoja() {
       show_products: showProducts,
       show_free_trial: showFreeTrial,
       show_credits: showCredits,
+      show_claude: showClaude,
       extension_method: extensionMethod,
       access_extension_enabled: accessExtEnabled,
       access_extension_mode: accessExtMode,
@@ -987,6 +992,25 @@ export default function RevendedorMinhaLoja() {
                       <div className="text-xs text-muted-foreground">Permite que clientes comprem recargas diretamente.</div>
                     </div>
                     <Switch checked={showCredits} onCheckedChange={setShowCredits} />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-dashed">
+                    <div className="space-y-0.5">
+                      <div className="text-sm font-bold flex items-center gap-2">
+                        <Sparkles className="h-3.5 w-3.5 text-orange-500" /> Venda de Planos Claude
+                        {!claudeEnabled && (
+                          <span className="text-[10px] uppercase tracking-wide rounded-full bg-muted text-muted-foreground px-2 py-0.5">
+                            indisponível
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {claudeEnabled
+                          ? "Exibe os planos Claude (tokens/dias) na loja para venda via PIX."
+                          : "Seu acesso à revenda Claude ainda não foi liberado pelo gerente."}
+                      </div>
+                    </div>
+                    <Switch checked={showClaude && claudeEnabled} disabled={!claudeEnabled} onCheckedChange={setShowClaude} />
                   </div>
 
                   <div className="flex items-center justify-between pt-3 border-t border-dashed">

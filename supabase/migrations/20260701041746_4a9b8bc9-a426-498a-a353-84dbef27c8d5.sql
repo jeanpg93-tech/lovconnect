@@ -1,0 +1,1 @@
+ALTER TABLE public.reseller_storefronts ADD COLUMN IF NOT EXISTS show_claude boolean NOT NULL DEFAULT true;
