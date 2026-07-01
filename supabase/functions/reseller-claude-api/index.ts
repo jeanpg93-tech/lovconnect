@@ -192,6 +192,91 @@ Deno.serve(async (req) => {
       return json({ success: true, chave: data });
     }
 
+    // POST /chaves/{id}/cancelar — cancela chave com regra dos 7 dias
+    if (action === "chaves" && req.method === "POST" && subId && (route[2] ?? "") === "cancelar") {
+      const body = await req.json().catch(() => ({}));
+      const force = Boolean(body?.force);
+      const REFUND_WINDOW_DAYS = 7;
+
+      const { data: order } = await svc
+        .from("claude_orders")
+        .select("id, status, cost_cents, provider_key_id, code, created_at, cancel_attempts")
+        .eq("reseller_id", reseller.id)
+        .eq("id", subId)
+        .maybeSingle();
+      if (!order) return json({ success: false, error: "Pedido não encontrado" }, 404);
+      if (order.status !== "issued") return json({ success: false, error: "invalid_status", status: order.status }, 409);
+
+      const providerKeyRef = String(order.provider_key_id ?? order.code ?? "").trim();
+      if (!providerKeyRef) return json({ success: false, error: "missing_provider_key_id" }, 422);
+      if (!CLAUDE_BASE_URL) return json({ success: false, error: "provider_not_configured" }, 500);
+
+      const ageDays = (Date.now() - new Date(order.created_at).getTime()) / 86_400_000;
+      const withinWindow = ageDays <= REFUND_WINDOW_DAYS;
+      if (!withinWindow && !force) {
+        return json({
+          success: false,
+          error: "refund_window_expired",
+          message: `Prazo de ${REFUND_WINDOW_DAYS} dias expirado. Reenvie com force=true para cancelar sem estorno.`,
+          age_days: Math.floor(ageDays),
+          refund_window_days: REFUND_WINDOW_DAYS,
+        }, 409);
+      }
+
+      let providerResp: any = null; let providerStatus = 0;
+      try {
+        const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/keys/${encodeURIComponent(providerKeyRef)}/cancel`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${CLAUDE_API_KEY}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({}),
+        });
+        providerStatus = r.status;
+        const txt = await r.text();
+        try { providerResp = JSON.parse(txt); } catch { providerResp = { raw: txt }; }
+      } catch (e) {
+        return json({ success: false, error: "provider_network_error", detail: (e as Error).message }, 502);
+      }
+      if (providerStatus < 200 || providerStatus >= 300) {
+        await svc.from("claude_orders").update({
+          status: "cancel_failed",
+          provider_response: providerResp,
+        }).eq("id", order.id);
+        return json({ success: false, error: "provider_error", status: providerStatus, body: providerResp }, 502);
+      }
+
+      const providerRefund = Number(providerResp?.refunded_amount_cents);
+      const baseRefund = Number.isFinite(providerRefund) && providerRefund > 0
+        ? providerRefund
+        : (Number(order.cost_cents) || 0);
+      const refundCents = withinWindow ? baseRefund : 0;
+      if (refundCents > 0) {
+        await svc.rpc("credit_reseller_balance", {
+          _reseller_id: reseller.id,
+          _amount_cents: refundCents,
+          _kind: "claude_key_refund",
+          _description: `Estorno cancelamento Claude (pedido ${order.id})`,
+          _reference_id: order.id,
+        });
+      }
+      await svc.from("claude_orders").update({
+        status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        refund_waived: !withinWindow,
+      }).eq("id", order.id);
+
+      return json({
+        success: true,
+        pedido_id: order.id,
+        refund_cents: refundCents,
+        refund_waived: !withinWindow,
+        age_days: Math.floor(ageDays),
+      });
+    }
+
     if (action === "chaves" && req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       const planCode = String(body?.plano ?? body?.plan_code ?? "").trim();
