@@ -705,7 +705,7 @@ export default function PublicStorefront() {
             </Button>
           )}
 
-          {store.show_credits && store.show_extensions && !order && !selLic && !selRec && !selPlan && (
+          {store.show_extensions && (claudePlans.length > 0 || claudeLoading) && !order && !selLic && !selRec && !selPlan && (
             <div className="flex items-center gap-3 mt-6">
               <button
                 onClick={() => setActiveTab("extension")}
@@ -737,31 +737,31 @@ export default function PublicStorefront() {
               </button>
 
               <button
-                onClick={() => setActiveTab("recharge")}
+                onClick={() => setActiveTab("claude")}
                 className={cn(
                   "flex-1 min-w-[140px] p-3 rounded-2xl border transition-all flex flex-col items-center gap-1.5 group shadow-sm",
-                  activeTab === "recharge" 
+                  activeTab === "claude" 
                     ? "bg-card scale-105 z-10" 
                     : "bg-card/40 border-white/5 hover:border-white/20 hover:bg-card/60"
                 )}
-                style={activeTab === "recharge" ? { borderColor: `${color}80`, boxShadow: `0 0 0 1px ${color}33, 0 1px 2px 0 ${color}0D` } : {}}
+                style={activeTab === "claude" ? { borderColor: `${color}80`, boxShadow: `0 0 0 1px ${color}33, 0 1px 2px 0 ${color}0D` } : {}}
               >
                 <div
                   className={cn(
                     "p-2 rounded-xl transition-colors",
-                    activeTab === "recharge" ? "" : "group-hover:bg-opacity-30"
+                    activeTab === "claude" ? "" : "group-hover:bg-opacity-30"
                   )}
-                  style={activeTab === "recharge" ? { background: color, color: '#fff' } : { background: `${color}1a`, color }}
+                  style={activeTab === "claude" ? { background: color, color: '#fff' } : { background: `${color}1a`, color }}
                 >
-                  <Coins className="h-4 w-4" />
+                  <Sparkles className="h-4 w-4" />
                 </div>
-                <div className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap" style={{ color: activeTab === "recharge" ? color : undefined }}>Recargas na conta</div>
+                <div className="text-[9px] font-black uppercase tracking-wider whitespace-nowrap" style={{ color: activeTab === "claude" ? color : undefined }}>Planos Claude</div>
                 <div
                   className={cn(
                     "h-1 w-1 rounded-full mt-0.5 transition-all",
-                    activeTab === "recharge" ? "scale-100" : "bg-transparent scale-0"
+                    activeTab === "claude" ? "scale-100" : "bg-transparent scale-0"
                   )}
-                  style={activeTab === "recharge" ? { background: color } : {}}
+                  style={activeTab === "claude" ? { background: color } : {}}
                 />
               </button>
             </div>
