@@ -32,16 +32,22 @@ Deno.serve(async (req) => {
     }
 
     const [{ data: defs }, { data: ovs }] = await Promise.all([
-      admin.from("claude_plan_prices").select("plan_code, cost_cents, sale_price_cents").eq("is_active", true),
+      admin
+        .from("claude_plan_prices")
+        .select("plan_code, cost_cents, sale_price_cents, sort_order")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
       admin.from("claude_reseller_price_overrides").select("plan_code, markup_mode, markup_value_cents").eq("reseller_id", (reseller as any).id).eq("is_active", true),
     ]);
 
     const prices: Record<string, number> = {};
+    const ordered: { plan_code: string; price_cents: number; sort_order: number }[] = [];
     for (const d of (defs ?? []) as any[]) {
       const ov = (ovs ?? []).find((o: any) => o.plan_code === d.plan_code);
       let sale = d.sale_price_cents as number;
       if (ov) sale = computeSalePrice(d.cost_cents, (ov as any).markup_mode, (ov as any).markup_value_cents);
       prices[d.plan_code] = sale;
+      ordered.push({ plan_code: d.plan_code, price_cents: sale, sort_order: d.sort_order ?? 999 });
     }
 
     return json({
@@ -52,6 +58,7 @@ Deno.serve(async (req) => {
         display_name: (reseller as any).display_name,
       },
       prices,
+      ordered,
     });
   } catch (e) {
     console.error("[claude-public-prices]", e);

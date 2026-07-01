@@ -107,7 +107,8 @@ export default function PublicStorefront() {
   });
   const [activeTab, setActiveTab] = useState<"extension" | "recharge">("extension");
   const [testimonials, setTestimonials] = useState<any[]>([]);
-  const [claudePlans, setClaudePlans] = useState<{ code: string; label: string; price_cents: number }[]>([]);
+  const [claudePlans, setClaudePlans] = useState<{ code: string; label: string; price_cents: number; sort_order: number }[]>([]);
+  const [claudeLoading, setClaudeLoading] = useState(false);
   
   // Device Reset
   const [resetKey, setResetKey] = useState("");
@@ -362,17 +363,36 @@ export default function PublicStorefront() {
 
       // Planos Claude (Fase 4b — loja pública)
       if ((r as any).claude_enabled) {
+        setClaudeLoading(true);
         try {
           const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
           let priceMap: Record<string, number> | undefined;
+          let ordered: { plan_code: string; price_cents: number; sort_order: number }[] | undefined;
           if (projectId) {
             const res = await fetch(
               `https://${projectId}.supabase.co/functions/v1/claude-public-prices?slug=${encodeURIComponent(slug)}`,
             );
             const j = await res.json().catch(() => ({}));
             priceMap = j?.prices;
+            ordered = j?.ordered;
           }
-          if (priceMap) {
+          if (ordered && ordered.length) {
+            const LABELS: Record<string, string> = {
+              pro_30d: "Pro 30 dias — 500K tokens",
+              "5x_30d": "5x 30 dias — 2,5M tokens",
+              "20x_30d": "20x 30 dias — 10M tokens",
+            };
+            const list = ordered
+              .filter((o) => Number(o.price_cents) > 0)
+              .sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999))
+              .map((o) => ({
+                code: o.plan_code,
+                label: LABELS[o.plan_code] ?? o.plan_code,
+                price_cents: Number(o.price_cents),
+                sort_order: o.sort_order ?? 999,
+              }));
+            setClaudePlans(list);
+          } else if (priceMap) {
             const LABELS: Record<string, string> = {
               pro_30d: "Pro 30 dias — 500K tokens",
               "5x_30d": "5x 30 dias — 2,5M tokens",
@@ -380,10 +400,11 @@ export default function PublicStorefront() {
             };
             const list = Object.entries(priceMap)
               .filter(([, v]) => Number(v) > 0)
-              .map(([code, v]) => ({ code, label: LABELS[code] ?? code, price_cents: Number(v) }));
+              .map(([code, v]) => ({ code, label: LABELS[code] ?? code, price_cents: Number(v), sort_order: 999 }));
             setClaudePlans(list);
           }
         } catch { /* ignore */ }
+        setClaudeLoading(false);
       }
 
       setLoading(false);
@@ -1658,7 +1679,7 @@ export default function PublicStorefront() {
                   </section>
                 )}
 
-                {claudePlans.length > 0 && (
+                {(claudeLoading || claudePlans.length > 0) && (
                   <section className="w-full mt-12">
                     <div className="flex flex-col items-center gap-2 mb-8 text-center">
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
@@ -1668,12 +1689,30 @@ export default function PublicStorefront() {
                       <p className="text-xs text-muted-foreground">Chave API oficial da Anthropic · Ativação instantânea via PIX</p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {claudePlans.map((p) => (
+                      {claudeLoading && claudePlans.length === 0
+                        ? Array.from({ length: 3 }).map((_, i) => (
+                            <div
+                              key={`sk-${i}`}
+                              className="rounded-2xl border border-white/5 bg-card/30 backdrop-blur-xl p-5 animate-pulse h-[148px]"
+                            />
+                          ))
+                        : claudePlans.map((p) => {
+                        const isFeatured = p.code === "5x_30d";
+                        return (
                         <Link
                           key={p.code}
                           to={`/checkout/claude/${slug}?plan=${p.code}`}
-                          className="group relative overflow-hidden rounded-2xl border border-white/5 bg-card/30 backdrop-blur-xl p-5 transition-all hover:bg-card/50 hover:border-primary/40"
+                          className={`group relative overflow-hidden rounded-2xl border p-5 transition-all backdrop-blur-xl ${
+                            isFeatured
+                              ? "border-primary/60 bg-primary/10 hover:bg-primary/15 shadow-lg shadow-primary/10"
+                              : "border-white/5 bg-card/30 hover:bg-card/50 hover:border-primary/40"
+                          }`}
                         >
+                          {isFeatured && (
+                            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-black uppercase tracking-widest">
+                              Mais vendido
+                            </div>
+                          )}
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
                               <div className="text-[10px] font-black uppercase tracking-widest text-primary">Claude</div>
@@ -1693,7 +1732,8 @@ export default function PublicStorefront() {
                             </div>
                           </div>
                         </Link>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="mt-4 text-center">
                       <Link
