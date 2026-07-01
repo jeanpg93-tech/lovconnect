@@ -157,7 +157,9 @@ export default function ClaudePriceTable() {
         <div className="divide-y divide-border">
           {rows.map((row) => {
             const cost = row.reseller_cost_cents / 100;
-            const suggested = row.suggested_sale_cents / 100;
+            const rawSuggested = row.suggested_sale_cents / 100;
+            // Sugestão sempre >= 100% acima do custo (2x custo) para garantir lucro.
+            const suggested = cost > 0 ? Math.max(rawSuggested, cost * 2) : rawSuggested;
             const my = row.override_sale_cents != null ? row.override_sale_cents / 100 : null;
             const empty = !cost;
             const isEditing = editing === row.plan_code;
@@ -242,15 +244,26 @@ export default function ClaudePriceTable() {
                       </Button>
                     </div>
                   ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 gap-1.5"
-                      disabled={empty || !row.is_active}
-                      onClick={() => { setDraft(suggested > 0 ? String(suggested) : ""); setEditing(row.plan_code); }}
-                    >
-                      <Save className="h-3.5 w-3.5" /> Cadastrar preço
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1.5"
+                        disabled={empty || !row.is_active}
+                        onClick={() => { setDraft(suggested > 0 ? String(suggested) : ""); setEditing(row.plan_code); }}
+                      >
+                        <Save className="h-3.5 w-3.5" /> Cadastrar preço
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="h-8 gap-1.5"
+                        disabled={empty || !row.is_active || suggested <= 0}
+                        onClick={() => saveOverride(row.plan_code, suggested)}
+                      >
+                        <Check className="h-3.5 w-3.5" /> Aplicar sugerido
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
