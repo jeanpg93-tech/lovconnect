@@ -636,6 +636,7 @@ export default function ClienteClaudePortal() {
         </Card>
 
         <Dialog open={renewalOpen} onOpenChange={setRenewalOpen}>
+        {/* placeholder anchor */}
           <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Nova chave / Renovação</DialogTitle>
