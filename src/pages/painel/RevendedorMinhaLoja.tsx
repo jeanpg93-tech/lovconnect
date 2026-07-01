@@ -75,6 +75,7 @@ const EMOJI_LICENSES: { value: string; label: string; placeholder: string }[] = 
 export default function RevendedorMinhaLoja() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const enabledMethods = useResellerEnabledMethods();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
