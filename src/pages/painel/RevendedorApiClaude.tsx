@@ -11,12 +11,13 @@ import {
 } from "@/components/ui/dialog";
 import {
   KeyRound, Copy, Shield, Zap, AlertTriangle, Terminal, Code2,
-  Loader2, CheckCircle2, CircleAlert, Plus, Trash2, Webhook, BookOpen,
+  Loader2, CheckCircle2, CircleAlert, Plus, Trash2, Webhook, BookOpen, Rocket,
 } from "lucide-react";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { DeployClaudePrompt } from "@/components/api/DeployClaudePrompt";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/reseller-claude-api`;
@@ -695,6 +696,7 @@ export default function RevendedorApiClaude() {
           <TabsTrigger value="erros"><AlertTriangle className="mr-1.5 h-3.5 w-3.5" /> Erros</TabsTrigger>
           <TabsTrigger value="exemplos"><BookOpen className="mr-1.5 h-3.5 w-3.5" /> Exemplos</TabsTrigger>
           <TabsTrigger value="webhook"><Webhook className="mr-1.5 h-3.5 w-3.5" /> Webhook</TabsTrigger>
+          <TabsTrigger value="implantar"><Rocket className="mr-1.5 h-3.5 w-3.5" /> Prompt para Implantar API</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inicio"><TabInicio /></TabsContent>
@@ -710,6 +712,7 @@ export default function RevendedorApiClaude() {
             testResult={testResult}
           />
         </TabsContent>
+        <TabsContent value="implantar"><DeployClaudePrompt /></TabsContent>
       </Tabs>
 
       {/* Espelho oculto usado pelo "Copiar documentação completa" */}
