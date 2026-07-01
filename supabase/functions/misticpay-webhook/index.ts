@@ -303,6 +303,12 @@ Deno.serve(async (req) => {
     const status = String(payload?.status ?? "").toUpperCase();
     const type = String(payload?.transactionType ?? "").toUpperCase();
     const paidAt = new Date().toISOString();
+    // A MisticPay envia a taxa REAL da transação em reais (ex.: 0.50 ou 0.55).
+    // Convertemos para centavos com arredondamento para evitar erros de float.
+    const feeRaw = Number(payload?.fee);
+    const feeCents = Number.isFinite(feeRaw) && feeRaw > 0
+      ? Math.round(feeRaw * 100)
+      : null;
     if (!txId) return json({ ok: false, reason: "missing transactionId" }, 200);
 
     if (type && type !== "DEPOSITO") {
