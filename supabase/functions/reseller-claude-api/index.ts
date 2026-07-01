@@ -32,6 +32,49 @@ async function sha256Hex(s: string) {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+async function hmacSha256Hex(secret: string, payload: string) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function dispatchWebhook(svc: any, resellerId: string, event: string, payload: Record<string, unknown>) {
+  // Busca a config de webhook mais recente ativa do revendedor
+  const { data } = await svc
+    .from("reseller_claude_api_keys")
+    .select("id, webhook_url, webhook_secret")
+    .eq("reseller_id", resellerId)
+    .eq("is_active", true)
+    .not("webhook_url", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data?.webhook_url) return { delivered: false, reason: "no_webhook_configured" };
+  const body = JSON.stringify({ event, ...payload, sent_at: new Date().toISOString() });
+  const sig = data.webhook_secret ? `sha256=${await hmacSha256Hex(data.webhook_secret, body)}` : "";
+  try {
+    const r = await fetch(data.webhook_url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "LovConnect-Webhook/1.0",
+        ...(sig ? { "X-Signature": sig } : {}),
+      },
+      body,
+      signal: AbortSignal.timeout(8000),
+    });
+    return { delivered: r.ok, status: r.status };
+  } catch (e) {
+    return { delivered: false, error: String((e as Error)?.message ?? e) };
+  }
+}
+
 function computeSale(cost: number, mode: string, value: number) {
   if (mode === "percent") return Math.max(0, Math.round((cost * (10000 + value)) / 10000));
   if (mode === "fixed_add") return Math.max(0, cost + value);
@@ -149,6 +192,19 @@ Deno.serve(async (req) => {
       return json({ success: true, chave: data });
     }
 
+    // Envia um evento de teste para o webhook configurado
+    if (action === "webhook" && subId === "test" && req.method === "POST") {
+      const result = await dispatchWebhook(svc, reseller.id, "claude.webhook.test", {
+        pedido_id: "test-" + crypto.randomUUID(),
+        plano: "5x_30d",
+        preco_centavos: 14900,
+        codigo: "TEST-XXXXX-XXXXX",
+        provider_key_id: "test_prov_key",
+        id_cliente: "teste@exemplo.com",
+      });
+      return json({ success: !!result.delivered, ...result });
+    }
+
     if (action === "chaves" && req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       const planCode = String(body?.plano ?? body?.plan_code ?? "").trim();
@@ -262,6 +318,16 @@ Deno.serve(async (req) => {
         provider_response: providerResp,
         code_revealed_at: new Date().toISOString(),
       }).eq("id", order.id);
+
+      // Dispara webhook (best-effort — não bloqueia a resposta)
+      dispatchWebhook(svc, reseller.id, "claude.key.issued", {
+        pedido_id: order.id,
+        plano: planCode,
+        preco_centavos: saleCents,
+        codigo: code,
+        provider_key_id: providerKeyId,
+        id_cliente: customerId,
+      }).catch((e) => console.warn("[reseller-claude-api] webhook issued dispatch failed", e));
 
       // Notifica gerente via Telegram
       try {
