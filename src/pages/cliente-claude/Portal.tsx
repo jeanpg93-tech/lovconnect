@@ -182,7 +182,7 @@ export default function ClienteClaudePortal() {
         throw new Error(pixErrorCode);
       }
       const { data, error } = await supabase.functions.invoke("claude-customer-request-renewal", {
-        body: { plan_code: renewalPlan, note: renewalNote || null },
+        body: { plan_code: renewalPlan, note: renewalNote || null, reseller_slug: storeSlug || null },
       });
       if (error) throw error;
       if ((data as any)?.error === "already_requested") {
