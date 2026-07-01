@@ -13,6 +13,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { StorefrontBackground } from "@/components/storefront/StorefrontBackground";
+import { StorefrontVisualEffects, type VisualEffect } from "@/components/storefront/StorefrontVisualEffects";
+import { PortalFooterBrand } from "@/components/cliente-claude/PortalFooterBrand";
 
 type Customer = {
   id: string;
@@ -56,6 +59,9 @@ type ResellerInfo = {
   background_color?: string | null;
   logo_url?: string | null;
   logo_size?: number | null;
+  background_effect?: string | null;
+  visual_effect?: string | null;
+  tagline?: string | null;
 };
 
 const PLAN_LABELS: Record<string, string> = {
