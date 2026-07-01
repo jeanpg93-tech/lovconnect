@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Tag, Users, Loader2, RefreshCw, Save, Wallet, Layers, Medal, Award, Crown, Gem } from "lucide-react";
+import { BarChart3, Tag, Users, Loader2, RefreshCw, Save, Wallet, Layers, Medal, Award, Crown, Gem, Webhook, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -57,10 +57,12 @@ export default function GerenteClaudeApi() {
           <TabsTrigger value="saldo" className="gap-2"><BarChart3 className="h-4 w-4" /> Saldo / Estoque</TabsTrigger>
           <TabsTrigger value="precos" className="gap-2"><Tag className="h-4 w-4" /> Preços</TabsTrigger>
           <TabsTrigger value="revendedores" className="gap-2"><Users className="h-4 w-4" /> Revendedores</TabsTrigger>
+          <TabsTrigger value="webhook" className="gap-2"><Webhook className="h-4 w-4" /> Webhook</TabsTrigger>
         </TabsList>
         <TabsContent value="saldo" className="mt-6"><BalanceTab /></TabsContent>
         <TabsContent value="precos" className="mt-6"><PricesTab /></TabsContent>
         <TabsContent value="revendedores" className="mt-6"><ResellersTab /></TabsContent>
+        <TabsContent value="webhook" className="mt-6"><WebhookTab /></TabsContent>
       </Tabs>
     </PageContainer>
   );
