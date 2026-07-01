@@ -59,3 +59,6 @@ verify_jwt = false
 
 [functions.claude-customer-signup]
 verify_jwt = false
+
+[functions.public-extension-download]
+verify_jwt = false

@@ -1118,6 +1118,19 @@ export default function PublicStorefront() {
                             <ShieldCheck className="hidden sm:block h-6 w-6 shrink-0" style={{ color }} />
                           </div>
                         </div>
+                        <Button
+                          onClick={handleAccessExtension}
+                          disabled={downloadingExt}
+                          className="relative z-10 mt-4 w-full h-11 font-bold text-white shadow-lg transition-all hover:scale-[1.01]"
+                          style={{ background: `linear-gradient(135deg, ${color}, ${color}CC)` }}
+                        >
+                          {downloadingExt ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="mr-2 h-4 w-4" />
+                          )}
+                          Baixar extensão
+                        </Button>
                       </div>
                     );
                   })()}
