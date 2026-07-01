@@ -363,22 +363,14 @@ export default function PublicStorefront() {
       // Planos Claude (Fase 4b — loja pública)
       if ((r as any).claude_enabled) {
         try {
-          const { data: cp } = await supabase.functions.invoke("claude-public-prices", {
-            method: "GET" as any,
-            headers: { "x-slug": slug } as any,
-          } as any);
-          // fallback: chamar via URL com query string
-          const prices = (cp as any)?.prices as Record<string, number> | undefined;
-          let priceMap = prices;
-          if (!priceMap) {
-            const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
-            if (projectId) {
-              const res = await fetch(
-                `https://${projectId}.supabase.co/functions/v1/claude-public-prices?slug=${encodeURIComponent(slug)}`,
-              );
-              const j = await res.json().catch(() => ({}));
-              priceMap = j?.prices;
-            }
+          const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
+          let priceMap: Record<string, number> | undefined;
+          if (projectId) {
+            const res = await fetch(
+              `https://${projectId}.supabase.co/functions/v1/claude-public-prices?slug=${encodeURIComponent(slug)}`,
+            );
+            const j = await res.json().catch(() => ({}));
+            priceMap = j?.prices;
           }
           if (priceMap) {
             const LABELS: Record<string, string> = {
