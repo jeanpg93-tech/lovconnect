@@ -132,7 +132,7 @@ export default function GerentePlanosAtivos() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("reseller_recharge_plan_subscriptions")
+        .from("reseller_recharge_plan_subscriptions_admin" as any)
         .select(`*, resellers ( display_name )`)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -489,7 +489,7 @@ function SubDetailDialog({
         })
         .eq("id", sub.id)
         .in("status", ["awaiting_confirm", "owner_rejected"])
-        .select()
+        .select("id, status, started_at, ends_at, owner_rejected_at, owner_rejected_reason")
         .maybeSingle();
 
       if (updErr) throw updErr;
