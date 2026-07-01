@@ -383,14 +383,16 @@ export default function ClienteClaudePortal() {
           maskImage: "radial-gradient(ellipse at top, black 40%, transparent 80%)",
         }}
       />
-      {/* Efeitos da loja do revendedor (padroniza com o storefront) */}
-      {reseller?.background_effect && reseller.background_effect !== "none" && (
-        <StorefrontBackground effect={reseller.background_effect as any} color={reseller.primary_color ?? "#7c3aed"} />
-      )}
-      {reseller?.visual_effect && reseller.visual_effect !== "none" && (
-        <StorefrontVisualEffects effect={reseller.visual_effect as VisualEffect} color={reseller.primary_color ?? "#7c3aed"} />
-      )}
-      <div className="max-w-5xl mx-auto space-y-6 relative">
+      {/* Efeitos da loja do revendedor (padroniza com o storefront) — sempre no fundo */}
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        {reseller?.background_effect && reseller.background_effect !== "none" && (
+          <StorefrontBackground effect={reseller.background_effect as any} color={reseller.primary_color ?? "#7c3aed"} />
+        )}
+        {reseller?.visual_effect && reseller.visual_effect !== "none" && (
+          <StorefrontVisualEffects effect={reseller.visual_effect as VisualEffect} color={reseller.primary_color ?? "#7c3aed"} />
+        )}
+      </div>
+      <div className="max-w-5xl mx-auto space-y-6 relative z-10">
         {/* Header dashboard */}
         <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 shadow-2xl animate-fade-in">
           <div className="flex items-center gap-3 min-w-0">
