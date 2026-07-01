@@ -528,11 +528,33 @@ function TabWebhook({
         </div>
         <div className="space-y-1.5">
           <Label>URL do webhook</Label>
-          <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://seusite.com/webhooks/claude" />
+          <Input
+            type="url"
+            name="claude_webhook_url"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            data-lpignore="true"
+            data-1p-ignore="true"
+            value={webhookUrl}
+            onChange={(e) => setWebhookUrl(e.target.value)}
+            placeholder="https://seusite.com/webhooks/claude"
+          />
         </div>
         <div className="space-y-1.5">
           <Label>Segredo (HMAC)</Label>
-          <Input type="password" value={webhookSecret} onChange={(e) => setWebhookSecret(e.target.value)} placeholder="qualquer string secreta (guarde no seu servidor)" />
+          <Input
+            type="text"
+            name="claude_webhook_secret"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            data-lpignore="true"
+            data-1p-ignore="true"
+            value={webhookSecret}
+            onChange={(e) => setWebhookSecret(e.target.value)}
+            placeholder="qualquer string secreta (guarde no seu servidor)"
+          />
           <p className="text-[11px] text-muted-foreground">
             Use este segredo para validar a assinatura antes de confiar no payload.
           </p>
