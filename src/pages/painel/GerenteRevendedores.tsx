@@ -1055,6 +1055,6 @@ export default function GerenteRevendedores() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </PageContainer>
+    </div>
   );
 }
