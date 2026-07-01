@@ -2113,6 +2113,13 @@ export type Database = {
             referencedRelation: "reseller_recharge_plan_subscriptions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "recharge_plan_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_recharge_plan_subscriptions_admin"
+            referencedColumns: ["id"]
+          },
         ]
       }
       recharge_plan_tutorial_media: {
@@ -4024,6 +4031,13 @@ export type Database = {
             referencedRelation: "reseller_recharge_plan_subscriptions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "storefront_orders_recharge_plan_subscription_id_fkey"
+            columns: ["recharge_plan_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_recharge_plan_subscriptions_admin"
+            referencedColumns: ["id"]
+          },
         ]
       }
       storefront_reports: {
@@ -4667,7 +4681,136 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      reseller_recharge_plan_subscriptions_admin: {
+        Row: {
+          awaiting_owner_expires_at: string | null
+          cancelled_at: string | null
+          cancelled_reason: string | null
+          completed_at: string | null
+          cost_cents: number | null
+          created_at: string | null
+          credits_per_day: number | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_whatsapp: string | null
+          delivery_hour: number | null
+          duration_days: number | null
+          ends_at: string | null
+          id: string | null
+          notes: string | null
+          order_token: string | null
+          owner_confirmation_attempts: number | null
+          owner_email_added_at: string | null
+          owner_email_required: string | null
+          owner_rejected_at: string | null
+          owner_rejected_count: number | null
+          owner_rejected_reason: string | null
+          paused_at: string | null
+          plan_id: string | null
+          reseller_id: string | null
+          sale_price_cents: number | null
+          source: string | null
+          source_reference_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["recharge_plan_status"] | null
+          total_credits_cap: number | null
+          updated_at: string | null
+          workspace_name: string | null
+        }
+        Insert: {
+          awaiting_owner_expires_at?: string | null
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          completed_at?: string | null
+          cost_cents?: number | null
+          created_at?: string | null
+          credits_per_day?: number | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_whatsapp?: string | null
+          delivery_hour?: number | null
+          duration_days?: number | null
+          ends_at?: string | null
+          id?: string | null
+          notes?: string | null
+          order_token?: string | null
+          owner_confirmation_attempts?: number | null
+          owner_email_added_at?: string | null
+          owner_email_required?: string | null
+          owner_rejected_at?: string | null
+          owner_rejected_count?: number | null
+          owner_rejected_reason?: string | null
+          paused_at?: string | null
+          plan_id?: string | null
+          reseller_id?: string | null
+          sale_price_cents?: number | null
+          source?: string | null
+          source_reference_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["recharge_plan_status"] | null
+          total_credits_cap?: number | null
+          updated_at?: string | null
+          workspace_name?: string | null
+        }
+        Update: {
+          awaiting_owner_expires_at?: string | null
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          completed_at?: string | null
+          cost_cents?: number | null
+          created_at?: string | null
+          credits_per_day?: number | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_whatsapp?: string | null
+          delivery_hour?: number | null
+          duration_days?: number | null
+          ends_at?: string | null
+          id?: string | null
+          notes?: string | null
+          order_token?: string | null
+          owner_confirmation_attempts?: number | null
+          owner_email_added_at?: string | null
+          owner_email_required?: string | null
+          owner_rejected_at?: string | null
+          owner_rejected_count?: number | null
+          owner_rejected_reason?: string | null
+          paused_at?: string | null
+          plan_id?: string | null
+          reseller_id?: string | null
+          sale_price_cents?: number | null
+          source?: string | null
+          source_reference_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["recharge_plan_status"] | null
+          total_credits_cap?: number | null
+          updated_at?: string | null
+          workspace_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_recharge_plan_subscriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_recharge_plan_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "recharge_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_recharge_plan_subscriptions_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _slugify_simple: { Args: { _s: string }; Returns: string }
