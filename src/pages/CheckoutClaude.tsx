@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ const PLANS: { code: PlanCode; label: string; desc: string }[] = [
 ];
 
 type Reseller = { id: string; slug: string; display_name: string; claude_enabled: boolean };
-type PriceRow = { plan_code: string; sale_price_cents: number; markup_mode?: string; markup_value_cents?: number; cost_cents?: number };
 
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
