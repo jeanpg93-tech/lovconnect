@@ -11,8 +11,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, Repeat, Package, Pencil } from "lucide-react";
+import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, AlertTriangle, Repeat, Package, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { labelForPath, isOnline, formatLastSeenBR } from "@/lib/path-labels";
@@ -399,12 +400,44 @@ export default function GerenteRevendedores() {
     return { progress, nextTierName: next.name };
   };
 
+  type StatusFilter = "all" | "active" | "pending" | "inactive" | "banned";
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
   const filteredResellers = resellers.filter(r => {
     const matchesSearch = r.display_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          profilesByUser[r.user_id]?.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSelected = !selectedResellerId || r.id === selectedResellerId;
-    return matchesSearch && matchesSelected;
+    const prof = profilesByUser[r.user_id];
+    const banned = !!prof?.is_banned;
+    const activation = r.activation_status ?? "awaiting_payment";
+    const isPending = activation !== "active";
+    let matchesStatus = true;
+    if (statusFilter === "active") matchesStatus = r.is_active && !banned && !isPending;
+    else if (statusFilter === "pending") matchesStatus = isPending && !banned;
+    else if (statusFilter === "inactive") matchesStatus = !r.is_active && !banned;
+    else if (statusFilter === "banned") matchesStatus = banned;
+    return matchesSearch && matchesSelected && matchesStatus;
   });
+
+  const networkMetrics = useMemo(() => {
+    const total = resellers.length;
+    let active = 0;
+    let newThisWeek = 0;
+    let totalBalance = 0;
+    let negative = 0;
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    resellers.forEach((r) => {
+      const prof = profilesByUser[r.user_id];
+      const banned = !!prof?.is_banned;
+      if (r.is_active && !banned && (r.activation_status ?? "awaiting_payment") === "active") active++;
+      const createdAt = (r as any).created_at ? new Date((r as any).created_at).getTime() : 0;
+      if (createdAt && createdAt >= weekAgo) newThisWeek++;
+      const bal = balancesByReseller[r.id] ?? 0;
+      totalBalance += bal;
+      if (bal < 0) negative++;
+    });
+    return { total, active, newThisWeek, totalBalance, negative };
+  }, [resellers, profilesByUser, balancesByReseller]);
 
   const rankedResellers = useMemo(() => {
     const HIDDEN = new Set(["jeanpg.93"]);
@@ -438,6 +471,35 @@ export default function GerenteRevendedores() {
         }
       />
 
+      {/* Métricas de rede */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Total", value: networkMetrics.total, accent: "primary" as const, icon: Store },
+          { label: "Ativos", value: networkMetrics.active, accent: "emerald" as const, icon: CheckCircle2 },
+          { label: "Novos (7 dias)", value: networkMetrics.newThisWeek, accent: "sky" as const, icon: TrendingUp },
+          { label: "Saldo da rede", value: formatBRL(networkMetrics.totalBalance), accent: "violet" as const, icon: Wallet },
+        ].map((m) => (
+          <div key={m.label} className="rounded-2xl border border-border bg-card/60 p-4">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+              <m.icon className="h-3.5 w-3.5" /> {m.label}
+            </div>
+            <div className="mt-2 font-display text-xl sm:text-2xl font-black tracking-tight">
+              {m.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {networkMetrics.negative > 0 && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Atenção</AlertTitle>
+          <AlertDescription>
+            {networkMetrics.negative} revendedor(es) com saldo negativo. Verifique para evitar prejuízo.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -449,18 +511,20 @@ export default function GerenteRevendedores() {
           />
         </div>
         <div className="flex gap-2">
-          <select 
-            value={selectedResellerId || ""} 
-            onChange={(e) => setSelectedResellerId(e.target.value || null)}
-            className="flex-1 h-12 px-4 bg-card/60 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <option value="">Todos os revendedores</option>
-            {resellers.map(r => (
-              <option key={r.id} value={r.id}>{r.display_name}</option>
-            ))}
-          </select>
-          {selectedResellerId && (
-            <Button variant="ghost" onClick={() => setSelectedResellerId(null)} className="h-12 px-4 rounded-xl border border-border">Limpar</Button>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+            <SelectTrigger className="flex-1 h-12 bg-card/60 border-border rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="active">Ativos</SelectItem>
+              <SelectItem value="pending">Pendentes</SelectItem>
+              <SelectItem value="inactive">Inativos</SelectItem>
+              <SelectItem value="banned">Banidos</SelectItem>
+            </SelectContent>
+          </Select>
+          {statusFilter !== "all" && (
+            <Button variant="ghost" onClick={() => setStatusFilter("all")} className="h-12 px-4 rounded-xl border border-border">Limpar</Button>
           )}
         </div>
       </div>
