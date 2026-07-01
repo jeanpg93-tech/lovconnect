@@ -48,14 +48,31 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const planCode = String(body?.plan_code ?? "").trim();
     const payerDocument = String(body?.payer_document ?? "00000000000").replace(/\D/g, "");
+    const resellerSlug = String(body?.reseller_slug ?? "").trim().toLowerCase();
+    const resellerIdIn = String(body?.reseller_id ?? "").trim();
     if (!PLAN_CODES.has(planCode)) return json({ error: "invalid_plan_code" }, 400);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    const { data: customer } = await admin
+    let scopedResellerId = resellerIdIn || "";
+    if (resellerSlug && !scopedResellerId) {
+      const { data: scopedReseller } = await admin
+        .from("resellers")
+        .select("id")
+        .eq("slug", resellerSlug)
+        .maybeSingle();
+      scopedResellerId = scopedReseller?.id ?? "";
+    }
+    if ((resellerSlug || resellerIdIn) && !scopedResellerId) return json({ error: "customer_not_found" }, 404);
+
+    let customerQuery = admin
       .from("claude_customers")
       .select("id, name, email, whatsapp, reseller_id")
-      .eq("auth_user_id", userData.user.id)
+      .eq("auth_user_id", userData.user.id);
+    if (scopedResellerId) customerQuery = customerQuery.eq("reseller_id", scopedResellerId);
+    const { data: customer } = await customerQuery
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (!customer) return json({ error: "customer_not_found" }, 404);
 

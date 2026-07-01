@@ -150,7 +150,7 @@ export default function ClienteClaudePortal() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    navigate("/cliente-claude/login", { replace: true });
+    navigate(`/cliente-claude/login${storeSlug ? `?loja=${encodeURIComponent(storeSlug)}` : ""}`, { replace: true });
   };
 
   const submitRenewal = async () => {
@@ -159,7 +159,7 @@ export default function ClienteClaudePortal() {
     try {
       // 1) Tenta o fluxo automático PIX (MisticPay do revendedor)
       const { data: pix, error: pixErr } = await supabase.functions.invoke("claude-customer-checkout-renewal", {
-        body: { plan_code: renewalPlan },
+        body: { plan_code: renewalPlan, reseller_slug: storeSlug || null },
       });
       const pixErrorCode = (pix as any)?.error;
       if (!pixErr && (pix as any)?.ok) {
@@ -217,7 +217,9 @@ export default function ClienteClaudePortal() {
         setPixStatus("issued");
         toast.success("Pagamento confirmado! Chave emitida.");
         // recarrega dados
-        const { data: usageResp } = await supabase.functions.invoke("claude-my-usage");
+        const { data: usageResp } = await supabase.functions.invoke("claude-my-usage", {
+          body: { reseller_slug: storeSlug || null },
+        });
         if (usageResp?.ok) {
           setOrders(usageResp.orders ?? []);
           setUsage(usageResp.usage ?? null);
