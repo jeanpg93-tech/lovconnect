@@ -20,7 +20,7 @@ const corsHeaders = {
 const CLAUDE_API_KEY = Deno.env.get("CLAUDE_RESELLER_API_KEY") ?? "";
 const CLAUDE_BASE_URL = (Deno.env.get("CLAUDE_RESELLER_API_BASE_URL") ?? "").replace(/\/$/, "");
 
-const PLAN_CODES = new Set(["5x_7d", "5x_30d", "20x_30d"]);
+const PLAN_CODES = new Set(["pro_30d", "5x_7d", "5x_30d", "20x_30d"]);
 
 function json(d: unknown, status = 200) {
   return new Response(JSON.stringify(d), {
@@ -148,12 +148,12 @@ Deno.serve(async (req) => {
     ]);
     return Array.from(PLAN_CODES).map((pc) => {
       const base: any = (def ?? []).find((x: any) => x.plan_code === pc);
-      if (!base) return null;
+      if (!base || !base.is_active) return null;
       const override: any = (ov ?? []).find((x: any) => x.plan_code === pc && x.is_active);
       const sale = override
         ? computeSale(base.cost_cents, override.markup_mode, override.markup_value_cents)
         : base.sale_price_cents;
-      return { plano: pc, preco_centavos: sale, preco: (sale / 100).toFixed(2), disponivel: !!base.is_active };
+      return { plano: pc, preco_centavos: sale, preco: (sale / 100).toFixed(2), disponivel: true };
     }).filter(Boolean);
   };
 
