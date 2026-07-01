@@ -470,6 +470,7 @@ export default function RevendedorMinhaLoja() {
       show_products: showProducts,
       show_free_trial: showFreeTrial,
       show_credits: showCredits,
+      show_claude: showClaude,
       extension_method: extensionMethod,
       access_extension_enabled: accessExtEnabled,
       access_extension_mode: accessExtMode,
