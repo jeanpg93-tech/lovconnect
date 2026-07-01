@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Calendar, Infinity as InfinityIcon, Crown, Save, Pencil, Check, X, AlertTriangle, AlertCircle } from "lucide-react";
+import { Loader2, Calendar, Infinity as InfinityIcon, Crown, Save, Pencil, Check, X, AlertTriangle, AlertCircle, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -273,9 +273,27 @@ export default function MethodPriceTable({ method }: { method: Method }) {
                   <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground md:hidden">
                     Sugerido
                   </div>
-                  <div className="text-sm tabular-nums text-muted-foreground">
-                    {base > 0 ? formatBRL(base * 2) : "—"}
-                  </div>
+                  {base > 0 ? (
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm tabular-nums text-muted-foreground">{formatBRL(base * 2)}</span>
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() => saveOverride(pkg.id, base * 2)}
+                          className="text-[10px] text-muted-foreground/70 underline-offset-2 hover:text-primary hover:underline disabled:opacity-40"
+                        >
+                          aplicar
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-0.5 text-[10px] font-mono text-emerald-500">
+                        <TrendingUp className="h-2.5 w-2.5" />
+                        <span>+100%</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm tabular-nums text-muted-foreground">—</div>
+                  )}
                 </div>
                 <div className="md:col-span-4">
                   <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground md:hidden">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Save, Pencil, Check, X } from "lucide-react";
+import { Loader2, Save, Pencil, Check, X, TrendingUp } from "lucide-react";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -199,10 +199,23 @@ export default function ClaudePriceTable() {
                 <div className="md:col-span-2">
                   <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground md:hidden">Sugerido</div>
                   {suggested > 0 ? (
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-sm tabular-nums text-muted-foreground">{fmtBRL(suggested)}</span>
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm tabular-nums text-muted-foreground">{fmtBRL(suggested)}</span>
+                        <button
+                          type="button"
+                          disabled={empty || !row.is_active || saving}
+                          onClick={() => saveOverride(row.plan_code, suggested)}
+                          className="text-[10px] text-muted-foreground/70 underline-offset-2 hover:text-primary hover:underline disabled:opacity-40"
+                        >
+                          aplicar
+                        </button>
+                      </div>
                       {cost > 0 && (
-                        <span className="text-[10px] font-mono text-muted-foreground/60">+100%</span>
+                        <div className="flex items-center gap-0.5 text-[10px] font-mono text-emerald-500">
+                          <TrendingUp className="h-2.5 w-2.5" />
+                          <span>+100%</span>
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -251,26 +264,15 @@ export default function ClaudePriceTable() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 gap-1.5"
-                        disabled={empty || !row.is_active}
-                        onClick={() => { setDraft(suggested > 0 ? String(suggested) : ""); setEditing(row.plan_code); }}
-                      >
-                        <Save className="h-3.5 w-3.5" /> Cadastrar preço
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 gap-1 px-2 text-[11px] text-muted-foreground hover:text-primary"
-                        disabled={empty || !row.is_active || suggested <= 0}
-                        onClick={() => saveOverride(row.plan_code, suggested)}
-                      >
-                        <Check className="h-3 w-3" /> Aplicar sugerido
-                      </Button>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1.5"
+                      disabled={empty || !row.is_active}
+                      onClick={() => { setDraft(suggested > 0 ? String(suggested) : ""); setEditing(row.plan_code); }}
+                    >
+                      <Save className="h-3.5 w-3.5" /> Cadastrar preço
+                    </Button>
                   )}
                 </div>
               </div>
