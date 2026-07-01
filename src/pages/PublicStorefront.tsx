@@ -1224,7 +1224,7 @@ export default function PublicStorefront() {
                   <div className="w-full max-w-3xl mx-auto">
                     <div className="flex flex-col items-center gap-2 mb-6 text-center">
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
-                        <Sparkles className="h-3 w-3" /> Claude AI · Chaves API
+                        <ClaudeIcon className="h-3 w-3" /> Claude AI · Chaves API
                       </div>
                       <h2 className="text-2xl font-black uppercase tracking-tight">Planos Claude</h2>
                       <p className="text-xs text-muted-foreground">Chave API oficial da Anthropic · Ativação instantânea via PIX</p>
@@ -1259,7 +1259,7 @@ export default function PublicStorefront() {
                               <div className="text-[10px] font-black uppercase tracking-widest text-primary">Claude</div>
                               <div className="text-sm font-bold mt-1">{p.label}</div>
                             </div>
-                            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                            <ClaudeIcon className="h-4 w-4 text-primary shrink-0" />
                           </div>
                           <div className="mt-4 flex items-end justify-between">
                             <div>
