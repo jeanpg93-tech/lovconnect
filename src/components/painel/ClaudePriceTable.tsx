@@ -198,9 +198,16 @@ export default function ClaudePriceTable() {
 
                 <div className="md:col-span-2">
                   <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground md:hidden">Sugerido</div>
-                  <div className="text-sm tabular-nums text-muted-foreground">
-                    {suggested > 0 ? fmtBRL(suggested) : "—"}
-                  </div>
+                  {suggested > 0 ? (
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-sm tabular-nums text-muted-foreground">{fmtBRL(suggested)}</span>
+                      {cost > 0 && (
+                        <span className="text-[10px] font-mono text-muted-foreground/60">+100%</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">—</div>
+                  )}
                 </div>
 
                 <div className="md:col-span-4">
@@ -256,12 +263,12 @@ export default function ClaudePriceTable() {
                       </Button>
                       <Button
                         size="sm"
-                        variant="default"
-                        className="h-8 gap-1.5"
+                        variant="ghost"
+                        className="h-8 gap-1 px-2 text-[11px] text-muted-foreground hover:text-primary"
                         disabled={empty || !row.is_active || suggested <= 0}
                         onClick={() => saveOverride(row.plan_code, suggested)}
                       >
-                        <Check className="h-3.5 w-3.5" /> Aplicar sugerido
+                        <Check className="h-3 w-3" /> Aplicar sugerido
                       </Button>
                     </div>
                   )}
