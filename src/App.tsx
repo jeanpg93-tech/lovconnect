@@ -22,6 +22,7 @@ const Inactive = lazy(() => lazyWithChunkRecovery(() => import("./pages/Inactive
 const Install = lazy(() => lazyWithChunkRecovery(() => import("./pages/Install")));
 const ClienteClaudeLogin = lazy(() => lazyWithChunkRecovery(() => import("./pages/cliente-claude/Login")));
 const ClienteClaudePortal = lazy(() => lazyWithChunkRecovery(() => import("./pages/cliente-claude/Portal")));
+const CheckoutClaude = lazy(() => lazyWithChunkRecovery(() => import("./pages/CheckoutClaude")));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -97,6 +98,7 @@ const App = () => (
                 <Route path="/plano/:token" element={<PublicPlano />} />
                 <Route path="/cliente-claude/login" element={<ClienteClaudeLogin />} />
                 <Route path="/cliente-claude" element={<ClienteClaudePortal />} />
+                <Route path="/checkout/claude/:slug" element={<CheckoutClaude />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
