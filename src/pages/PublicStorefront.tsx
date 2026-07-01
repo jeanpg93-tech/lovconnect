@@ -1666,13 +1666,60 @@ export default function PublicStorefront() {
                   </section>
                 )}
 
+                {claudePlans.length > 0 && (
+                  <section className="w-full mt-12">
+                    <div className="flex flex-col items-center gap-2 mb-8 text-center">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
+                        <Sparkles className="h-3 w-3" /> Claude AI · Chaves API
+                      </div>
+                      <h2 className="text-2xl font-black uppercase tracking-tight">Planos Claude</h2>
+                      <p className="text-xs text-muted-foreground">Chave API oficial da Anthropic · Ativação instantânea via PIX</p>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {claudePlans.map((p) => (
+                        <Link
+                          key={p.code}
+                          to={`/checkout/claude/${slug}?plan=${p.code}`}
+                          className="group relative overflow-hidden rounded-2xl border border-white/5 bg-card/30 backdrop-blur-xl p-5 transition-all hover:bg-card/50 hover:border-primary/40"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[10px] font-black uppercase tracking-widest text-primary">Claude</div>
+                              <div className="text-sm font-bold mt-1">{p.label}</div>
+                            </div>
+                            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                          </div>
+                          <div className="mt-4 flex items-end justify-between">
+                            <div>
+                              <div className="text-[10px] text-muted-foreground uppercase tracking-widest">por</div>
+                              <div className="text-2xl font-black tracking-tight">
+                                R$ {(p.price_cents / 100).toFixed(2).replace(".", ",")}
+                              </div>
+                            </div>
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-primary group-hover:underline">
+                              Comprar →
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="mt-4 text-center">
+                      <Link
+                        to={`/checkout/claude/${slug}`}
+                        className="text-[11px] text-muted-foreground hover:text-primary underline underline-offset-4"
+                      >
+                        Ver todos os planos e comprar →
+                      </Link>
+                    </div>
+                  </section>
+                )}
+
                 {testimonials.length > 0 && (
                   <section className="w-full mt-12">
                     <div className="flex flex-col items-center gap-2 mb-8 text-center">
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
                         <Quote className="h-3 w-3" /> Clientes Satisfeitos
                       </div>
-                      <p className="sr-only">clientes</p>
                       <h2 className="text-2xl font-black uppercase tracking-tight">O que dizem sobre nós</h2>
                     </div>
                     <Carousel opts={{ align: "start", loop: true }} className="w-full">
