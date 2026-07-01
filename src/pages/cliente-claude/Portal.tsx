@@ -7,8 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap } from "lucide-react";
+import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 
 type Customer = {
   id: string;
@@ -39,6 +44,9 @@ type Usage = {
   weeklyTokenLimit?: number | null;
 } | null;
 
+type Plan = { plan_code: string; sale_price_cents: number };
+type ResellerInfo = { display_name: string | null; whatsapp: string | null; slug: string | null; claude_enabled: boolean };
+
 const PLAN_LABELS: Record<string, string> = {
   "5x_7d": "Plano 5x — 7 dias",
   "5x_30d": "Plano 5x — 30 dias",
@@ -47,6 +55,10 @@ const PLAN_LABELS: Record<string, string> = {
   api_5x_30d: "API 5x — 30 dias",
   api_20x_30d: "API 20x — 30 dias",
 };
+
+function fmtBRL(cents: number) {
+  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 function fmtDate(d?: string | null) {
   if (!d) return "—";
@@ -72,6 +84,12 @@ export default function ClienteClaudePortal() {
   const [usage, setUsage] = useState<Usage>(null);
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [reseller, setReseller] = useState<ResellerInfo | null>(null);
+  const [renewalOpen, setRenewalOpen] = useState(false);
+  const [renewalPlan, setRenewalPlan] = useState<string>("");
+  const [renewalNote, setRenewalNote] = useState("");
+  const [renewalSubmitting, setRenewalSubmitting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -97,6 +115,8 @@ export default function ClienteClaudePortal() {
       if (usageResp?.ok) {
         setOrders(usageResp.orders ?? []);
         setUsage(usageResp.usage ?? null);
+        setPlans(usageResp.plans ?? []);
+        setReseller(usageResp.reseller ?? null);
       }
       setLoading(false);
     })();
@@ -123,6 +143,37 @@ export default function ClienteClaudePortal() {
     await supabase.auth.signOut();
     navigate("/cliente-claude/login", { replace: true });
   };
+
+  const submitRenewal = async () => {
+    if (!renewalPlan) return toast.error("Escolha um plano");
+    setRenewalSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("claude-customer-request-renewal", {
+        body: { plan_code: renewalPlan, note: renewalNote || null },
+      });
+      if (error) throw error;
+      if ((data as any)?.error === "already_requested") {
+        toast.info("Você já tem uma solicitação em aberto para esse plano.");
+      } else if ((data as any)?.ok) {
+        toast.success("Solicitação enviada! O revendedor foi notificado.");
+        setRenewalOpen(false);
+        setRenewalNote("");
+        setRenewalPlan("");
+      } else {
+        throw new Error((data as any)?.error ?? "erro_desconhecido");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao enviar solicitação");
+    } finally {
+      setRenewalSubmitting(false);
+    }
+  };
+
+  const whatsappLink = reseller?.whatsapp
+    ? `https://wa.me/${reseller.whatsapp.replace(/\D+/g, "")}?text=${encodeURIComponent(
+        `Olá! Sou ${customer?.name} (${customer?.email}) e gostaria de renovar minha chave Claude.`,
+      )}`
+    : null;
 
   if (loading) {
     return (
@@ -243,12 +294,72 @@ export default function ClienteClaudePortal() {
                 ))}
                 <p className="text-xs text-muted-foreground pt-2">
                   {activeKeys.length} chave{activeKeys.length === 1 ? "" : "s"} ativa{activeKeys.length === 1 ? "" : "s"}.
-                  Renovação self-service disponível em breve (Fase 3).
                 </p>
+              </div>
+            )}
+            {reseller?.claude_enabled && plans.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => setRenewalOpen(true)}>
+                  <RefreshCw className="h-4 w-4 mr-2" /> Renovar chave
+                </Button>
+                {whatsappLink && (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={whatsappLink} target="_blank" rel="noreferrer">
+                      <MessageCircle className="h-4 w-4 mr-2" /> Falar com o revendedor
+                    </a>
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={renewalOpen} onOpenChange={setRenewalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Solicitar renovação</DialogTitle>
+              <DialogDescription>
+                Escolha o plano desejado. Sua solicitação será enviada ao revendedor
+                {reseller?.display_name ? ` (${reseller.display_name})` : ""} para confirmação e pagamento.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <RadioGroup value={renewalPlan} onValueChange={setRenewalPlan}>
+                {plans.map((p) => (
+                  <label
+                    key={p.plan_code}
+                    className="flex items-center justify-between rounded-lg border p-3 cursor-pointer hover:bg-accent"
+                  >
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value={p.plan_code} id={`plan-${p.plan_code}`} />
+                      <div>
+                        <div className="font-medium text-sm">{PLAN_LABELS[p.plan_code] ?? p.plan_code}</div>
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold text-primary">{fmtBRL(p.sale_price_cents)}</div>
+                  </label>
+                ))}
+              </RadioGroup>
+              <div className="space-y-2">
+                <Label htmlFor="note">Observação (opcional)</Label>
+                <Textarea
+                  id="note"
+                  value={renewalNote}
+                  onChange={(e) => setRenewalNote(e.target.value)}
+                  placeholder="Ex.: prefiro pagar via PIX"
+                  maxLength={500}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRenewalOpen(false)}>Cancelar</Button>
+              <Button onClick={submitRenewal} disabled={renewalSubmitting || !renewalPlan}>
+                {renewalSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Enviar solicitação
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
