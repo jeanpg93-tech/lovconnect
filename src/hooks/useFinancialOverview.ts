@@ -198,6 +198,41 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     );
     const rechargePlanCount = planSubsArr.length;
 
+    // ========================================================================
+    // CLAUDE: chaves emitidas no período
+    //  - sale_price_cents = valor que o cliente final pagou ao revendedor (informativo)
+    //  - cost_cents       = saldo debitado do revendedor = receita do dono via Claude
+    //                       (já contabilizada dentro de "Recargas" — informativa aqui)
+    //  - custo real do dono = claude_plan_prices.cost_cents (fornecedor)
+    // ========================================================================
+    let coQ = supabase
+      .from("claude_orders")
+      .select("id, reseller_id, plan_code, sale_price_cents, cost_cents, paid_at, created_at, status, customer_name")
+      .in("status", ["issued", "paid", "completed"]);
+    if (startIso) coQ = coQ.gte("paid_at", startIso);
+    if (endIso) coQ = coQ.lte("paid_at", endIso);
+    coQ = excludeDemos(coQ);
+    const { data: claudeRows } = await coQ;
+    const claudeArr = (claudeRows || []) as any[];
+    const claudePlanCodes = Array.from(new Set(claudeArr.map((c) => c.plan_code).filter(Boolean)));
+    const supplierCostByPlan: Record<string, number> = {};
+    if (claudePlanCodes.length) {
+      const { data: cp } = await supabase
+        .from("claude_plan_prices")
+        .select("plan_code, cost_cents")
+        .in("plan_code", claudePlanCodes);
+      ((cp as any[]) || []).forEach((p) => {
+        supplierCostByPlan[p.plan_code] = Number(p.cost_cents || 0);
+      });
+    }
+    const claudeGrossSalesCents = claudeArr.reduce((s, o) => s + Number(o.sale_price_cents || 0), 0);
+    const claudeOwnerRevenueCents = claudeArr.reduce((s, o) => s + Number(o.cost_cents || 0), 0);
+    const claudeSupplierCostCents = claudeArr.reduce(
+      (s, o) => s + (supplierCostByPlan[o.plan_code] ?? 0),
+      0,
+    );
+    const claudeCount = claudeArr.length;
+
     // Custo: storefront_orders pagos
     let soQ = supabase
       .from("storefront_orders")
