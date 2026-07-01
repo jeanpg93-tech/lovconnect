@@ -61,6 +61,10 @@ export type FinancialOverview = {
   rechargePlanRevenueCents: number;
   rechargePlanCostCents: number;
   rechargePlanCount: number;
+  claudeCount: number;
+  claudeGrossSalesCents: number;      // preço pago pelos clientes finais (informativo)
+  claudeOwnerRevenueCents: number;    // saldo debitado do revendedor (= receita do dono via Claude, já parte de recargas)
+  claudeSupplierCostCents: number;    // custo real do dono (fornecedor)
   costCents: number;
   costCreditsCents: number;
   gatewayFeeCents: number;
@@ -82,7 +86,7 @@ export type FinancialOverview = {
   resellerSalesDetails: Record<string, Array<{
     id: string;
     date: string;
-    kind: "credits_storefront" | "credits_api" | "license_storefront" | "recharge" | "pack" | "recharge_plan";
+    kind: "credits_storefront" | "credits_api" | "license_storefront" | "recharge" | "pack" | "recharge_plan" | "claude";
     description: string;
     revenue_cents: number;
     cost_cents: number;
@@ -194,6 +198,41 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     );
     const rechargePlanCount = planSubsArr.length;
 
+    // ========================================================================
+    // CLAUDE: chaves emitidas no período
+    //  - sale_price_cents = valor que o cliente final pagou ao revendedor (informativo)
+    //  - cost_cents       = saldo debitado do revendedor = receita do dono via Claude
+    //                       (já contabilizada dentro de "Recargas" — informativa aqui)
+    //  - custo real do dono = claude_plan_prices.cost_cents (fornecedor)
+    // ========================================================================
+    let coQ = supabase
+      .from("claude_orders")
+      .select("id, reseller_id, plan_code, sale_price_cents, cost_cents, paid_at, created_at, status, customer_name")
+      .in("status", ["issued", "redeemed"]);
+    if (startIso) coQ = coQ.gte("paid_at", startIso);
+    if (endIso) coQ = coQ.lte("paid_at", endIso);
+    coQ = excludeDemos(coQ);
+    const { data: claudeRows } = await coQ;
+    const claudeArr = (claudeRows || []) as any[];
+    const claudePlanCodes = Array.from(new Set(claudeArr.map((c) => c.plan_code).filter(Boolean)));
+    const supplierCostByPlan: Record<string, number> = {};
+    if (claudePlanCodes.length) {
+      const { data: cp } = await supabase
+        .from("claude_plan_prices")
+        .select("plan_code, cost_cents")
+        .in("plan_code", claudePlanCodes);
+      ((cp as any[]) || []).forEach((p) => {
+        supplierCostByPlan[p.plan_code] = Number(p.cost_cents || 0);
+      });
+    }
+    const claudeGrossSalesCents = claudeArr.reduce((s, o) => s + Number(o.sale_price_cents || 0), 0);
+    const claudeOwnerRevenueCents = claudeArr.reduce((s, o) => s + Number(o.cost_cents || 0), 0);
+    const claudeSupplierCostCents = claudeArr.reduce(
+      (s, o) => s + (supplierCostByPlan[o.plan_code] ?? 0),
+      0,
+    );
+    const claudeCount = claudeArr.length;
+
     // Custo: storefront_orders pagos
     let soQ = supabase
       .from("storefront_orders")
@@ -289,7 +328,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const costCreditsCents =
       soArr.reduce((s, o: any) => s + ownerCostForSoItem(o), 0) +
       rcpArr.reduce((s, o: any) => s + ownerCostForRcpItem(o), 0);
-    const salesCount = soArr.length + rcpArr.length;
+    const salesCount = soArr.length + rcpArr.length + claudeCount;
 
     // Lançamentos manuais
     let mQ = supabase
@@ -322,7 +361,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const revenueCents =
       rechargesRevenueCents + manualRevenueCents + lovastoreRevenueCents + activationRevenueCents + subscriptionRevenueCents + packRevenueCents + rechargePlanRevenueCents;
     const totalGatewayFeeCents = gatewayFeeCents + manualMisticFeeCents;
-    const costCents = costCreditsCents + totalGatewayFeeCents + manualExpenseCents + manualRevenueCostCents + rechargePlanCostCents;
+    const costCents = costCreditsCents + totalGatewayFeeCents + manualExpenseCents + manualRevenueCostCents + rechargePlanCostCents + claudeSupplierCostCents;
     const profitCents = revenueCents - costCents;
     const marginPct = revenueCents > 0 ? (profitCents / revenueCents) * 100 : 0;
 
@@ -365,6 +404,11 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       const k = key(o.created_at);
       bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
       bucket[k].cost += ownerCostForRcpItem(o);
+    });
+    claudeArr.forEach((o: any) => {
+      const k = key(o.paid_at || o.created_at);
+      bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
+      bucket[k].cost += supplierCostByPlan[o.plan_code] ?? 0;
     });
     manualArr.forEach((m: any) => {
       const k = key(m.entry_date);
@@ -419,6 +463,13 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       const id = o.reseller_id;
       perReseller[id] = perReseller[id] || { revenue: 0, cost: 0, sales: 0 };
       perReseller[id].cost += ownerCostForRcpItem(o);
+      perReseller[id].sales += 1;
+    });
+    claudeArr.forEach((o: any) => {
+      const id = o.reseller_id;
+      if (!id) return;
+      perReseller[id] = perReseller[id] || { revenue: 0, cost: 0, sales: 0 };
+      perReseller[id].cost += supplierCostByPlan[o.plan_code] ?? 0;
       perReseller[id].sales += 1;
     });
     // Detalhes por revendedor (para expandir cada linha)
@@ -489,6 +540,19 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
         profit_cents: Number(o.cost_cents || 0) - cost,
       });
     });
+    claudeArr.forEach((o: any) => {
+      const supplier = supplierCostByPlan[o.plan_code] ?? 0;
+      const ownerRev = Number(o.cost_cents || 0);
+      pushDetail(o.reseller_id, {
+        id: `claude-${o.id}`,
+        date: o.paid_at || o.created_at,
+        kind: "claude",
+        description: `Claude ${o.plan_code}${o.customer_name ? ` — ${o.customer_name}` : ""}`,
+        revenue_cents: ownerRev,
+        cost_cents: supplier,
+        profit_cents: ownerRev - supplier,
+      });
+    });
     Object.values(perResellerDetails).forEach((arr) =>
       arr.sort((a, b) => (a.date < b.date ? 1 : -1)),
     );
@@ -543,6 +607,10 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       rechargePlanRevenueCents,
       rechargePlanCostCents,
       rechargePlanCount,
+      claudeCount,
+      claudeGrossSalesCents,
+      claudeOwnerRevenueCents,
+      claudeSupplierCostCents,
       costCents,
       costCreditsCents,
       gatewayFeeCents: totalGatewayFeeCents,

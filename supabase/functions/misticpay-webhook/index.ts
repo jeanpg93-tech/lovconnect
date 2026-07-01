@@ -62,6 +62,64 @@ async function recordMisticPayFee(
 }
 
 /**
+ * Lança automaticamente a RECEITA de uma venda feita na "Loja do Gerente" (LovaStore).
+ * A conta considerada como loja própria fica em app_settings.manager_reseller_id.
+ * Idempotente pelo id do storefront_order.
+ *
+ * amount_cents  = preço pago pelo cliente (price_cents da venda)
+ * cost_cents    = custo do dono (ex: custo do fornecedor); usa storeOrder.cost_cents
+ *                 quando disponível — pode ser 0 para chaves de extensão.
+ */
+async function recordLovaStoreRevenue(admin: any, storeOrder: any, paidAt?: string | null) {
+  try {
+    if (!storeOrder?.id || !storeOrder?.reseller_id) return;
+    const { data: setting } = await admin
+      .from("app_settings").select("value").eq("key", "manager_reseller_id").maybeSingle();
+    const managerId = typeof setting?.value === "string" ? setting.value : (setting?.value ?? null);
+    if (!managerId || managerId !== storeOrder.reseller_id) return;
+
+    // idempotência: já existe lançamento automático para essa venda?
+    const { data: existing } = await admin
+      .from("manual_financial_entries")
+      .select("id")
+      .eq("reference_kind", "lovastore")
+      .contains("reference_meta", { storefront_order_id: storeOrder.id })
+      .limit(1);
+    if (existing && existing.length > 0) return;
+
+    const dateIso = paidAt ?? new Date().toISOString();
+    const entry_date = dateIso.slice(0, 10);
+    const amount_cents = Number(storeOrder.price_cents || 0);
+    const cost_cents = Number(storeOrder.cost_cents || 0);
+    const label =
+      storeOrder.product_type === "credits"
+        ? `${storeOrder.credit_amount ?? 0} créditos`
+        : storeOrder.product_type === "recharge_plan"
+          ? `Plano de recarga`
+          : storeOrder.product_type === "extension" || storeOrder.license_type
+            ? `Licença ${storeOrder.license_type ?? ""}`.trim()
+            : "venda";
+    await admin.from("manual_financial_entries").insert({
+      entry_type: "revenue",
+      category: "LovaStore",
+      description: `LovaStore — ${label}${storeOrder.buyer_name ? ` · ${storeOrder.buyer_name}` : ""}`,
+      amount_cents,
+      cost_cents,
+      entry_date,
+      reference_kind: "lovastore",
+      reference_meta: {
+        storefront_order_id: storeOrder.id,
+        short_code: storeOrder.short_code ?? null,
+        product_type: storeOrder.product_type ?? null,
+        auto: true,
+      },
+    });
+  } catch (e) {
+    console.error("recordLovaStoreRevenue failed", e);
+  }
+}
+
+/**
  * Confirma com a API da MisticPay que a transação realmente está paga (status COMPLETO).
  * Protege o webhook contra POSTs forjados que tentam creditar saldo sem pagamento real.
  * Procura o txId nas primeiras 3 páginas de transações COMPLETO da conta dona das credenciais.
@@ -1062,6 +1120,10 @@ Deno.serve(async (req) => {
         return json({ ok: false, reason: "unverified_transaction" }, 403);
       }
     }
+
+    // Se a venda saiu da LOJA PRÓPRIA do gerente (LovaStore), registra automaticamente
+    // a receita no Financeiro. Idempotente pelo id do storefront_order.
+    await recordLovaStoreRevenue(admin, storeOrder, paidAt);
 
     // ============================================================
     // Venda de Plano de Recarga (3.000 créditos / 30 dias etc) pela loja
