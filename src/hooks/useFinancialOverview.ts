@@ -465,6 +465,13 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       perReseller[id].cost += ownerCostForRcpItem(o);
       perReseller[id].sales += 1;
     });
+    claudeArr.forEach((o: any) => {
+      const id = o.reseller_id;
+      if (!id) return;
+      perReseller[id] = perReseller[id] || { revenue: 0, cost: 0, sales: 0 };
+      perReseller[id].cost += supplierCostByPlan[o.plan_code] ?? 0;
+      perReseller[id].sales += 1;
+    });
     // Detalhes por revendedor (para expandir cada linha)
     type Detail = FinancialOverview["resellerSalesDetails"][string][number];
     const perResellerDetails: Record<string, Detail[]> = {};
