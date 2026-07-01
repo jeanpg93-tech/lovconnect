@@ -52,7 +52,7 @@ type Storefront = {
 };
 
 
-type Reseller = { id: string; display_name: string; slug: string; is_active: boolean };
+type Reseller = { id: string; display_name: string; slug: string; is_active: boolean; claude_enabled?: boolean };
 type Plan = { license_type: string; label: string; price_cents: number; customer_price_cents: number; is_active: boolean };
 type Pack = { license_type: string; price_cents: number; extension_id?: string | null; method?: "flow" | "lovax"; label?: string; desc?: string };
 type Recharge = { id: string; credits_amount: number; price_cents: number };
@@ -107,6 +107,7 @@ export default function PublicStorefront() {
   });
   const [activeTab, setActiveTab] = useState<"extension" | "recharge">("extension");
   const [testimonials, setTestimonials] = useState<any[]>([]);
+  const [claudePlans, setClaudePlans] = useState<{ code: string; label: string; price_cents: number }[]>([]);
   
   // Device Reset
   const [resetKey, setResetKey] = useState("");
@@ -243,7 +244,7 @@ export default function PublicStorefront() {
       setLoading(true);
       const { data: r } = await supabase
         .from("resellers")
-        .select("id, display_name, slug, is_active, recharge_plans_enabled")
+        .select("id, display_name, slug, is_active, recharge_plans_enabled, claude_enabled")
         .eq("slug", slug)
         .maybeSingle();
       if (!r || !r.is_active) { setLoading(false); return; }
@@ -357,6 +358,40 @@ export default function PublicStorefront() {
       // Default active tab based on what is enabled
       if (s && !(s as any).show_extensions && (s as any).show_credits) {
         setActiveTab("recharge");
+      }
+
+      // Planos Claude (Fase 4b — loja pública)
+      if ((r as any).claude_enabled) {
+        try {
+          const { data: cp } = await supabase.functions.invoke("claude-public-prices", {
+            method: "GET" as any,
+            headers: { "x-slug": slug } as any,
+          } as any);
+          // fallback: chamar via URL com query string
+          const prices = (cp as any)?.prices as Record<string, number> | undefined;
+          let priceMap = prices;
+          if (!priceMap) {
+            const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
+            if (projectId) {
+              const res = await fetch(
+                `https://${projectId}.supabase.co/functions/v1/claude-public-prices?slug=${encodeURIComponent(slug)}`,
+              );
+              const j = await res.json().catch(() => ({}));
+              priceMap = j?.prices;
+            }
+          }
+          if (priceMap) {
+            const LABELS: Record<string, string> = {
+              pro_30d: "Pro 30 dias — 500K tokens",
+              "5x_30d": "5x 30 dias — 2,5M tokens",
+              "20x_30d": "20x 30 dias — 10M tokens",
+            };
+            const list = Object.entries(priceMap)
+              .filter(([, v]) => Number(v) > 0)
+              .map(([code, v]) => ({ code, label: LABELS[code] ?? code, price_cents: Number(v) }));
+            setClaudePlans(list);
+          }
+        } catch { /* ignore */ }
       }
 
       setLoading(false);
