@@ -986,17 +986,19 @@ export default function RevendedorMinhaLoja() {
               </AccordionTrigger>
               <AccordionContent className="space-y-6 pb-6 pt-2">
                 <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <div className="text-sm font-bold flex items-center gap-2">
-                        <Coins className="h-3.5 w-3.5 text-emerald-500" /> Venda de Recargas na conta
+                  {enabledMethods.recharges && (
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <div className="text-sm font-bold flex items-center gap-2">
+                          <Coins className="h-3.5 w-3.5 text-emerald-500" /> Venda de Recargas na conta
+                        </div>
+                        <div className="text-xs text-muted-foreground">Permite que clientes comprem recargas diretamente.</div>
                       </div>
-                      <div className="text-xs text-muted-foreground">Permite que clientes comprem recargas diretamente.</div>
+                      <Switch checked={showCredits} onCheckedChange={setShowCredits} />
                     </div>
-                    <Switch checked={showCredits} onCheckedChange={setShowCredits} />
-                  </div>
+                  )}
 
-                  <div className="flex items-center justify-between pt-3 border-t border-dashed">
+                  <div className={cn("flex items-center justify-between", enabledMethods.recharges && "pt-3 border-t border-dashed")}>
                     <div className="space-y-0.5">
                       <div className="text-sm font-bold flex items-center gap-2">
                         <Sparkles className="h-3.5 w-3.5 text-orange-500" /> Venda de Planos Claude
