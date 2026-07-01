@@ -1,0 +1,1 @@
+ALTER TABLE public.reseller_claude_api_keys ADD COLUMN IF NOT EXISTS key_full text; REVOKE SELECT (key_full) ON public.reseller_claude_api_keys FROM anon; GRANT SELECT (key_full) ON public.reseller_claude_api_keys TO authenticated;
