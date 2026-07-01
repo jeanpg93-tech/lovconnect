@@ -616,7 +616,7 @@ function TabWebhook({
           </Button>
         </div>
         {testResult && (
-          <div className={`text-xs rounded-md border p-2 ${testResult.ok ? "border-emerald-500/40 text-emerald-500" : "border-destructive/40 text-destructive"}`}>
+          <div className={`text-xs rounded-md border p-2 whitespace-pre-wrap ${testResult.ok ? "border-emerald-500/40 text-emerald-500" : "border-destructive/40 text-destructive"}`}>
             {testResult.ok ? "✅" : "⚠️"} {testResult.msg}
           </div>
         )}
