@@ -583,11 +583,37 @@ export default function GerenteRevendedores() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-center">
-                          {tier ? (
-                            <span className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest" style={{ background: `${tier.color}22`, color: tier.color }}>
-                              <Crown className="h-3 w-3" /> {tier.name}
-                            </span>
-                          ) : "—"}
+                          <div className="flex flex-col items-center gap-1">
+                            <Select
+                              value={states[r.id]?.forced_tier_id ?? "auto"}
+                              onValueChange={(v) => setForcedTier(r.id, v === "auto" ? null : v)}
+                            >
+                              <SelectTrigger
+                                className="h-7 w-[130px] px-2 text-[10px] font-bold uppercase tracking-widest border-white/10"
+                                style={tier ? { background: `${tier.color}22`, color: tier.color, borderColor: `${tier.color}55` } : undefined}
+                              >
+                                <SelectValue>
+                                  <span className="inline-flex items-center gap-1">
+                                    <Crown className="h-3 w-3" /> {tier?.name ?? "—"}
+                                  </span>
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">Automático</SelectItem>
+                                {tiers.filter((t) => t.is_active).map((t) => (
+                                  <SelectItem key={t.id} value={t.id}>
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <span className="h-2 w-2 rounded-full" style={{ background: t.color }} />
+                                      {t.name}
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {states[r.id]?.forced_tier_id && (
+                              <span className="text-[9px] uppercase tracking-widest text-amber-500/80">Manual</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-center min-w-[150px]">
                           {progress ? (
