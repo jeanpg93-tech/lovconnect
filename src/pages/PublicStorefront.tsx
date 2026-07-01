@@ -1679,7 +1679,7 @@ export default function PublicStorefront() {
                   </section>
                 )}
 
-                {claudePlans.length > 0 && (
+                {(claudeLoading || claudePlans.length > 0) && (
                   <section className="w-full mt-12">
                     <div className="flex flex-col items-center gap-2 mb-8 text-center">
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
@@ -1689,12 +1689,30 @@ export default function PublicStorefront() {
                       <p className="text-xs text-muted-foreground">Chave API oficial da Anthropic · Ativação instantânea via PIX</p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {claudePlans.map((p) => (
+                      {claudeLoading && claudePlans.length === 0
+                        ? Array.from({ length: 3 }).map((_, i) => (
+                            <div
+                              key={`sk-${i}`}
+                              className="rounded-2xl border border-white/5 bg-card/30 backdrop-blur-xl p-5 animate-pulse h-[148px]"
+                            />
+                          ))
+                        : claudePlans.map((p) => {
+                        const isFeatured = p.code === "5x_30d";
+                        return (
                         <Link
                           key={p.code}
                           to={`/checkout/claude/${slug}?plan=${p.code}`}
-                          className="group relative overflow-hidden rounded-2xl border border-white/5 bg-card/30 backdrop-blur-xl p-5 transition-all hover:bg-card/50 hover:border-primary/40"
+                          className={`group relative overflow-hidden rounded-2xl border p-5 transition-all backdrop-blur-xl ${
+                            isFeatured
+                              ? "border-primary/60 bg-primary/10 hover:bg-primary/15 shadow-lg shadow-primary/10"
+                              : "border-white/5 bg-card/30 hover:bg-card/50 hover:border-primary/40"
+                          }`}
                         >
+                          {isFeatured && (
+                            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-black uppercase tracking-widest">
+                              Mais vendido
+                            </div>
+                          )}
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
                               <div className="text-[10px] font-black uppercase tracking-widest text-primary">Claude</div>
@@ -1714,7 +1732,8 @@ export default function PublicStorefront() {
                             </div>
                           </div>
                         </Link>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="mt-4 text-center">
                       <Link
