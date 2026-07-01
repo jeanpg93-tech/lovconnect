@@ -702,6 +702,189 @@ Deno.serve(async (req) => {
         return json({ ok: true, status });
       }
 
+      // Try Claude renewal order (cliente final pagando PIX pra renovar chave)
+      const { data: claudeOrder } = await admin
+        .from("claude_orders")
+        .select("*")
+        .eq("provider_transaction_id", txId)
+        .maybeSingle();
+
+      if (claudeOrder) {
+        if ((claudeOrder as any).status === "issued") return json({ ok: true, already: true });
+
+        if (status === "FALHA" || status === "CANCELADO") {
+          await admin.from("claude_orders").update({
+            status: "failed",
+            error_message: `pix_${status.toLowerCase()}`,
+            provider_response: payload,
+          }).eq("id", (claudeOrder as any).id);
+          return json({ ok: true, kind: "claude_order_failed" });
+        }
+
+        if (status !== "COMPLETO" && status !== "PAID" && status !== "SUCCESS") {
+          return json({ ok: true, status });
+        }
+
+        // Verifica pagamento com as creds MisticPay do PRÓPRIO revendedor
+        const { data: integ } = await admin
+          .from("reseller_integrations")
+          .select("misticpay_client_id, misticpay_client_secret")
+          .eq("reseller_id", (claudeOrder as any).reseller_id)
+          .maybeSingle();
+        const verified = await verifyTx(
+          integ?.misticpay_client_id,
+          integ?.misticpay_client_secret,
+          txId,
+          (claudeOrder as any).reseller_id,
+        );
+        if (!verified) {
+          console.warn("[webhook] claude order tx not confirmed by MisticPay", txId);
+          return json({ ok: false, reason: "unverified_transaction" }, 403);
+        }
+
+        await admin.from("claude_orders").update({
+          paid_at: new Date().toISOString(),
+          provider_response: payload,
+        }).eq("id", (claudeOrder as any).id);
+
+        await recordMisticPayFee(
+          admin,
+          txId,
+          "claude_renewal",
+          (claudeOrder as any).id,
+          `Claude: renovação ${(claudeOrder as any).plan_code}`,
+        );
+
+        // Custo do revendedor (por tier), com fallback ao default
+        const planCode = (claudeOrder as any).plan_code as string;
+        const resellerId = (claudeOrder as any).reseller_id as string;
+        let resellerCostCents = Number((claudeOrder as any).cost_cents ?? 0);
+        try {
+          const { data: tierCost } = await admin.rpc("get_reseller_claude_cost", {
+            _reseller_id: resellerId,
+            _plan_code: planCode,
+          });
+          if (typeof tierCost === "number" && tierCost > 0) resellerCostCents = tierCost;
+        } catch (_) { /* fallback */ }
+
+        // Débito atômico do saldo do revendedor
+        const { data: debited, error: debitErr } = await admin.rpc("debit_reseller_balance", {
+          _reseller_id: resellerId,
+          _amount_cents: resellerCostCents,
+          _kind: "claude_key_issue",
+          _description: `Renovação Claude ${planCode}`,
+          _reference_id: (claudeOrder as any).id,
+        });
+        if (debitErr) {
+          console.error("[webhook] claude debit rpc error", debitErr);
+          return json({ ok: false, error: "debit_rpc_failed" }, 500);
+        }
+        if (debited !== true) {
+          // Sem saldo — aguarda recarga do revendedor
+          await admin.from("claude_orders").update({
+            status: "awaiting_balance",
+          }).eq("id", (claudeOrder as any).id);
+          try {
+            const { data: r } = await admin.from("resellers").select("user_id, display_name").eq("id", resellerId).maybeSingle();
+            if ((r as any)?.user_id) {
+              await admin.from("notifications").insert({
+                user_id: (r as any).user_id,
+                type: "claude_awaiting_balance",
+                title: "Renovação Claude aguardando saldo",
+                body: `Cliente pagou renovação (${planCode}) mas seu saldo é insuficiente. Recarregue para emitir a chave.`,
+                metadata: { order_id: (claudeOrder as any).id, plan_code: planCode, required_cents: resellerCostCents },
+              });
+            }
+          } catch (_) {}
+          return json({ ok: true, kind: "claude_order_awaiting_balance" });
+        }
+        await admin.rpc("add_reseller_spent", {
+          _reseller_id: resellerId,
+          _amount_cents: resellerCostCents,
+        });
+
+        // Chama o provedor Claude para emitir a chave
+        const CLAUDE_API_KEY = Deno.env.get("CLAUDE_RESELLER_API_KEY") ?? "";
+        const CLAUDE_BASE_URL = (Deno.env.get("CLAUDE_RESELLER_API_BASE_URL") ?? "").replace(/\/$/, "");
+        let providerResp: any = null;
+        let providerStatus = 0;
+        if (!CLAUDE_BASE_URL || !CLAUDE_API_KEY) {
+          providerResp = { error: "provider_not_configured" };
+        } else {
+          try {
+            const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/keys`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${CLAUDE_API_KEY}`,
+                "Content-Type": "application/json",
+                Accept: "application/json",
+              },
+              body: JSON.stringify({ kind: planCode }),
+            });
+            providerStatus = r.status;
+            const txt = await r.text();
+            try { providerResp = JSON.parse(txt); } catch { providerResp = { raw: txt }; }
+          } catch (e) {
+            providerResp = { error: `network_error: ${(e as Error)?.message ?? e}` };
+          }
+        }
+
+        if (providerStatus < 200 || providerStatus >= 300) {
+          // Estorna o débito — não entregamos a chave
+          await admin.rpc("credit_reseller_balance", {
+            _reseller_id: resellerId,
+            _amount_cents: resellerCostCents,
+            _kind: "claude_refund",
+            _description: `Estorno Claude (falha provedor): ${(claudeOrder as any).id}`,
+            _reference_id: (claudeOrder as any).id,
+          });
+          await admin.from("claude_orders").update({
+            status: "failed",
+            provider_response: providerResp,
+            error_message: `provider_${providerStatus || "error"}`,
+          }).eq("id", (claudeOrder as any).id);
+          return json({ ok: false, kind: "claude_provider_failed" }, 502);
+        }
+
+        const code: string | undefined =
+          providerResp?.code ?? providerResp?.key ?? providerResp?.data?.code ?? providerResp?.data?.key;
+        const providerKeyId: string | undefined =
+          providerResp?.id ?? providerResp?.key_id ?? providerResp?.data?.id;
+
+        await admin.from("claude_orders").update({
+          status: "issued",
+          code,
+          provider_key_id: providerKeyId,
+          provider_response: providerResp,
+          code_revealed_at: new Date().toISOString(),
+        }).eq("id", (claudeOrder as any).id);
+
+        // Notifica revendedor
+        try {
+          const { data: r } = await admin.from("resellers").select("user_id, display_name").eq("id", resellerId).maybeSingle();
+          if ((r as any)?.user_id) {
+            await admin.from("notifications").insert({
+              user_id: (r as any).user_id,
+              type: "claude_renewal_paid",
+              title: "Renovação Claude paga!",
+              body: `Cliente renovou (${planCode}). Chave emitida automaticamente.`,
+              metadata: { order_id: (claudeOrder as any).id, plan_code: planCode },
+            });
+          }
+          const amountBRL = "R$ " + (Number((claudeOrder as any).sale_price_cents ?? 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          await admin.from("telegram_outbox").insert({
+            text:
+              "🔄 <b>Renovação Claude paga</b>\n" +
+              "👨‍💼 Revendedor: " + ((r as any)?.display_name ?? "—") + "\n" +
+              "👤 Cliente: " + ((claudeOrder as any).customer_name ?? "—") + "\n" +
+              "📦 Plano: " + planCode + "\n" +
+              "💵 Valor: " + amountBRL,
+          });
+        } catch (_) {}
+
+        return json({ ok: true, kind: "claude_order_issued" });
+      }
+
       // Try pack purchase (revendedor Pack comprando créditos avulsos)
       const { data: packPurchase } = await admin
         .from("reseller_pack_purchases")

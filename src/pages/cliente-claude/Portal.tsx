@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle } from "lucide-react";
+import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -90,6 +90,17 @@ export default function ClienteClaudePortal() {
   const [renewalPlan, setRenewalPlan] = useState<string>("");
   const [renewalNote, setRenewalNote] = useState("");
   const [renewalSubmitting, setRenewalSubmitting] = useState(false);
+  const [pixOpen, setPixOpen] = useState(false);
+  const [pixData, setPixData] = useState<{
+    order_id: string;
+    qr_code_base64: string | null;
+    copy_paste: string | null;
+    pix_expires_at: string | null;
+    sale_price_cents: number;
+    plan_code: string;
+  } | null>(null);
+  const [pixStatus, setPixStatus] = useState<"waiting" | "issued" | "failed">("waiting");
+  const [pixCopied, setPixCopied] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -148,6 +159,30 @@ export default function ClienteClaudePortal() {
     if (!renewalPlan) return toast.error("Escolha um plano");
     setRenewalSubmitting(true);
     try {
+      // 1) Tenta o fluxo automático PIX (MisticPay do revendedor)
+      const { data: pix, error: pixErr } = await supabase.functions.invoke("claude-customer-checkout-renewal", {
+        body: { plan_code: renewalPlan },
+      });
+      const pixErrorCode = (pix as any)?.error;
+      if (!pixErr && (pix as any)?.ok) {
+        setPixData({
+          order_id: (pix as any).order_id,
+          qr_code_base64: (pix as any).qr_code_base64 ?? null,
+          copy_paste: (pix as any).copy_paste ?? null,
+          pix_expires_at: (pix as any).pix_expires_at ?? null,
+          sale_price_cents: (pix as any).sale_price_cents ?? 0,
+          plan_code: renewalPlan,
+        });
+        setPixStatus("waiting");
+        setPixCopied(false);
+        setRenewalOpen(false);
+        setPixOpen(true);
+        return;
+      }
+      // 2) Fallback: revendedor sem MisticPay configurado → solicitação manual
+      if (pixErrorCode && pixErrorCode !== "reseller_misticpay_not_configured") {
+        throw new Error(pixErrorCode);
+      }
       const { data, error } = await supabase.functions.invoke("claude-customer-request-renewal", {
         body: { plan_code: renewalPlan, note: renewalNote || null },
       });
@@ -168,6 +203,38 @@ export default function ClienteClaudePortal() {
       setRenewalSubmitting(false);
     }
   };
+
+  // Polling do pedido PIX aberto
+  useEffect(() => {
+    if (!pixOpen || !pixData?.order_id) return;
+    let cancelled = false;
+    const tick = async () => {
+      const { data } = await supabase
+        .from("claude_orders")
+        .select("status")
+        .eq("id", pixData.order_id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      if (data.status === "issued") {
+        setPixStatus("issued");
+        toast.success("Pagamento confirmado! Chave emitida.");
+        // recarrega dados
+        const { data: usageResp } = await supabase.functions.invoke("claude-my-usage");
+        if (usageResp?.ok) {
+          setOrders(usageResp.orders ?? []);
+          setUsage(usageResp.usage ?? null);
+        }
+      } else if (data.status === "failed") {
+        setPixStatus("failed");
+      } else if (data.status === "awaiting_balance") {
+        setPixStatus("issued");
+        toast.info("Pagamento recebido. Aguardando o revendedor liberar a chave.");
+      }
+    };
+    const iv = setInterval(tick, 4000);
+    tick();
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [pixOpen, pixData?.order_id]);
 
   const whatsappLink = reseller?.whatsapp
     ? `https://wa.me/${reseller.whatsapp.replace(/\D+/g, "")}?text=${encodeURIComponent(
@@ -357,6 +424,74 @@ export default function ClienteClaudePortal() {
                 {renewalSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Enviar solicitação
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={pixOpen} onOpenChange={(o) => { if (!o) { setPixOpen(false); setPixData(null); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Pagamento via PIX</DialogTitle>
+              <DialogDescription>
+                {pixStatus === "issued"
+                  ? "Pagamento confirmado! Sua chave está sendo emitida."
+                  : "Pague o PIX abaixo para renovar sua chave automaticamente."}
+              </DialogDescription>
+            </DialogHeader>
+            {pixData && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{PLAN_LABELS[pixData.plan_code] ?? pixData.plan_code}</span>
+                  <span className="font-semibold text-primary">{fmtBRL(pixData.sale_price_cents)}</span>
+                </div>
+                {pixStatus === "issued" ? (
+                  <div className="flex flex-col items-center gap-2 py-6">
+                    <CheckCircle2 className="h-14 w-14 text-emerald-500" />
+                    <p className="text-sm text-muted-foreground text-center">
+                      Sua chave já aparece na lista. Você pode fechar esta janela.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {pixData.qr_code_base64 && (
+                      <div className="flex justify-center">
+                        <img
+                          src={`data:image/png;base64,${pixData.qr_code_base64}`}
+                          alt="QR Code PIX"
+                          className="w-56 h-56 rounded-lg border bg-white p-2"
+                        />
+                      </div>
+                    )}
+                    {pixData.copy_paste && (
+                      <div className="space-y-2">
+                        <Label className="text-xs">PIX Copia e Cola</Label>
+                        <div className="flex gap-2">
+                          <Input readOnly value={pixData.copy_paste} className="font-mono text-xs" />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(pixData.copy_paste!);
+                              setPixCopied(true);
+                              toast.success("Copiado!");
+                              setTimeout(() => setPixCopied(false), 2000);
+                            }}
+                          >
+                            {pixCopied ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Aguardando confirmação do pagamento…
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setPixOpen(false); setPixData(null); }}>Fechar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
