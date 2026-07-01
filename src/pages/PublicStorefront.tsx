@@ -1218,6 +1218,7 @@ export default function PublicStorefront() {
                   </div>
                 )}
                 </>
+              ) : (
                 /* Catálogo Claude */
                 (claudeLoading || claudePlans.length > 0) ? (
                   <div className="w-full max-w-3xl mx-auto">
@@ -1289,6 +1290,7 @@ export default function PublicStorefront() {
                     Nenhum plano Claude disponível no momento.
                   </div>
                 )
+              )}
 
                 {showReset && activeTab === "extension" && (
                   <section className="max-w-md mx-auto w-full">
