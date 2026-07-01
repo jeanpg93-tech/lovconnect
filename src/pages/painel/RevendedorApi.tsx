@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
+import { WalletBalanceRuleNotice } from "@/components/painel/WalletBalanceRuleNotice";
 import CopyAllDocsButton from "@/components/api/CopyAllDocsButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -662,6 +663,10 @@ export default function RevendedorApi() {
         description="Gere licenças programaticamente. Cada chamada debita do seu saldo na plataforma."
         actions={<CopyAllDocsButton containerRef={docsRef} fileName="api-licencas-revendedor.md" />}
       />
+
+      <div className="mt-4">
+        <WalletBalanceRuleNotice product="licenças de extensão" />
+      </div>
 
       <ApiKeysCard
         keys={keys}
