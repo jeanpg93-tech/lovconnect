@@ -113,17 +113,19 @@ export default function ClienteClaudePortal() {
       const first = await supabase.auth.getSession();
       if (first.data.session) return first.data.session;
       return await new Promise<typeof first.data.session>((resolve) => {
+        let subscription: { unsubscribe: () => void } | null = null;
         const timeout = window.setTimeout(async () => {
-          sub.data.subscription.unsubscribe();
+          subscription?.unsubscribe();
           const latest = await supabase.auth.getSession();
           resolve(latest.data.session ?? null);
         }, 1800);
         const sub = supabase.auth.onAuthStateChange((_event, session) => {
           if (!session) return;
           window.clearTimeout(timeout);
-          sub.data.subscription.unsubscribe();
+          subscription?.unsubscribe();
           resolve(session);
         });
+        subscription = sub.data.subscription;
       });
     };
 
