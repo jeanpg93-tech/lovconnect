@@ -647,7 +647,7 @@ User-Agent: LovConnect-Webhook/1.0
 
 const raw = await req.text();
 const expected = "sha256=" + crypto
-  .createHmac("sha256", process.env.WEBHOOK_SECRET)
+  .createHmac("sha256", process.env.CLAUDE_WEBHOOK_SECRET)
   .update(raw).digest("hex");
 
 if (req.headers.get("x-signature") !== expected) {
