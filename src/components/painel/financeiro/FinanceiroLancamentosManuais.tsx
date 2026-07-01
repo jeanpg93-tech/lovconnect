@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2, Package, KeyRound, Copy, Store, Receipt, GripVertical } from "lucide-react";
 import ManualEntryDialog from "./ManualEntryDialog";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
   DndContext,
   closestCenter,
@@ -35,6 +33,14 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const brl = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const formatEntryDate = (value: string) =>
+  new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
 
 export default function FinanceiroLancamentosManuais() {
   const { entries, loading, create, update, remove, reorder } = useManualEntries();
@@ -209,7 +215,7 @@ function Row({ entry: e, onEdit, onDuplicate, onDelete, dragHandle }: RowProps) 
         </div>
         <div className="flex items-center gap-2 flex-wrap mt-0.5">
           <p className="text-[10px] text-muted-foreground">
-            {format(new Date(e.entry_date), "dd 'de' MMM yyyy", { locale: ptBR })}
+            {formatEntryDate(e.entry_date)}
           </p>
           {isSale && (e.cost_cents || 0) > 0 && (
             <p className="text-[10px] text-muted-foreground">

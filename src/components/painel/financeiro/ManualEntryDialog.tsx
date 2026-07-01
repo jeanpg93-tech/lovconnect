@@ -32,6 +32,17 @@ const localTodayISO = () => {
   return `${y}-${m}-${day}`;
 };
 
+const dateInputValueFromEntryDate = (value: string) => {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value.slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+};
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -71,7 +82,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         setCategory(src.category || "");
         // ao duplicar, usa data de hoje; ao editar, mantém data original
         // usa data LOCAL (não UTC) para evitar drift de fuso ao gerar o default
-        setDate(initial ? src.entry_date.slice(0, 10) : localTodayISO());
+        setDate(initial ? dateInputValueFromEntryDate(src.entry_date) : localTodayISO());
       } else {
         setMode("revenue");
         setDescription("");

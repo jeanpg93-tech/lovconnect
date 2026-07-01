@@ -27,6 +27,22 @@ export type ManualEntryInput = {
   entry_date: string;
 };
 
+const entrySortOrder = (entryDate: string) => {
+  const ms = Date.parse(entryDate);
+  return Number.isFinite(ms) ? ms : Date.now();
+};
+
+const entryDayKey = (entryDate: string) => {
+  const d = new Date(entryDate);
+  if (Number.isNaN(d.getTime())) return entryDate.slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+};
+
 export function useManualEntries(opts?: { fromDate?: string | null }) {
   const [entries, setEntries] = useState<ManualEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,8 +54,9 @@ export function useManualEntries(opts?: { fromDate?: string | null }) {
     let q = supabase
       .from("manual_financial_entries")
       .select("*")
+      .order("entry_date", { ascending: false })
       .order("sort_order", { ascending: false, nullsFirst: false })
-      .order("entry_date", { ascending: false });
+      .order("created_at", { ascending: false });
     if (opts?.fromDate) q = q.gte("entry_date", opts.fromDate);
     const { data, error } = await q;
     if (error) setError(error.message);
@@ -53,7 +70,7 @@ export function useManualEntries(opts?: { fromDate?: string | null }) {
 
   const create = async (input: ManualEntryInput) => {
     const { data: u } = await supabase.auth.getUser();
-    const sort_order = new Date(input.entry_date).getTime();
+    const sort_order = entrySortOrder(input.entry_date);
     const { error } = await supabase.from("manual_financial_entries").insert({
       ...input,
       created_by: u.user?.id ?? null,
@@ -64,9 +81,12 @@ export function useManualEntries(opts?: { fromDate?: string | null }) {
   };
 
   const update = async (id: string, input: Partial<ManualEntryInput>) => {
+    const payload = input.entry_date
+      ? { ...input, sort_order: entrySortOrder(input.entry_date) }
+      : input;
     const { error } = await supabase
       .from("manual_financial_entries")
-      .update(input)
+      .update(payload)
       .eq("id", id);
     if (error) throw error;
     await load();
@@ -86,8 +106,9 @@ export function useManualEntries(opts?: { fromDate?: string | null }) {
     if (neighborIdx < 0 || neighborIdx >= entries.length) return;
     const a = entries[idx];
     const b = entries[neighborIdx];
-    const aOrder = a.sort_order ?? new Date(a.entry_date).getTime();
-    const bOrder = b.sort_order ?? new Date(b.entry_date).getTime();
+    if (entryDayKey(a.entry_date) !== entryDayKey(b.entry_date)) return;
+    const aOrder = a.sort_order ?? entrySortOrder(a.entry_date);
+    const bOrder = b.sort_order ?? entrySortOrder(b.entry_date);
     // Garante valores distintos
     const newA = bOrder === aOrder ? bOrder + (direction === "up" ? 1 : -1) : bOrder;
     const newB = bOrder === aOrder ? aOrder : aOrder;
@@ -112,14 +133,16 @@ export function useManualEntries(opts?: { fromDate?: string | null }) {
       const rest = prev.filter((e) => !orderedIds.includes(e.id));
       return [...reordered, ...rest];
     });
-    const base = Date.now();
+    const entryById = new Map(entries.map((e) => [e.id, e]));
     await Promise.all(
-      orderedIds.map((id, i) =>
-        supabase
+      orderedIds.map((id, i) => {
+        const entry = entryById.get(id);
+        const base = entry ? entrySortOrder(entry.entry_date) : Date.now();
+        return supabase
           .from("manual_financial_entries")
-          .update({ sort_order: base - i })
-          .eq("id", id),
-      ),
+          .update({ sort_order: base + (orderedIds.length - i) })
+          .eq("id", id);
+      }),
     );
     await load();
   };

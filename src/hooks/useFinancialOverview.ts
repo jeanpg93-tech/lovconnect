@@ -10,6 +10,18 @@ export type CustomRange = { from: Date; to: Date };
 // em 0 para evitar dupla contagem — o cálculo real vem de `manualMisticFeeCents`.
 const GATEWAY_FEE_CENTS_PER_RECHARGE = 0;
 
+const brtDayKey = (value: string | null | undefined) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+};
+
 function rangeWindow(
   range: DateRange,
   custom?: CustomRange,
@@ -316,7 +328,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
 
     // Séries diárias
     const bucket: Record<string, { revenue: number; cost: number }> = {};
-    const key = (d: string | null) => (d ? new Date(d).toISOString().slice(0, 10) : "—");
+    const key = brtDayKey;
     rechargesArr.forEach((r: any) => {
       const k = key(r.paid_at);
       bucket[k] = bucket[k] || { revenue: 0, cost: 0 };
