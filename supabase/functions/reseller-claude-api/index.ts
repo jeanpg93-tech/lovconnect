@@ -263,6 +263,21 @@ Deno.serve(async (req) => {
         code_revealed_at: new Date().toISOString(),
       }).eq("id", order.id);
 
+      // Notifica gerente via Telegram
+      try {
+        const { data: rInfo } = await svc.from("resellers").select("display_name").eq("id", reseller.id).maybeSingle();
+        const amountBRL = "R$ " + (Number(saleCents || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const txt =
+          `🤖 <b>Venda Claude (API)</b>\n` +
+          `👨‍💼 Revendedor: ${(rInfo as any)?.display_name ?? "—"}\n` +
+          `📦 Plano: ${planCode}\n` +
+          `💵 Valor: ${amountBRL}\n` +
+          `💳 Pagamento: Saldo da carteira (API)`;
+        await svc.rpc("telegram_enqueue", { _text: txt });
+      } catch (e) {
+        console.warn("telegram_enqueue (claude api) failed", e);
+      }
+
       return json({
         success: true,
         pedido_id: order.id,
