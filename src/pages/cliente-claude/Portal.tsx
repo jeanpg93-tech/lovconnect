@@ -112,42 +112,20 @@ export default function ClienteClaudePortal() {
         navigate(`/cliente-claude/login${storeSlug ? `?loja=${encodeURIComponent(storeSlug)}` : ""}`, { replace: true });
         return;
       }
-      let scopedResellerId: string | null = null;
-      if (storeSlug) {
-        const { data: r } = await supabase
-          .from("resellers")
-          .select("id")
-          .eq("slug", storeSlug)
-          .maybeSingle();
-        scopedResellerId = r?.id ?? null;
-      }
-
-      let customerQuery = supabase
-        .from("claude_customers")
-        .select("id, name, email, must_change_password, reseller_id")
-        .eq("auth_user_id", session.session.user.id);
-      if (scopedResellerId) customerQuery = customerQuery.eq("reseller_id", scopedResellerId);
-      const { data, error } = await customerQuery
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error || !data) {
+      const { data: usageResp } = await supabase.functions.invoke("claude-my-usage", {
+        body: { reseller_slug: storeSlug || null },
+      });
+      if (!usageResp?.ok || !usageResp.customer) {
         toast.error("Cliente não encontrado. Contate seu revendedor.");
         await supabase.auth.signOut();
         navigate(`/cliente-claude/login${storeSlug ? `?loja=${encodeURIComponent(storeSlug)}` : ""}`, { replace: true });
         return;
       }
-      setCustomer(data as Customer);
-      // Carrega chaves + consumo
-      const { data: usageResp } = await supabase.functions.invoke("claude-my-usage", {
-        body: { reseller_slug: storeSlug || null },
-      });
-      if (usageResp?.ok) {
-        setOrders(usageResp.orders ?? []);
-        setUsage(usageResp.usage ?? null);
-        setPlans(usageResp.plans ?? []);
-        setReseller(usageResp.reseller ?? null);
-      }
+      setCustomer(usageResp.customer as Customer);
+      setOrders(usageResp.orders ?? []);
+      setUsage(usageResp.usage ?? null);
+      setPlans(usageResp.plans ?? []);
+      setReseller(usageResp.reseller ?? null);
       setLoading(false);
     })();
   }, [navigate, storeSlug]);

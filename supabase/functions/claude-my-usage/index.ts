@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
 
     let customerQuery = admin
       .from("claude_customers")
-      .select("id, email, reseller_id, name")
+      .select("id, email, reseller_id, name, must_change_password")
       .eq("auth_user_id", userData.user.id);
     if (scopedResellerId) customerQuery = customerQuery.eq("reseller_id", scopedResellerId);
     const { data: customer } = await customerQuery
@@ -142,7 +142,13 @@ Deno.serve(async (req) => {
 
     return json({
       ok: true,
-      customer: { id: customer.id, name: customer.name, email: customer.email },
+      customer: {
+        id: customer.id,
+        name: customer.name,
+        email: customer.email,
+        reseller_id: customer.reseller_id,
+        must_change_password: !!customer.must_change_password,
+      },
       orders,
       usage,
       plans,
