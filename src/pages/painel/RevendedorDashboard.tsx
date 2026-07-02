@@ -86,6 +86,22 @@ const LICENSE_LABELS: Record<string, string> = {
   lifetime: "Vitalícia",
 };
 
+const CLAUDE_PLAN_LABELS: Record<string, string> = {
+  pro_1d: "Claude Pro 1 dia",
+  pro_7d: "Claude Pro 7 dias",
+  pro_15d: "Claude Pro 15 dias",
+  pro_30d: "Claude Pro 30 dias",
+  "5x_1d": "Claude 5x · 1 dia",
+  "5x_7d": "Claude 5x · 7 dias",
+  "5x_30d": "Claude 5x · 30 dias",
+  lifetime: "Claude Vitalícia",
+};
+
+function describeClaudePlan(plan_code?: string | null) {
+  if (!plan_code) return "Venda Claude";
+  return CLAUDE_PLAN_LABELS[plan_code] ?? `Claude ${plan_code}`;
+}
+
 function describeLicense(license_type?: string | null) {
   if (!license_type) return "Licença";
   if (LICENSE_LABELS[license_type]) return `Licença ${LICENSE_LABELS[license_type]}`;
@@ -151,7 +167,7 @@ const PIE_COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#3b82f6", "#a8
 
 type ActivityItem = {
   id: string;
-  type: "sale" | "recharge";
+  type: "sale" | "recharge" | "claude_sale";
   title: string;
   amount_cents: number;
   status: string;
@@ -209,9 +225,11 @@ export default function RevendedorDashboard() {
   );
   type ChartSale = { created_at: string; price_cents: number; license_type: string | null; notes: string | null };
   type ChartRecharge = { created_at: string; price_cents: number };
+  type ChartClaude = { created_at: string; sale_price_cents: number; plan_code: string | null };
   const [chartLoading, setChartLoading] = useState(false);
   const [chartSales, setChartSales] = useState<ChartSale[]>([]);
   const [chartRecharges, setChartRecharges] = useState<ChartRecharge[]>([]);
+  const [chartClaude, setChartClaude] = useState<ChartClaude[]>([]);
 
   const reload = useCallback(async (opts: { silent?: boolean } = {}) => {
     if (!user) return;
@@ -241,6 +259,7 @@ export default function RevendedorDashboard() {
         canceledRes,
         ordersRes,
         rechargesRes,
+        claudeOrdersRes,
         integRes,
         announcementsRes,
       ] = await Promise.all([
@@ -254,6 +273,7 @@ export default function RevendedorDashboard() {
         supabase.from("orders").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("is_test", false).in("status", ["refunded", "reembolsado", "estornado", "revoked", "canceled", "cancelled", "cancelado"]),
         supabase.from("orders").select("id,license_type,price_cents,status,created_at,client_id,extension_id,is_test,notes, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
         supabase.from("reseller_credit_purchases").select("id,credits,price_cents,status,created_at,customer_name,customer_whatsapp").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
+        supabase.from("claude_orders").select("id,plan_code,sale_price_cents,status,created_at,customer_name,customer_whatsapp,provider_transaction_id").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
         supabase.from("reseller_integrations").select("misticpay_enabled,connection_status").eq("reseller_id", r.id).maybeSingle(),
         supabase.from("announcements").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
       ]);
@@ -271,6 +291,7 @@ export default function RevendedorDashboard() {
 
       const ords = (ordersRes.data ?? []) || [];
       const recharges = (rechargesRes.data ?? []) || [];
+      const claudeOrds = (claudeOrdersRes.data ?? []) || [];
 
       const combinedActivities: ActivityItem[] = [
         ...ords
@@ -303,7 +324,21 @@ export default function RevendedorDashboard() {
             customer_name: rc.customer_name ?? null,
             customer_whatsapp: rc.customer_whatsapp ?? null,
           }
-        }))
+        })),
+        ...claudeOrds.map((c: any) => ({
+          id: `claude-${c.id}`,
+          type: "claude_sale" as const,
+          title: describeClaudePlan(c.plan_code),
+          amount_cents: c.sale_price_cents ?? 0,
+          status: c.status,
+          created_at: c.created_at,
+          metadata: {
+            plan_code: c.plan_code,
+            customer_name: c.customer_name ?? null,
+            customer_whatsapp: c.customer_whatsapp ?? null,
+            channel: c.provider_transaction_id ? "loja" : "api",
+          },
+        })),
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       setActivities(combinedActivities);
