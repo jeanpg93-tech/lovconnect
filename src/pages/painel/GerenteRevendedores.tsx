@@ -73,6 +73,8 @@ const ActivationBadge = ({ status }: { status?: string | null }) => {
 export default function GerenteRevendedores() {
   const navigate = useNavigate();
   const [resellers, setResellers] = useState<Reseller[]>([]);
+  const [packsGloballyEnabled, setPacksGloballyEnabled] = useState<boolean>(true);
+  const [packsToggleSaving, setPacksToggleSaving] = useState(false);
   const [profilesByUser, setProfilesByUser] = useState<Record<string, Profile>>({});
   const [balancesByReseller, setBalancesByReseller] = useState<Record<string, number>>({});
   const [tiers, setTiers] = useState<Tier[]>([]);
@@ -106,6 +108,34 @@ export default function GerenteRevendedores() {
   const [editPhone, setEditPhone] = useState("");
   const [editDdi, setEditDdi] = useState<string>(DEFAULT_DIAL_CODE);
   const [editSaving, setEditSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "packs_sales_enabled_globally")
+        .maybeSingle();
+      const v = (data?.value as any);
+      setPacksGloballyEnabled(v === false ? false : true);
+    })();
+  }, []);
+
+  const togglePacksGlobally = async (next: boolean) => {
+    setPacksToggleSaving(true);
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ key: "packs_sales_enabled_globally", value: next as any }, { onConflict: "key" });
+    setPacksToggleSaving(false);
+    if (error) {
+      toast.error(`Falha ao salvar: ${error.message}`);
+      return;
+    }
+    setPacksGloballyEnabled(next);
+    toast[next ? "success" : "warning"](
+      next ? "Vendas de Packs habilitadas para todos os revendedores" : "Vendas de Packs desabilitadas para todos os revendedores"
+    );
+  };
 
   const load = async () => {
     setLoading(true);
