@@ -173,7 +173,7 @@ export default function GerentePacotes() {
       : await supabase.from("license_packs" as any).insert(payload);
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Pacote salvo");
+    toast.success("Pack salvo");
     setEditing(null);
     load();
   };
@@ -222,7 +222,7 @@ export default function GerentePacotes() {
     if (!confirm(`Excluir o pacote "${p.name}"?`)) return;
     const { error } = await supabase.from("license_packs" as any).delete().eq("id", p.id);
     if (error) return toast.error(error.message);
-    toast.success("Pacote excluído");
+    toast.success("Pack excluído");
     load();
   };
 
@@ -252,7 +252,7 @@ export default function GerentePacotes() {
   return (
     <PageContainer>
       <PageHeader
-        title="Pacotes de Licença"
+        title="Packs de Licença"
         description="Cadastre os pacotes de licenças vendidos aos revendedores Pack"
         actions={
           <Button onClick={() => setEditing({ is_active: true, sort_order: packs.length })}>

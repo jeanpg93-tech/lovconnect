@@ -75,7 +75,7 @@ export default function RevendedorComprarPacote() {
   return (
     <PageContainer>
       <PageHeader
-        title="Comprar Pacote"
+        title="Comprar Pack"
         description="Cada licença = 1 chave gerada (qualquer duração). Trials são grátis."
       />
       <PackLowBalanceBanner />

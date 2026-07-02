@@ -236,7 +236,7 @@ export default function GerenteRevendedorPacote() {
                 : "border-emerald-500/40 bg-emerald-500/10 text-emerald-500"
             }
           >
-            {reseller.delivery_source === "pack" ? "📦 Pacote" : "💰 Saldo da carteira"}
+            {reseller.delivery_source === "pack" ? "📦 Pack" : "💰 Saldo da carteira"}
           </Badge>
         </div>
       )}
@@ -295,7 +295,7 @@ export default function GerenteRevendedorPacote() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-widest text-muted-foreground">
-                <tr><th className="py-2">Data</th><th>Pacote</th><th>Licenças</th><th>Valor</th><th>Status</th></tr>
+                <tr><th className="py-2">Data</th><th>Pack</th><th>Licenças</th><th>Valor</th><th>Status</th></tr>
               </thead>
               <tbody>
                 {purchases.map((p) => (

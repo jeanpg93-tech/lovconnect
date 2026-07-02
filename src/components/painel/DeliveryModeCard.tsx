@@ -42,7 +42,7 @@ export default function DeliveryModeCard() {
     setSaving(false);
     toast.success(
       target === "pack"
-        ? "Modo Pacote ativado — vendas consomem licenças do pacote"
+        ? "Modo Pack ativado — vendas consomem licenças do pack"
         : "Modo Carteira ativado — vendas debitam do saldo",
     );
   };
@@ -82,14 +82,14 @@ export default function DeliveryModeCard() {
             </div>
             <div className="mt-1 font-display text-lg sm:text-xl font-black leading-tight">
               {isPackMode ? (
-                <span className="text-primary">Pacote de Licenças</span>
+                <span className="text-primary">Pack de Licenças</span>
               ) : (
                 <span className="text-emerald-500">Saldo da Carteira</span>
               )}
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {isPackMode
-                ? "Vendas Loja e API consomem 1 licença do pacote. Se acabar, debita do saldo automaticamente."
+                ? "Vendas Loja e API consomem 1 licença do pack. Se acabar, debita do saldo automaticamente."
                 : "Vendas Loja e API debitam do seu saldo em R$."}
             </p>
           </div>
@@ -119,7 +119,7 @@ export default function DeliveryModeCard() {
           <div className="flex flex-col items-stretch sm:items-end gap-2">
             <label className="flex items-center justify-between sm:justify-end gap-3 rounded-xl border border-border bg-background/60 px-3 py-2 cursor-pointer">
               <span className="text-xs font-semibold">
-                {isPackMode ? "Pacote" : "Carteira"}
+                {isPackMode ? "Pack" : "Carteira"}
               </span>
               <Switch
                 checked={isPackMode}
@@ -131,7 +131,7 @@ export default function DeliveryModeCard() {
             </label>
             <Button asChild size="sm" variant="ghost" className="h-auto px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground self-end">
               <Link to="/painel/revendedor/comprar-pacote">
-                Comprar pacote <ArrowRight className="ml-1 h-3 w-3" />
+                Comprar pack <ArrowRight className="ml-1 h-3 w-3" />
               </Link>
             </Button>
           </div>
