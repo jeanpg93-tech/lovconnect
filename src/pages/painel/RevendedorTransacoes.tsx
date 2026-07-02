@@ -74,6 +74,24 @@ type ClaudeOrderMeta = {
   origin: "loja" | "api";
 };
 
+function ClaudeOrderChips({ meta }: { meta: ClaudeOrderMeta }) {
+  const chip = "inline-flex items-center gap-1 rounded-md border border-[#D97757]/25 bg-[#D97757]/5 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#D97757]";
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1">
+      {meta.plan_code && (
+        <span className={chip}>{PLAN_LABEL[meta.plan_code] ?? meta.plan_code}</span>
+      )}
+      <span className={chip}>{meta.origin === "loja" ? "Loja" : "API"}</span>
+      {meta.customer_name && (
+        <span className={chip}>👤 {meta.customer_name}</span>
+      )}
+      {meta.customer_whatsapp && (
+        <span className={chip}>📱 {meta.customer_whatsapp}</span>
+      )}
+    </div>
+  );
+}
+
 export default function RevendedorTransacoes() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
