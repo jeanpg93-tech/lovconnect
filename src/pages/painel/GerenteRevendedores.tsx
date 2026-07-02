@@ -665,9 +665,6 @@ export default function GerenteRevendedores() {
                         <td className="px-6 py-4 font-medium text-foreground">
                           <div className="flex items-center gap-2">
                             {firstLastName(prof?.display_name)}
-                            {r.billing_mode === "subscription" && (
-                              <Badge className="bg-violet-500/15 text-violet-400 border-violet-500/30 text-[9px] uppercase">Mensalista</Badge>
-                            )}
                             {r.billing_mode === "pack" && (
                               <Badge className="bg-primary/15 text-primary border-primary/30 text-[9px] uppercase">Pack</Badge>
                             )}
@@ -809,14 +806,6 @@ export default function GerenteRevendedores() {
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button size="sm" variant="ghost" onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/mensalidade`)} className={cn(r.billing_mode === "subscription" && "text-violet-400")}>
-                                    <Repeat className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Gerenciar mensalidade</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
                                   <Button size="sm" variant="ghost" onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/pacote`)} className={cn(r.billing_mode === "pack" && "text-primary")}>
                                     <Package className="h-4 w-4" />
                                   </Button>
@@ -853,9 +842,6 @@ export default function GerenteRevendedores() {
                       <div>
                         <h3 className="font-bold text-foreground flex items-center gap-2">
                           {firstLastName(prof?.display_name)}
-                          {r.billing_mode === "subscription" && (
-                            <Badge className="bg-violet-500/15 text-violet-400 border-violet-500/30 text-[9px] uppercase">Mensalista</Badge>
-                          )}
                           {r.billing_mode === "pack" && (
                             <Badge className="bg-primary/15 text-primary border-primary/30 text-[9px] uppercase">Pack</Badge>
                           )}
@@ -947,9 +933,6 @@ export default function GerenteRevendedores() {
                       </Button>
                       <Button className="flex-1 h-9 rounded-lg" size="sm" variant="secondary" onClick={() => openTestKeysConfig(r)}>
                         <Settings2 className="mr-2 h-4 w-4" /> Limite
-                      </Button>
-                      <Button className="flex-1 h-9 rounded-lg" size="sm" variant={r.billing_mode === "subscription" ? "default" : "secondary"} onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/mensalidade`)}>
-                        <Repeat className="mr-2 h-4 w-4" /> Mens.
                       </Button>
                       <Button className="flex-1 h-9 rounded-lg" size="sm" variant={r.billing_mode === "pack" ? "default" : "secondary"} onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/pacote`)}>
                         <Package className="mr-2 h-4 w-4" /> Pack
