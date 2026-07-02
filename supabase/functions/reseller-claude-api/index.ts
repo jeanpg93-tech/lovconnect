@@ -22,6 +22,13 @@ const CLAUDE_API_KEY = Deno.env.get("CLAUDE_RESELLER_API_KEY") ?? "";
 const CLAUDE_BASE_URL = (Deno.env.get("CLAUDE_RESELLER_API_BASE_URL") ?? "").replace(/\/$/, "");
 
 const PLAN_CODES = new Set(["pro_30d", "5x_7d", "5x_30d", "20x_30d"]);
+const PLAN_LABELS: Record<string, string> = {
+  "pro_30d":  "Pro · 30 dias",
+  "5x_7d":    "5x · 7 dias",
+  "5x_30d":   "5x · 30 dias",
+  "20x_30d":  "20x · 30 dias",
+};
+const fmtBRL = (c: number) => "R$ " + (Number(c || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function json(d: unknown, status = 200) {
   return new Response(JSON.stringify(d), {
@@ -279,7 +286,7 @@ Deno.serve(async (req) => {
 
       const { data: order } = await svc
         .from("claude_orders")
-        .select("id, status, cost_cents, provider_key_id, code, created_at, cancel_attempts")
+        .select("id, status, plan_code, cost_cents, provider_key_id, code, created_at, cancel_attempts, customer_name, customer_whatsapp")
         .eq("reseller_id", reseller.id)
         .eq("id", subId)
         .maybeSingle();
@@ -359,6 +366,23 @@ Deno.serve(async (req) => {
         cancelled_at: new Date().toISOString(),
         refund_waived: !withinWindow,
       }).eq("id", order.id);
+
+      // Notifica gerente via Telegram
+      try {
+        const { data: rInfo } = await svc.from("resellers").select("display_name").eq("id", reseller.id).maybeSingle();
+        const planLabel = PLAN_LABELS[(order as any).plan_code] ?? (order as any).plan_code ?? "—";
+        const txt =
+          `↩️ <b>Cancelamento Claude (API)</b>\n` +
+          `👨‍💼 Revendedor: ${(rInfo as any)?.display_name ?? "—"}\n` +
+          `📦 Plano: ${planLabel}\n` +
+          `👤 Cliente: ${(order as any).customer_name ?? "—"}` +
+          ((order as any).customer_whatsapp ? ` (${(order as any).customer_whatsapp})` : "") +
+          `\n💵 Estorno: ${refundCents > 0 ? fmtBRL(refundCents) : "sem estorno (fora do prazo)"}\n` +
+          `⏱ Prazo: ${Math.floor(ageDays)}d / ${REFUND_WINDOW_DAYS}d`;
+        await svc.rpc("telegram_enqueue", { _text: txt });
+      } catch (e) {
+        console.warn("telegram_enqueue (claude api cancel) failed", e);
+      }
 
       return json({
         success: true,
@@ -525,12 +549,15 @@ Deno.serve(async (req) => {
       // Notifica gerente via Telegram
       try {
         const { data: rInfo } = await svc.from("resellers").select("display_name").eq("id", reseller.id).maybeSingle();
-        const amountBRL = "R$ " + (Number(saleCents || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const planLabel = PLAN_LABELS[planCode] ?? planCode;
         const txt =
           `🤖 <b>Venda Claude (API)</b>\n` +
           `👨‍💼 Revendedor: ${(rInfo as any)?.display_name ?? "—"}\n` +
-          `📦 Plano: ${planCode}\n` +
-          `💵 Valor: ${amountBRL}\n` +
+          `📦 Plano: ${planLabel}\n` +
+          (code ? `🔑 Chave: <code>${code}</code>\n` : "") +
+          `👤 Cliente: ${customerName ?? "—"}` +
+          (customerWhatsapp ? ` (${customerWhatsapp})` : "") +
+          `\n💵 Valor: ${fmtBRL(saleCents)}\n` +
           `💳 Pagamento: Saldo da carteira (API)`;
         await svc.rpc("telegram_enqueue", { _text: txt });
       } catch (e) {
