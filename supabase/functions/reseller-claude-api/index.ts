@@ -327,9 +327,22 @@ Deno.serve(async (req) => {
         return json({ success: false, error: "provider_error", status: providerStatus, body: providerResp }, 502);
       }
 
-      const providerRefund = Number(providerResp?.refunded_amount_cents);
-      const baseRefund = Number.isFinite(providerRefund) && providerRefund > 0
-        ? providerRefund
+      // Estorna EXATAMENTE o valor debitado do revendedor na emissão
+      // (reseller_cost_cents na época da venda). Não usar `order.cost_cents`
+      // (custo do fornecedor) nem `refunded_amount_cents` do provider — esses
+      // podem ser menores que o valor cobrado do revendedor.
+      const { data: issueTx } = await svc
+        .from("balance_transactions")
+        .select("amount_cents")
+        .eq("reseller_id", reseller.id)
+        .eq("reference_id", order.id)
+        .eq("kind", "claude_key_issue")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const debitedCents = issueTx ? Math.abs(Number(issueTx.amount_cents) || 0) : 0;
+      const baseRefund = debitedCents > 0
+        ? debitedCents
         : (Number(order.cost_cents) || 0);
       const refundCents = withinWindow ? baseRefund : 0;
       if (refundCents > 0) {
