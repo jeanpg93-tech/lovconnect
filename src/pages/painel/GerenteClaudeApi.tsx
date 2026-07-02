@@ -774,6 +774,7 @@ function ResellersTab() {
   const [list, setList] = useState<Array<{ id: string; display_name: string; claude_enabled: boolean }>>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -796,10 +797,39 @@ function ResellersTab() {
     }
   };
 
+  const allEnabled = list.length > 0 && list.every((r) => r.claude_enabled);
+
+  const toggleAll = async (value: boolean) => {
+    setBulkBusy(true);
+    const prev = list;
+    setList((p) => p.map((r) => ({ ...r, claude_enabled: value })));
+    const { error } = await supabase
+      .from("resellers")
+      .update({ claude_enabled: value })
+      .not("id", "is", null);
+    setBulkBusy(false);
+    if (error) {
+      toast.error(error.message);
+      setList(prev);
+    } else {
+      toast.success(value ? "Claude habilitado para todos" : "Claude desabilitado para todos");
+    }
+  };
+
   if (loading) return <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 p-4">
+        <div>
+          <div className="text-sm font-semibold">Habilitar Claude para todos os revendedores</div>
+          <div className="text-xs text-muted-foreground">Ativa ou desativa a venda de Claude em massa ({list.length} revendedores).</div>
+        </div>
+        <div className="flex items-center gap-2">
+          {bulkBusy && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+          <Switch checked={allEnabled} disabled={bulkBusy} onCheckedChange={toggleAll} />
+        </div>
+      </div>
       <Input placeholder="Buscar revendedor..." value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
       <div className="rounded-xl border border-border bg-card/60 divide-y divide-border">
         {filtered.map((r) => (
