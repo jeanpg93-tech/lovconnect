@@ -1,0 +1,1 @@
+GRANT SELECT (id, display_name, slug, is_active) ON public.resellers TO anon;
