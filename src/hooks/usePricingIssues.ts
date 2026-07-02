@@ -50,7 +50,14 @@ export function usePricingIssues(opts: { pollMs?: number; resellerId?: string | 
     }
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session?.access_token) {
+      const session = sessionData.session;
+      if (!session?.access_token) {
+        setLoading(false);
+        return;
+      }
+      // Skip if the token already expired (or expires in <15s) — polling
+      // with a stale token causes the edge function to return 401.
+      if (session.expires_at && session.expires_at * 1000 <= Date.now() + 15_000) {
         setLoading(false);
         return;
       }
