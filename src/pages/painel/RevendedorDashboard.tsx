@@ -562,14 +562,24 @@ export default function RevendedorDashboard() {
       const key = `claude:${c.plan_code ?? "outros"}`;
       map[key] = (map[key] ?? 0) + 1;
     });
-    return Object.entries(map)
+    // Normaliza chaves de extensão (ex.: "lovax_pro_1d" e "pro_1d" viram a mesma linha)
+    const normalized: Record<string, number> = {};
+    for (const [k, v] of Object.entries(map)) {
+      let key = k;
+      if (k !== "recharge" && !k.startsWith("claude:")) {
+        const m = /^(?:flow|lovax|pro)[_-]?(\d+d|lifetime|trial.*)$/i.exec(k);
+        if (m) key = `pro_${m[1].toLowerCase()}`.replace("pro_lifetime", "lifetime");
+      }
+      normalized[key] = (normalized[key] ?? 0) + v;
+    }
+    return Object.entries(normalized)
       .map(([k, v]) => ({
         name:
           k === "recharge"
             ? "Recargas de Créditos"
             : k.startsWith("claude:")
               ? describeClaudePlan(k.slice(7))
-              : (LICENSE_LABELS[k] ?? k),
+              : `Extensão · ${LICENSE_LABELS[k] ?? k}`,
         value: v,
       }))
       .sort((a, b) => b.value - a.value);
