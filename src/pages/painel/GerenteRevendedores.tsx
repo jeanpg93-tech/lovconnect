@@ -13,7 +13,19 @@ import {
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, AlertTriangle, Repeat, Package, Pencil } from "lucide-react";
+import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, ChevronRight, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, AlertTriangle, Repeat, Package, Pencil, MoreVertical, KeyRound, Receipt, Tag, Layers, PauseCircle, PlayCircle, PowerOff } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { labelForPath, isOnline, formatLastSeenBR } from "@/lib/path-labels";
