@@ -213,6 +213,64 @@ Deno.serve(async (req) => {
       return json({ success: true, chave: data });
     }
 
+    // GET /chaves/{id}/consumo — token usage snapshot from provider (best-effort)
+    if (action === "chaves" && req.method === "GET" && subId && (route[2] ?? "") === "consumo") {
+      const { data: order } = await svc
+        .from("claude_orders")
+        .select("id, plan_code, status, provider_key_id, customer_email, created_at")
+        .eq("reseller_id", reseller.id)
+        .eq("id", subId)
+        .maybeSingle();
+      if (!order) return json({ success: false, error: "Pedido não encontrado" }, 404);
+
+      let providerUser: any = null;
+      let providerError: string | null = null;
+      if (CLAUDE_BASE_URL && CLAUDE_API_KEY) {
+        try {
+          const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/users`, {
+            headers: { Authorization: `Bearer ${CLAUDE_API_KEY}`, Accept: "application/json" },
+          });
+          const txt = await r.text();
+          let parsed: any = null;
+          try { parsed = JSON.parse(txt); } catch {}
+          if (r.ok) {
+            const list = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.users) ? parsed.users : [];
+            const emailLower = String(order.customer_email ?? "").toLowerCase();
+            const providerId = String(order.provider_key_id ?? "").trim();
+            providerUser = list.find((u: any) =>
+              (providerId && String(u?.id ?? u?.credential ?? "") === providerId) ||
+              (emailLower && String(u?.email ?? "").toLowerCase() === emailLower)
+            ) ?? null;
+          } else {
+            providerError = `provider_${r.status}`;
+          }
+        } catch (e) {
+          providerError = String((e as Error)?.message ?? e);
+        }
+      } else {
+        providerError = "provider_not_configured";
+      }
+
+      const consumo = providerUser
+        ? {
+            status: providerUser.status ?? null,
+            expira_em: providerUser.accountExpiresAt ?? null,
+            resgatada_em: providerUser.redeemedAt ?? null,
+            tokens_consumidos: providerUser?.usage?.tokensConsumed ?? null,
+            tokens_janela: providerUser?.usage?.tokensInWindow ?? null,
+            tokens_limite: providerUser?.usage?.tokenLimit ?? null,
+            janela_horas: providerUser?.usage?.tokenWindowHours ?? null,
+            percentual_usado_dia: providerUser?.usage?.dailyPercentUsed ?? null,
+            percentual_restante: providerUser?.usage?.percentRemaining ?? null,
+            tokens_janela_semanal: providerUser?.usage?.weeklyTokensInWindow ?? null,
+            tokens_limite_semanal: providerUser?.usage?.weeklyTokenLimit ?? null,
+          }
+        : null;
+
+      return json({ success: true, consumo, provider_error: providerError });
+    }
+
+
     // POST /chaves/{id}/cancelar — cancela chave com regra dos 7 dias
     if (action === "chaves" && req.method === "POST" && subId && (route[2] ?? "") === "cancelar") {
       const body = await req.json().catch(() => ({}));
