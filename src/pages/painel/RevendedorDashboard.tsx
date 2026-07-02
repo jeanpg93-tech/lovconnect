@@ -495,6 +495,14 @@ export default function RevendedorDashboard() {
   const last7 = useMemo(() => salesWindow(7), [completed]); // eslint-disable-line react-hooks/exhaustive-deps
   const last30 = useMemo(() => salesWindow(30), [completed]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const claude30 = useMemo(() => {
+    const cutoff = subDays(new Date(), 30);
+    const list = completed.filter(
+      (a) => a.type === "claude_sale" && isAfter(new Date(a.created_at), cutoff),
+    );
+    return { count: list.length, cents: list.reduce((s, a) => s + a.amount_cents, 0) };
+  }, [completed]);
+
   // === Gráficos baseados no período selecionado ===
   const chartRevenueCents = useMemo(
     () =>
@@ -733,8 +741,8 @@ export default function RevendedorDashboard() {
             </div>
 
             {/* Mini stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-emerald-500/40">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 pt-2">
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition-all duration-300 hover:border-emerald-500/40 hover:shadow-[0_0_28px_-8px_hsl(160_84%_39%/0.55)]">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-emerald-500/10 blur-2xl" />
                 <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
                   <TrendingUp className="h-3 w-3 text-emerald-500" /> Hoje
@@ -744,7 +752,7 @@ export default function RevendedorDashboard() {
                 </div>
                 <div className="relative text-[10px] text-muted-foreground mt-0.5">{today.count} pedidos</div>
               </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-primary/40">
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_28px_-8px_hsl(var(--primary)/0.55)]">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-primary/10 blur-2xl" />
                 <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
                   <Wallet className="h-3 w-3 text-primary" /> Saldo
@@ -752,7 +760,18 @@ export default function RevendedorDashboard() {
                 <div className="relative mt-2 font-display font-black text-xl">{fmtBRL(balance)}</div>
                 <div className="relative text-[10px] text-muted-foreground mt-0.5">disponível</div>
               </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-blue-500/40">
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition-all duration-300 hover:border-[#d97757]/50 hover:shadow-[0_0_28px_-8px_rgba(217,119,87,0.6)]">
+                <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-[#d97757]/10 blur-2xl" />
+                <div className="absolute right-3 top-3 opacity-20 group-hover:opacity-40 transition-opacity">
+                  <ClaudeIcon className="h-8 w-8 text-[#d97757]" />
+                </div>
+                <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
+                  <ClaudeIcon className="h-3 w-3 text-[#d97757]" /> Claude · 30d
+                </div>
+                <div className="relative mt-2 font-display font-black text-xl text-[#d97757]">{fmtBRL(claude30.cents)}</div>
+                <div className="relative text-[10px] text-muted-foreground mt-0.5">{claude30.count} vendas</div>
+              </div>
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition-all duration-300 hover:border-blue-500/40 hover:shadow-[0_0_28px_-8px_hsl(217_91%_60%/0.55)]">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-blue-500/10 blur-2xl" />
                 <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
                   <Users className="h-3 w-3 text-blue-500" /> Rede
@@ -760,7 +779,7 @@ export default function RevendedorDashboard() {
                 <div className="relative mt-2 font-display font-black text-xl">{stats.clients}</div>
                 <div className="relative text-[10px] text-muted-foreground mt-0.5">clientes</div>
               </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-amber-500/40">
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition-all duration-300 hover:border-amber-500/40 hover:shadow-[0_0_28px_-8px_hsl(38_92%_50%/0.55)]">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-amber-500/10 blur-2xl" />
                 <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
                   <ShieldCheck className="h-3 w-3 text-amber-500" /> Licenças
