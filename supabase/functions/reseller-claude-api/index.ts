@@ -8,6 +8,7 @@
 //   GET  /chaves/{id}         -> get a specific order (no `code` field)
 //   POST /chaves/{id}/cancelar -> cancel key. { force?: boolean }
 //                                Refund window: 7 days from created_at.
+//   GET  /chaves/{id}/consumo -> token usage snapshot from the provider (best-effort)
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
