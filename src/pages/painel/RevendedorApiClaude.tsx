@@ -227,6 +227,20 @@ function TabInicio() {
         />
       </div>
 
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-xs text-amber-200">
+        <strong className="text-amber-100">Atenção — duas URLs diferentes:</strong>
+        <ul className="mt-2 list-disc space-y-1 pl-4">
+          <li>
+            <code className="font-mono bg-black/30 px-1 rounded">{BASE_URL}</code> — é a URL da <strong>API de revenda</strong>.
+            Use somente no seu <strong>backend</strong> com o header <code className="font-mono">X-API-Key</code>. <strong>Nunca</strong> exiba para o cliente final.
+          </li>
+          <li>
+            <code className="font-mono bg-black/30 px-1 rounded">https://claude-ss.ia.br/</code> — é a <strong>URL do fornecedor Claude</strong>.
+            Essa sim é a URL que o <strong>cliente final</strong> coloca no Cursor / Cline / Claude Code, junto com a chave <code className="font-mono">ACT-...</code> que o <code className="font-mono">POST /chaves</code> devolveu.
+          </li>
+        </ul>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-xl border border-border bg-card/60 p-5">
           <h4 className="text-sm font-semibold flex items-center gap-2">
