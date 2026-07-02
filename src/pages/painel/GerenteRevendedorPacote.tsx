@@ -9,10 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { SalesStatusBadge } from "@/components/painel/SalesStatusBadge";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import { Loader2, ArrowLeft, Plus, Minus, Package, TrendingDown, ShoppingBag, Ban, Play } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Loader2, ArrowLeft, Plus, Minus, Package, TrendingDown, ShoppingBag, Ban, Play, Info } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -93,8 +91,12 @@ export default function GerenteRevendedorPacote() {
     });
     setSavingMode(false);
     if (error) return toast.error((error as any).message ?? "Falha");
-    toast.success("Modo atualizado");
+    toast.success(mode === "pack" ? "Vendas via Pack habilitadas" : "Vendas via Pack desabilitadas");
     load();
+  };
+
+  const togglePackFeature = async (next: boolean) => {
+    await changeMode(next ? "pack" : "normal");
   };
 
   const credit = async () => {
@@ -193,6 +195,35 @@ export default function GerenteRevendedorPacote() {
         );
       })()}
 
+      {/* Habilitar / desabilitar recurso de vendas via Pack para este revendedor */}
+      {reseller.billing_mode !== "subscription" && (
+        <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-4 md:p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Package className="h-4 w-4 text-primary" /> Vendas via Pack habilitadas
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Quando ligado, este revendedor pode comprar Packs e alternar (no painel dele) entre consumir do Pack ou do saldo da carteira nas vendas Loja e API. Quando desligado, ele opera apenas com saldo em R$.
+            </p>
+          </div>
+          <label className="flex items-center gap-2 shrink-0 rounded-xl border border-border bg-background/60 px-3 py-2">
+            <span className="text-xs font-semibold">{reseller.billing_mode === "pack" ? "Ativo" : "Inativo"}</span>
+            <Switch
+              checked={reseller.billing_mode === "pack"}
+              onCheckedChange={togglePackFeature}
+              disabled={savingMode}
+            />
+            {savingMode && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+          </label>
+        </div>
+      )}
+      {reseller.billing_mode === "subscription" && (
+        <div className="mt-6 rounded-2xl border border-violet-500/30 bg-violet-500/5 p-4 text-xs text-muted-foreground flex items-center gap-2">
+          <Info className="h-4 w-4 text-violet-400" />
+          Este revendedor é <b className="text-violet-300 mx-1">Mensalista</b>. O recurso de Packs não se aplica ao plano de mensalidade.
+        </div>
+      )}
+
       {reseller.billing_mode === "pack" && (
         <div className="mt-6 rounded-2xl border border-border bg-card/60 p-4 md:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex-1 min-w-0 space-y-2">
@@ -241,31 +272,8 @@ export default function GerenteRevendedorPacote() {
         </div>
       )}
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr,1fr]">
-        {/* Modo */}
-        <div className="rounded-2xl border border-border bg-card/60 p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold">Modo de cobrança</div>
-            <Badge variant="outline">modo atual: {reseller.billing_mode ?? "normal"}</Badge>
-          </div>
-
-          <div>
-            <Label className="text-xs">Alterar modo de cobrança</Label>
-            <div className="mt-1 flex items-center gap-2">
-              <Select value={reseller.billing_mode ?? "normal"} onValueChange={changeMode} disabled={savingMode}>
-                <SelectTrigger className="max-w-[240px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal (saldo em R$)</SelectItem>
-                  <SelectItem value="subscription">Mensalista</SelectItem>
-                  <SelectItem value="pack">Pack (licenças)</SelectItem>
-                </SelectContent>
-              </Select>
-              {savingMode && <Loader2 className="h-4 w-4 animate-spin" />}
-            </div>
-          </div>
-        </div>
-
-        {/* Ajustes */}
+      <div className="mt-6 grid gap-4">
+        {/* Ajustes manuais de licenças */}
         <div className="rounded-2xl border border-border bg-card/60 p-5 space-y-4">
           <div>
             <Label className="text-xs flex items-center gap-1 mb-1"><Plus className="h-3 w-3 text-emerald-500" /> Adicionar licenças manualmente</Label>
