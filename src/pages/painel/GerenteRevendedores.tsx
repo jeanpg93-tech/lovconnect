@@ -676,9 +676,8 @@ export default function GerenteRevendedores() {
                     const limit = r.test_keys_per_day_override || tier?.test_keys_per_day || 0;
                     const isSubscription = r.billing_mode === "subscription";
                     return (
-                      <>
+                      <React.Fragment key={r.id}>
                         <tr
-                          key={r.id}
                           className="group cursor-pointer transition-colors hover:bg-white/[0.03]"
                           onClick={() => setExpandedRow(isExpanded ? null : r.id)}
                         >
@@ -867,7 +866,7 @@ export default function GerenteRevendedores() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
