@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import {
   Select,
   SelectContent,
@@ -54,12 +55,30 @@ const KIND_META: Record<string, { label: string; cls: string; icon: any }> = {
   adjustment:      { label: "Ajuste Gerente", cls: "bg-violet-500/10 text-violet-500 border-violet-500/20",    icon: Zap },
   manual_credit:   { label: "Recarga Manual", cls: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", icon: ArrowDownRight },
   manual_debit:    { label: "Débito Manual",  cls: "bg-rose-500/10 text-rose-500 border-rose-500/20",          icon: ArrowUpRight },
+  claude_key_issue:  { label: "Venda Claude",   cls: "bg-[#D97757]/10 text-[#D97757] border-[#D97757]/25",      icon: ClaudeIcon },
+  claude_key_refund: { label: "Estorno Claude", cls: "bg-[#D97757]/10 text-[#D97757] border-[#D97757]/25",      icon: ClaudeIcon },
+  claude_key_issue_refund: { label: "Estorno Claude", cls: "bg-[#D97757]/10 text-[#D97757] border-[#D97757]/25", icon: ClaudeIcon },
+};
+
+const PLAN_LABEL: Record<string, string> = {
+  "pro_30d":  "Pro · 30 dias",
+  "5x_7d":    "5x · 7 dias",
+  "5x_30d":   "5x · 30 dias",
+  "20x_30d":  "20x · 30 dias",
+};
+
+type ClaudeOrderMeta = {
+  plan_code: string | null;
+  customer_name: string | null;
+  customer_whatsapp: string | null;
+  origin: "loja" | "api";
 };
 
 export default function RevendedorTransacoes() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [claudeOrders, setClaudeOrders] = useState<Record<string, ClaudeOrderMeta>>({});
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -88,6 +107,32 @@ export default function RevendedorTransacoes() {
       .order("created_at", { ascending: false });
 
     setTransactions(txs || []);
+
+    // Enriquecer transações Claude com dados do pedido (plano, cliente, origem)
+    const claudeRefs = Array.from(new Set(
+      (txs || [])
+        .filter((t: any) => t.kind === "claude_key_issue" || t.kind === "claude_key_refund" || t.kind === "claude_key_issue_refund")
+        .map((t: any) => t.reference_id)
+        .filter(Boolean)
+    )) as string[];
+    if (claudeRefs.length) {
+      const { data: orders } = await supabase
+        .from("claude_orders")
+        .select("id, plan_code, customer_name, customer_whatsapp, provider_transaction_id")
+        .in("id", claudeRefs);
+      const map: Record<string, ClaudeOrderMeta> = {};
+      (orders || []).forEach((o: any) => {
+        map[o.id] = {
+          plan_code: o.plan_code ?? null,
+          customer_name: o.customer_name ?? null,
+          customer_whatsapp: o.customer_whatsapp ?? null,
+          origin: o.provider_transaction_id ? "loja" : "api",
+        };
+      });
+      setClaudeOrders(map);
+    } else {
+      setClaudeOrders({});
+    }
     setLoading(false);
   };
 
