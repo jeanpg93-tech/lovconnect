@@ -107,7 +107,7 @@ export default function RevendedorComprarPacote() {
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6" hidden={!packsGloballyEnabled}>
         {loading ? (
           <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div>
         ) : packs.length === 0 ? (
