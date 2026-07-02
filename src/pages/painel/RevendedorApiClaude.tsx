@@ -353,6 +353,31 @@ function TabEndpoints() {
 #         cancelled | cancel_rejected | refunded | expired | failed`}
       />
       <CodeBlock
+        title="GET /chaves/{id}/consumo — Consumo de tokens (best-effort)"
+        body={`curl -X GET "${BASE_URL}/chaves/PEDIDO_ID/consumo" \\
+  -H "X-API-Key: SUA_API_KEY"
+
+# Resposta
+{
+  "success": true,
+  "consumo": {
+    "status": "active",
+    "expira_em": "2026-08-01T12:00:00Z",
+    "tokens_consumidos": 12345,
+    "tokens_janela": 8000,
+    "tokens_limite": 500000,
+    "janela_horas": 5,
+    "percentual_usado_dia": 1.6,
+    "percentual_restante": 98.4,
+    "tokens_janela_semanal": 20000,
+    "tokens_limite_semanal": 2500000
+  }
+}
+
+# Se o cliente ainda nao usou a chave, "consumo" volta null.
+# Use este endpoint para alimentar o card "Consumo de tokens" do painel do cliente.`}
+      />
+      <CodeBlock
         title="POST /chaves/{id}/cancelar — Cancelar / Revogar chave"
         body={`curl -X POST "${BASE_URL}/chaves/PEDIDO_ID/cancelar" \\
   -H "X-API-Key: SUA_API_KEY" \\
