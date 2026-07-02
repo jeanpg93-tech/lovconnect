@@ -8,6 +8,12 @@ const CLAUDE_API_KEY = Deno.env.get('CLAUDE_RESELLER_API_KEY')!;
 const CLAUDE_BASE_URL = (Deno.env.get('CLAUDE_RESELLER_API_BASE_URL') ?? '').replace(/\/$/, '');
 
 const PLAN_CODES = new Set(['pro_30d', '5x_30d', '20x_30d']);
+const PLAN_LABELS: Record<string, string> = {
+  'pro_30d':  'Pro · 30 dias',
+  '5x_7d':    '5x · 7 dias',
+  '5x_30d':   '5x · 30 dias',
+  '20x_30d':  '20x · 30 dias',
+};
 
 const jsonResponse = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -239,14 +245,16 @@ Deno.serve(async (req) => {
     // Notifica gerente via Telegram
     try {
       const amountBRL = 'R$ ' + (Number(saleCents || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const planLabel = PLAN_LABELS[planCode] ?? planCode;
       const txt =
         `🤖 <b>Venda Claude</b>\n` +
         `👨‍💼 Revendedor: ${reseller.display_name ?? '—'}\n` +
-        `📦 Plano: ${planCode}\n` +
-        `💵 Valor: ${amountBRL}\n` +
+        `📦 Plano: ${planLabel}\n` +
+        (code ? `🔑 Chave: <code>${code}</code>\n` : '') +
         `👤 Cliente: ${customerName ?? '—'}` +
         (customerWhatsapp ? ` (${customerWhatsapp})` : '') +
-        `\n💳 Pagamento: Saldo da carteira`;
+        `\n💵 Valor: ${amountBRL}\n` +
+        `💳 Pagamento: Saldo da carteira`;
       await admin.rpc('telegram_enqueue', { _text: txt });
     } catch (e) {
       console.warn('telegram_enqueue (claude issue) failed', e);
