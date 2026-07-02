@@ -79,12 +79,14 @@ Lista de planos ativos com preço efetivo.
 Emite uma chave Claude e debita do saldo.
 **Body:**
 \`\`\`json
-{ "plan_code": "pro_30d",
-  "customer_name": "Cliente João",
-  "customer_email": "opcional@dominio.com",
-  "customer_whatsapp": "5511999999999",
+{ "plano": "pro_30d",
+  "id_cliente": "cliente@dominio.com",
+  "nome": "Cliente João",
+  "email": "cliente@dominio.com",
+  "whatsapp": "5511999999999",
   "request_id": "uuid-v4-idempotencia" }
 \`\`\`
+> ⚠️ **Sempre envie \`nome\`, \`email\` e \`whatsapp\`** (mesmo que opcionais no schema) — sem eles o revendedor não consegue diferenciar/atender o cliente no painel "Meus Clientes Claude", e o consumo de tokens não pode ser vinculado (a ligação com o fornecedor é feita pelo \`email\`).
 **Resposta 200:**
 \`\`\`json
 { "ok": true, "order_id": "uuid", "plan_code": "pro_30d",

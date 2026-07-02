@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     // Vendas Claude desse revendedor (para casar por email)
     const { data: orders } = await admin
       .from('claude_orders')
-      .select('id, plan_code, status, customer_email, customer_name, customer_whatsapp, created_at, sale_price_cents, provider_key_id, code, cancelled_at, redeemed_at, expired_at, cancel_requested_at, cancel_request_note, refund_waived')
+      .select('id, plan_code, status, customer_email, customer_name, customer_whatsapp, customer_id, customer_identifier, created_at, sale_price_cents, provider_key_id, code, cancelled_at, redeemed_at, expired_at, cancel_requested_at, cancel_request_note, refund_waived')
       .eq('reseller_id', reseller.id)
       .order('created_at', { ascending: false })
       .limit(500);
@@ -132,6 +132,7 @@ Deno.serve(async (req) => {
       return {
         ...o,
         status: effectiveStatus,
+        origin: o.customer_id ? 'loja' : 'api',
         provider_status: providerStatus,
         refund_deadline_at: new Date(refundDeadlineMs).toISOString(),
         within_refund_window: withinRefundWindow,

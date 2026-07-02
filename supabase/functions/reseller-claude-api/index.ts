@@ -360,6 +360,9 @@ Deno.serve(async (req) => {
       const body = await req.json().catch(() => ({}));
       const planCode = String(body?.plano ?? body?.plan_code ?? "").trim();
       const customerId = body?.id_cliente ? String(body.id_cliente) : null;
+      const customerName = body?.nome ? String(body.nome).trim().slice(0, 120) : null;
+      const customerEmail = body?.email ? String(body.email).trim().toLowerCase().slice(0, 200) : null;
+      const customerWhatsapp = body?.whatsapp ? String(body.whatsapp).trim().slice(0, 40) : null;
       const requestId = req.headers.get("idempotency-key") || (body?.request_id ? String(body.request_id) : null);
       if (!PLAN_CODES.has(planCode)) return json({ success: false, error: "invalid_plano" }, 400);
 
@@ -396,6 +399,9 @@ Deno.serve(async (req) => {
           reseller_id: reseller.id,
           plan_code: planCode,
           customer_identifier: customerId,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          customer_whatsapp: customerWhatsapp,
           cost_cents: costCents,
           sale_price_cents: saleCents,
           profit_cents: profitCents,
@@ -418,6 +424,9 @@ Deno.serve(async (req) => {
         reseller_id: reseller.id,
         plan_code: planCode,
         customer_identifier: customerId,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_whatsapp: customerWhatsapp,
         cost_cents: costCents,
         sale_price_cents: saleCents,
         profit_cents: profitCents,
