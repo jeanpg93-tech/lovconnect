@@ -515,6 +515,33 @@ export default function GerenteRevendedores() {
         ))}
       </div>
 
+      {/* Toggle global: Vendas de Packs */}
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-lg",
+            packsGloballyEnabled ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-500"
+          )}>
+            <Package className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold">Vendas de Packs (global)</div>
+            <p className="text-xs text-muted-foreground">
+              Quando desativado, nenhum revendedor conseguirá comprar novos Packs.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={cn(
+            "text-[10px] uppercase font-bold tracking-wider",
+            packsGloballyEnabled ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-500" : "border-amber-500/40 bg-amber-500/10 text-amber-500"
+          )}>
+            {packsGloballyEnabled ? "Habilitado" : "Desabilitado"}
+          </Badge>
+          <Switch checked={packsGloballyEnabled} onCheckedChange={togglePacksGlobally} disabled={packsToggleSaving} />
+        </div>
+      </div>
+
       {/* Ranking mensal */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="px-4 py-3 flex items-center justify-between border-b border-border">
