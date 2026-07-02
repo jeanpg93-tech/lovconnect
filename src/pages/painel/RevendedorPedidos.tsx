@@ -1241,27 +1241,38 @@ export default function RevendedorPedidos() {
                             <span>·</span>
                             <span>{fmtDate(it.created_at)}</span>
                           </div>
-                          {isManual && (o!.customer?.display_name || o!.customer?.whatsapp) && (
+                          {isManual && (() => {
+                            // Vendas via API: cliente vive em `notes` (JSON),
+                            // não em reseller_customers. Faz fallback pra
+                            // aparecer igual às vendas manuais/loja.
+                            let n: any = null;
+                            const raw = (o as any)?.notes;
+                            if (raw) { try { n = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { n = null; } }
+                            const name = o!.customer?.display_name ?? n?.display_name ?? n?.customer_name ?? null;
+                            const wa = o!.customer?.whatsapp ?? n?.whatsapp ?? n?.customer_whatsapp ?? null;
+                            if (!name && !wa) return null;
+                            return (
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] pt-0.5">
-                              {o!.customer?.display_name && (
-                                <span className="font-semibold text-foreground/90">👤 {o!.customer.display_name}</span>
+                              {name && (
+                                <span className="font-semibold text-foreground/90">👤 {name}</span>
                               )}
-                              {o!.customer?.whatsapp && (
+                              {wa && (
                                 <>
                                   <span className="text-muted-foreground/60">·</span>
                                   <a
-                                    href={`https://wa.me/${o!.customer.whatsapp.replace(/\D+/g, "")}`}
+                                    href={`https://wa.me/${String(wa).replace(/\D+/g, "")}`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="font-mono text-emerald-500 hover:underline"
                                     title="Abrir no WhatsApp"
                                   >
-                                    {fmtWa(o!.customer.whatsapp)}
+                                    {fmtWa(wa)}
                                   </a>
                                 </>
                               )}
                             </div>
-                          )}
+                            );
+                          })()}
                           {!isManual && (l!.buyer_name || l!.buyer_whatsapp) && (
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] pt-0.5">
                               {l!.buyer_name && (
