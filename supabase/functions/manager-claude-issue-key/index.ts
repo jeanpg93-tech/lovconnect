@@ -39,6 +39,11 @@ Deno.serve(async (req) => {
     const planCode = String(body?.plan_code ?? '').trim();
     if (!PLAN_CODES.has(planCode)) return json({ error: 'invalid_plan_code' }, 400);
 
+    const customerName = typeof body?.customer_name === 'string' ? body.customer_name.trim().slice(0, 120) : '';
+    const customerWhatsapp = typeof body?.customer_whatsapp === 'string' ? body.customer_whatsapp.replace(/\D+/g, '').slice(0, 15) : '';
+    const customerEmail = typeof body?.customer_email === 'string' ? body.customer_email.trim().slice(0, 160) : '';
+    if (customerName.length < 2) return json({ error: 'customer_name_required' }, 400);
+
     if (!CLAUDE_BASE_URL) return json({ error: 'provider_not_configured' }, 500);
 
     const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/keys`, {
@@ -65,7 +70,12 @@ Deno.serve(async (req) => {
 
     if (!code) return json({ error: 'provider_no_code', body: parsed }, 502);
 
-    return json({ code, provider_key_id: providerKeyId, plan_code: planCode });
+    return json({
+      code,
+      provider_key_id: providerKeyId,
+      plan_code: planCode,
+      customer: { name: customerName, whatsapp: customerWhatsapp, email: customerEmail || null },
+    });
   } catch (e) {
     console.error('[manager-claude-issue-key] error', e);
     return json({ error: String((e as Error)?.message ?? e) }, 500);
