@@ -420,6 +420,7 @@ export default function RevendedorDashboard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter }, () => reload({ silent: true }))
       .on("postgres_changes", { event: "*", schema: "public", table: "reseller_credit_purchases", filter }, () => reload({ silent: true }))
       .on("postgres_changes", { event: "*", schema: "public", table: "reseller_tier_state", filter }, () => reload({ silent: true }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "claude_orders", filter }, () => reload({ silent: true }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, resellerId, reload]);
