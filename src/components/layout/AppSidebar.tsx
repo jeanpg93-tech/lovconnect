@@ -116,11 +116,6 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Indique e ganhe", url: "/painel/revendedor/indicacoes", icon: Gift, tour: "menu-indicacoes" },
       { title: "Ranking", url: "/painel/revendedor/ranking", icon: Trophy },
     ]},
-    { label: "Mensalidade", items: [
-      { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles, tour: "menu-gerar-chave" },
-      { title: "Minhas Chaves", url: "/painel/revendedor/minhas-chaves", icon: KeyRound, tour: "menu-minhas-chaves" },
-      { title: "Minhas Cobranças", url: "/painel/revendedor/cobrancas", icon: Wallet },
-    ]},
     { label: "Vendas - Packs", items: [
       { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles, tour: "menu-gerar-chave" },
       { title: "Minhas Chaves", url: "/painel/revendedor/minhas-chaves", icon: KeyRound, tour: "menu-minhas-chaves" },
