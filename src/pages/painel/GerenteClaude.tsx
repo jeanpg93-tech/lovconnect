@@ -5,10 +5,11 @@ import { PageContainer } from "@/components/painel/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Copy, Check, KeyRound, CheckCircle2, History as HistoryIcon, Search, Sparkles, AlertTriangle } from "lucide-react";
+import { Loader2, Copy, Check, KeyRound, CheckCircle2, History as HistoryIcon, Search, Sparkles, AlertTriangle, User, MessageCircle, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
@@ -37,9 +38,26 @@ const PLAN_BADGES: Partial<Record<PlanCode, { label: string; cls: string }>> = {
 };
 
 type Row = { plan_code: PlanCode; cost_cents: number; is_active: boolean };
-type Issued = { id: string; plan: PlanCode; code: string; cost_cents: number; created_at: string };
+type Issued = {
+  id: string;
+  plan: PlanCode;
+  code: string;
+  cost_cents: number;
+  created_at: string;
+  customer_name?: string;
+  customer_whatsapp?: string;
+  customer_email?: string;
+};
 
-const HISTORY_KEY = "gerente_claude_issued_v1";
+const HISTORY_KEY = "gerente_claude_issued_v2";
+
+const formatWhatsapp = (v: string) => {
+  const d = v.replace(/\D+/g, "").slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
 
 const fmtBRL = (c: number) =>
   (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -53,6 +71,9 @@ export default function GerenteClaude() {
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<Issued[]>([]);
   const [search, setSearch] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerWhatsapp, setCustomerWhatsapp] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -84,10 +105,19 @@ export default function GerenteClaude() {
   };
 
   const issue = async () => {
+    if (customerName.trim().length < 2) return toast.error("Informe o nome do cliente");
     setIssuing(selected);
     const { data, error, skipped } = await invokeAuthenticatedFunction<any>(
       "manager-claude-issue-key",
-      { method: "POST", body: { plan_code: selected } },
+      {
+        method: "POST",
+        body: {
+          plan_code: selected,
+          customer_name: customerName.trim(),
+          customer_whatsapp: customerWhatsapp.replace(/\D+/g, ""),
+          customer_email: customerEmail.trim() || null,
+        },
+      },
     );
     setIssuing(null);
     if (skipped) return toast.error("Sessão expirada");
@@ -104,8 +134,14 @@ export default function GerenteClaude() {
         code: data.code,
         cost_cents: cost,
         created_at: new Date().toISOString(),
+        customer_name: customerName.trim(),
+        customer_whatsapp: customerWhatsapp.replace(/\D+/g, ""),
+        customer_email: customerEmail.trim() || undefined,
       };
       persist([entry, ...history]);
+      setCustomerName("");
+      setCustomerWhatsapp("");
+      setCustomerEmail("");
     } else {
       toast.error("O fornecedor não retornou o código.");
     }
@@ -131,7 +167,10 @@ export default function GerenteClaude() {
     return (
       (PLAN_LABELS[h.plan] ?? "").toLowerCase().includes(q) ||
       h.code.toLowerCase().includes(q) ||
-      h.id.toLowerCase().includes(q)
+      h.id.toLowerCase().includes(q) ||
+      (h.customer_name ?? "").toLowerCase().includes(q) ||
+      (h.customer_whatsapp ?? "").toLowerCase().includes(q) ||
+      (h.customer_email ?? "").toLowerCase().includes(q)
     );
   });
 
@@ -224,6 +263,57 @@ export default function GerenteClaude() {
 
           <div className="mt-6 mb-3 flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">2</span>
+            <h3 className="font-display text-sm font-semibold">Dados do cliente</h3>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nome do cliente <span className="text-rose-500">*</span></Label>
+              <div className="relative">
+                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Ex.: Cliente João"
+                  maxLength={120}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">WhatsApp (opcional)</Label>
+              <div className="relative">
+                <MessageCircle className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={customerWhatsapp}
+                  onChange={(e) => setCustomerWhatsapp(formatWhatsapp(e.target.value))}
+                  placeholder="(11) 91234-5678"
+                  inputMode="tel"
+                  className="pl-9"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3">
+            <Label className="text-xs">
+              E-mail do cliente <span className="text-muted-foreground">(opcional)</span>
+            </Label>
+            <div className="relative mt-1.5">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="cliente@email.com"
+                type="email"
+                inputMode="email"
+                className="pl-9"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 mb-3 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">3</span>
             <h3 className="font-display text-sm font-semibold">Emitir chave</h3>
           </div>
 
@@ -279,6 +369,15 @@ export default function GerenteClaude() {
                       <div className="font-display text-sm font-semibold truncate">
                         {PLAN_LABELS[h.plan]}
                       </div>
+                      {h.customer_name && (
+                        <div className="mt-0.5 text-[11px] text-foreground/80 truncate flex items-center gap-1">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          <span className="truncate">{h.customer_name}</span>
+                          {h.customer_whatsapp && (
+                            <span className="text-muted-foreground">· {h.customer_whatsapp}</span>
+                          )}
+                        </div>
+                      )}
                       <div className="mt-1 font-mono text-[10px] text-muted-foreground truncate">
                         #{h.id.slice(0, 8).toUpperCase()}
                       </div>
