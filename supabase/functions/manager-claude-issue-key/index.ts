@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
     try { parsed = JSON.parse(txt); } catch { parsed = { raw: txt }; }
 
     if (r.status < 200 || r.status >= 300) {
+      console.error('[manager-claude-issue-key] provider_error', { status: r.status, body: parsed, planCode });
       return json({ error: 'provider_error', status: r.status, body: parsed }, 502);
     }
 
