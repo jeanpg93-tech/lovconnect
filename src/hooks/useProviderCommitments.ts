@@ -28,6 +28,14 @@ export function useProviderCommitments(enabled: boolean = true): ProviderCommitm
     setLoading(true);
     setError(null);
     try {
+      // Skip if no active session — avoids 401 spam on public/auth pages
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess?.session) {
+        setFlowRemaining(0);
+        setLovaxRemaining(0);
+        setCommitted(0);
+        return;
+      }
       const [flowRes, lovaxRes, commitRes] = await Promise.all([
         supabase.functions.invoke("provider-api?action=status", { method: "GET" }),
         supabase.functions.invoke("lovax-api?action=status", { method: "GET" }),
