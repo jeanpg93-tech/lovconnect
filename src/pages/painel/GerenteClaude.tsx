@@ -3,7 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import { PageContainer } from "@/components/painel/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Loader2, Copy, Check, KeyRound, CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import { Loader2, Copy, Check, KeyRound, CheckCircle2, History as HistoryIcon, Search, Sparkles, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
@@ -27,8 +32,14 @@ const PLAN_GRADIENTS: Record<PlanCode, string> = {
   "5x_30d": "from-blue-500/20 via-blue-500/5 to-transparent",
   "20x_30d": "from-primary/25 via-primary/5 to-transparent",
 };
+const PLAN_BADGES: Partial<Record<PlanCode, { label: string; cls: string }>> = {
+  "20x_30d": { label: "Popular", cls: "bg-primary/15 text-primary border-primary/30" },
+};
 
 type Row = { plan_code: PlanCode; cost_cents: number; is_active: boolean };
+type Issued = { id: string; plan: PlanCode; code: string; cost_cents: number; created_at: string };
+
+const HISTORY_KEY = "gerente_claude_issued_v1";
 
 const fmtBRL = (c: number) =>
   (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -40,6 +51,8 @@ export default function GerenteClaude() {
   const [issuing, setIssuing] = useState<PlanCode | null>(null);
   const [revealed, setRevealed] = useState<{ code: string; plan: PlanCode } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [history, setHistory] = useState<Issued[]>([]);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -57,9 +70,18 @@ export default function GerenteClaude() {
       if (rows.length && !rows.some((r) => r.plan_code === selected)) {
         setSelected(rows[0].plan_code);
       }
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        if (raw) setHistory(JSON.parse(raw));
+      } catch { /* noop */ }
       setLoading(false);
     })();
   }, []);
+
+  const persist = (list: Issued[]) => {
+    setHistory(list);
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 50))); } catch { /* noop */ }
+  };
 
   const issue = async () => {
     setIssuing(selected);
@@ -73,8 +95,20 @@ export default function GerenteClaude() {
       const msg = (data as any)?.error ?? (error as any)?.message ?? "Erro ao emitir chave";
       return toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
     }
-    if (data?.code) setRevealed({ code: data.code, plan: selected });
-    else toast.error("O fornecedor não retornou o código.");
+    if (data?.code) {
+      setRevealed({ code: data.code, plan: selected });
+      const cost = plans.find((p) => p.plan_code === selected)?.cost_cents ?? 0;
+      const entry: Issued = {
+        id: crypto.randomUUID(),
+        plan: selected,
+        code: data.code,
+        cost_cents: cost,
+        created_at: new Date().toISOString(),
+      };
+      persist([entry, ...history]);
+    } else {
+      toast.error("O fornecedor não retornou o código.");
+    }
   };
 
   const copy = async () => {
@@ -91,104 +125,220 @@ export default function GerenteClaude() {
       </div>
     );
 
+  const filteredHistory = history.filter((h) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (PLAN_LABELS[h.plan] ?? "").toLowerCase().includes(q) ||
+      h.code.toLowerCase().includes(q) ||
+      h.id.toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <PageContainer className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <ClaudeIcon className="h-6 w-6 text-primary" /> Claude — Emitir chave
-        </h1>
-        <p className="text-muted-foreground">
-          Emissão manual de chaves Claude para uso interno. Sem débito de carteira; o custo é do provedor.
-        </p>
-      </div>
+    <PageContainer>
+      {/* Hero — mesmo estilo da página do revendedor */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-white/[0.04] via-white/[0.02] to-transparent p-6 sm:p-10 backdrop-blur-xl">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute -left-10 bottom-0 h-56 w-56 rounded-full bg-primary/5 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.04),transparent_60%)]" />
 
-      <div className="rounded-2xl border border-border bg-card/60 p-4 sm:p-6">
-        <h3 className="mb-4 font-display text-sm font-semibold">Escolha o plano</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {plans.map((p) => {
-            const active = selected === p.plan_code;
-            return (
-              <button
-                key={p.plan_code}
-                type="button"
-                onClick={() => setSelected(p.plan_code)}
-                className={cn(
-                  "group relative overflow-hidden rounded-xl border p-4 text-left transition-all",
-                  "hover:-translate-y-0.5 hover:shadow-lg",
-                  active
-                    ? "border-primary/60 bg-primary/5 shadow-md ring-1 ring-primary/40"
-                    : "border-border bg-background/40",
-                )}
-              >
-                <div
-                  className={cn(
-                    "absolute inset-0 bg-gradient-to-br opacity-60",
-                    PLAN_GRADIENTS[p.plan_code],
-                    active ? "opacity-100" : "opacity-40",
-                  )}
-                />
-                <div className="relative">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                    <ClaudeIcon className="h-4 w-4" />
-                  </div>
-                  <div className="mt-3 font-display text-sm font-semibold">
-                    {PLAN_LABELS[p.plan_code]}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {PLAN_LIMITS[p.plan_code]}
-                  </div>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Custo provedor:{" "}
-                    <span className="font-semibold text-foreground">
-                      {fmtBRL(p.cost_cents)}
-                    </span>
-                  </div>
-                </div>
-                {active && (
-                  <CheckCircle2 className="absolute bottom-2 right-2 h-4 w-4 text-primary" />
-                )}
-              </button>
-            );
-          })}
+        <div className="relative space-y-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 backdrop-blur-sm w-fit">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Emissão instantânea</span>
+          </div>
+
+          <div className="space-y-3">
+            <h1 className="font-display text-4xl md:text-5xl font-black tracking-tighter leading-[1.05] text-white">
+              Chaves <span className="italic text-primary">Claude</span>
+            </h1>
+            <p className="text-sm md:text-base text-zinc-400 leading-relaxed max-w-xl">
+              Emissão manual de chaves Claude pelo painel do gerente — direto no fornecedor, sem débito de carteira.
+            </p>
+          </div>
         </div>
-
-        <Button
-          onClick={issue}
-          disabled={issuing !== null || !plans.length}
-          size="lg"
-          className="mt-6 w-full"
-        >
-          {issuing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...
-            </>
-          ) : (
-            <>
-              <KeyRound className="mr-2 h-4 w-4" /> Gerar chave{" "}
-              {PLAN_LABELS[selected]}
-            </>
-          )}
-        </Button>
       </div>
 
-      {revealed && (
-        <div className="rounded-2xl border border-primary/40 bg-primary/5 p-6">
-          <div className="mb-2 text-xs uppercase tracking-wider text-primary font-semibold">
-            Chave emitida — {PLAN_LABELS[revealed.plan]}
+      {/* Plan picker + history */}
+      <div className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
+        <div className="rounded-2xl border border-border bg-card/60 p-4 sm:p-6 backdrop-blur-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">1</span>
+            <h3 className="font-display text-sm font-semibold">Escolha o plano</h3>
           </div>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 rounded-lg bg-background/70 px-4 py-3 font-mono text-lg break-all">
-              {revealed.code}
-            </code>
-            <Button variant="outline" size="icon" onClick={copy}>
-              {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-            </Button>
+
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+            {plans.map((p) => {
+              const active = selected === p.plan_code;
+              const badge = PLAN_BADGES[p.plan_code];
+              return (
+                <button
+                  key={p.plan_code}
+                  type="button"
+                  onClick={() => setSelected(p.plan_code)}
+                  className={cn(
+                    "group relative overflow-hidden rounded-xl border p-3 text-left transition-all duration-200",
+                    "hover:-translate-y-0.5 hover:shadow-lg",
+                    active
+                      ? "border-primary/60 bg-primary/5 shadow-md ring-1 ring-primary/40"
+                      : "border-border bg-background/40 hover:border-border/80",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "absolute inset-0 bg-gradient-to-br opacity-60 transition-opacity",
+                      PLAN_GRADIENTS[p.plan_code],
+                      active ? "opacity-100" : "opacity-40 group-hover:opacity-70",
+                    )}
+                  />
+                  <div className="relative flex items-start justify-between">
+                    <div className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+                      active ? "bg-primary/20 text-primary" : "bg-background/70 text-muted-foreground group-hover:text-foreground",
+                    )}>
+                      <ClaudeIcon className="h-4 w-4" />
+                    </div>
+                    {badge && (
+                      <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-semibold", badge.cls)}>
+                        {badge.label}
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative mt-3">
+                    <div className="font-display text-sm font-semibold">{PLAN_LABELS[p.plan_code]}</div>
+                    <div className="text-[11px] text-muted-foreground">{PLAN_LIMITS[p.plan_code]}</div>
+                    <div className="mt-2 font-display text-base font-bold">{fmtBRL(p.cost_cents)}</div>
+                    <div className="text-[10px] text-muted-foreground">custo provedor</div>
+                  </div>
+                  {active && (
+                    <CheckCircle2 className="absolute bottom-2 right-2 h-4 w-4 text-primary animate-scale-in" />
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Copie e guarde a chave — ela não será exibida novamente.
+
+          <div className="mt-6 mb-3 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">2</span>
+            <h3 className="font-display text-sm font-semibold">Emitir chave</h3>
+          </div>
+
+          <Button
+            onClick={issue}
+            disabled={issuing !== null || !plans.length}
+            size="lg"
+            className="w-full relative overflow-hidden bg-gradient-to-r from-primary to-primary/80 text-primary-foreground transition-all hover:shadow-lg hover:shadow-primary/25"
+          >
+            {issuing ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</>
+            ) : (
+              <><KeyRound className="mr-2 h-4 w-4" /> Gerar chave {PLAN_LABELS[selected]}</>
+            )}
+          </Button>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Uso interno — sem débito de carteira. O custo do provedor é apenas informativo.
           </p>
         </div>
-      )}
+
+        <div className="rounded-2xl border border-border bg-card/60 p-4 sm:p-6 backdrop-blur-sm">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <HistoryIcon className="h-4 w-4 text-primary" />
+              <h3 className="font-display text-sm font-semibold">Chaves emitidas</h3>
+            </div>
+            <Badge variant="outline" className="text-[10px] font-bold uppercase">{history.length}</Badge>
+          </div>
+
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por plano ou chave…"
+              className="pl-8 h-9 text-xs"
+            />
+          </div>
+
+          {filteredHistory.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              {history.length === 0 ? "Nenhuma chave emitida ainda." : "Nenhum resultado."}
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+              {filteredHistory.map((h) => (
+                <div
+                  key={h.id}
+                  className="rounded-xl border border-border bg-background/40 p-3 transition-colors hover:border-primary/30"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-display text-sm font-semibold truncate">
+                        {PLAN_LABELS[h.plan]}
+                      </div>
+                      <div className="mt-1 font-mono text-[10px] text-muted-foreground truncate">
+                        #{h.id.slice(0, 8).toUpperCase()}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] font-bold uppercase shrink-0 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
+                      Emitida
+                    </Badge>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>{new Date(h.created_at).toLocaleString("pt-BR")}</span>
+                    <span className="font-semibold text-foreground">{fmtBRL(h.cost_cents)}</span>
+                  </div>
+                  <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-border bg-background/60 p-1.5">
+                    <code className="flex-1 font-mono text-[11px] truncate select-all px-1">{h.code}</code>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 shrink-0"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(h.code);
+                        toast.success("Chave copiada");
+                      }}
+                      title="Copiar chave"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Dialog open={!!revealed} onOpenChange={(o) => !o && setRevealed(null)}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" /> Chave gerada
+            </DialogTitle>
+            <DialogDescription>
+              {revealed && PLAN_LABELS[revealed.plan]}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400 flex gap-2">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <span>Copie agora — esta chave <strong>não será exibida novamente</strong>.</span>
+          </div>
+          <div className="rounded-lg border border-border bg-background/60 p-3 font-mono text-sm break-all select-all">
+            {revealed?.code}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRevealed(null)}>Fechar</Button>
+            <Button onClick={copy}>
+              {copied ? <><Check className="mr-2 h-4 w-4" /> Copiado</> : <><Copy className="mr-2 h-4 w-4" /> Copiar chave</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
