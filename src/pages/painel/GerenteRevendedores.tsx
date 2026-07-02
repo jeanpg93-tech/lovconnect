@@ -135,18 +135,21 @@ export default function GerenteRevendedores() {
     }
     // Bulk atualiza billing_mode dos revendedores não-mensalistas
     const targetMode = next ? "pack" : "normal";
-    const fromMode = next ? "normal" : "pack";
+    // Filtro: tudo que NÃO é 'subscription' (inclui 'normal', 'pack', NULL e legados)
+    const filter = next
+      ? "billing_mode.is.null,billing_mode.eq.normal,billing_mode.eq.pack"
+      : "billing_mode.eq.pack,billing_mode.eq.normal,billing_mode.is.null";
     const { error: bulkErr, count } = await supabase
       .from("resellers")
       .update({ billing_mode: targetMode }, { count: "exact" })
-      .eq("billing_mode", fromMode);
+      .or(filter);
     setPacksToggleSaving(false);
     if (bulkErr) {
       toast.error(`Falha ao atualizar revendedores: ${bulkErr.message}`);
       return;
     }
     setPacksGloballyEnabled(next);
-    setResellers((prev) => prev.map((r) => r.billing_mode === fromMode ? { ...r, billing_mode: targetMode } : r));
+    setResellers((prev) => prev.map((r) => r.billing_mode !== "subscription" ? { ...r, billing_mode: targetMode } : r));
     toast[next ? "success" : "warning"](
       next
         ? `Vendas via Pack habilitadas globalmente (${count ?? 0} revendedores atualizados)`
