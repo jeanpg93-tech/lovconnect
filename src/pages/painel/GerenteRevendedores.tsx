@@ -122,18 +122,35 @@ export default function GerenteRevendedores() {
   }, []);
 
   const togglePacksGlobally = async (next: boolean) => {
+    if (next && !confirm("Habilitar vendas via Pack para TODOS os revendedores (exceto Mensalistas)? Cada revendedor poderá então escolher no painel dele entre consumir do Pack ou do saldo.")) return;
+    if (!next && !confirm("Desabilitar vendas via Pack para TODOS os revendedores? Todos voltarão a operar apenas com saldo em R$.")) return;
     setPacksToggleSaving(true);
-    const { error } = await supabase
+    const { error: settingErr } = await supabase
       .from("app_settings")
       .upsert({ key: "packs_sales_enabled_globally", value: next as any }, { onConflict: "key" });
+    if (settingErr) {
+      setPacksToggleSaving(false);
+      toast.error(`Falha ao salvar: ${settingErr.message}`);
+      return;
+    }
+    // Bulk atualiza billing_mode dos revendedores não-mensalistas
+    const targetMode = next ? "pack" : "normal";
+    const fromMode = next ? "normal" : "pack";
+    const { error: bulkErr, count } = await supabase
+      .from("resellers")
+      .update({ billing_mode: targetMode }, { count: "exact" })
+      .eq("billing_mode", fromMode);
     setPacksToggleSaving(false);
-    if (error) {
-      toast.error(`Falha ao salvar: ${error.message}`);
+    if (bulkErr) {
+      toast.error(`Falha ao atualizar revendedores: ${bulkErr.message}`);
       return;
     }
     setPacksGloballyEnabled(next);
+    setResellers((prev) => prev.map((r) => r.billing_mode === fromMode ? { ...r, billing_mode: targetMode } : r));
     toast[next ? "success" : "warning"](
-      next ? "Vendas de Packs habilitadas para todos os revendedores" : "Vendas de Packs desabilitadas para todos os revendedores"
+      next
+        ? `Vendas via Pack habilitadas globalmente (${count ?? 0} revendedores atualizados)`
+        : `Vendas via Pack desabilitadas globalmente (${count ?? 0} revendedores atualizados)`,
     );
   };
 
