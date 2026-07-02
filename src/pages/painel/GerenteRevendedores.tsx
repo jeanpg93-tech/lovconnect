@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,19 @@ import {
 import { PageHeader, PageContainer } from "@/components/painel/PageHeader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, AlertTriangle, Repeat, Package, Pencil } from "lucide-react";
+import { Plus, Loader2, Settings2, Wallet, ChevronDown, ChevronUp, ChevronRight, Store, Ban, Trash2, Crown, Eye, RotateCcw, Search, TrendingUp, Medal, Trophy, CheckCircle2, Clock, XCircle, AlertCircle, AlertTriangle, Repeat, Package, Pencil, MoreVertical, KeyRound, Receipt, Tag, Layers, PauseCircle, PlayCircle, PowerOff } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { labelForPath, isOnline, formatLastSeenBR } from "@/lib/path-labels";
@@ -85,6 +97,7 @@ export default function GerenteRevendedores() {
   const [monthlyRanking, setMonthlyRanking] = useState<{ reseller_id: string; total_spent_cents: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [mobileExpandedRow, setMobileExpandedRow] = useState<string | null>(null);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedResellerId, setSelectedResellerId] = useState<string | null>(null);
 
@@ -641,190 +654,219 @@ export default function GerenteRevendedores() {
               <table className="w-full text-sm">
                 <thead className="bg-white/5 text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/60">
                   <tr>
-                    <th className="px-6 py-4 text-left font-semibold">Nome</th>
-                    <th className="px-6 py-4 text-left font-semibold">Usuário</th>
-                    <th className="px-6 py-4 text-left font-semibold">Atividade</th>
-                    <th className="px-6 py-4 text-left font-semibold">Pagamento</th>
-                    <th className="px-6 py-4 text-left font-semibold">Email</th>
-                    <th className="px-6 py-4 text-left font-semibold">WhatsApp</th>
-                    <th className="px-6 py-4 text-center font-semibold">Nível</th>
-                    <th className="px-6 py-4 text-center font-semibold">Progresso</th>
-                    <th className="px-6 py-4 text-center font-semibold">Teste (Uso/Limite)</th>
-                    <th className="px-6 py-4 text-center font-semibold">Ativo</th>
-                    <th className="px-6 py-4 text-right font-semibold">Saldo</th>
-                    <th className="px-6 py-4 text-center font-semibold">Ações</th>
+                    <th className="w-10 px-3 py-3"></th>
+                    <th className="px-4 py-3 text-left font-semibold">Nome</th>
+                    <th className="px-4 py-3 text-left font-semibold">Pagamento</th>
+                    <th className="px-4 py-3 text-left font-semibold">Atividade</th>
+                    <th className="px-4 py-3 text-center font-semibold">Teste</th>
+                    <th className="px-4 py-3 text-right font-semibold">Saldo</th>
+                    <th className="w-14 px-3 py-3 text-right font-semibold">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {filteredResellers.map((r) => {
                     const prof = profilesByUser[r.user_id];
+                    const banned = !!prof?.is_banned;
                     const balance = balancesByReseller[r.id] ?? 0;
                     const tier = tierFor(r.id);
                     const progress = tierProgressFor(r.id);
                     const presence = presenceByUser[r.user_id];
                     const online = isOnline(presence?.last_seen_at);
+                    const isExpanded = expandedRow === r.id;
+                    const limit = r.test_keys_per_day_override || tier?.test_keys_per_day || 0;
+                    const isSubscription = r.billing_mode === "subscription";
                     return (
-                      <tr key={r.id} className="group transition-all duration-300 hover:bg-white/5">
-                        <td className="px-6 py-4 font-medium text-foreground">
-                          <div className="flex items-center gap-2">
-                            {firstLastName(prof?.display_name)}
-                            {r.billing_mode === "pack" && (
-                              <Badge className="bg-primary/15 text-primary border-primary/30 text-[9px] uppercase">Pack</Badge>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-muted-foreground/80">{r.display_name}</td>
-                        <td className="px-6 py-4 min-w-[180px]">
-                          {presence ? (
-                            <div className="flex flex-col gap-0.5">
-                              <div className="flex items-center gap-1.5">
-                                <span className={cn("relative flex h-2 w-2", online ? "" : "opacity-60")}>
-                                  {online && (
+                      <React.Fragment key={r.id}>
+                        <tr
+                          className="group cursor-pointer transition-colors hover:bg-white/[0.03]"
+                          onClick={() => setExpandedRow(isExpanded ? null : r.id)}
+                        >
+                          <td className="px-3 py-2.5 align-middle">
+                            <ChevronRight className={cn("h-4 w-4 text-muted-foreground/60 transition-transform", isExpanded && "rotate-90 text-primary")} />
+                          </td>
+                          <td className="px-4 py-2.5 align-middle">
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-foreground text-[14px] truncate">{firstLastName(prof?.display_name)}</span>
+                                {online && (
+                                  <span className="relative flex h-2 w-2">
                                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                                  )}
-                                  <span className={cn("relative inline-flex h-2 w-2 rounded-full", online ? "bg-emerald-500" : "bg-slate-500")} />
-                                </span>
-                                <span className={cn("text-[10px] font-bold uppercase tracking-widest", online ? "text-emerald-500" : "text-muted-foreground")}>
-                                  {online ? "Online" : "Offline"}
-                                </span>
-                              </div>
-                              <span className="text-xs text-foreground truncate max-w-[200px]" title={presence.current_path ?? ""}>
-                                {labelForPath(presence.current_path)}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground" title={new Date(presence.last_seen_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}>
-                                {formatLastSeenBR(presence.last_seen_at)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Sem registro</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4"><ActivationBadge status={r.activation_status} /></td>
-                        <td className="px-6 py-4 text-muted-foreground/80">{prof?.email ?? "—"}</td>
-                        <td className="px-6 py-4 text-muted-foreground/80 font-mono text-xs whitespace-nowrap">
-                          <div className="flex items-center gap-1">
-                            {formatPhoneBR(prof?.whatsapp ?? prof?.phone)}
-                            <Button size="icon" variant="ghost" className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary" onClick={() => openEdit(r)}>
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <Select
-                              value={states[r.id]?.forced_tier_id ?? "auto"}
-                              onValueChange={(v) => setForcedTier(r.id, v === "auto" ? null : v)}
-                            >
-                              <SelectTrigger
-                                className="h-7 w-[130px] px-2 text-[10px] font-bold uppercase tracking-widest border-white/10"
-                                style={tier ? { background: `${tier.color}22`, color: tier.color, borderColor: `${tier.color}55` } : undefined}
-                              >
-                                <SelectValue>
-                                  <span className="inline-flex items-center gap-1">
-                                    <Crown className="h-3 w-3" /> {tier?.name ?? "—"}
+                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                                   </span>
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="auto">Automático</SelectItem>
-                                {tiers.filter((t) => t.is_active).map((t) => (
-                                  <SelectItem key={t.id} value={t.id}>
-                                    <span className="inline-flex items-center gap-1.5">
-                                      <span className="h-2 w-2 rounded-full" style={{ background: t.color }} />
-                                      {t.name}
+                                )}
+                                {r.billing_mode === "pack" && (
+                                  <Badge className="bg-primary/15 text-primary border-primary/30 text-[9px] uppercase h-4 px-1.5">Pack</Badge>
+                                )}
+                                {banned && (
+                                  <Badge variant="destructive" className="text-[9px] uppercase h-4 px-1.5">Banido</Badge>
+                                )}
+                              </div>
+                              <span className="text-[11px] text-muted-foreground">
+                                {tier?.name ? `Nível ${tier.name}` : "Sem nível"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5 align-middle">
+                            <ActivationBadge status={r.activation_status} />
+                          </td>
+                          <td className="px-4 py-2.5 align-middle">
+                            <div className="flex flex-col leading-tight">
+                              <span className="text-xs text-foreground truncate max-w-[180px]">
+                                {presence ? labelForPath(presence.current_path) : "—"}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {presence ? formatLastSeenBR(presence.last_seen_at) : "sem registro"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5 text-center align-middle">
+                            <span className="font-mono text-xs font-bold text-foreground/90">{r.test_keys_used_today}/{limit}</span>
+                          </td>
+                          <td className="px-4 py-2.5 text-right align-middle">
+                            <span className={cn("font-mono text-sm font-bold tabular-nums", balance < 0 ? "text-destructive" : "text-primary")}>
+                              {formatBRL(balance)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 text-right align-middle" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">Conta</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => openEdit(r)}>
+                                  <Pencil className="mr-2 h-4 w-4" /> Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openBalance(r)}>
+                                  <Wallet className="mr-2 h-4 w-4" /> Ajustar saldo
+                                </DropdownMenuItem>
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger>
+                                    <Layers className="mr-2 h-4 w-4" /> Mudar nível
+                                  </DropdownMenuSubTrigger>
+                                  <DropdownMenuSubContent className="w-48">
+                                    <DropdownMenuItem onClick={() => setForcedTier(r.id, null)}>
+                                      <span className="text-xs">Automático</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    {tiers.filter((t) => t.is_active).map((t) => (
+                                      <DropdownMenuItem key={t.id} onClick={() => setForcedTier(r.id, t.id)}>
+                                        <span className="mr-2 h-2 w-2 rounded-full" style={{ background: t.color }} />
+                                        <span className="text-xs">{t.name}</span>
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuSub>
+
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">Cobrança</DropdownMenuLabel>
+                                {isSubscription && (
+                                  <DropdownMenuItem onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/mensalidade`)}>
+                                    <Receipt className="mr-2 h-4 w-4" /> Mensalidade
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/pacote`)}>
+                                  <Package className="mr-2 h-4 w-4" /> Pacote
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/precos`)}>
+                                  <Tag className="mr-2 h-4 w-4" /> Preços
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">Chaves de teste</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => openTestKeysConfig(r)}>
+                                  <Settings2 className="mr-2 h-4 w-4" /> Configurar limite
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => resetTestKeys(r)}>
+                                  <RotateCcw className="mr-2 h-4 w-4" /> Resetar contador
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">Status</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => toggleActive(r)}>
+                                  {r.is_active ? (
+                                    <><PauseCircle className="mr-2 h-4 w-4" /> Desativar</>
+                                  ) : (
+                                    <><PlayCircle className="mr-2 h-4 w-4" /> Ativar</>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => toggleBan(r)} className="text-destructive focus:text-destructive">
+                                  <Ban className="mr-2 h-4 w-4" /> {banned ? "Desbanir" : "Banir"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => deleteReseller(r)} className="text-destructive focus:text-destructive">
+                                  <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr className="bg-white/[0.02]">
+                            <td colSpan={7} className="px-6 py-4">
+                              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                                <div className="space-y-1">
+                                  <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60">Usuário</p>
+                                  <p className="text-xs">{r.display_name}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{prof?.email ?? "—"}</p>
+                                  <p className="text-xs font-mono text-muted-foreground">{formatPhoneBR(prof?.whatsapp ?? prof?.phone)}</p>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60">Nível</p>
+                                  <Select
+                                    value={states[r.id]?.forced_tier_id ?? "auto"}
+                                    onValueChange={(v) => setForcedTier(r.id, v === "auto" ? null : v)}
+                                  >
+                                    <SelectTrigger
+                                      className="h-8 w-full px-2 text-[11px] font-bold uppercase tracking-widest border-white/10"
+                                      style={tier ? { background: `${tier.color}22`, color: tier.color, borderColor: `${tier.color}55` } : undefined}
+                                    >
+                                      <SelectValue>
+                                        <span className="inline-flex items-center gap-1"><Crown className="h-3 w-3" /> {tier?.name ?? "—"}</span>
+                                      </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="auto">Automático</SelectItem>
+                                      {tiers.filter((t) => t.is_active).map((t) => (
+                                        <SelectItem key={t.id} value={t.id}>
+                                          <span className="inline-flex items-center gap-1.5">
+                                            <span className="h-2 w-2 rounded-full" style={{ background: t.color }} />
+                                            {t.name}
+                                          </span>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  {states[r.id]?.forced_tier_id && (
+                                    <span className="text-[9px] uppercase tracking-widest text-amber-500/80">Manual</span>
+                                  )}
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60">Progresso</p>
+                                  {progress ? (
+                                    <>
+                                      <Progress value={progress.progress} className="h-1.5" />
+                                      <p className="text-[10px] text-muted-foreground">Próximo: {progress.nextTierName}</p>
+                                    </>
+                                  ) : <span className="text-[10px] text-muted-foreground">Nível máximo</span>}
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60">Atividade</p>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={cn("inline-flex h-2 w-2 rounded-full", online ? "bg-emerald-500" : "bg-slate-500")} />
+                                    <span className={cn("text-[10px] font-bold uppercase tracking-widest", online ? "text-emerald-500" : "text-muted-foreground")}>
+                                      {online ? "Online" : "Offline"}
                                     </span>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {states[r.id]?.forced_tier_id && (
-                              <span className="text-[9px] uppercase tracking-widest text-amber-500/80">Manual</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center min-w-[150px]">
-                          {progress ? (
-                            <div className="space-y-1">
-                              <Progress value={progress.progress} className="h-1.5" />
-                              <p className="text-[9px] text-muted-foreground">Próximo: {progress.nextTierName}</p>
-                            </div>
-                          ) : <span className="text-[10px] text-muted-foreground">Nível Máximo</span>}
-                        </td>
-                         <td className="px-6 py-4 text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono font-bold">{r.test_keys_used_today} / {r.test_keys_per_day_override || tier?.test_keys_per_day || 0}</span>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-6 w-6 rounded-md hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
-                                    onClick={() => openTestKeysConfig(r)}
-                                  >
-                                    <Settings2 className="h-3 w-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Configurar limite diário de chaves de teste</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-6 w-6 rounded-md hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
-                                    onClick={() => resetTestKeys(r)}
-                                  >
-                                    <RotateCcw className="h-3 w-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Zerar contador de chaves de teste usadas hoje</TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="inline-flex"><Switch checked={r.is_active} onCheckedChange={() => toggleActive(r)} /></span>
-                            </TooltipTrigger>
-                            <TooltipContent>{r.is_active ? "Revendedor ativo — clique para suspender" : "Revendedor suspenso — clique para ativar"}</TooltipContent>
-                          </Tooltip>
-                        </td>
-                        <td className="px-6 py-4 text-right font-mono font-bold text-primary">{formatBRL(balance)}</td>
-                        <td className="px-6 py-4 text-center">
-                          <TooltipProvider delayDuration={150}>
-                            <div className="flex justify-center gap-2">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Editar nome e WhatsApp</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="sm" variant="ghost" onClick={() => openBalance(r)}><Wallet className="h-4 w-4" /></Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Ajustar saldo do revendedor</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="sm" variant="ghost" onClick={() => navigate(`/painel/gerente/revendedores/${r.id}/pacote`)} className={cn(r.billing_mode === "pack" && "text-primary")}>
-                                    <Package className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Gerenciar pacote</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="sm" variant="ghost" onClick={() => deleteReseller(r)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Excluir revendedor</TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </TooltipProvider>
-                        </td>
-                      </tr>
+                                  </div>
+                                  <p className="text-xs text-foreground truncate">{presence ? labelForPath(presence.current_path) : "—"}</p>
+                                  <p className="text-[10px] text-muted-foreground">{presence ? formatLastSeenBR(presence.last_seen_at) : "—"}</p>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
