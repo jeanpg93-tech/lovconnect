@@ -131,6 +131,15 @@ const STATUS_LABELS: Record<string, string> = {
   canceled: "Cancelado",
   cancelled: "Cancelado",
   revoked: "Revogado",
+  issued: "Emitido",
+  redeemed: "Resgatado",
+  expired: "Expirado",
+  awaiting_payment: "Aguardando pagamento",
+  awaiting_balance: "Aguardando saldo",
+  renewal_requested: "Renovação solicitada",
+  cancel_requested: "Cancelamento solicitado",
+  cancel_failed: "Falha ao cancelar",
+  cancel_rejected: "Cancelamento negado",
   manual_concluido: "Concluído (manual)",
   manual_aceito: "Aceito (manual)",
   manual_confirmado: "Confirmado (manual)",
@@ -149,12 +158,13 @@ const CANCELED_STATUSES = new Set([
   "revoked",
 ]);
 
-const SUCCESS_STATUSES = new Set(["completed", "sucesso", "manual_concluido", "manual_entregue"]);
+const SUCCESS_STATUSES = new Set(["completed", "sucesso", "manual_concluido", "manual_entregue", "issued", "redeemed"]);
 const PENDING_STATUSES = new Set([
   "pending", "aguardando", "aguardando_avaliacao", "processando",
   "manual_aceito", "manual_confirmado",
+  "awaiting_payment", "awaiting_balance", "renewal_requested", "cancel_requested",
 ]);
-const FAILED_STATUSES = new Set(["failed", "falha", "erro"]);
+const FAILED_STATUSES = new Set(["failed", "falha", "erro", "expired", "cancel_failed", "cancel_rejected"]);
 
 function activityTone(status: string): "success" | "canceled" | "pending" | "failed" {
   if (SUCCESS_STATUSES.has(status)) return "success";
