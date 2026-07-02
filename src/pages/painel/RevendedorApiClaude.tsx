@@ -323,7 +323,10 @@ function TabEndpoints() {
   -H "Idempotency-Key: pedido-42" \\
   -d '{
     "plano": "5x_30d",
-    "id_cliente": "cliente@email.com"
+    "id_cliente": "cliente@email.com",
+    "nome": "João da Silva",
+    "email": "cliente@email.com",
+    "whatsapp": "5511999999999"
   }'
 
 # Resposta
