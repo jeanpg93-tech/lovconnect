@@ -10,7 +10,7 @@ import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Package, Copy, ShieldCheck } from "lucide-react";
+import { Loader2, Package, Copy, ShieldCheck, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/useRole";
 import { PackIcon } from "@/lib/pack-icons";
@@ -30,9 +30,18 @@ export default function RevendedorComprarPacote() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState<string | null>(null);
   const [pix, setPix] = useState<{ purchase_id: string; copy_paste?: string; qr?: string; credits: number; pack_name: string } | null>(null);
+  const [packsGloballyEnabled, setPacksGloballyEnabled] = useState<boolean>(true);
 
   useEffect(() => {
     (async () => {
+      const { data: setting } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "packs_sales_enabled_globally")
+        .maybeSingle();
+      const enabled = (setting?.value as any) === false ? false : true;
+      setPacksGloballyEnabled(enabled);
+      if (!enabled) { setLoading(false); return; }
       const { data } = await invokeAuthenticatedFunction<any>("list-available-packs", { method: "GET" });
       setPacks(((data?.packs ?? []) as any) as Pack[]);
       setLoading(false);
@@ -80,6 +89,16 @@ export default function RevendedorComprarPacote() {
       />
       <PackLowBalanceBanner />
 
+      {!packsGloballyEnabled && (
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-amber-600 dark:text-amber-400">
+          <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+          <div>
+            <div className="font-semibold">Vendas de Packs temporariamente indisponíveis</div>
+            <p className="text-sm opacity-90">A compra de Packs foi pausada pelo gerente. Tente novamente mais tarde.</p>
+          </div>
+        </div>
+      )}
+
       <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2">
         <Package className="h-5 w-5 text-primary" />
         <div>
@@ -88,7 +107,7 @@ export default function RevendedorComprarPacote() {
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6" hidden={!packsGloballyEnabled}>
         {loading ? (
           <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div>
         ) : packs.length === 0 ? (

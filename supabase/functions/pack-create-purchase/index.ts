@@ -118,6 +118,16 @@ Deno.serve(async (req) => {
     const pack_id = String(body.pack_id ?? "");
     if (!pack_id) return json({ error: "pack_id obrigatório" }, 400);
 
+    // Gate global: gerente pode desligar vendas de Packs para todos os revendedores
+    const { data: globalToggle } = await admin
+      .from("app_settings")
+      .select("value")
+      .eq("key", "packs_sales_enabled_globally")
+      .maybeSingle();
+    if ((globalToggle?.value as any) === false) {
+      return json({ error: "Vendas de Packs temporariamente indisponíveis" }, 403);
+    }
+
     // Valida revendedor
     const { data: reseller } = await admin
       .from("resellers")

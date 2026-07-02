@@ -73,6 +73,8 @@ const ActivationBadge = ({ status }: { status?: string | null }) => {
 export default function GerenteRevendedores() {
   const navigate = useNavigate();
   const [resellers, setResellers] = useState<Reseller[]>([]);
+  const [packsGloballyEnabled, setPacksGloballyEnabled] = useState<boolean>(true);
+  const [packsToggleSaving, setPacksToggleSaving] = useState(false);
   const [profilesByUser, setProfilesByUser] = useState<Record<string, Profile>>({});
   const [balancesByReseller, setBalancesByReseller] = useState<Record<string, number>>({});
   const [tiers, setTiers] = useState<Tier[]>([]);
@@ -106,6 +108,34 @@ export default function GerenteRevendedores() {
   const [editPhone, setEditPhone] = useState("");
   const [editDdi, setEditDdi] = useState<string>(DEFAULT_DIAL_CODE);
   const [editSaving, setEditSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "packs_sales_enabled_globally")
+        .maybeSingle();
+      const v = (data?.value as any);
+      setPacksGloballyEnabled(v === false ? false : true);
+    })();
+  }, []);
+
+  const togglePacksGlobally = async (next: boolean) => {
+    setPacksToggleSaving(true);
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ key: "packs_sales_enabled_globally", value: next as any }, { onConflict: "key" });
+    setPacksToggleSaving(false);
+    if (error) {
+      toast.error(`Falha ao salvar: ${error.message}`);
+      return;
+    }
+    setPacksGloballyEnabled(next);
+    toast[next ? "success" : "warning"](
+      next ? "Vendas de Packs habilitadas para todos os revendedores" : "Vendas de Packs desabilitadas para todos os revendedores"
+    );
+  };
 
   const load = async () => {
     setLoading(true);
@@ -483,6 +513,33 @@ export default function GerenteRevendedores() {
             <div className="mt-1 font-display text-xl font-semibold sm:text-2xl">{m.value}</div>
           </div>
         ))}
+      </div>
+
+      {/* Toggle global: Vendas de Packs */}
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-lg",
+            packsGloballyEnabled ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-500"
+          )}>
+            <Package className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold">Vendas de Packs (global)</div>
+            <p className="text-xs text-muted-foreground">
+              Quando desativado, nenhum revendedor conseguirá comprar novos Packs.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={cn(
+            "text-[10px] uppercase font-bold tracking-wider",
+            packsGloballyEnabled ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-500" : "border-amber-500/40 bg-amber-500/10 text-amber-500"
+          )}>
+            {packsGloballyEnabled ? "Habilitado" : "Desabilitado"}
+          </Badge>
+          <Switch checked={packsGloballyEnabled} onCheckedChange={togglePacksGlobally} disabled={packsToggleSaving} />
+        </div>
       </div>
 
       {/* Ranking mensal */}
