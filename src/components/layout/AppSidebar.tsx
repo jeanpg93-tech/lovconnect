@@ -101,6 +101,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
     { label: "Produtos", items: [
       { title: "Geração de Licenças", url: "/painel/gerente/geracao-manual", icon: Sparkles },
       { title: "Geração de Recargas", url: "/painel/gerente/geracao-manual-creditos", icon: Coins },
+      { title: "Claude", url: "/painel/gerente/claude", icon: ClaudeIcon as any },
       { title: "Upload Extensão", url: "/painel/gerente/upload-extensao", icon: Package },
     ]},
     { label: "Gestão produtos", items: [

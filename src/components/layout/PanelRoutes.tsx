@@ -11,6 +11,7 @@ const GerenteAprovacoes = lazy(() => import("@/pages/painel/GerenteAprovacoes"))
 const GerenteGateway = lazy(() => import("@/pages/painel/GerenteGateway"));
 const GerenteApiProvedor = lazy(() => import("@/pages/painel/GerenteApiProvedor"));
 const GerenteClaudeApi = lazy(() => import("@/pages/painel/GerenteClaudeApi"));
+const GerenteClaude = lazy(() => import("@/pages/painel/GerenteClaude"));
 const GerenteApiRecargas = lazy(() => import("@/pages/painel/GerenteApiRecargas"));
 const GerenteAcompanharRecargas = lazy(() => import("@/pages/painel/GerenteAcompanharRecargas"));
 const GerenteRecargasDashboard = lazy(() => import("@/pages/painel/GerenteRecargasDashboard"));
@@ -105,6 +106,7 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/gerente/gateway", match: exact("/painel/gerente/gateway"), render: () => <RoleRoute allow={["gerente"]}><GerenteGateway /></RoleRoute> },
   { key: "/painel/gerente/api-provedor", match: exact("/painel/gerente/api-provedor"), render: () => <RoleRoute allow={["gerente"]}><GerenteApiProvedor /></RoleRoute> },
   { key: "/painel/gerente/api-claude", match: exact("/painel/gerente/api-claude"), render: () => <RoleRoute allow={["gerente"]}><GerenteClaudeApi /></RoleRoute> },
+  { key: "/painel/gerente/claude", match: exact("/painel/gerente/claude"), render: () => <RoleRoute allow={["gerente"]}><GerenteClaude /></RoleRoute> },
   { key: "/painel/gerente/api-recargas", match: exact("/painel/gerente/api-recargas"), render: () => <RoleRoute allow={["gerente"]}><GerenteApiRecargas /></RoleRoute> },
   { key: "/painel/gerente/acompanhar-recargas", match: exact("/painel/gerente/acompanhar-recargas"), render: () => <RoleRoute allow={["gerente"]}><GerenteAcompanharRecargas /></RoleRoute> },
   { key: "/painel/gerente/recargas-dashboard", match: exact("/painel/gerente/recargas-dashboard"), render: () => <RoleRoute allow={["gerente"]}><GerenteRecargasDashboard /></RoleRoute> },
