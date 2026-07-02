@@ -145,7 +145,7 @@ export default function RevendedorPedidos() {
     ] = await Promise.all([
       supabase.from("pricing_plans").select("license_type,label,price_cents,min_price_cents,is_active").eq("is_active", true),
       supabase.from("profiles").select("id,email,display_name").eq("reseller_id", r.id),
-      supabase.from("orders").select("id,license_type,price_cents,status,license_key,created_at,is_test,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("orders").select("id,license_type,price_cents,status,license_key,created_at,is_test,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at,notes, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(20),
       supabase.rpc("get_reseller_tier", { _reseller_id: r.id }),
       supabase.from("reseller_tiers").select("id,name,color,min_spent_cents,discount_percent,sort_order,is_active").eq("is_active", true).order("min_spent_cents", { ascending: true }),
       supabase.from("reseller_tier_state").select("total_spent_cents").eq("reseller_id", r.id).maybeSingle(),
@@ -394,7 +394,7 @@ export default function RevendedorPedidos() {
     setLoadingAll(true);
     const { data } = await supabase
       .from("orders")
-      .select("id,license_type,price_cents,status,license_key,created_at,is_test,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
+      .select("id,license_type,price_cents,status,license_key,created_at,is_test,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at,notes, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
       .eq("reseller_id", resellerId)
       .order("created_at", { ascending: false })
       .limit(1000);
@@ -413,7 +413,7 @@ export default function RevendedorPedidos() {
     let cancelled = false;
     supabase
       .from("orders")
-      .select("id,license_type,price_cents,status,license_key,created_at,is_test,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
+      .select("id,license_type,price_cents,status,license_key,created_at,is_test,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at,notes, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)")
       .eq("reseller_id", resellerId)
       .eq("id", q)
       .maybeSingle()
@@ -1241,27 +1241,38 @@ export default function RevendedorPedidos() {
                             <span>·</span>
                             <span>{fmtDate(it.created_at)}</span>
                           </div>
-                          {isManual && (o!.customer?.display_name || o!.customer?.whatsapp) && (
+                          {isManual && (() => {
+                            // Vendas via API: cliente vive em `notes` (JSON),
+                            // não em reseller_customers. Faz fallback pra
+                            // aparecer igual às vendas manuais/loja.
+                            let n: any = null;
+                            const raw = (o as any)?.notes;
+                            if (raw) { try { n = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { n = null; } }
+                            const name = o!.customer?.display_name ?? n?.display_name ?? n?.customer_name ?? null;
+                            const wa = o!.customer?.whatsapp ?? n?.whatsapp ?? n?.customer_whatsapp ?? null;
+                            if (!name && !wa) return null;
+                            return (
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] pt-0.5">
-                              {o!.customer?.display_name && (
-                                <span className="font-semibold text-foreground/90">👤 {o!.customer.display_name}</span>
+                              {name && (
+                                <span className="font-semibold text-foreground/90">👤 {name}</span>
                               )}
-                              {o!.customer?.whatsapp && (
+                              {wa && (
                                 <>
                                   <span className="text-muted-foreground/60">·</span>
                                   <a
-                                    href={`https://wa.me/${o!.customer.whatsapp.replace(/\D+/g, "")}`}
+                                    href={`https://wa.me/${String(wa).replace(/\D+/g, "")}`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="font-mono text-emerald-500 hover:underline"
                                     title="Abrir no WhatsApp"
                                   >
-                                    {fmtWa(o!.customer.whatsapp)}
+                                    {fmtWa(wa)}
                                   </a>
                                 </>
                               )}
                             </div>
-                          )}
+                            );
+                          })()}
                           {!isManual && (l!.buyer_name || l!.buyer_whatsapp) && (
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] pt-0.5">
                               {l!.buyer_name && (
