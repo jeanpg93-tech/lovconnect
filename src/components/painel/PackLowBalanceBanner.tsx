@@ -52,10 +52,10 @@ export default function PackLowBalanceBanner() {
           </div>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {isZero
-              ? "Compre um novo pacote para continuar gerando chaves."
+              ? "Compre um novo pack para continuar gerando chaves."
               : isCritical
-                ? "Suas licenças estão críticas. Compre um novo pacote antes que terminem."
-                : "Suas licenças estão acabando. Recomendamos comprar um novo pacote em breve."}
+                ? "Suas licenças estão críticas. Compre um novo pack antes que terminem."
+                : "Suas licenças estão acabando. Recomendamos comprar um novo pack em breve."}
           </p>
           <Link
             to="/painel/revendedor/comprar-pacote"
@@ -67,7 +67,7 @@ export default function PackLowBalanceBanner() {
             )}
           >
             <Package className="h-3.5 w-3.5" />
-            Comprar pacote
+            Comprar pack
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>

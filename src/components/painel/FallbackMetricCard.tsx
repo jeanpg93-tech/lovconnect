@@ -29,7 +29,7 @@ export default function FallbackMetricCard({ days = 30 }: { days?: number }) {
     <StatCard
       label="Vendas em Fallback"
       value={count ?? "—"}
-      hint={`Pacote esgotado · últimos ${days}d`}
+      hint={`Pack esgotado · últimos ${days}d`}
       icon={AlertTriangle}
       accent="amber"
     />

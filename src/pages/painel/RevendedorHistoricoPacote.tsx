@@ -45,7 +45,7 @@ export default function RevendedorHistoricoPacote() {
 
   return (
     <PageContainer>
-      <PageHeader title="Histórico de Pacote" description="Suas compras e movimentações de licenças" />
+      <PageHeader title="Histórico de Packs" description="Suas compras e movimentações de licenças" />
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 flex items-center gap-3">
           <Package className="h-5 w-5 text-primary" />

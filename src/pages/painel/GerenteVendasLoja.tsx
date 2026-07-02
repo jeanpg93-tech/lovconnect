@@ -198,8 +198,8 @@ export default function GerenteVendasLoja() {
         <StatCard label="Pagas" value={stats.paidCount} icon={CheckCircle2} hint={`${stats.pending} pendentes`} />
         <StatCard label="Falharam" value={stats.failed} icon={XCircle} hint="Provedor / pagamento" />
         <StatCard label="Receita" value={fmtBRL(stats.totalCents)} icon={Banknote} hint="Apenas vendas pagas" />
-        <StatCard label="Do Pacote" value={stats.fromPack} icon={TrendingUp} hint="Entregues via pacote" />
-        <StatCard label="Fallback p/ Saldo" value={stats.fallback} icon={Clock} hint="Pacote esgotado" />
+        <StatCard label="Do Pack" value={stats.fromPack} icon={TrendingUp} hint="Entregues via pack" />
+        <StatCard label="Fallback p/ Saldo" value={stats.fallback} icon={Clock} hint="Pack esgotado" />
       </div>
 
       {/* Status filter */}
@@ -222,7 +222,7 @@ export default function GerenteVendasLoja() {
         <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Origem:</span>
         {([
           { id: "all", label: "Todas" },
-          { id: "pack", label: "Pacote" },
+          { id: "pack", label: "Pack" },
           { id: "wallet", label: "Saldo" },
           { id: "wallet_fallback", label: "Fallback" },
         ] as const).map((o) => (

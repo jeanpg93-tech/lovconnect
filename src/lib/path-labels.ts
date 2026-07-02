@@ -32,7 +32,7 @@ const STATIC: Record<string, string> = {
   "/painel/gerente/acoes-especiais": "Ações especiais",
   "/painel/gerente/contas-demo": "Contas demo",
   "/painel/gerente/telegram": "Telegram",
-  "/painel/gerente/pacotes": "Pacotes",
+  "/painel/gerente/pacotes": "Packs",
   "/painel/gerente/instalar-app": "Instalar app",
   "/painel/revendedor": "Dashboard",
   "/painel/revendedor/avisos": "Avisos",
@@ -78,7 +78,7 @@ export function labelForPath(path: string | null | undefined): string {
     const sub = m[1];
     if (sub === "precos") return "Preços do revendedor";
     if (sub === "mensalidade") return "Mensalidade do revendedor";
-    if (sub === "pacote") return "Pacote do revendedor";
+    if (sub === "pacote") return "Pack do revendedor";
   }
   if (clean.startsWith("/painel/gerente/revendedores/")) return "Detalhes do revendedor";
   if (clean.startsWith("/loja/")) return "Loja pública";

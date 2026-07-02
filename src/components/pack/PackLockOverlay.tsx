@@ -40,7 +40,7 @@ export function PackLockOverlay() {
                 Suas <span className="text-primary italic">licenças acabaram</span>
               </h1>
               <p className="mt-3 text-sm text-muted-foreground">
-                Para continuar gerando chaves, compre um novo pacote de licenças.
+                Para continuar gerando chaves, compre um novo pack de licenças.
                 O painel é liberado automaticamente assim que o pagamento for confirmado.
               </p>
             </div>
@@ -58,7 +58,7 @@ export function PackLockOverlay() {
               className="w-full"
               onClick={() => navigate("/painel/revendedor/comprar-pacote")}
             >
-              <ShoppingCart className="h-4 w-4 mr-2" /> Comprar pacote agora
+              <ShoppingCart className="h-4 w-4 mr-2" /> Comprar pack agora
             </Button>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
