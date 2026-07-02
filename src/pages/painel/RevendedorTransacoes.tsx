@@ -286,6 +286,9 @@ export default function RevendedorTransacoes() {
                           <p className="text-foreground/90 font-medium leading-tight">
                             {t.description || "—"}
                           </p>
+                          {(t.kind === "claude_key_issue" || t.kind === "claude_key_refund" || t.kind === "claude_key_issue_refund") && t.reference_id && claudeOrders[t.reference_id] && (
+                            <ClaudeOrderChips meta={claudeOrders[t.reference_id]} />
+                          )}
                           {t.reference_id && (
                             <div className="flex flex-col mt-0.5">
                               <span className="text-[9px] font-mono text-muted-foreground/40 block">Ref: {t.reference_id.split("-")[0]}</span>
@@ -339,6 +342,9 @@ export default function RevendedorTransacoes() {
                       <p className="text-foreground/90 font-medium leading-tight text-sm">
                         {t.description || "—"}
                       </p>
+                      {(t.kind === "claude_key_issue" || t.kind === "claude_key_refund" || t.kind === "claude_key_issue_refund") && t.reference_id && claudeOrders[t.reference_id] && (
+                        <ClaudeOrderChips meta={claudeOrders[t.reference_id]} />
+                      )}
                       {t.reference_id && (
                         <div className="flex flex-col mt-1">
                           <span className="text-[9px] font-mono text-muted-foreground/40 block">Ref: {t.reference_id.split("-")[0]}</span>
