@@ -53,7 +53,7 @@ type Storefront = {
 };
 
 
-type Reseller = { id: string; display_name: string; slug: string; is_active: boolean; claude_enabled?: boolean };
+type Reseller = { id: string; display_name: string; slug: string; is_active: boolean };
 type Plan = { license_type: string; label: string; price_cents: number; customer_price_cents: number; is_active: boolean };
 type Pack = { license_type: string; price_cents: number; extension_id?: string | null; method?: "flow" | "lovax"; label?: string; desc?: string };
 type Recharge = { id: string; credits_amount: number; price_cents: number };
@@ -110,6 +110,7 @@ export default function PublicStorefront() {
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [claudePlans, setClaudePlans] = useState<{ code: string; label: string; price_cents: number; sort_order: number }[]>([]);
   const [claudeLoading, setClaudeLoading] = useState(false);
+  const [claudeAvailable, setClaudeAvailable] = useState(false);
   
   // Device Reset
   const [resetKey, setResetKey] = useState("");
@@ -244,6 +245,8 @@ export default function PublicStorefront() {
     (async () => {
       if (!slug) return;
       setLoading(true);
+      setClaudeAvailable(false);
+      setClaudePlans([]);
       // Retry-friendly loader — evita "Loja não encontrada" quando o problema
       // real é uma falha transitória de rede/CDN. Tentamos 3x com backoff curto.
       let r: any = null;
@@ -251,7 +254,7 @@ export default function PublicStorefront() {
       for (let attempt = 0; attempt < 3; attempt++) {
         const res = await supabase
           .from("resellers")
-          .select("id, display_name, slug, is_active, recharge_plans_enabled, claude_enabled")
+          .select("id, display_name, slug, is_active")
           .ilike("slug", slug)
           .maybeSingle();
         r = res.data;
@@ -383,7 +386,7 @@ export default function PublicStorefront() {
       }
 
       // Planos Claude (Fase 4b — loja pública)
-      if ((r as any).claude_enabled && ((s as any)?.show_claude !== false)) {
+      if ((s as any)?.show_claude !== false) {
         setClaudeLoading(true);
         try {
           const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
@@ -394,8 +397,11 @@ export default function PublicStorefront() {
               `https://${projectId}.supabase.co/functions/v1/claude-public-prices?slug=${encodeURIComponent(slug)}`,
             );
             const j = await res.json().catch(() => ({}));
-            priceMap = j?.prices;
-            ordered = j?.ordered;
+            if (res.ok && j?.ok) {
+              setClaudeAvailable(true);
+              priceMap = j?.prices;
+              ordered = j?.ordered;
+            }
           }
           if (ordered && ordered.length) {
             const LABELS: Record<string, string> = {
@@ -671,7 +677,7 @@ export default function PublicStorefront() {
   const bgColor = store.background_color || undefined;
   const bgEffect = (store.background_effect ?? "none") as BgEffect;
   const layoutMode = (store.layout_mode ?? "grid") as LayoutMode;
-  const showClaudePortal = !!reseller.claude_enabled && (store as any)?.show_claude !== false;
+  const showClaudePortal = claudeAvailable && (store as any)?.show_claude !== false;
 
   return (
     <div className="relative min-h-screen bg-background overflow-x-hidden" style={bgColor ? { backgroundColor: bgColor } : undefined}>

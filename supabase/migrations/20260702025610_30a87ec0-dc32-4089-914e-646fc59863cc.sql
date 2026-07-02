@@ -1,0 +1,1 @@
+GRANT SELECT (recharge_plans_enabled, claude_enabled) ON public.resellers TO anon;
