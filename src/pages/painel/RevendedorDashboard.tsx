@@ -306,7 +306,17 @@ export default function RevendedorDashboard() {
       const combinedActivities: ActivityItem[] = [
         ...ords
           .filter((o: any) => !/credit|recarga/i.test(o.license_type ?? ""))
-          .map((o: any) => ({
+          .map((o: any) => {
+            // Vendas via API não criam reseller_customers — nome/whatsapp
+            // ficam gravados no JSON de `notes`. Fazemos fallback pra
+            // exibir o cliente igual às outras origens.
+            let notesObj: any = null;
+            if (o.notes) {
+              try { notesObj = typeof o.notes === "string" ? JSON.parse(o.notes) : o.notes; } catch { notesObj = null; }
+            }
+            const custName = o.customer?.display_name ?? notesObj?.display_name ?? notesObj?.customer_name ?? null;
+            const custWa = o.customer?.whatsapp ?? notesObj?.whatsapp ?? notesObj?.customer_whatsapp ?? null;
+            return ({
           id: o.id,
           type: "sale" as const,
           title: describeLicense(o.license_type),
@@ -317,11 +327,12 @@ export default function RevendedorDashboard() {
             extension_id: o.extension_id,
             license_type: o.license_type,
             is_test: o.is_test,
-            customer_name: o.customer?.display_name ?? null,
-            customer_whatsapp: o.customer?.whatsapp ?? null,
+            customer_name: custName,
+            customer_whatsapp: custWa,
             notes: o.notes ?? null,
           }
-        })),
+            });
+          }),
         ...recharges.map((rc: any) => ({
           id: rc.id,
           type: "recharge" as const,
