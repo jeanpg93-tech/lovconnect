@@ -227,6 +227,20 @@ function TabInicio() {
         />
       </div>
 
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-xs text-amber-200">
+        <strong className="text-amber-100">Atenção — duas URLs diferentes:</strong>
+        <ul className="mt-2 list-disc space-y-1 pl-4">
+          <li>
+            <code className="font-mono bg-black/30 px-1 rounded">{BASE_URL}</code> — é a URL da <strong>API de revenda</strong>.
+            Use somente no seu <strong>backend</strong> com o header <code className="font-mono">X-API-Key</code>. <strong>Nunca</strong> exiba para o cliente final.
+          </li>
+          <li>
+            <code className="font-mono bg-black/30 px-1 rounded">https://claude-ss.ia.br/</code> — é a <strong>URL do fornecedor Claude</strong>.
+            Essa sim é a URL que o <strong>cliente final</strong> coloca no Cursor / Cline / Claude Code, junto com a chave <code className="font-mono">ACT-...</code> que o <code className="font-mono">POST /chaves</code> devolveu.
+          </li>
+        </ul>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-xl border border-border bg-card/60 p-5">
           <h4 className="text-sm font-semibold flex items-center gap-2">
@@ -337,6 +351,31 @@ function TabEndpoints() {
 
 # status: pending | issued | redeemed | cancel_requested |
 #         cancelled | cancel_rejected | refunded | expired | failed`}
+      />
+      <CodeBlock
+        title="GET /chaves/{id}/consumo — Consumo de tokens (best-effort)"
+        body={`curl -X GET "${BASE_URL}/chaves/PEDIDO_ID/consumo" \\
+  -H "X-API-Key: SUA_API_KEY"
+
+# Resposta
+{
+  "success": true,
+  "consumo": {
+    "status": "active",
+    "expira_em": "2026-08-01T12:00:00Z",
+    "tokens_consumidos": 12345,
+    "tokens_janela": 8000,
+    "tokens_limite": 500000,
+    "janela_horas": 5,
+    "percentual_usado_dia": 1.6,
+    "percentual_restante": 98.4,
+    "tokens_janela_semanal": 20000,
+    "tokens_limite_semanal": 2500000
+  }
+}
+
+# Se o cliente ainda nao usou a chave, "consumo" volta null.
+# Use este endpoint para alimentar o card "Consumo de tokens" do painel do cliente.`}
       />
       <CodeBlock
         title="POST /chaves/{id}/cancelar — Cancelar / Revogar chave"
