@@ -1006,15 +1006,40 @@ export default function RevendedorDashboard() {
                   pending: { bg: "bg-amber-500/10 text-amber-500", text: "text-amber-500" },
                   failed: { bg: "bg-destructive/10 text-destructive", text: "text-destructive" },
                 }[tone];
-                const Icon = tone === "success" ? CheckCircle2 : XCircle;
+                const isClaude = activity.type === "claude_sale";
+                const isRecharge = activity.type === "recharge";
+                const Icon = isClaude
+                  ? ClaudeIcon
+                  : tone === "success"
+                    ? CheckCircle2
+                    : XCircle;
+                const iconWrap = isClaude
+                  ? "bg-[#d97757]/10 text-[#d97757]"
+                  : toneClasses.bg;
+                const hoverGlow = isClaude
+                  ? "hover:border-[#d97757]/40 hover:shadow-[0_0_20px_-6px_rgba(217,119,87,0.55)]"
+                  : isRecharge
+                    ? "hover:border-purple-500/40 hover:shadow-[0_0_20px_-6px_hsl(270_91%_65%/0.5)]"
+                    : "hover:border-primary/30 hover:shadow-[0_0_20px_-6px_hsl(var(--primary)/0.45)]";
                 return (
-                <div key={activity.id} className="flex items-center justify-between p-2.5 md:p-3 rounded-xl border border-border/50 hover:bg-muted/30 transition-colors">
+                <div
+                  key={activity.id}
+                  className={cn(
+                    "flex items-center justify-between p-2.5 md:p-3 rounded-xl border border-border/50 bg-background/40 transition-all duration-300 hover:bg-muted/30",
+                    hoverGlow,
+                  )}
+                >
                   <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
-                    <div className={cn("flex h-7 w-7 md:h-8 md:w-8 shrink-0 items-center justify-center rounded-lg", toneClasses.bg)}>
+                    <div className={cn("flex h-7 w-7 md:h-8 md:w-8 shrink-0 items-center justify-center rounded-lg", iconWrap)}>
                       <Icon className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-xs md:text-sm font-bold truncate">
+                      <div className="text-xs md:text-sm font-bold truncate flex items-center gap-2 flex-wrap">
+                        {isClaude && (
+                          <span className="inline-flex items-center gap-1 rounded-md border border-[#d97757]/30 bg-[#d97757]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#d97757]">
+                            <ClaudeIcon className="h-2.5 w-2.5" /> Claude
+                          </span>
+                        )}
                         {activity.title}
                         {activity.type === 'sale' && extMap[activity.metadata?.extension_id || ""] ? (
                           <span className="ml-1 text-muted-foreground font-normal">· {extMap[activity.metadata.extension_id]}</span>
@@ -1027,6 +1052,11 @@ export default function RevendedorDashboard() {
                             </span>
                           ) : null;
                         })()}
+                        {isClaude && activity.metadata?.channel && (
+                          <span className="ml-1 rounded-sm bg-muted text-muted-foreground px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest">
+                            {activity.metadata.channel === "loja" ? "Loja" : "API"}
+                          </span>
+                        )}
                       </div>
                       <div className="text-[9px] md:text-[10px] text-muted-foreground">{format(new Date(activity.created_at), "dd MMM, HH:mm", { locale: ptBR })}</div>
                       {(activity.metadata?.customer_name || activity.metadata?.customer_whatsapp) && (
