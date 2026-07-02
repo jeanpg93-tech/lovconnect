@@ -4,7 +4,7 @@ import { PageContainer } from "@/components/painel/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity, Copy, KeyRound, Ban, ShieldAlert } from "lucide-react";
+import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity, Copy, KeyRound, Ban, ShieldAlert, Store, Code2, Phone, Hash } from "lucide-react";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -20,6 +20,8 @@ type Order = {
   customer_email: string | null;
   customer_name: string | null;
   customer_whatsapp: string | null;
+  customer_identifier?: string | null;
+  origin?: 'loja' | 'api';
   created_at: string;
   sale_price_cents: number;
   provider_key_id: string | null;
@@ -190,6 +192,15 @@ export default function RevendedorMeusClientesClaude() {
                     <div className="flex items-center gap-2">
                       <ClaudeIcon className="h-4 w-4 text-primary" />
                       <span className="font-display text-sm font-semibold">{PLAN_LABELS[o.plan_code] ?? o.plan_code}</span>
+                      {o.origin === 'api' ? (
+                        <Badge variant="outline" className="text-[9px] font-bold uppercase border-violet-500/40 bg-violet-500/10 text-violet-400">
+                          <Code2 className="mr-0.5 h-2.5 w-2.5" /> API
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[9px] font-bold uppercase border-sky-500/40 bg-sky-500/10 text-sky-400">
+                          <Store className="mr-0.5 h-2.5 w-2.5" /> Loja
+                        </Badge>
+                      )}
                     </div>
                     <div className="mt-1 flex items-center gap-1 text-[12px] text-foreground/80 truncate">
                       <User className="h-3 w-3 text-muted-foreground" />
@@ -199,6 +210,18 @@ export default function RevendedorMeusClientesClaude() {
                       <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground truncate">
                         <Mail className="h-3 w-3" />
                         <span className="truncate">{o.customer_email}</span>
+                      </div>
+                    )}
+                    {o.customer_whatsapp && (
+                      <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground truncate">
+                        <Phone className="h-3 w-3" />
+                        <span className="truncate">{o.customer_whatsapp}</span>
+                      </div>
+                    )}
+                    {!o.customer_email && !o.customer_name && o.customer_identifier && (
+                      <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground truncate">
+                        <Hash className="h-3 w-3" />
+                        <span className="truncate font-mono">id_cliente: {o.customer_identifier}</span>
                       </div>
                     )}
                   </div>
