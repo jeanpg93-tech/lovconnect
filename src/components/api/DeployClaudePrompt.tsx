@@ -48,8 +48,11 @@ Integrar a API Claude do meu provedor para que meu painel possa:
 5. Receber webhooks quando uma chave for emitida (opcional).
 
 ## 🔑 Credenciais
-- **Base URL:** \`${baseUrl}\`
-- **Autenticação:** header \`x-api-key: <MINHA_CHAVE>\` em **todas** as requisições.
+- **Base URL (backend do revendedor → nossa API de revenda):** \`${baseUrl}\`
+  Use **somente no seu backend** (edge function \`claude-proxy\`) para consultar saldo, planos, emitir e listar chaves. **NÃO** exiba esta URL para o cliente final.
+- **Base URL do FORNECEDOR (para o cliente final plugar no Cursor / Claude Code / Cline):** \`https://claude-ss.ia.br/\`
+  Essa é a URL que aparece no painel do cliente ao lado da chave \`ACT-...\`. O cliente configura o cliente Anthropic com essa base URL + a chave recebida. **Nunca** mostre a URL do \`reseller-claude-api\` para o cliente — ele não deve chamá-la diretamente.
+- **Autenticação (backend → API de revenda):** header \`x-api-key: <MINHA_CHAVE>\` em **todas** as requisições ao \`${baseUrl}\`.
 - A chave deve ser armazenada como **segredo do backend** (nunca exposta no frontend). Crie **dois** secrets e peça ao usuário para preenchê-los:
   - \`CLAUDE_RESELLER_API_KEY\` — a API Key gerada em **Painel → API Claude → Gerar chave API** (começa com \`sk_claude_\`).
   - \`CLAUDE_WEBHOOK_SECRET\` — o **Segredo HMAC** exibido em **Painel → API Claude → Webhook** (usado para validar \`x-signature\` dos eventos).
@@ -98,6 +101,24 @@ Emite uma chave Claude e debita do saldo.
 ### GET /chaves/{id}
 Detalhe de um pedido específico.
 
+### GET /chaves/{id}/consumo
+Snapshot de consumo de tokens do cliente (best-effort — depende do fornecedor).
+\`\`\`json
+{ "success": true, "consumo": {
+  "status": "active",
+  "expira_em": "2026-08-01T...",
+  "tokens_consumidos": 12345,
+  "tokens_janela": 8000,
+  "tokens_limite": 500000,
+  "janela_horas": 5,
+  "percentual_usado_dia": 1.6,
+  "percentual_restante": 98.4,
+  "tokens_janela_semanal": 20000,
+  "tokens_limite_semanal": 2500000
+} }
+\`\`\`
+> Use no card **"Consumo de tokens"** do painel do cliente. Se \`consumo\` vier \`null\`, mostre "O fornecedor ainda não retornou dados de consumo para esta chave." e ofereça um botão de atualizar (o consumo aparece após o primeiro uso real da chave).
+
 ### Webhook (POST do servidor para a URL configurada na chave)
 Disparado quando uma chave é emitida. Header de assinatura: \`x-signature: sha256=<hex>\`.
 **Payload:**
@@ -123,6 +144,12 @@ Crie \`src/integrations/claude/client.ts\` com funções tipadas: \`getSaldo()\`
 > Apenas no **MODO A**. No **MODO B**, pule esta seção inteira e entregue os componentes plugáveis descritos no topo.
 - **\`/integracoes/claude\`** — Card com saldo. Grid dos planos ativos (buscados de \`/planos\`). Formulário "Emitir chave" (plano + dados do cliente + botão). Modal exibindo a \`chave\` uma única vez, com botão de copiar. Tabela com últimos 20 pedidos.
 - **\`/integracoes/claude/historico\`** — Histórico paginado completo.
+
+> **No painel/portal do cliente final**, sempre exiba **dois blocos** na seção da chave:
+> 1. **CHAVE (X-API-KEY)** — o valor \`ACT-...\` retornado no \`POST /chaves\`.
+> 2. **URL BASE DO FORNECEDOR** — o valor fixo \`https://claude-ss.ia.br/\` (nunca a URL do \`reseller-claude-api\`). Esta é a URL que ele configura no Cursor/Cline/Claude Code.
+>
+> Também exiba o card **"Consumo de tokens"** usando \`GET /chaves/{id}/consumo\`.
 
 ### 4. Sidebar / Menu
 > Apenas no **MODO A**. No **MODO B**, **não** adicione item de menu — o revendedor já tem o próprio.
