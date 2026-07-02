@@ -97,6 +97,7 @@ export default function GerenteRevendedores() {
   const [monthlyRanking, setMonthlyRanking] = useState<{ reseller_id: string; total_spent_cents: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [mobileExpandedRow, setMobileExpandedRow] = useState<string | null>(null);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedResellerId, setSelectedResellerId] = useState<string | null>(null);
 
