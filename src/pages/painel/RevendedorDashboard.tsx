@@ -433,7 +433,7 @@ export default function RevendedorDashboard() {
       try {
         const fromIso = chartRange.from.toISOString();
         const toIso = chartRange.to.toISOString();
-        const [salesRes, rcRes] = await Promise.all([
+        const [salesRes, rcRes, claudeRes] = await Promise.all([
           supabase
             .from("orders")
             .select("created_at,price_cents,license_type,notes")
@@ -451,10 +451,19 @@ export default function RevendedorDashboard() {
             .gte("created_at", fromIso)
             .lte("created_at", toIso)
             .limit(5000),
+          supabase
+            .from("claude_orders")
+            .select("created_at,sale_price_cents,plan_code,status")
+            .eq("reseller_id", resellerId)
+            .in("status", ["issued", "redeemed"])
+            .gte("created_at", fromIso)
+            .lte("created_at", toIso)
+            .limit(5000),
         ]);
         if (cancelled) return;
         setChartSales((salesRes.data ?? []) as ChartSale[]);
         setChartRecharges((rcRes.data ?? []) as ChartRecharge[]);
+        setChartClaude((claudeRes.data ?? []) as ChartClaude[]);
       } finally {
         if (!cancelled) setChartLoading(false);
       }
@@ -489,8 +498,9 @@ export default function RevendedorDashboard() {
   const chartRevenueCents = useMemo(
     () =>
       chartSales.reduce((s, x) => s + (x.price_cents ?? 0), 0) +
-      chartRecharges.reduce((s, x) => s + (x.price_cents ?? 0), 0),
-    [chartSales, chartRecharges],
+      chartRecharges.reduce((s, x) => s + (x.price_cents ?? 0), 0) +
+      chartClaude.reduce((s, x) => s + (x.sale_price_cents ?? 0), 0),
+    [chartSales, chartRecharges, chartClaude],
   );
 
   const dailySales = useMemo(() => {
@@ -514,8 +524,9 @@ export default function RevendedorDashboard() {
     };
     chartSales.forEach((s) => bump(s.created_at, s.price_cents ?? 0));
     chartRecharges.forEach((r) => bump(r.created_at, r.price_cents ?? 0));
+    chartClaude.forEach((c) => bump(c.created_at, c.sale_price_cents ?? 0));
     return days;
-  }, [chartRange?.from?.getTime(), chartRange?.to?.getTime(), chartSales, chartRecharges]);
+  }, [chartRange?.from?.getTime(), chartRange?.to?.getTime(), chartSales, chartRecharges, chartClaude]);
 
   const byType = useMemo(() => {
     const map: Record<string, number> = {};
@@ -527,13 +538,22 @@ export default function RevendedorDashboard() {
     if (chartRecharges.length > 0) {
       map["recharge"] = (map["recharge"] ?? 0) + chartRecharges.length;
     }
+    chartClaude.forEach((c) => {
+      const key = `claude:${c.plan_code ?? "outros"}`;
+      map[key] = (map[key] ?? 0) + 1;
+    });
     return Object.entries(map)
       .map(([k, v]) => ({
-        name: k === "recharge" ? "Recargas de Créditos" : (LICENSE_LABELS[k] ?? k),
+        name:
+          k === "recharge"
+            ? "Recargas de Créditos"
+            : k.startsWith("claude:")
+              ? describeClaudePlan(k.slice(7))
+              : (LICENSE_LABELS[k] ?? k),
         value: v,
       }))
       .sort((a, b) => b.value - a.value);
-  }, [chartSales, chartRecharges]);
+  }, [chartSales, chartRecharges, chartClaude]);
 
   // Breakdown por origem (Pack / Saldo / Fallback) dentro do mesmo período
   const chartOriginBreakdown = useMemo(() => {
