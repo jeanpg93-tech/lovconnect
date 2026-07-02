@@ -86,6 +86,22 @@ const LICENSE_LABELS: Record<string, string> = {
   lifetime: "Vitalícia",
 };
 
+const CLAUDE_PLAN_LABELS: Record<string, string> = {
+  pro_1d: "Claude Pro 1 dia",
+  pro_7d: "Claude Pro 7 dias",
+  pro_15d: "Claude Pro 15 dias",
+  pro_30d: "Claude Pro 30 dias",
+  "5x_1d": "Claude 5x · 1 dia",
+  "5x_7d": "Claude 5x · 7 dias",
+  "5x_30d": "Claude 5x · 30 dias",
+  lifetime: "Claude Vitalícia",
+};
+
+function describeClaudePlan(plan_code?: string | null) {
+  if (!plan_code) return "Venda Claude";
+  return CLAUDE_PLAN_LABELS[plan_code] ?? `Claude ${plan_code}`;
+}
+
 function describeLicense(license_type?: string | null) {
   if (!license_type) return "Licença";
   if (LICENSE_LABELS[license_type]) return `Licença ${LICENSE_LABELS[license_type]}`;
@@ -115,6 +131,15 @@ const STATUS_LABELS: Record<string, string> = {
   canceled: "Cancelado",
   cancelled: "Cancelado",
   revoked: "Revogado",
+  issued: "Emitido",
+  redeemed: "Resgatado",
+  expired: "Expirado",
+  awaiting_payment: "Aguardando pagamento",
+  awaiting_balance: "Aguardando saldo",
+  renewal_requested: "Renovação solicitada",
+  cancel_requested: "Cancelamento solicitado",
+  cancel_failed: "Falha ao cancelar",
+  cancel_rejected: "Cancelamento negado",
   manual_concluido: "Concluído (manual)",
   manual_aceito: "Aceito (manual)",
   manual_confirmado: "Confirmado (manual)",
@@ -133,12 +158,13 @@ const CANCELED_STATUSES = new Set([
   "revoked",
 ]);
 
-const SUCCESS_STATUSES = new Set(["completed", "sucesso", "manual_concluido", "manual_entregue"]);
+const SUCCESS_STATUSES = new Set(["completed", "sucesso", "manual_concluido", "manual_entregue", "issued", "redeemed"]);
 const PENDING_STATUSES = new Set([
   "pending", "aguardando", "aguardando_avaliacao", "processando",
   "manual_aceito", "manual_confirmado",
+  "awaiting_payment", "awaiting_balance", "renewal_requested", "cancel_requested",
 ]);
-const FAILED_STATUSES = new Set(["failed", "falha", "erro"]);
+const FAILED_STATUSES = new Set(["failed", "falha", "erro", "expired", "cancel_failed", "cancel_rejected"]);
 
 function activityTone(status: string): "success" | "canceled" | "pending" | "failed" {
   if (SUCCESS_STATUSES.has(status)) return "success";
@@ -151,7 +177,7 @@ const PIE_COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#3b82f6", "#a8
 
 type ActivityItem = {
   id: string;
-  type: "sale" | "recharge";
+  type: "sale" | "recharge" | "claude_sale";
   title: string;
   amount_cents: number;
   status: string;
@@ -209,9 +235,11 @@ export default function RevendedorDashboard() {
   );
   type ChartSale = { created_at: string; price_cents: number; license_type: string | null; notes: string | null };
   type ChartRecharge = { created_at: string; price_cents: number };
+  type ChartClaude = { created_at: string; sale_price_cents: number; plan_code: string | null };
   const [chartLoading, setChartLoading] = useState(false);
   const [chartSales, setChartSales] = useState<ChartSale[]>([]);
   const [chartRecharges, setChartRecharges] = useState<ChartRecharge[]>([]);
+  const [chartClaude, setChartClaude] = useState<ChartClaude[]>([]);
 
   const reload = useCallback(async (opts: { silent?: boolean } = {}) => {
     if (!user) return;
@@ -241,6 +269,7 @@ export default function RevendedorDashboard() {
         canceledRes,
         ordersRes,
         rechargesRes,
+        claudeOrdersRes,
         integRes,
         announcementsRes,
       ] = await Promise.all([
@@ -254,6 +283,7 @@ export default function RevendedorDashboard() {
         supabase.from("orders").select("*", { count: "exact", head: true }).eq("reseller_id", r.id).eq("is_test", false).in("status", ["refunded", "reembolsado", "estornado", "revoked", "canceled", "cancelled", "cancelado"]),
         supabase.from("orders").select("id,license_type,price_cents,status,created_at,client_id,extension_id,is_test,notes, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
         supabase.from("reseller_credit_purchases").select("id,credits,price_cents,status,created_at,customer_name,customer_whatsapp").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
+        supabase.from("claude_orders").select("id,plan_code,sale_price_cents,status,created_at,customer_name,customer_whatsapp,provider_transaction_id").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
         supabase.from("reseller_integrations").select("misticpay_enabled,connection_status").eq("reseller_id", r.id).maybeSingle(),
         supabase.from("announcements").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
       ]);
@@ -271,6 +301,7 @@ export default function RevendedorDashboard() {
 
       const ords = (ordersRes.data ?? []) || [];
       const recharges = (rechargesRes.data ?? []) || [];
+      const claudeOrds = (claudeOrdersRes.data ?? []) || [];
 
       const combinedActivities: ActivityItem[] = [
         ...ords
@@ -303,7 +334,21 @@ export default function RevendedorDashboard() {
             customer_name: rc.customer_name ?? null,
             customer_whatsapp: rc.customer_whatsapp ?? null,
           }
-        }))
+        })),
+        ...claudeOrds.map((c: any) => ({
+          id: `claude-${c.id}`,
+          type: "claude_sale" as const,
+          title: describeClaudePlan(c.plan_code),
+          amount_cents: c.sale_price_cents ?? 0,
+          status: c.status,
+          created_at: c.created_at,
+          metadata: {
+            plan_code: c.plan_code,
+            customer_name: c.customer_name ?? null,
+            customer_whatsapp: c.customer_whatsapp ?? null,
+            channel: c.provider_transaction_id ? "loja" : "api",
+          },
+        })),
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       setActivities(combinedActivities);
@@ -375,6 +420,7 @@ export default function RevendedorDashboard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter }, () => reload({ silent: true }))
       .on("postgres_changes", { event: "*", schema: "public", table: "reseller_credit_purchases", filter }, () => reload({ silent: true }))
       .on("postgres_changes", { event: "*", schema: "public", table: "reseller_tier_state", filter }, () => reload({ silent: true }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "claude_orders", filter }, () => reload({ silent: true }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, resellerId, reload]);
@@ -388,7 +434,7 @@ export default function RevendedorDashboard() {
       try {
         const fromIso = chartRange.from.toISOString();
         const toIso = chartRange.to.toISOString();
-        const [salesRes, rcRes] = await Promise.all([
+        const [salesRes, rcRes, claudeRes] = await Promise.all([
           supabase
             .from("orders")
             .select("created_at,price_cents,license_type,notes")
@@ -406,10 +452,19 @@ export default function RevendedorDashboard() {
             .gte("created_at", fromIso)
             .lte("created_at", toIso)
             .limit(5000),
+          supabase
+            .from("claude_orders")
+            .select("created_at,sale_price_cents,plan_code,status")
+            .eq("reseller_id", resellerId)
+            .in("status", ["issued", "redeemed"])
+            .gte("created_at", fromIso)
+            .lte("created_at", toIso)
+            .limit(5000),
         ]);
         if (cancelled) return;
         setChartSales((salesRes.data ?? []) as ChartSale[]);
         setChartRecharges((rcRes.data ?? []) as ChartRecharge[]);
+        setChartClaude((claudeRes.data ?? []) as ChartClaude[]);
       } finally {
         if (!cancelled) setChartLoading(false);
       }
@@ -440,12 +495,21 @@ export default function RevendedorDashboard() {
   const last7 = useMemo(() => salesWindow(7), [completed]); // eslint-disable-line react-hooks/exhaustive-deps
   const last30 = useMemo(() => salesWindow(30), [completed]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const claude30 = useMemo(() => {
+    const cutoff = subDays(new Date(), 30);
+    const list = completed.filter(
+      (a) => a.type === "claude_sale" && isAfter(new Date(a.created_at), cutoff),
+    );
+    return { count: list.length, cents: list.reduce((s, a) => s + a.amount_cents, 0) };
+  }, [completed]);
+
   // === Gráficos baseados no período selecionado ===
   const chartRevenueCents = useMemo(
     () =>
       chartSales.reduce((s, x) => s + (x.price_cents ?? 0), 0) +
-      chartRecharges.reduce((s, x) => s + (x.price_cents ?? 0), 0),
-    [chartSales, chartRecharges],
+      chartRecharges.reduce((s, x) => s + (x.price_cents ?? 0), 0) +
+      chartClaude.reduce((s, x) => s + (x.sale_price_cents ?? 0), 0),
+    [chartSales, chartRecharges, chartClaude],
   );
 
   const dailySales = useMemo(() => {
@@ -469,8 +533,9 @@ export default function RevendedorDashboard() {
     };
     chartSales.forEach((s) => bump(s.created_at, s.price_cents ?? 0));
     chartRecharges.forEach((r) => bump(r.created_at, r.price_cents ?? 0));
+    chartClaude.forEach((c) => bump(c.created_at, c.sale_price_cents ?? 0));
     return days;
-  }, [chartRange?.from?.getTime(), chartRange?.to?.getTime(), chartSales, chartRecharges]);
+  }, [chartRange?.from?.getTime(), chartRange?.to?.getTime(), chartSales, chartRecharges, chartClaude]);
 
   const byType = useMemo(() => {
     const map: Record<string, number> = {};
@@ -482,13 +547,22 @@ export default function RevendedorDashboard() {
     if (chartRecharges.length > 0) {
       map["recharge"] = (map["recharge"] ?? 0) + chartRecharges.length;
     }
+    chartClaude.forEach((c) => {
+      const key = `claude:${c.plan_code ?? "outros"}`;
+      map[key] = (map[key] ?? 0) + 1;
+    });
     return Object.entries(map)
       .map(([k, v]) => ({
-        name: k === "recharge" ? "Recargas de Créditos" : (LICENSE_LABELS[k] ?? k),
+        name:
+          k === "recharge"
+            ? "Recargas de Créditos"
+            : k.startsWith("claude:")
+              ? describeClaudePlan(k.slice(7))
+              : (LICENSE_LABELS[k] ?? k),
         value: v,
       }))
       .sort((a, b) => b.value - a.value);
-  }, [chartSales, chartRecharges]);
+  }, [chartSales, chartRecharges, chartClaude]);
 
   // Breakdown por origem (Pack / Saldo / Fallback) dentro do mesmo período
   const chartOriginBreakdown = useMemo(() => {
@@ -667,8 +741,8 @@ export default function RevendedorDashboard() {
             </div>
 
             {/* Mini stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-emerald-500/40">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 pt-2">
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition-all duration-300 hover:border-emerald-500/40 hover:shadow-[0_0_28px_-8px_hsl(160_84%_39%/0.55)]">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-emerald-500/10 blur-2xl" />
                 <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
                   <TrendingUp className="h-3 w-3 text-emerald-500" /> Hoje
@@ -678,7 +752,7 @@ export default function RevendedorDashboard() {
                 </div>
                 <div className="relative text-[10px] text-muted-foreground mt-0.5">{today.count} pedidos</div>
               </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-primary/40">
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_28px_-8px_hsl(var(--primary)/0.55)]">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-primary/10 blur-2xl" />
                 <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
                   <Wallet className="h-3 w-3 text-primary" /> Saldo
@@ -686,7 +760,18 @@ export default function RevendedorDashboard() {
                 <div className="relative mt-2 font-display font-black text-xl">{fmtBRL(balance)}</div>
                 <div className="relative text-[10px] text-muted-foreground mt-0.5">disponível</div>
               </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-blue-500/40">
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition-all duration-300 hover:border-[#d97757]/50 hover:shadow-[0_0_28px_-8px_rgba(217,119,87,0.6)]">
+                <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-[#d97757]/10 blur-2xl" />
+                <div className="absolute right-3 top-3 opacity-20 group-hover:opacity-40 transition-opacity">
+                  <ClaudeIcon className="h-8 w-8 text-[#d97757]" />
+                </div>
+                <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
+                  <ClaudeIcon className="h-3 w-3 text-[#d97757]" /> Claude · 30d
+                </div>
+                <div className="relative mt-2 font-display font-black text-xl text-[#d97757]">{fmtBRL(claude30.cents)}</div>
+                <div className="relative text-[10px] text-muted-foreground mt-0.5">{claude30.count} vendas</div>
+              </div>
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition-all duration-300 hover:border-blue-500/40 hover:shadow-[0_0_28px_-8px_hsl(217_91%_60%/0.55)]">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-blue-500/10 blur-2xl" />
                 <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
                   <Users className="h-3 w-3 text-blue-500" /> Rede
@@ -694,7 +779,7 @@ export default function RevendedorDashboard() {
                 <div className="relative mt-2 font-display font-black text-xl">{stats.clients}</div>
                 <div className="relative text-[10px] text-muted-foreground mt-0.5">clientes</div>
               </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition hover:border-amber-500/40">
+              <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition-all duration-300 hover:border-amber-500/40 hover:shadow-[0_0_28px_-8px_hsl(38_92%_50%/0.55)]">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-amber-500/10 blur-2xl" />
                 <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
                   <ShieldCheck className="h-3 w-3 text-amber-500" /> Licenças
@@ -921,15 +1006,40 @@ export default function RevendedorDashboard() {
                   pending: { bg: "bg-amber-500/10 text-amber-500", text: "text-amber-500" },
                   failed: { bg: "bg-destructive/10 text-destructive", text: "text-destructive" },
                 }[tone];
-                const Icon = tone === "success" ? CheckCircle2 : XCircle;
+                const isClaude = activity.type === "claude_sale";
+                const isRecharge = activity.type === "recharge";
+                const Icon = isClaude
+                  ? ClaudeIcon
+                  : tone === "success"
+                    ? CheckCircle2
+                    : XCircle;
+                const iconWrap = isClaude
+                  ? "bg-[#d97757]/10 text-[#d97757]"
+                  : toneClasses.bg;
+                const hoverGlow = isClaude
+                  ? "hover:border-[#d97757]/40 hover:shadow-[0_0_20px_-6px_rgba(217,119,87,0.55)]"
+                  : isRecharge
+                    ? "hover:border-purple-500/40 hover:shadow-[0_0_20px_-6px_hsl(270_91%_65%/0.5)]"
+                    : "hover:border-primary/30 hover:shadow-[0_0_20px_-6px_hsl(var(--primary)/0.45)]";
                 return (
-                <div key={activity.id} className="flex items-center justify-between p-2.5 md:p-3 rounded-xl border border-border/50 hover:bg-muted/30 transition-colors">
+                <div
+                  key={activity.id}
+                  className={cn(
+                    "flex items-center justify-between p-2.5 md:p-3 rounded-xl border border-border/50 bg-background/40 transition-all duration-300 hover:bg-muted/30",
+                    hoverGlow,
+                  )}
+                >
                   <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
-                    <div className={cn("flex h-7 w-7 md:h-8 md:w-8 shrink-0 items-center justify-center rounded-lg", toneClasses.bg)}>
+                    <div className={cn("flex h-7 w-7 md:h-8 md:w-8 shrink-0 items-center justify-center rounded-lg", iconWrap)}>
                       <Icon className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-xs md:text-sm font-bold truncate">
+                      <div className="text-xs md:text-sm font-bold truncate flex items-center gap-2 flex-wrap">
+                        {isClaude && (
+                          <span className="inline-flex items-center gap-1 rounded-md border border-[#d97757]/30 bg-[#d97757]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#d97757]">
+                            <ClaudeIcon className="h-2.5 w-2.5" /> Claude
+                          </span>
+                        )}
                         {activity.title}
                         {activity.type === 'sale' && extMap[activity.metadata?.extension_id || ""] ? (
                           <span className="ml-1 text-muted-foreground font-normal">· {extMap[activity.metadata.extension_id]}</span>
@@ -942,6 +1052,11 @@ export default function RevendedorDashboard() {
                             </span>
                           ) : null;
                         })()}
+                        {isClaude && activity.metadata?.channel && (
+                          <span className="ml-1 rounded-sm bg-muted text-muted-foreground px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest">
+                            {activity.metadata.channel === "loja" ? "Loja" : "API"}
+                          </span>
+                        )}
                       </div>
                       <div className="text-[9px] md:text-[10px] text-muted-foreground">{format(new Date(activity.created_at), "dd MMM, HH:mm", { locale: ptBR })}</div>
                       {(activity.metadata?.customer_name || activity.metadata?.customer_whatsapp) && (
