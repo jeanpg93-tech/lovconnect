@@ -65,6 +65,7 @@ export type FinancialOverview = {
   claudeGrossSalesCents: number;      // preço pago pelos clientes finais (informativo)
   claudeOwnerRevenueCents: number;    // saldo debitado do revendedor (= receita do dono via Claude, já parte de recargas)
   claudeSupplierCostCents: number;    // custo real do dono (fornecedor)
+  claudeManualProfitCents: number;    // lucro das vendas manuais de Claude (amount - cost)
   costCents: number;
   costCreditsCents: number;
   gatewayFeeCents: number;
