@@ -106,7 +106,10 @@ export default function FinanceiroVisaoGeral({ range, customRange }: { range: Da
           label="Claude (chaves)"
           value={brlSigned(data.claudeGrossSalesCents, "+")}
           icon={ClaudeIcon}
-          hint={`${data.claudeCount} chave(s) · lucro ${brlSigned(data.claudeOwnerRevenueCents - data.claudeSupplierCostCents, (data.claudeOwnerRevenueCents - data.claudeSupplierCostCents) >= 0 ? "+" : "-")}`}
+          hint={(() => {
+            const lucro = (data.claudeOwnerRevenueCents - data.claudeSupplierCostCents) + data.claudeManualProfitCents;
+            return `${data.claudeCount} chave(s) · lucro ${brlSigned(lucro, lucro >= 0 ? "+" : "-")}`;
+          })()}
           color="claude"
         />
         <KpiCard
