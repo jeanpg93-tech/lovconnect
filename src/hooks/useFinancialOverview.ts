@@ -226,13 +226,13 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
           supplierCostByPlan[p.plan_code] = Number(p.cost_cents || 0);
         });
     }
-    const claudeGrossSalesCents = claudeArr.reduce((s, o) => s + Number(o.sale_price_cents || 0), 0);
+    const claudeGrossSalesFromOrdersCents = claudeArr.reduce((s, o) => s + Number(o.sale_price_cents || 0), 0);
     const claudeOwnerRevenueCents = claudeArr.reduce((s, o) => s + Number(o.cost_cents || 0), 0);
     const claudeSupplierCostCents = claudeArr.reduce(
       (s, o) => s + (supplierCostByPlan[o.plan_code] ?? 0),
       0,
     );
-    const claudeCount = claudeArr.length;
+    const claudeOrdersCount = claudeArr.length;
 
     // Custo: storefront_orders pagos
     let soQ = supabase
