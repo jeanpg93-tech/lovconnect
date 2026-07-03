@@ -1548,27 +1548,46 @@ Deno.serve(async (req) => {
       }
 
       if (debitOk === false) {
-        await admin.from("storefront_orders").update({
-          status: "awaiting_balance",
-          cost_cents,
-          promotion_id: lic_promo_id,
-          promotion_discount_cents: lic_promo_discount,
-        }).eq("id", storeOrder.id);
+        // Fallback reverso: saldo insuficiente -> tenta consumir 1 crédito do
+        // pacote antes de deixar a venda em `awaiting_balance`. Sem loop:
+        // executado no máximo 1x por venda (webhook é idempotente por status).
+        const { data: fbConsumed, error: fbErr } = await admin.rpc(
+          "pack_try_consume_sale_credit",
+          {
+            _reseller_id: storeOrder.reseller_id,
+            _order_id: storeOrder.id,
+            _description: `Venda Loja: ${storeOrder.license_type} (fallback saldo insuficiente)`,
+          },
+        );
+        if (fbErr) {
+          console.error("[webhook] pack fallback rpc error", fbErr);
+        } else if (typeof fbConsumed === "number" && fbConsumed >= 0) {
+          usedPack = true;
+        }
 
-        await admin.from("pending_storefront_charges").insert({
-          order_id: storeOrder.id,
-          reseller_id: storeOrder.reseller_id,
-          cost_cents,
-          product_type: "license",
+        if (!usedPack) {
+          await admin.from("storefront_orders").update({
+            status: "awaiting_balance",
+            cost_cents,
+            promotion_id: lic_promo_id,
+            promotion_discount_cents: lic_promo_discount,
+          }).eq("id", storeOrder.id);
+
+          await admin.from("pending_storefront_charges").insert({
+            order_id: storeOrder.id,
+            reseller_id: storeOrder.reseller_id,
+            cost_cents,
+            product_type: "license",
+          });
+
+          return json({ ok: true, kind: "storefront_order_awaiting_balance" });
+        }
+      } else {
+        await admin.rpc("add_reseller_spent", {
+          _reseller_id: storeOrder.reseller_id,
+          _amount_cents: cost_cents,
         });
-
-        return json({ ok: true, kind: "storefront_order_awaiting_balance" });
       }
-
-      await admin.rpc("add_reseller_spent", {
-        _reseller_id: storeOrder.reseller_id,
-        _amount_cents: cost_cents,
-      });
     }
 
     let providerData: any = null;
