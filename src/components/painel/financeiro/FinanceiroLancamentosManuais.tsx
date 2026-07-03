@@ -3,7 +3,7 @@ import { useManualEntries, type ManualEntry } from "@/hooks/useManualEntries";
 import { rangeWindow, type DateRange, type CustomRange } from "@/hooks/useFinancialOverview";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2, Package, KeyRound, Copy, Store, Receipt, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Loader2, Package, KeyRound, Copy, Store, Receipt, GripVertical, Sparkles } from "lucide-react";
 import ManualEntryDialog from "./ManualEntryDialog";
 import {
   DndContext,
@@ -204,13 +204,16 @@ function Row({ entry: e, onEdit, onDuplicate, onDelete, dragHandle }: RowProps) 
   const isLicenseSale = e.reference_kind === "license";
   const isLovastore = e.reference_kind === "lovastore";
   const isMisticFee = e.reference_kind === "misticpay_fee";
-  const isSale = isCreditSale || isLicenseSale || isLovastore;
+  const isClaudeSale = e.reference_kind === "claude";
+  const isSale = isCreditSale || isLicenseSale || isLovastore || isClaudeSale;
   const profit = isSale ? e.amount_cents - (e.cost_cents || 0) : 0;
-  const Icon = isCreditSale ? Package : isLicenseSale ? KeyRound : isLovastore ? Store : isMisticFee ? Receipt : isRev ? TrendingUp : TrendingDown;
+  const Icon = isCreditSale ? Package : isLicenseSale ? KeyRound : isClaudeSale ? Sparkles : isLovastore ? Store : isMisticFee ? Receipt : isRev ? TrendingUp : TrendingDown;
   const iconColor = isCreditSale
     ? "bg-blue-500/15 text-blue-500"
     : isLicenseSale
     ? "bg-violet-500/15 text-violet-500"
+    : isClaudeSale
+    ? "bg-fuchsia-500/15 text-fuchsia-500"
     : isLovastore
     ? "bg-orange-500/15 text-orange-500"
     : isMisticFee
