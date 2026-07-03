@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +9,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { ManualEntry, ManualEntryInput } from "@/hooks/useManualEntries";
 import { useSalesCatalog } from "@/hooks/useSalesCatalog";
-import { TrendingUp, TrendingDown, Package, KeyRound, Receipt, Store } from "lucide-react";
+import { TrendingUp, TrendingDown, Package, KeyRound, Receipt, Store, Sparkles } from "lucide-react";
 
-type Mode = "revenue" | "expense" | "credit_sale" | "license_sale" | "misticpay_fee" | "lovastore";
+type Mode = "revenue" | "expense" | "credit_sale" | "license_sale" | "misticpay_fee" | "lovastore" | "claude_sale";
+
+const CLAUDE_PLAN_LABELS: Record<string, string> = {
+  pro_30d: "Claude Pro — 30 dias",
+  "5x_30d": "Claude 5x — 30 dias",
+  "20x_30d": "Claude 20x — 30 dias",
+};
+
+type ClaudePlanOption = {
+  plan_code: string;
+  label: string;
+  cost_cents: number;
+  sale_price_cents: number;
+};
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -60,9 +74,29 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
   const [cost, setCost] = useState("");
   const [selectedPackId, setSelectedPackId] = useState<string>("");
   const [selectedLicense, setSelectedLicense] = useState<string>("");
+  const [selectedClaudePlan, setSelectedClaudePlan] = useState<string>("");
+  const [claudePlans, setClaudePlans] = useState<ClaudePlanOption[]>([]);
   const [category, setCategory] = useState("");
   const [date, setDate] = useState(() => localTodayISO());
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data } = await supabase
+        .from("claude_plan_prices")
+        .select("plan_code, cost_cents, sale_price_cents, sort_order, is_active")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      const opts: ClaudePlanOption[] = ((data as any[]) || []).map((r) => ({
+        plan_code: r.plan_code,
+        label: CLAUDE_PLAN_LABELS[r.plan_code] || `Claude ${r.plan_code}`,
+        cost_cents: Number(r.cost_cents || 0),
+        sale_price_cents: Number(r.sale_price_cents || 0),
+      }));
+      setClaudePlans(opts);
+    })();
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -73,12 +107,14 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         else if (src.reference_kind === "license") setMode("license_sale");
         else if (src.reference_kind === "misticpay_fee") setMode("misticpay_fee");
         else if (src.reference_kind === "lovastore") setMode("lovastore");
+        else if (src.reference_kind === "claude") setMode("claude_sale");
         else setMode(src.entry_type);
         setDescription(src.description);
         setAmount(fromCents(src.amount_cents));
         setCost(src.cost_cents ? fromCents(src.cost_cents) : "");
         setSelectedPackId(src.reference_meta?.plan_id || "");
         setSelectedLicense(src.reference_meta?.license_type || "");
+        setSelectedClaudePlan(src.reference_meta?.plan_code || "");
         setCategory(src.category || "");
         // ao duplicar, usa data de hoje; ao editar, mantém data original
         // usa data LOCAL (não UTC) para evitar drift de fuso ao gerar o default
@@ -90,6 +126,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         setCost("");
         setSelectedPackId("");
         setSelectedLicense("");
+        setSelectedClaudePlan("");
         setCategory("");
         setDate(localTodayISO());
       }
@@ -117,8 +154,18 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
       setCategory("Venda externa - Licença");
     }
   };
+  const handleClaudeSelect = (code: string) => {
+    setSelectedClaudePlan(code);
+    const p = claudePlans.find((x) => x.plan_code === code);
+    if (p) {
+      setAmount(fromCents(p.sale_price_cents));
+      setCost(fromCents(p.cost_cents));
+      setDescription(`Venda manual de ${p.label}`);
+      setCategory("Venda externa - Claude");
+    }
+  };
 
-  const isSale = mode === "credit_sale" || mode === "license_sale" || mode === "lovastore";
+  const isSale = mode === "credit_sale" || mode === "license_sale" || mode === "lovastore" || mode === "claude_sale";
   const entryType: "revenue" | "expense" =
     mode === "expense" || mode === "misticpay_fee" ? "expense" : "revenue";
 
@@ -138,18 +185,25 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
       toast({ title: "Selecione uma licença", variant: "destructive" });
       return;
     }
+    if (mode === "claude_sale" && !selectedClaudePlan) {
+      toast({ title: "Selecione um plano Claude", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       const reference_kind =
         mode === "credit_sale" ? "credit_pack" :
         mode === "license_sale" ? "license" :
         mode === "misticpay_fee" ? "misticpay_fee" :
-        mode === "lovastore" ? "lovastore" : null;
+        mode === "lovastore" ? "lovastore" :
+        mode === "claude_sale" ? "claude" : null;
       const reference_meta =
         mode === "credit_sale"
           ? { plan_id: selectedPackId, ...creditPacks.find((p) => p.plan_id === selectedPackId) }
           : mode === "license_sale"
           ? { license_type: selectedLicense, ...licenses.find((l) => l.license_type === selectedLicense) }
+          : mode === "claude_sale"
+          ? { plan_code: selectedClaudePlan, ...claudePlans.find((p) => p.plan_code === selectedClaudePlan) }
           : null;
       await onSubmit({
         entry_type: entryType,
@@ -158,7 +212,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
         cost_cents: costCents,
         reference_kind,
         reference_meta,
-        category: category.trim() || (mode === "misticpay_fee" ? "Taxa MisticPay" : mode === "lovastore" ? "LovaStore" : null),
+        category: category.trim() || (mode === "misticpay_fee" ? "Taxa MisticPay" : mode === "lovastore" ? "LovaStore" : mode === "claude_sale" ? "Venda externa - Claude" : null),
         // Salva ao MEIO-DIA UTC do dia escolhido. Isso mantém o mesmo calendário em
         // qualquer fuso (-11h a +11h), evitando que a data selecionada apareça no
         // dia anterior/posterior por causa de conversão de fuso horário.
@@ -186,6 +240,7 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
           <div className="grid grid-cols-3 gap-1.5">
             <ModeButton active={mode === "credit_sale"} onClick={() => setMode("credit_sale")} icon={Package} label="Venda Crédito" activeClass="bg-blue-600 hover:bg-blue-700 text-white" />
             <ModeButton active={mode === "license_sale"} onClick={() => setMode("license_sale")} icon={KeyRound} label="Venda Licença" activeClass="bg-violet-600 hover:bg-violet-700 text-white" />
+            <ModeButton active={mode === "claude_sale"} onClick={() => setMode("claude_sale")} icon={Sparkles} label="Venda Claude" activeClass="bg-fuchsia-600 hover:bg-fuchsia-700 text-white" />
             <ModeButton active={mode === "lovastore"} onClick={() => setMode("lovastore")} icon={Store} label="LovaStore" activeClass="bg-orange-600 hover:bg-orange-700 text-white" />
             <ModeButton active={mode === "revenue"} onClick={() => setMode("revenue")} icon={TrendingUp} label="Receita Avulsa" activeClass="bg-emerald-600 hover:bg-emerald-700 text-white" />
             <ModeButton active={mode === "expense"} onClick={() => setMode("expense")} icon={TrendingDown} label="Despesa" activeClass="bg-red-600 hover:bg-red-700 text-white" />
@@ -239,6 +294,25 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
               </Select>
               <p className="text-[10px] text-muted-foreground">
                 Licenças não têm custo de provedor (custo = R$ 0,00). Preço de venda é editável.
+              </p>
+            </div>
+          )}
+
+          {mode === "claude_sale" && (
+            <div className="space-y-1.5">
+              <Label>Plano Claude</Label>
+              <Select value={selectedClaudePlan} onValueChange={handleClaudeSelect}>
+                <SelectTrigger><SelectValue placeholder="Selecione um plano..." /></SelectTrigger>
+                <SelectContent>
+                  {claudePlans.map((p) => (
+                    <SelectItem key={p.plan_code} value={p.plan_code}>
+                      {p.label} — sugerido {brl(p.sale_price_cents)} • custo {brl(p.cost_cents)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                Preço sugerido = tabela do sistema. Custo = valor pago ao provedor Claude. Ambos podem ser editados.
               </p>
             </div>
           )}
