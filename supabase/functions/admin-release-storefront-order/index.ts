@@ -43,15 +43,12 @@ Deno.serve(async (req) => {
 
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
-
   const userClient = createClient(SUPABASE_URL, ANON, {
     global: { headers: { Authorization: authHeader } },
   });
   const { data: u, error: uErr } = await userClient.auth.getUser();
   if (uErr || !u?.user) return json({ error: "unauthorized" }, 401);
-
   const admin = createClient(SUPABASE_URL, SERVICE);
-
   const { data: isAdmin } = await admin.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
   if (!isAdmin) return json({ error: "forbidden" }, 403);
 
