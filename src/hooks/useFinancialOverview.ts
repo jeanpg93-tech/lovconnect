@@ -329,7 +329,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const costCreditsCents =
       soArr.reduce((s, o: any) => s + ownerCostForSoItem(o), 0) +
       rcpArr.reduce((s, o: any) => s + ownerCostForRcpItem(o), 0);
-    const salesCount = soArr.length + rcpArr.length + claudeCount;
+    const salesCount = soArr.length + rcpArr.length + claudeOrdersCount;
 
     // Lançamentos manuais
     let mQ = supabase
