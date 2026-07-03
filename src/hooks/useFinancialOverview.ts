@@ -342,6 +342,22 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const lovastoreArr = manualArr.filter(
       (m: any) => m.entry_type === "revenue" && m.reference_kind === "lovastore",
     );
+    // Vendas manuais de Claude (lançadas pelo dono direto no financeiro).
+    // A receita já está contabilizada em manualRevenueCents e o custo em
+    // manualRevenueCostCents — aqui só extraímos os totais p/ enriquecer o
+    // card do Claude (quantidade, receita bruta e lucro), sem dupla contagem.
+    const claudeManualArr = manualArr.filter(
+      (m: any) => m.entry_type === "revenue" && m.reference_kind === "claude",
+    );
+    const claudeManualRevenueCents = claudeManualArr.reduce(
+      (s, m: any) => s + Number(m.amount_cents || 0),
+      0,
+    );
+    const claudeManualCostCents = claudeManualArr.reduce(
+      (s, m: any) => s + Number(m.cost_cents || 0),
+      0,
+    );
+    const claudeManualProfitCents = claudeManualRevenueCents - claudeManualCostCents;
     const lovastoreRevenueCents = lovastoreArr.reduce((s, m: any) => s + Number(m.amount_cents || 0), 0);
     const lovastoreCount = lovastoreArr.length;
     const manualRevenueCents = manualArr
@@ -612,6 +628,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       claudeGrossSalesCents,
       claudeOwnerRevenueCents,
       claudeSupplierCostCents,
+      claudeManualProfitCents,
       costCents,
       costCreditsCents,
       gatewayFeeCents: totalGatewayFeeCents,
