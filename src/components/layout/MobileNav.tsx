@@ -312,6 +312,28 @@ export function MobileNav() {
                   </div>
                 </Link>
               </Button>
+
+              {(primaryRole === "gerente" || enabledMethods.claude) && (
+                <Button
+                  variant="ghost"
+                  className="group relative h-24 w-full bg-zinc-900/40 border border-white/5 p-0 overflow-hidden rounded-[2rem] transition-all hover:bg-zinc-800/60 active:scale-[0.98]"
+                  asChild
+                >
+                  <Link
+                    to={primaryRole === "gerente" ? "/painel/gerente/claude" : "/painel/revendedor/claude"}
+                    onClick={() => setIsCartModalOpen(false)}
+                    className="flex items-center px-6"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-fuchsia-500 text-black group-hover:scale-110 transition-transform">
+                      <Sparkles className="h-6 w-6" />
+                    </div>
+                    <div className="ml-4 text-left">
+                      <span className="block text-xl font-bold text-white tracking-tight">Venda Claude</span>
+                      <span className="block text-xs font-medium text-zinc-500 uppercase tracking-widest">Licença Claude</span>
+                    </div>
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
