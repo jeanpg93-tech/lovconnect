@@ -1,4 +1,5 @@
-import { Home, Wallet, KeyRound, Coins, ArrowRightLeft, Plus, History, LayoutDashboard, CreditCard, Menu, LogOut, Sparkles, Zap, Code2 } from "lucide-react";
+import { Home, Wallet, KeyRound, Coins, ArrowRightLeft, Plus, History, LayoutDashboard, CreditCard, Menu, LogOut, Sparkles, Zap, Code2, DollarSign } from "lucide-react";
+import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { Link, useLocation } from "react-router-dom";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
@@ -80,6 +81,7 @@ export function MobileNav() {
     return "/painel/cliente";
   };
 
+  const isGerente = primaryRole === "gerente";
   const navItems = [
     {
       label: t("mobileNav.home"),
@@ -92,7 +94,14 @@ export function MobileNav() {
       icon: Zap,
       url: "/painel/revendedor/recargas",
       active: pathname === "/painel/revendedor/recargas",
-      hidden: isSubscription || !enabledMethods.recharges,
+      hidden: isGerente || isSubscription || !enabledMethods.recharges,
+    },
+    {
+      label: "Claude",
+      icon: ClaudeIcon,
+      url: "/painel/gerente/claude",
+      active: pathname === "/painel/gerente/claude",
+      hidden: !isGerente,
     },
     {
       label: t("mobileNav.generate"),
@@ -103,15 +112,22 @@ export function MobileNav() {
     {
       label: t("sidebar.items.Licenças"),
       icon: KeyRound,
-      url: primaryRole === "gerente" ? "/painel/gerente/todas-licencas" : "/painel/revendedor/licencas",
-      active: pathname === (primaryRole === "gerente" ? "/painel/gerente/todas-licencas" : "/painel/revendedor/licencas"),
+      url: isGerente ? "/painel/gerente/todas-licencas" : "/painel/revendedor/licencas",
+      active: pathname === (isGerente ? "/painel/gerente/todas-licencas" : "/painel/revendedor/licencas"),
+    },
+    {
+      label: "Financeiro",
+      icon: DollarSign,
+      url: "/painel/gerente/financeiro",
+      active: pathname === "/painel/gerente/financeiro",
+      hidden: !isGerente,
     },
     {
       label: t("mobileNav.wallet"),
       icon: Wallet,
       onClick: () => setIsWalletModalOpen(true),
       active: isWalletModalOpen,
-      hidden: isSubscription,
+      hidden: isGerente || isSubscription,
     },
   ];
 
