@@ -65,6 +65,7 @@ export type FinancialOverview = {
   claudeGrossSalesCents: number;      // preço pago pelos clientes finais (informativo)
   claudeOwnerRevenueCents: number;    // saldo debitado do revendedor (= receita do dono via Claude, já parte de recargas)
   claudeSupplierCostCents: number;    // custo real do dono (fornecedor)
+  claudeManualProfitCents: number;    // lucro das vendas manuais de Claude (amount - cost)
   costCents: number;
   costCreditsCents: number;
   gatewayFeeCents: number;
@@ -225,13 +226,13 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
           supplierCostByPlan[p.plan_code] = Number(p.cost_cents || 0);
         });
     }
-    const claudeGrossSalesCents = claudeArr.reduce((s, o) => s + Number(o.sale_price_cents || 0), 0);
+    const claudeGrossSalesFromOrdersCents = claudeArr.reduce((s, o) => s + Number(o.sale_price_cents || 0), 0);
     const claudeOwnerRevenueCents = claudeArr.reduce((s, o) => s + Number(o.cost_cents || 0), 0);
     const claudeSupplierCostCents = claudeArr.reduce(
       (s, o) => s + (supplierCostByPlan[o.plan_code] ?? 0),
       0,
     );
-    const claudeCount = claudeArr.length;
+    const claudeOrdersCount = claudeArr.length;
 
     // Custo: storefront_orders pagos
     let soQ = supabase
@@ -328,7 +329,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const costCreditsCents =
       soArr.reduce((s, o: any) => s + ownerCostForSoItem(o), 0) +
       rcpArr.reduce((s, o: any) => s + ownerCostForRcpItem(o), 0);
-    const salesCount = soArr.length + rcpArr.length + claudeCount;
+    const salesCount = soArr.length + rcpArr.length + claudeOrdersCount;
 
     // Lançamentos manuais
     let mQ = supabase
@@ -341,6 +342,26 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     const lovastoreArr = manualArr.filter(
       (m: any) => m.entry_type === "revenue" && m.reference_kind === "lovastore",
     );
+    // Vendas manuais de Claude (lançadas pelo dono direto no financeiro).
+    // A receita já está contabilizada em manualRevenueCents e o custo em
+    // manualRevenueCostCents — aqui só extraímos os totais p/ enriquecer o
+    // card do Claude (quantidade, receita bruta e lucro), sem dupla contagem.
+    const claudeManualArr = manualArr.filter(
+      (m: any) => m.entry_type === "revenue" && m.reference_kind === "claude",
+    );
+    const claudeManualRevenueCents = claudeManualArr.reduce(
+      (s, m: any) => s + Number(m.amount_cents || 0),
+      0,
+    );
+    const claudeManualCostCents = claudeManualArr.reduce(
+      (s, m: any) => s + Number(m.cost_cents || 0),
+      0,
+    );
+    const claudeManualProfitCents = claudeManualRevenueCents - claudeManualCostCents;
+    const claudeManualCount = claudeManualArr.length;
+    // Totais combinados exibidos no card "Claude (chaves)"
+    const claudeCount = claudeOrdersCount + claudeManualCount;
+    const claudeGrossSalesCents = claudeGrossSalesFromOrdersCents + claudeManualRevenueCents;
     const lovastoreRevenueCents = lovastoreArr.reduce((s, m: any) => s + Number(m.amount_cents || 0), 0);
     const lovastoreCount = lovastoreArr.length;
     const manualRevenueCents = manualArr
@@ -611,6 +632,7 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       claudeGrossSalesCents,
       claudeOwnerRevenueCents,
       claudeSupplierCostCents,
+      claudeManualProfitCents,
       costCents,
       costCreditsCents,
       gatewayFeeCents: totalGatewayFeeCents,
