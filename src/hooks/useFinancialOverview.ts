@@ -358,6 +358,10 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
       0,
     );
     const claudeManualProfitCents = claudeManualRevenueCents - claudeManualCostCents;
+    const claudeManualCount = claudeManualArr.length;
+    // Totais combinados exibidos no card "Claude (chaves)"
+    const claudeCount = claudeOrdersCount + claudeManualCount;
+    const claudeGrossSalesCents = claudeGrossSalesFromOrdersCents + claudeManualRevenueCents;
     const lovastoreRevenueCents = lovastoreArr.reduce((s, m: any) => s + Number(m.amount_cents || 0), 0);
     const lovastoreCount = lovastoreArr.length;
     const manualRevenueCents = manualArr
