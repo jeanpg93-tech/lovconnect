@@ -42,20 +42,15 @@ Deno.serve(async (req) => {
   const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   const authHeader = req.headers.get("Authorization") ?? "";
-  const ONE_SHOT_TOKEN = "OPS_ONE_SHOT_7eb553756195e4dcac6fcb4b41e2557";
-  const bypassHeader = req.headers.get("x-ops-token") ?? "";
+  if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
+  const userClient = createClient(SUPABASE_URL, ANON, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: u, error: uErr } = await userClient.auth.getUser();
+  if (uErr || !u?.user) return json({ error: "unauthorized" }, 401);
   const admin = createClient(SUPABASE_URL, SERVICE);
-
-  if (bypassHeader !== ONE_SHOT_TOKEN) {
-    if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
-    const userClient = createClient(SUPABASE_URL, ANON, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: u, error: uErr } = await userClient.auth.getUser();
-    if (uErr || !u?.user) return json({ error: "unauthorized" }, 401);
-    const { data: isAdmin } = await admin.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
-    if (!isAdmin) return json({ error: "forbidden" }, 403);
-  }
+  const { data: isAdmin } = await admin.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
+  if (!isAdmin) return json({ error: "forbidden" }, 403);
 
   const body = await req.json().catch(() => ({}));
   const orderId = String(body?.order_id ?? "");
