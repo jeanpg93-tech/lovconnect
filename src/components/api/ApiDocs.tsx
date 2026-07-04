@@ -107,6 +107,43 @@ Histórico das últimas chamadas (limit máximo 200).
 Define/atualiza a URL de webhook da chave em uso.
 Body: \`{ "url": "https://meusistema.com/webhook" }\`
 
+### GET /chaves
+Lista as últimas 50 chaves emitidas pela sua API key.
+
+### GET /chaves/{id}
+Detalhes de um pedido. **Sempre use o \`id\` retornado por \`POST /gerar\`** (é o UUID do pedido no nosso sistema), NUNCA o \`provider_key_id\`. O mesmo identificador funciona em \`/chaves/{id}\`, \`/chaves/{id}/consumo\` e \`/chaves/{id}/cancelar\`.
+
+### GET /chaves/{id}/consumo
+Snapshot de uso em tempo real da chave junto ao provedor.
+\`\`\`json
+{
+  "success": true,
+  "consumo": {
+    "status": "active",
+    "expira_em": "2026-05-10T12:00:00Z",
+    "resgatada_em": "2026-05-03T09:12:33Z",
+    "tokens_consumidos": 128340,
+    "tokens_janela": 128340,
+    "tokens_limite": 500000,
+    "janela_horas": 5,
+    "percentual_usado_dia": 25.6,
+    "percentual_restante": 74.4,
+    "tokens_janela_semanal": 640000,
+    "tokens_limite_semanal": 2000000
+  },
+  "provider_error": null
+}
+\`\`\`
+Se o provedor ainda não liberou dados de uso (ex.: chave recém-emitida e nunca usada), \`consumo\` vem \`null\` — não é erro, é falta de dados.
+
+### Valores possíveis de \`status\`
+- \`pending\` — aguardando emissão (raro na resposta síncrona)
+- \`issued\` — chave emitida e nunca usada
+- \`active\` / \`redeemed\` — chave já foi resgatada pelo cliente
+- \`expired\` — janela de validade encerrada
+- \`cancelled\` — cancelada pelo revendedor
+- \`error\` — falha na emissão (ver \`error_message\`)
+
 ### POST /reset-hwid
 Desvincula o HWID de uma licença gerada pela própria chave.
 Body: \`{ "license_key": "QL-..." }\`
@@ -133,6 +170,23 @@ POST para a URL configurada na chave:
   "created_at": "2026-05-02T..."
 }
 \`\`\`
+
+## Webhook de emissão de chave Claude (\`claude.key.issued\`)
+
+\`\`\`json
+{
+  "event": "claude.key.issued",
+  "pedido_id": "uuid",
+  "plano": "pro_30d",
+  "preco_centavos": 5200,
+  "codigo": "QL-CLAUDE-...",
+  "api_key": "sk-ant-...",
+  "base_url": "https://claude-ss.ia.br/",
+  "provider_key_id": "abc123",
+  "id_cliente": "uuid"
+}
+\`\`\`
+\`api_key\` e \`base_url\` sempre vêm preenchidos quando a emissão é bem-sucedida. Se a emissão falhar, um evento de erro é gerado no lugar (não \`claude.key.issued\`).
 
 ## Códigos de erro
 
