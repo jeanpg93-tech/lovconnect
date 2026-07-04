@@ -1,5 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-test-bypass-token",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 // Conta de testes do Jean Gomes (jeanpg.93). É a ÚNICA conta autorizada a usar
 // esse endpoint — ele simula a confirmação de um PIX da MisticPay sem que o
