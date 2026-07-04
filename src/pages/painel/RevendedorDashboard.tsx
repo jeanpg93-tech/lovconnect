@@ -177,7 +177,7 @@ const PIE_COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#3b82f6", "#a8
 
 type ActivityItem = {
   id: string;
-  type: "sale" | "recharge" | "claude_sale";
+  type: "sale" | "recharge" | "claude_sale" | "transaction";
   title: string;
   amount_cents: number;
   status: string;
@@ -272,6 +272,7 @@ export default function RevendedorDashboard() {
         claudeOrdersRes,
         integRes,
         announcementsRes,
+        balanceTxRes,
       ] = await Promise.all([
         supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
         supabase.from("reseller_tier_state").select("total_spent_cents").eq("reseller_id", r.id).maybeSingle(),
@@ -286,6 +287,26 @@ export default function RevendedorDashboard() {
         supabase.from("claude_orders").select("id,plan_code,sale_price_cents,status,created_at,customer_name,customer_whatsapp,provider_transaction_id").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
         supabase.from("reseller_integrations").select("misticpay_enabled,connection_status").eq("reseller_id", r.id).maybeSingle(),
         supabase.from("announcements").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
+        supabase
+          .from("balance_transactions")
+          .select("id,kind,amount_cents,description,reference_id,created_at")
+          .eq("reseller_id", r.id)
+          .gte("created_at", since)
+          .in("kind", [
+            "bonus",
+            "affiliate_bonus",
+            "adjustment",
+            "manual_credit",
+            "manual_debit",
+            "refund",
+            "panel_refund",
+            "credit_purchase_refund",
+            "license_purchase_refund",
+            "claude_key_refund",
+            "claude_key_issue_refund",
+          ])
+          .order("created_at", { ascending: false })
+          .limit(50),
       ]);
 
       setBalance(balanceRes.data?.balance_cents ?? 0);
@@ -302,6 +323,21 @@ export default function RevendedorDashboard() {
       const ords = (ordersRes.data ?? []) || [];
       const recharges = (rechargesRes.data ?? []) || [];
       const claudeOrds = (claudeOrdersRes.data ?? []) || [];
+      const balanceTxs = (balanceTxRes.data ?? []) || [];
+
+      const TX_LABELS: Record<string, string> = {
+        bonus: "Bônus recebido",
+        affiliate_bonus: "Bônus de indicação",
+        adjustment: "Ajuste do gerente",
+        manual_credit: "Recarga manual",
+        manual_debit: "Débito manual",
+        refund: "Estorno",
+        panel_refund: "Estorno (painel)",
+        credit_purchase_refund: "Estorno de recarga",
+        license_purchase_refund: "Estorno de licença",
+        claude_key_refund: "Estorno Claude",
+        claude_key_issue_refund: "Estorno Claude",
+      };
 
       const combinedActivities: ActivityItem[] = [
         ...ords
@@ -358,6 +394,20 @@ export default function RevendedorDashboard() {
             customer_name: c.customer_name ?? null,
             customer_whatsapp: c.customer_whatsapp ?? null,
             channel: c.provider_transaction_id ? "loja" : "api",
+          },
+        })),
+        ...balanceTxs.map((tx: any) => ({
+          id: `tx-${tx.id}`,
+          type: "transaction" as const,
+          title: TX_LABELS[tx.kind] ?? (tx.description || tx.kind),
+          amount_cents: Math.abs(tx.amount_cents ?? 0),
+          status: "completed",
+          created_at: tx.created_at,
+          metadata: {
+            kind: tx.kind,
+            description: tx.description,
+            reference_id: tx.reference_id,
+            signed_amount_cents: tx.amount_cents,
           },
         })),
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -1011,7 +1061,7 @@ export default function RevendedorDashboard() {
               <HistoryIcon className="h-4 w-4 md:h-5 md:w-5 text-primary" /> Atividades Recentes
             </h3>
             <Button asChild variant="ghost" size="sm" className="h-7 md:h-8 px-2 text-[10px] md:text-xs text-primary">
-              <Link to="/painel/revendedor/licencas">Ver tudo</Link>
+              <Link to="/painel/revendedor/transacoes">Ver tudo</Link>
             </Button>
           </div>
 
