@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
 
     const { data: integ } = await svc
       .from("reseller_integrations")
-      .select("evolution_enabled, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, evolution_template_api, connection_status")
+      .select("evolution_enabled, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, evolution_template_api, evolution_template_claude, connection_status")
       .eq("reseller_id", reseller_id)
       .maybeSingle();
 
@@ -130,6 +130,10 @@ Deno.serve(async (req) => {
         ?? integ.evolution_message_template
         ?? null;
       defaultKey = "evolution_template_license";
+    } else if (kind === "claude") {
+      // Template dedicado para vendas de chaves Claude (manual painel + API revendedor).
+      template = (integ as any).evolution_template_claude ?? null;
+      defaultKey = "evolution_template_claude";
     }
 
     if (!template) {
@@ -150,6 +154,10 @@ Deno.serve(async (req) => {
       tipo: vars.tipo ? licenseTypeLabel(vars.tipo) : (vars.tipo_label ?? ""),
       link: vars.link ?? "",
       valor: vars.valor_cents ? fmtBRL(Number(vars.valor_cents)) : (vars.valor ?? ""),
+      plano: vars.plano ?? vars.plan_label ?? "",
+      api_key: vars.api_key ?? "",
+      base_url: vars.base_url ?? "",
+      codigo: vars.codigo ?? vars.chave ?? "",
     };
 
     const text = render(template, enrichedVars);
