@@ -236,7 +236,7 @@ function TabInicio() {
           </li>
           <li>
             <code className="font-mono bg-black/30 px-1 rounded">https://claude-ss.ia.br/</code> — é a <strong>URL do fornecedor Claude</strong>.
-            Essa sim é a URL que o <strong>cliente final</strong> coloca no Cursor / Cline / Claude Code, junto com a chave <code className="font-mono">ACT-...</code> que o <code className="font-mono">POST /chaves</code> devolveu.
+            Essa sim é a URL que o <strong>cliente final</strong> coloca no Cursor / Cline / Claude Code, junto com a <code className="font-mono">api_key</code> que o <code className="font-mono">POST /chaves</code> devolveu. O <code className="font-mono">codigo</code> (ACT-...) é <strong>interno</strong> — nunca exiba para o cliente.
           </li>
         </ul>
       </div>
@@ -335,21 +335,20 @@ function TabEndpoints() {
 # É por ele que o fornecedor entrega a chave e vincula o consumo.
 
 # Resposta 200
-# ⚠️ ATENÇÃO: "codigo" (ACT-...) SEMPRE vem. Os campos "api_key",
-# "user_id" e "provider_base_url" são OPCIONAIS — só voltam quando o
-# fornecedor faz entrega direta. Na maioria das vendas eles NÃO vêm,
-# e o cliente precisa resgatar o "codigo" no portal do fornecedor
-# (https://claude-ss.ia.br/) para receber a API Key real.
+# ⚠️ ATENÇÃO: para o CLIENTE FINAL exiba somente "api_key" + "provider_base_url".
+# O "codigo" (ACT-...) é IDENTIFICADOR INTERNO do pedido — NUNCA mostre ao cliente.
+# Se "api_key" não vier nesta resposta, aguarde o webhook claude.key.issued
+# (a entrega pode ser assíncrona). Só depois entregue ao cliente.
 {
   "success": true,
   "pedido_id": "uuid",
   "plano": "5x_30d",
   "preco_centavos": 14900,
-  "codigo": "CLAUDE-XXXXX-XXXXX",
-  "provider_key_id": "prov_abc123",
-  "api_key": "kp_user_...",            // opcional — usar direto no Cursor/Cline
-  "user_id": "u_...",                  // opcional
-  "provider_base_url": "https://claude-ss.ia.br/"  // opcional
+  "codigo": "ACT-XXXXXXXXXXXX",        // INTERNO — não exibir ao cliente
+  "provider_key_id": "prov_abc123",    // INTERNO
+  "api_key": "kp_user_...",            // ✅ EXIBIR AO CLIENTE (X-API-Key / token no Cursor/Cline)
+  "user_id": "u_...",                  // informativo
+  "provider_base_url": "https://claude-ss.ia.br/"  // ✅ EXIBIR AO CLIENTE (URL base)
 }
 
 # Resposta 202 (saldo insuficiente — pedido fica em espera)
@@ -364,21 +363,21 @@ function TabEndpoints() {
   // a chave é gerada e o webhook claude.key.issued é disparado.
 }`}
       />
-      <div className="rounded-xl border-2 border-amber-500/50 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4 text-xs text-amber-100 shadow-[0_0_0_1px_hsl(45_100%_50%/0.2),0_8px_24px_-12px_hsl(45_100%_50%/0.4)]">
-        <strong className="text-amber-200 text-sm">⚠️ Importante — o que exibir para o cliente após a venda:</strong>
+      <div className="rounded-xl border-2 border-red-500/60 bg-gradient-to-r from-red-500/15 via-red-500/5 to-transparent p-4 text-xs text-red-100 shadow-[0_0_0_1px_hsl(0_90%_55%/0.25),0_8px_24px_-12px_hsl(0_90%_55%/0.45)]">
+        <strong className="text-red-200 text-sm">🚨 REGRA CRÍTICA — o que exibir (e o que NÃO exibir) ao cliente final:</strong>
         <ul className="mt-2 list-disc space-y-1.5 pl-4">
           <li>
-            O campo <code className="font-mono bg-black/40 px-1 rounded">codigo</code> (formato <code className="font-mono bg-black/40 px-1 rounded">ACT-XXXX...</code>) <strong>sempre vem</strong> na resposta.
-            Esta é a chave que o cliente usa no Cursor / Cline / Claude Code, junto com a URL base <code className="font-mono bg-black/40 px-1 rounded">https://claude-ss.ia.br/</code>.
+            <strong className="text-red-100">✅ EXIBA</strong> ao cliente somente: <code className="font-mono bg-black/40 px-1 rounded">api_key</code> + <code className="font-mono bg-black/40 px-1 rounded">provider_base_url</code> (<code className="font-mono bg-black/40 px-1 rounded">https://claude-ss.ia.br/</code>).
+            É isso — e SÓ isso — que ele configura no Cursor / Cline / Claude Code (header <code className="font-mono bg-black/40 px-1 rounded">x-api-key</code>).
           </li>
           <li>
-            Os campos <code className="font-mono bg-black/40 px-1 rounded">api_key</code>, <code className="font-mono bg-black/40 px-1 rounded">user_id</code> e <code className="font-mono bg-black/40 px-1 rounded">provider_base_url</code> são <strong>opcionais</strong> e podem <strong>não vir</strong> em várias vendas — isso é normal, o fornecedor decide quando faz a entrega direta.
+            <strong className="text-red-100">❌ NUNCA exiba</strong> o campo <code className="font-mono bg-black/40 px-1 rounded">codigo</code> (formato <code className="font-mono bg-black/40 px-1 rounded">ACT-XXXX...</code>) nem o <code className="font-mono bg-black/40 px-1 rounded">provider_key_id</code>. Eles são <strong>identificadores internos</strong> do pedido, usados apenas em logs/suporte/reembolso. O cliente <u>não deve vê-los em momento nenhum</u>.
           </li>
           <li>
-            Sua tela de "Pedido Recebido" no site deve mostrar sempre o <code className="font-mono bg-black/40 px-1 rounded">codigo</code> (ACT-...) + a URL base fixa <code className="font-mono bg-black/40 px-1 rounded">https://claude-ss.ia.br/</code>. Só mostre <code className="font-mono bg-black/40 px-1 rounded">api_key</code> quando ela vier preenchida na resposta.
+            Se a resposta do <code className="font-mono bg-black/40 px-1 rounded">POST /chaves</code> vier <strong>sem</strong> <code className="font-mono bg-black/40 px-1 rounded">api_key</code>, a entrega é assíncrona: <strong>aguarde o webhook</strong> <code className="font-mono bg-black/40 px-1 rounded">claude.key.issued</code> e só então entregue a chave ao cliente. Não substitua pelo <code className="font-mono bg-black/40 px-1 rounded">codigo</code>.
           </li>
           <li>
-            O <code className="font-mono bg-black/40 px-1 rounded">codigo</code> e o <code className="font-mono bg-black/40 px-1 rounded">api_key</code> (quando vier) só voltam <strong>uma única vez</strong> — nesta resposta e no webhook <code className="font-mono bg-black/40 px-1 rounded">claude.key.issued</code>. Armazene com segurança.
+            <code className="font-mono bg-black/40 px-1 rounded">api_key</code> só volta <strong>uma única vez</strong> (nesta resposta ou no webhook <code className="font-mono bg-black/40 px-1 rounded">claude.key.issued</code>). Armazene com segurança e reexiba ao cliente sempre que necessário.
           </li>
         </ul>
       </div>

@@ -31,6 +31,8 @@ type Order = {
   status: string;
   provider_key_id: string | null;
   code?: string | null;
+  api_key?: string | null;
+  provider_base_url?: string | null;
   created_at: string;
   sale_price_cents: number;
   cancel_requested_at?: string | null;
@@ -632,30 +634,51 @@ export default function ClienteClaudePortal() {
                     <div className="space-y-2 min-w-0 flex-1">
                       <div className="font-medium text-sm">{PLAN_LABELS[o.plan_code] ?? o.plan_code}</div>
                       <div className="text-xs opacity-60">Emitida em {fmtDate(o.created_at)}</div>
-                      {o.status === "issued" && o.code && (
-                        <div className="rounded-lg border border-white/10 bg-black/40 p-2.5 space-y-1.5">
+                      {o.status === "issued" && (o.api_key ? (
+                        <div className="rounded-lg border border-white/10 bg-black/40 p-2.5 space-y-2">
                           <div className="text-[10px] uppercase tracking-widest font-semibold opacity-70" style={{ color: `hsl(var(--brand))` }}>
                             API Key (X-API-Key)
                           </div>
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <code className="flex-1 break-all text-xs font-mono" style={{ color: `hsl(var(--brand))` }}>{o.code}</code>
+                            <code className="flex-1 break-all text-xs font-mono" style={{ color: `hsl(var(--brand))` }}>{o.api_key}</code>
                             <Button
                               size="sm"
                               variant="outline"
                               className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale"
                               onClick={() => {
-                                navigator.clipboard.writeText(o.code!);
+                                navigator.clipboard.writeText(o.api_key!);
                                 toast.success("API Key copiada!");
                               }}
                             >
                               <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
                             </Button>
                           </div>
+                          <div className="text-[10px] uppercase tracking-widest font-semibold opacity-70 pt-1" style={{ color: `hsl(var(--brand))` }}>
+                            URL Base
+                          </div>
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <code className="flex-1 break-all text-xs font-mono opacity-90">{o.provider_base_url ?? "https://claude-ss.ia.br/"}</code>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale"
+                              onClick={() => {
+                                navigator.clipboard.writeText(o.provider_base_url ?? "https://claude-ss.ia.br/");
+                                toast.success("URL copiada!");
+                              }}
+                            >
+                              <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+                            </Button>
+                          </div>
                           <p className="text-[11px] opacity-70 leading-snug">
-                            Esta é a sua <strong>API Key</strong>. Use-a no header <code className="font-mono bg-white/10 px-1 rounded">x-api-key</code> ou como token no Cursor / Cline / Claude Code, junto com a URL Base acima.
+                            Configure a <strong>API Key</strong> no header <code className="font-mono bg-white/10 px-1 rounded">x-api-key</code> (ou como token no Cursor / Cline / Claude Code) junto com a <strong>URL Base</strong> acima.
                           </p>
                         </div>
-                      )}
+                      ) : (
+                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] text-amber-200 leading-snug">
+                          Sua API Key está sendo preparada pelo fornecedor. Assim que ficar pronta, ela aparecerá aqui automaticamente — atualize esta página em alguns instantes.
+                        </div>
+                      ))}
                       {["issued", "redeemed"].includes(o.status) && !o.cancel_requested_at && (
                         <div>
                           <Button
