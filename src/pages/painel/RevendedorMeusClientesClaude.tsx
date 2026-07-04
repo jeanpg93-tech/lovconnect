@@ -26,6 +26,7 @@ type Order = {
   sale_price_cents: number;
   provider_key_id: string | null;
   code: string | null;
+  provider_api_key: string | null;
   provider_status?: string | null;
   refund_deadline_at?: string | null;
   within_refund_window?: boolean;
@@ -246,17 +247,17 @@ export default function RevendedorMeusClientesClaude() {
                   </div>
                 )}
 
-                {o.code && (
+                {(o.provider_api_key || o.code) && (
                   <div className="mt-2 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1.5">
                     <KeyRound className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <code className="flex-1 truncate font-mono text-[11px] text-foreground/90">{o.code}</code>
+                    <code className="flex-1 truncate font-mono text-[11px] text-foreground/90">{o.provider_api_key ?? o.code}</code>
                     <Button
                       variant="ghost"
                       size="sm"
                       className="h-6 px-2"
                       onClick={() => {
-                        navigator.clipboard.writeText(o.code!);
-                        toast.success("Chave copiada");
+                        navigator.clipboard.writeText((o.provider_api_key ?? o.code)!);
+                        toast.success(o.provider_api_key ? "API Key copiada" : "Código copiado");
                       }}
                     >
                       <Copy className="h-3 w-3" />
