@@ -401,7 +401,7 @@ export default function RevendedorDashboard() {
           type: "transaction" as const,
           title: TX_LABELS[tx.kind] ?? (tx.description || tx.kind),
           amount_cents: Math.abs(tx.amount_cents ?? 0),
-          status: (tx.amount_cents ?? 0) < 0 ? "canceled" : "completed",
+          status: "completed",
           created_at: tx.created_at,
           metadata: {
             kind: tx.kind,
