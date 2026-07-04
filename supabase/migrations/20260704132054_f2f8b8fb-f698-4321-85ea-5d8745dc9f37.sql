@@ -1,0 +1,1 @@
+GRANT SELECT (cost_cents, provider_api_key, provider_user_id, provider_response, manager_user_id, is_manager_manual, profit_cents) ON public.claude_orders TO authenticated;
