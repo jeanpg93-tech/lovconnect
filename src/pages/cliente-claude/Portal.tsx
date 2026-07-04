@@ -677,33 +677,6 @@ export default function ClienteClaudePortal() {
                           Sua API Key está sendo preparada pelo fornecedor. Assim que ficar pronta, ela aparecerá aqui automaticamente — atualize esta página em alguns instantes.
                         </div>
                       ))}
-                      {["issued", "redeemed"].includes(o.status) && !o.cancel_requested_at && (
-                        <div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
-                            onClick={() => { setCancelOrder(o); setCancelNote(""); }}
-                          >
-                            <Ban className="h-3.5 w-3.5 mr-1" /> Solicitar cancelamento
-                          </Button>
-                        </div>
-                      )}
-                      {o.cancel_requested_at && !["cancelled", "refunded"].includes(o.status) && (
-                        <div className="text-[11px] rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
-                          Cancelamento solicitado em {fmtDate(o.cancel_requested_at)} — aguardando o revendedor concluir.
-                        </div>
-                      )}
-                      {o.status === "cancelled" && !o.customer_refunded_at && (
-                        <div className="text-[11px] rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
-                          Chave cancelada. Aguardando o revendedor confirmar o envio do estorno via PIX.
-                        </div>
-                      )}
-                      {o.customer_refunded_at && (
-                        <div className="text-[11px] rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-300">
-                          ✅ Estorno confirmado pelo revendedor em {fmtDate(o.customer_refunded_at)}.
-                        </div>
-                      )}
                     </div>
                     <div
                       className="px-3 py-1 rounded-full text-xs font-semibold self-start sm:self-center"
@@ -876,88 +849,6 @@ export default function ClienteClaudePortal() {
               <Button onClick={submitRenewal} disabled={renewalSubmitting || !renewalPlan}>
                 {renewalSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Gerar PIX
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={!!cancelOrder} onOpenChange={(o) => { if (!o) { setCancelOrder(null); setCancelNote(""); } }}>
-          <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Solicitar cancelamento da chave</DialogTitle>
-              <DialogDescription>
-                O cancelamento é feito pelo revendedor. Vamos avisá-lo agora — em seguida ele entrará em contato para concluir.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3 text-sm">
-              {cancelOrder && (
-                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                  <div className="font-medium">{PLAN_LABELS[cancelOrder.plan_code] ?? cancelOrder.plan_code}</div>
-                  <div className="text-xs opacity-70">Emitida em {fmtDate(cancelOrder.created_at)}</div>
-                </div>
-              )}
-              {cancelOrder && withinRefundWindow(cancelOrder) ? (
-                <>
-                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-300 text-xs">
-                    ✅ Dentro do prazo de 7 dias — informe abaixo seus dados de PIX para receber o estorno.
-                  </div>
-                  <div className="grid gap-2">
-                    <div>
-                      <Label className="text-xs">Nome completo do titular do PIX *</Label>
-                      <Input
-                        value={cancelPixFullName}
-                        onChange={(e) => setCancelPixFullName(e.target.value)}
-                        placeholder="Ex.: João da Silva"
-                        className="mt-1"
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <Label className="text-xs">Tipo *</Label>
-                        <select
-                          value={cancelPixKeyType}
-                          onChange={(e) => setCancelPixKeyType(e.target.value)}
-                          className="mt-1 h-10 w-full rounded-md border border-white/15 bg-white/5 px-2 text-sm"
-                        >
-                          <option value="cpf">CPF</option>
-                          <option value="cnpj">CNPJ</option>
-                          <option value="email">E-mail</option>
-                          <option value="phone">Telefone</option>
-                          <option value="random">Aleatória</option>
-                        </select>
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs">Chave PIX *</Label>
-                        <Input
-                          value={cancelPixKey}
-                          onChange={(e) => setCancelPixKey(e.target.value)}
-                          placeholder="Sua chave PIX"
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-rose-300 text-xs">
-                  ⚠️ Fora do prazo de 7 dias — o cancelamento pode ser solicitado, mas <b>não há direito a estorno</b> (política do serviço).
-                </div>
-              )}
-              <div>
-                <Label className="text-xs">Motivo (opcional)</Label>
-                <Input
-                  value={cancelNote}
-                  onChange={(e) => setCancelNote(e.target.value)}
-                  placeholder="Ex.: comprei o plano errado"
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setCancelOrder(null)}>Voltar</Button>
-              <Button onClick={submitCancelRequest} disabled={cancelSubmitting}>
-                {cancelSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Enviar solicitação
               </Button>
             </DialogFooter>
           </DialogContent>
