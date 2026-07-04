@@ -244,7 +244,7 @@ export default function GerenteClaude() {
       });
       const cost = plans.find((p) => p.plan_code === selected)?.cost_cents ?? 0;
       const entry: Issued = {
-        id: crypto.randomUUID(),
+        id: data.id ?? crypto.randomUUID(),
         plan: selected,
         code: data.code,
         api_key: data.api_key ?? null,
