@@ -28,6 +28,19 @@ const PLAN_LIMITS: Record<PlanCode, string> = {
 };
 const PLAN_ORDER: PlanCode[] = ["pro_30d", "5x_30d", "20x_30d"];
 
+const STATUS_LABELS: Record<string, string> = {
+  issued: "Emitida",
+  redeemed: "Resgatada",
+  expired: "Expirada",
+  cancelled: "Cancelada",
+};
+const STATUS_STYLES: Record<string, string> = {
+  issued: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+  redeemed: "bg-sky-500/15 text-sky-500 border-sky-500/30",
+  expired: "bg-amber-500/15 text-amber-500 border-amber-500/30",
+  cancelled: "bg-rose-500/15 text-rose-500 border-rose-500/30",
+};
+
 const PLAN_GRADIENTS: Record<PlanCode, string> = {
   pro_30d: "from-emerald-500/20 via-emerald-500/5 to-transparent",
   "5x_30d": "from-blue-500/20 via-blue-500/5 to-transparent",
