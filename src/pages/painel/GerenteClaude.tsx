@@ -468,6 +468,25 @@ export default function GerenteClaude() {
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+                  {h.api_key && (
+                    <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 p-1.5">
+                      <span className="text-[9px] font-bold uppercase text-primary/80 shrink-0 pl-1">API</span>
+                      <code className="flex-1 font-mono text-[11px] truncate select-all px-1">{h.api_key}</code>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 shrink-0"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(h.api_key!);
+                          toast.success("API Key copiada");
+                        }}
+                        title="Copiar API Key"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
