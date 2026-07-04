@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
     const customerIdentifier = body?.customer_identifier ? String(body.customer_identifier) : null;
     const customerName = body?.customer_name ? String(body.customer_name).trim().slice(0, 120) : null;
     const customerWhatsapp = body?.customer_whatsapp ? String(body.customer_whatsapp).replace(/\D+/g, '').slice(0, 15) : null;
+    const customerEmail = body?.customer_email ? String(body.customer_email).trim().toLowerCase().slice(0, 200) : null;
     const requestId = body?.request_id ? String(body.request_id) : null;
     if (!PLAN_CODES.has(planCode)) return jsonResponse({ error: 'invalid_plan_code' }, 400);
     if (!customerName || customerName.length < 2) return jsonResponse({ error: 'customer_name_required' }, 400);
@@ -125,6 +126,7 @@ Deno.serve(async (req) => {
           customer_identifier: customerIdentifier,
           customer_name: customerName,
           customer_whatsapp: customerWhatsapp,
+          customer_email: customerEmail,
           cost_cents: costCents,
           sale_price_cents: saleCents,
           profit_cents: profitCents,
@@ -154,6 +156,7 @@ Deno.serve(async (req) => {
         customer_identifier: customerIdentifier,
         customer_name: customerName,
         customer_whatsapp: customerWhatsapp,
+        customer_email: customerEmail,
         cost_cents: costCents,
         sale_price_cents: saleCents,
         profit_cents: profitCents,
@@ -183,7 +186,10 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify({ kind: planCode }),
+        body: JSON.stringify({
+          kind: planCode,
+          ...(customerEmail ? { email: customerEmail } : {}),
+        }),
       });
       providerStatus = r.status;
       const txt = await r.text();
@@ -209,6 +215,10 @@ Deno.serve(async (req) => {
       providerResp?.code ?? providerResp?.key ?? providerResp?.data?.code ?? providerResp?.data?.key;
     const providerKeyId: string | undefined =
       providerResp?.id ?? providerResp?.key_id ?? providerResp?.data?.id;
+    const providerApiKey: string | undefined =
+      providerResp?.apiKey ?? providerResp?.api_key ?? providerResp?.data?.apiKey ?? providerResp?.data?.api_key;
+    const providerUserId: string | undefined =
+      providerResp?.userId ?? providerResp?.user_id ?? providerResp?.data?.userId ?? providerResp?.data?.user_id;
 
     // SECURITY: debit atomically via RPC (row-lock + conditional decrement).
     // The RPC also inserts the balance_transactions row, preventing TOCTOU /
@@ -235,6 +245,8 @@ Deno.serve(async (req) => {
         status: 'issued',
         code,
         provider_key_id: providerKeyId,
+        provider_api_key: providerApiKey ?? null,
+        provider_user_id: providerUserId ?? null,
         provider_response: providerResp,
         code_revealed_at: new Date().toISOString(),
       })
@@ -266,6 +278,9 @@ Deno.serve(async (req) => {
       sale_price_cents: saleCents,
       code, // one-time exposure
       provider_key_id: providerKeyId,
+      api_key: providerApiKey ?? null,
+      user_id: providerUserId ?? null,
+      provider_base_url: providerApiKey ? 'https://claude-ss.ia.br/' : null,
       order: updated,
     });
   } catch (e) {
