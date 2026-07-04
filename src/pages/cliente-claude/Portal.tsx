@@ -897,9 +897,47 @@ export default function ClienteClaudePortal() {
                 </div>
               )}
               {cancelOrder && withinRefundWindow(cancelOrder) ? (
-                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-300 text-xs">
-                  ✅ Dentro do prazo de 7 dias — se o revendedor concluir o cancelamento, o valor pago poderá ser estornado.
-                </div>
+                <>
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-300 text-xs">
+                    ✅ Dentro do prazo de 7 dias — informe abaixo seus dados de PIX para receber o estorno.
+                  </div>
+                  <div className="grid gap-2">
+                    <div>
+                      <Label className="text-xs">Nome completo do titular do PIX *</Label>
+                      <Input
+                        value={cancelPixFullName}
+                        onChange={(e) => setCancelPixFullName(e.target.value)}
+                        placeholder="Ex.: João da Silva"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-xs">Tipo *</Label>
+                        <select
+                          value={cancelPixKeyType}
+                          onChange={(e) => setCancelPixKeyType(e.target.value)}
+                          className="mt-1 h-10 w-full rounded-md border border-white/15 bg-white/5 px-2 text-sm"
+                        >
+                          <option value="cpf">CPF</option>
+                          <option value="cnpj">CNPJ</option>
+                          <option value="email">E-mail</option>
+                          <option value="phone">Telefone</option>
+                          <option value="random">Aleatória</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Chave PIX *</Label>
+                        <Input
+                          value={cancelPixKey}
+                          onChange={(e) => setCancelPixKey(e.target.value)}
+                          placeholder="Sua chave PIX"
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-rose-300 text-xs">
                   ⚠️ Fora do prazo de 7 dias — o cancelamento pode ser solicitado, mas <b>não há direito a estorno</b> (política do serviço).
