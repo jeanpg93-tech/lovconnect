@@ -176,6 +176,8 @@ export default function RevendedorClaude() {
         apiKey: data.api_key ?? null,
         userId: data.user_id ?? null,
         providerBaseUrl: data.provider_base_url ?? null,
+        customerName: customerName.trim(),
+        customerWhatsapp: customerWhatsapp.replace(/\D+/g, ""),
       });
       setCustomerName("");
       setCustomerWhatsapp("");
