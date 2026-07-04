@@ -379,15 +379,16 @@ Qualquer dúvida, é só chamar!`;
 
   const filteredHistory = history.filter((h) => {
     const isCancelled = h.status === "cancelled" || !!h.cancelled_at;
-    if (statusFilter === "issued" && isCancelled) return false;
-    if (statusFilter === "cancelled" && !isCancelled) return false;
+    const effective = isCancelled ? "cancelled" : (h.status ?? "issued");
+    if (statusFilter !== "all" && effective !== statusFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
+    const label = STATUS_LABELS[effective] ?? effective;
     return (
       (PLAN_LABELS[h.plan] ?? "").toLowerCase().includes(q) ||
       h.code.toLowerCase().includes(q) ||
       h.id.toLowerCase().includes(q) ||
-      (isCancelled ? "cancelada" : "emitida").includes(q) ||
+      label.toLowerCase().includes(q) ||
       (h.status ?? "").toLowerCase().includes(q) ||
       (h.customer_name ?? "").toLowerCase().includes(q) ||
       (h.customer_whatsapp ?? "").toLowerCase().includes(q) ||
@@ -395,8 +396,14 @@ Qualquer dúvida, é só chamar!`;
     );
   });
 
-  const issuedCount = history.filter((h) => !(h.status === "cancelled" || !!h.cancelled_at)).length;
-  const cancelledCount = history.length - issuedCount;
+  const countBy = (s: string) => history.filter((h) => {
+    const isC = h.status === "cancelled" || !!h.cancelled_at;
+    return (isC ? "cancelled" : (h.status ?? "issued")) === s;
+  }).length;
+  const issuedCount = countBy("issued");
+  const redeemedCount = countBy("redeemed");
+  const expiredCount = countBy("expired");
+  const cancelledCount = countBy("cancelled");
 
   return (
     <PageContainer>
