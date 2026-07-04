@@ -45,6 +45,59 @@ async function notifyResellerWhatsapp(resellerId: string | null, message: string
   } catch (e) { console.warn('[claude-webhook] whatsapp notify failed', e); }
 }
 
+async function forwardToResellerWebhook(
+  admin: any,
+  resellerId: string | null,
+  event: string,
+  payload: Record<string, unknown>,
+) {
+  if (!resellerId) return;
+  try {
+    // Configuração dedicada de webhook do revendedor (fonte oficial)
+    const { data: dedicated } = await admin
+      .from('reseller_claude_api_keys')
+      .select('webhook_url, webhook_secret')
+      .eq('reseller_id', resellerId)
+      .eq('label', '__webhook_config__')
+      .not('webhook_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const cfg = dedicated?.webhook_url ? dedicated : (
+      await admin
+        .from('reseller_claude_api_keys')
+        .select('webhook_url, webhook_secret')
+        .eq('reseller_id', resellerId)
+        .eq('is_active', true)
+        .not('webhook_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    ).data;
+    if (!cfg?.webhook_url) return;
+    const body = JSON.stringify({
+      event,
+      ...payload,
+      sent_at: new Date().toISOString(),
+    });
+    const sig = cfg.webhook_secret
+      ? `sha256=${await hmacHex(cfg.webhook_secret, body)}`
+      : '';
+    await fetch(cfg.webhook_url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'LovConnect-Webhook/1.0',
+        ...(sig ? { 'X-Signature': sig } : {}),
+      },
+      body,
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch (e) {
+    console.warn('[claude-webhook] forward to reseller failed', e);
+  }
+}
+
 async function hmacHex(secret: string, message: string) {
   const key = await crypto.subtle.importKey(
     'raw',
@@ -163,6 +216,11 @@ Deno.serve(async (req) => {
             orderRow?.reseller_id,
             `✅ Seu cliente *${clientLabel}* acabou de ativar a chave Claude (${planLabel}).`,
           );
+          await forwardToResellerWebhook(admin, orderRow?.reseller_id ?? null, 'claude.key.redeemed', {
+            order_id: orderId,
+            customer_email: orderRow?.customer_email ?? null,
+            plan_code: orderRow?.plan_code ?? null,
+          });
           break;
         }
         case 'tokens.limit_reached': {
@@ -180,6 +238,11 @@ Deno.serve(async (req) => {
             `⚠️ Cliente *${clientLabel}* esgotou os tokens do plano Claude (${planLabel}). ` +
             `Oportunidade de renovação — ele já pode renovar pelo Portal.`,
           );
+          await forwardToResellerWebhook(admin, orderRow?.reseller_id ?? null, 'claude.tokens.limit_reached', {
+            order_id: orderId,
+            customer_email: orderRow?.customer_email ?? null,
+            plan_code: orderRow?.plan_code ?? null,
+          });
           break;
         }
         case 'key.expired': {
@@ -196,6 +259,11 @@ Deno.serve(async (req) => {
             orderRow?.reseller_id,
             `⏰ A chave Claude do cliente *${clientLabel}* (${planLabel}) expirou. Ele já pode renovar pelo Portal.`,
           );
+          await forwardToResellerWebhook(admin, orderRow?.reseller_id ?? null, 'claude.key.expired', {
+            order_id: orderId,
+            customer_email: orderRow?.customer_email ?? null,
+            plan_code: orderRow?.plan_code ?? null,
+          });
           break;
         }
         case 'key.cancelled': {
@@ -208,6 +276,11 @@ Deno.serve(async (req) => {
             `🆔 Pedido: <code>${orderId}</code>`,
             'claude_key_cancelled', orderId,
           );
+          await forwardToResellerWebhook(admin, orderRow?.reseller_id ?? null, 'claude.key.cancelled', {
+            order_id: orderId,
+            customer_email: orderRow?.customer_email ?? null,
+            plan_code: orderRow?.plan_code ?? null,
+          });
           break;
         }
       }
