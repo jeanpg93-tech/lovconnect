@@ -277,6 +277,68 @@ export default function GerenteClaude() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const copyField = async (key: string, value: string) => {
+    await navigator.clipboard.writeText(value);
+    setCopiedField(key);
+    toast.success("Copiado!");
+    setTimeout(() => setCopiedField((k) => (k === key ? null : k)), 1800);
+  };
+
+  const buildClientMessage = () => {
+    if (!revealed) return "";
+    const nome = revealed.customerName ? `Olá, ${revealed.customerName}!` : "Olá!";
+    const plano = PLAN_LABELS[revealed.plan];
+    const baseUrl = revealed.providerBaseUrl ?? "https://claude-ss.ia.br/";
+    if (revealed.apiKey) {
+      return `${nome} Aqui estão suas credenciais do plano *${plano}*:
+
+🔑 *API Key (ANTHROPIC_AUTH_TOKEN):*
+${revealed.apiKey}
+
+🌐 *Base URL (ANTHROPIC_BASE_URL):*
+${baseUrl}
+
+Use no Cursor, Cline ou Claude Code definindo essas duas variáveis. Qualquer dúvida, é só chamar!`;
+    }
+    return `${nome} Aqui está sua chave do plano *${plano}*:
+
+🔑 ${revealed.code}
+
+Qualquer dúvida, é só chamar!`;
+  };
+
+  const cancelRevealed = async () => {
+    if (!revealed) return;
+    if (!confirm("Cancelar esta chave no fornecedor? A chave será revogada imediatamente.")) return;
+    setCancelling(true);
+    const { data, error } = await invokeAuthenticatedFunction<any>(
+      "manager-claude-cancel-key",
+      {
+        method: "POST",
+        body: {
+          order_id: revealed.id ?? undefined,
+          code: revealed.code,
+        },
+      },
+    );
+    setCancelling(false);
+    if (error) {
+      const msg = (data as any)?.error ?? (error as any)?.message ?? "Falha ao cancelar";
+      if (msg === "already_redeemed") {
+        toast.error("Chave já foi resgatada — não é mais cancelável pelo fornecedor.");
+      } else {
+        toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      }
+      return;
+    }
+    toast.success("Chave cancelada no fornecedor");
+    // remove from local list
+    if (revealed.id) {
+      persist(history.filter((h) => h.id !== revealed.id));
+    }
+    setRevealed(null);
+  };
+
   if (loading)
     return (
       <div className="flex h-40 items-center justify-center">
