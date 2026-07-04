@@ -122,9 +122,36 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   };
 }
 
+// SSRF hardening: only fetch public https URLs; block loopback / private / link-local hosts
+// and refuse redirects (an attacker-controlled 302 could point at internal services).
+function isSafeAssetUrl(url: string): boolean {
+  let u: URL;
+  try { u = new URL(url); } catch { return false; }
+  if (u.protocol !== "https:") return false;
+  const host = u.hostname.toLowerCase();
+  if (!host || host === "localhost" || host.endsWith(".localhost")) return false;
+  // IPv6 literal or userinfo -> reject (covers ::1, link-local, ULA)
+  if (host.includes(":") || u.username || u.password) return false;
+  // IPv4 literal? Block private / loopback / link-local ranges
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [a, b] = [parseInt(ipv4[1], 10), parseInt(ipv4[2], 10)];
+    if (a === 10 || a === 127 || a === 0) return false;
+    if (a === 169 && b === 254) return false; // AWS/GCP metadata + link-local
+    if (a === 192 && b === 168) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a >= 224) return false; // multicast / reserved
+  } else if (!host.includes(".")) {
+    // bare hostname (could resolve to internal service) -> reject
+    return false;
+  }
+  return true;
+}
+
 async function fetchBytes(url: string): Promise<Uint8Array | null> {
+  if (!isSafeAssetUrl(url)) return null;
   try {
-    const r = await fetch(url);
+    const r = await fetch(url, { redirect: "error" });
     if (!r.ok) return null;
     return new Uint8Array(await r.arrayBuffer());
   } catch { return null; }
