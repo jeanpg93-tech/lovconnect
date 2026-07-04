@@ -90,13 +90,19 @@ export default function GerenteClaude() {
   const [selected, setSelected] = useState<PlanCode>("20x_30d");
   const [issuing, setIssuing] = useState<PlanCode | null>(null);
   const [revealed, setRevealed] = useState<{
+    id?: string | null;
     code: string;
     plan: PlanCode;
     apiKey?: string | null;
     userId?: string | null;
     providerBaseUrl?: string | null;
+    customerName?: string;
+    customerWhatsapp?: string;
+    customerEmail?: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [history, setHistory] = useState<Issued[]>([]);
   const [search, setSearch] = useState("");
   const [customerName, setCustomerName] = useState("");
@@ -233,11 +239,15 @@ export default function GerenteClaude() {
     }
     if (data?.code) {
       setRevealed({
+        id: data.id ?? null,
         code: data.code,
         plan: selected,
         apiKey: data.api_key ?? null,
         userId: data.user_id ?? null,
         providerBaseUrl: data.provider_base_url ?? null,
+        customerName: customerName.trim(),
+        customerWhatsapp: customerWhatsapp.replace(/\D+/g, ""),
+        customerEmail: customerEmail.trim() || undefined,
       });
       const cost = plans.find((p) => p.plan_code === selected)?.cost_cents ?? 0;
       const entry: Issued = {
