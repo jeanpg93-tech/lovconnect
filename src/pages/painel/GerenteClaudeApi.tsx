@@ -685,7 +685,7 @@ function PriceCard({ row, onSaved }: { row: PlanPrice; onSaved: (r: PlanPrice) =
       reseller_cost_markup_bps: rcMarkupBps,
       reseller_cost_cents: resellerCostCents,
       is_active: active,
-    }).eq("id", row.id).select().single();
+    }).eq("id", row.id).select("id, plan_code, markup_mode, markup_value_cents, sale_price_cents, reseller_cost_mode, reseller_cost_markup_bps, is_active, sort_order").single();
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Preço salvo");
