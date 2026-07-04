@@ -564,6 +564,14 @@ export default function RevendedorDashboard() {
     return { count: list.length, cents: list.reduce((s, a) => s + a.amount_cents, 0) };
   }, [completed]);
 
+  const licenses30 = useMemo(() => {
+    const cutoff = subDays(new Date(), 30);
+    const list = completed.filter(
+      (a) => a.type === "sale" && isAfter(new Date(a.created_at), cutoff),
+    );
+    return { count: list.length, cents: list.reduce((s, a) => s + a.amount_cents, 0) };
+  }, [completed]);
+
   // === Gráficos baseados no período selecionado ===
   const chartRevenueCents = useMemo(
     () =>
