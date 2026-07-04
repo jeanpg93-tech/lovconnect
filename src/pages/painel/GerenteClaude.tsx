@@ -378,9 +378,11 @@ Qualquer dúvida, é só chamar!`;
     );
 
   const filteredHistory = history.filter((h) => {
+    const isCancelled = h.status === "cancelled" || !!h.cancelled_at;
+    if (statusFilter === "issued" && isCancelled) return false;
+    if (statusFilter === "cancelled" && !isCancelled) return false;
     if (!search) return true;
     const q = search.toLowerCase();
-    const isCancelled = h.status === "cancelled" || !!h.cancelled_at;
     return (
       (PLAN_LABELS[h.plan] ?? "").toLowerCase().includes(q) ||
       h.code.toLowerCase().includes(q) ||
@@ -392,6 +394,9 @@ Qualquer dúvida, é só chamar!`;
       (h.customer_email ?? "").toLowerCase().includes(q)
     );
   });
+
+  const issuedCount = history.filter((h) => !(h.status === "cancelled" || !!h.cancelled_at)).length;
+  const cancelledCount = history.length - issuedCount;
 
   return (
     <PageContainer>
