@@ -576,6 +576,25 @@ Qualquer dúvida, é só chamar!`
                       <span>{new Date(h.created_at).toLocaleString("pt-BR")}</span>
                       <span className="font-semibold text-foreground">{fmtBRL(h.sale_price_cents)}</span>
                     </div>
+                    {h.provider_api_key && (
+                      <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 p-1.5">
+                        <span className="text-[9px] font-bold uppercase text-primary/80 shrink-0 pl-1">API</span>
+                        <code className="flex-1 font-mono text-[11px] truncate select-all px-1">{h.provider_api_key}</code>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0"
+                          onClick={async () => {
+                            await navigator.clipboard.writeText(h.provider_api_key);
+                            toast.success("API Key copiada");
+                          }}
+                          title="Copiar API Key"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
                     {h.status === "failed" && h.error_message && (
                       <div className="mt-2 text-[10px] text-rose-500/90 line-clamp-2">{h.error_message}</div>
                     )}
