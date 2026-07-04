@@ -150,39 +150,54 @@ export default function GerenteClaude() {
         if (raw) setHistory(JSON.parse(raw));
       } catch { /* noop */ }
       // Load persistent history from DB (manager manual issuances)
-      try {
-        const { data: dbRows } = await supabase.rpc(
-          "manager_list_claude_manual_orders",
-          { _limit: 200 },
-        );
-        if (dbRows && dbRows.length) {
-          setHistory((prev) => {
-            const byCode = new Map<string, Issued>();
-            for (const r of dbRows as any[]) {
-              byCode.set(r.code, {
-                id: r.id,
-                plan: r.plan_code as PlanCode,
-                code: r.code,
-                api_key: r.provider_api_key ?? null,
-                cost_cents: r.cost_cents ?? 0,
-                created_at: r.created_at,
-                status: r.status ?? "issued",
-                cancelled_at: r.cancelled_at ?? null,
-                customer_name: r.customer_name ?? undefined,
-                customer_whatsapp: r.customer_whatsapp ?? undefined,
-                customer_email: r.customer_email ?? undefined,
-              });
-            }
-            // Keep any localStorage entries not yet in DB
-            for (const r of prev) if (!byCode.has(r.code)) byCode.set(r.code, r);
-            return Array.from(byCode.values()).sort(
-              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-            );
-          });
-        }
-      } catch { /* noop */ }
+      await reloadHistory();
       setLoading(false);
     })();
+  }, []);
+
+  const reloadHistory = async () => {
+    try {
+      const { data: dbRows } = await supabase.rpc(
+        "manager_list_claude_manual_orders",
+        { _limit: 200 },
+      );
+      if (!dbRows) return;
+      setHistory((prev) => {
+        const byCode = new Map<string, Issued>();
+        for (const r of dbRows as any[]) {
+          byCode.set(r.code, {
+            id: r.id,
+            plan: r.plan_code as PlanCode,
+            code: r.code,
+            api_key: r.provider_api_key ?? null,
+            cost_cents: r.cost_cents ?? 0,
+            created_at: r.created_at,
+            status: r.status ?? "issued",
+            cancelled_at: r.cancelled_at ?? null,
+            customer_name: r.customer_name ?? undefined,
+            customer_whatsapp: r.customer_whatsapp ?? undefined,
+            customer_email: r.customer_email ?? undefined,
+          });
+        }
+        for (const r of prev) if (!byCode.has(r.code)) byCode.set(r.code, r);
+        return Array.from(byCode.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        );
+      });
+    } catch { /* noop */ }
+  };
+
+  // Realtime — atualiza a lista quando o webhook do fornecedor mudar qualquer chave
+  useEffect(() => {
+    const channel = supabase
+      .channel("gerente-claude-orders")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "claude_orders" },
+        () => { reloadHistory(); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const loadUsage = async () => {
