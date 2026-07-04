@@ -49,6 +49,9 @@ Deno.serve(async (req) => {
     const customerWhatsapp = typeof body?.customer_whatsapp === 'string' ? body.customer_whatsapp.replace(/\D+/g, '').slice(0, 15) : '';
     const customerEmail = typeof body?.customer_email === 'string' ? body.customer_email.trim().slice(0, 160) : '';
     if (customerName.length < 2) return json({ error: 'customer_name_required' }, 400);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      return json({ error: 'customer_email_required' }, 400);
+    }
 
     if (!CLAUDE_BASE_URL) return json({ error: 'provider_not_configured' }, 500);
 
