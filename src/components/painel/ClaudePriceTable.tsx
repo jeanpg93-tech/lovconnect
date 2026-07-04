@@ -146,6 +146,18 @@ export default function ClaudePriceTable() {
 
   return (
     <div>
+      {tier?.name && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3">
+          <Crown className="h-4 w-4 text-primary" />
+          <div className="text-sm">
+            Você está no nível{" "}
+            <span className="font-display font-semibold" style={{ color: tier.color }}>
+              {tier.name}
+            </span>
+            . Os preços abaixo são os definidos pelo gerente para o seu nível.
+          </div>
+        </div>
+      )}
       <div className="mb-4 flex items-center gap-2 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3">
         <ClaudeIcon className="text-primary" size={16} />
         <div className="text-sm">
