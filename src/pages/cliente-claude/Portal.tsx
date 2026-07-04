@@ -698,20 +698,7 @@ export default function ClienteClaudePortal() {
                           <div className="text-[10px] uppercase tracking-widest font-semibold opacity-70" style={{ color: `hsl(var(--brand))` }}>
                             API Key (X-API-Key)
                           </div>
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <code className="flex-1 break-all text-xs font-mono" style={{ color: `hsl(var(--brand))` }}>{o.api_key}</code>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale"
-                              onClick={() => {
-                                navigator.clipboard.writeText(o.api_key!);
-                                toast.success("API Key copiada!");
-                              }}
-                            >
-                              <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
-                            </Button>
-                          </div>
+                          <ApiKeyField value={o.api_key} />
                           <div className="text-[10px] uppercase tracking-widest font-semibold opacity-70 pt-1" style={{ color: `hsl(var(--brand))` }}>
                             URL Base
                           </div>
