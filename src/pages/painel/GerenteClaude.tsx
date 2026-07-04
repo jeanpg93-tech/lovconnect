@@ -67,7 +67,13 @@ export default function GerenteClaude() {
   const [plans, setPlans] = useState<Row[]>([]);
   const [selected, setSelected] = useState<PlanCode>("20x_30d");
   const [issuing, setIssuing] = useState<PlanCode | null>(null);
-  const [revealed, setRevealed] = useState<{ code: string; plan: PlanCode } | null>(null);
+  const [revealed, setRevealed] = useState<{
+    code: string;
+    plan: PlanCode;
+    apiKey?: string | null;
+    userId?: string | null;
+    providerBaseUrl?: string | null;
+  } | null>(null);
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<Issued[]>([]);
   const [search, setSearch] = useState("");
@@ -126,7 +132,13 @@ export default function GerenteClaude() {
       return toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
     }
     if (data?.code) {
-      setRevealed({ code: data.code, plan: selected });
+      setRevealed({
+        code: data.code,
+        plan: selected,
+        apiKey: data.api_key ?? null,
+        userId: data.user_id ?? null,
+        providerBaseUrl: data.provider_base_url ?? null,
+      });
       const cost = plans.find((p) => p.plan_code === selected)?.cost_cents ?? 0;
       const entry: Issued = {
         id: crypto.randomUUID(),
@@ -430,6 +442,26 @@ export default function GerenteClaude() {
           <div className="rounded-lg border border-border bg-background/60 p-3 font-mono text-sm break-all select-all">
             {revealed?.code}
           </div>
+          {revealed?.apiKey && (
+            <div className="mt-3 space-y-2">
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-400">
+                <div className="font-semibold">Entrega direta ativada 🎉</div>
+                <div className="mt-1">Cliente já pode usar direto no Cursor/Cline/Claude Code:</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">API Key (ANTHROPIC_AUTH_TOKEN)</div>
+                <div className="rounded-lg border border-border bg-background/60 p-3 font-mono text-xs break-all select-all">
+                  {revealed.apiKey}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Base URL (ANTHROPIC_BASE_URL)</div>
+                <div className="rounded-lg border border-border bg-background/60 p-3 font-mono text-xs break-all select-all">
+                  {revealed.providerBaseUrl ?? "https://claude-ss.ia.br/"}
+                </div>
+              </div>
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setRevealed(null)}>Fechar</Button>
             <Button onClick={copy}>
