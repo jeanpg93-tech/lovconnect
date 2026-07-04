@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: orders } = await admin
       .from('claude_orders')
-      .select('id, code, customer_email, provider_key_id, provider_user_id')
+      .select('id, code, customer_email, provider_key_id, provider_user_id, status, redeemed_at, expired_at')
       .eq('is_manager_manual', true)
       .not('code', 'is', null)
       .order('created_at', { ascending: false })
@@ -85,6 +85,8 @@ Deno.serve(async (req) => {
     }
 
     const usageByOrderId: Record<string, unknown> = {};
+    const statusPatches: Array<{ id: string; patch: Record<string, any> }> = [];
+    const nowIso = new Date().toISOString();
     for (const o of orders ?? []) {
       const email = String(o.customer_email ?? '').trim().toLowerCase();
       const providerUserId = String(o.provider_user_id ?? '').trim();
@@ -96,7 +98,41 @@ Deno.serve(async (req) => {
         (email && byEmail.get(email)) ||
         (code && byCode.get(code)) ||
         null;
-      if (match) usageByOrderId[o.id] = match;
+      if (!match) continue;
+      usageByOrderId[o.id] = match;
+
+      // Sincroniza status a partir do provedor (webhook pode não estar chegando)
+      if ((o as any).status === 'cancelled') continue;
+      const patch: Record<string, any> = {};
+      const providerStatus = String((match as any).status ?? '').toLowerCase();
+      const expiresAt = (match as any).accountExpiresAt ? new Date((match as any).accountExpiresAt) : null;
+      const isExpiredByDate = expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() < Date.now();
+      const tokensUsed = Number((match as any).tokensConsumed ?? (match as any).tokensInWindow ?? 0) > 0;
+
+      if (providerStatus === 'expired' || isExpiredByDate) {
+        if ((o as any).status !== 'expired') {
+          patch.status = 'expired';
+          patch.expired_at = (o as any).expired_at ?? (match as any).accountExpiresAt ?? nowIso;
+        }
+      } else if (providerStatus === 'cancelled') {
+        patch.status = 'cancelled';
+        patch.cancelled_at = nowIso;
+      } else if (tokensUsed || (match as any).redeemedAt) {
+        if ((o as any).status === 'issued') {
+          patch.status = 'redeemed';
+          patch.redeemed_at = (o as any).redeemed_at ?? (match as any).redeemedAt ?? nowIso;
+        }
+      }
+      if (Object.keys(patch).length) statusPatches.push({ id: o.id, patch });
+    }
+
+    // Aplica atualizações de status em paralelo
+    if (statusPatches.length) {
+      await Promise.all(
+        statusPatches.map(({ id, patch }) =>
+          admin.from('claude_orders').update(patch).eq('id', id)
+        ),
+      );
     }
 
     return json({ ok: true, users: compact, usage_by_order_id: usageByOrderId });
