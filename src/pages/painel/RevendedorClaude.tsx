@@ -228,7 +228,10 @@ export default function RevendedorClaude() {
 
   const copy = async () => {
     if (!revealed) return;
-    await navigator.clipboard.writeText(revealed.code);
+    const text = revealed.apiKey
+      ? `ANTHROPIC_AUTH_TOKEN=${revealed.apiKey}\nANTHROPIC_BASE_URL=${revealed.providerBaseUrl ?? "https://claude-ss.ia.br/"}`
+      : revealed.code;
+    await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -577,16 +580,18 @@ export default function RevendedorClaude() {
           </DialogHeader>
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400 flex gap-2">
             <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-            <span>Copie agora — esta chave <strong>não será exibida novamente</strong>.</span>
+            <span>Copie agora — estes dados <strong>não serão exibidos novamente</strong>.</span>
           </div>
-          <div className="rounded-lg border border-border bg-background/60 p-3 font-mono text-sm break-all select-all">
-            {revealed?.code}
-          </div>
+          {!revealed?.apiKey && (
+            <div className="rounded-lg border border-border bg-background/60 p-3 font-mono text-sm break-all select-all">
+              {revealed?.code}
+            </div>
+          )}
           {revealed?.apiKey && (
             <div className="mt-3 space-y-2">
               <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-400">
                 <div className="font-semibold">Entrega direta ativada 🎉</div>
-                <div className="mt-1">O cliente já pode usar direto no Cursor/Cline/Claude Code com estas credenciais:</div>
+                <div className="mt-1">Entregue ao seu cliente <strong>apenas</strong> a API Key e a Base URL abaixo. Ele já pode usar direto no Cursor/Cline/Claude Code:</div>
               </div>
               <div className="space-y-1">
                 <div className="text-[11px] uppercase tracking-wide text-muted-foreground">API Key (ANTHROPIC_AUTH_TOKEN)</div>
