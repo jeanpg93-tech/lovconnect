@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2, Store, Ban, Puzzle } from "lucide-react";
+import { Loader2, LogOut, ShieldAlert, KeyRound, Clock, Zap, RefreshCw, MessageCircle, Copy, CheckCircle2, Store, Ban, Puzzle, Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -16,6 +16,45 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StorefrontBackground } from "@/components/storefront/StorefrontBackground";
 import { StorefrontVisualEffects, type VisualEffect } from "@/components/storefront/StorefrontVisualEffects";
 import { PortalFooterBrand } from "@/components/cliente-claude/PortalFooterBrand";
+
+function maskKey(v: string) {
+  if (!v) return "";
+  const tail = v.slice(-4);
+  return `${"•".repeat(Math.max(8, Math.min(24, v.length - 4)))}${tail}`;
+}
+
+function ApiKeyField({ value }: { value: string }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <code className="flex-1 break-all text-xs font-mono" style={{ color: `hsl(var(--brand))` }}>
+        {revealed ? value : maskKey(value)}
+      </code>
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale"
+          onClick={() => setRevealed((r) => !r)}
+        >
+          {revealed ? <EyeOff className="h-3.5 w-3.5 mr-1" /> : <Eye className="h-3.5 w-3.5 mr-1" />}
+          {revealed ? "Ocultar" : "Revelar"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale"
+          onClick={() => {
+            navigator.clipboard.writeText(value);
+            toast.success("API Key copiada!");
+          }}
+        >
+          <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 type Customer = {
   id: string;
@@ -659,20 +698,7 @@ export default function ClienteClaudePortal() {
                           <div className="text-[10px] uppercase tracking-widest font-semibold opacity-70" style={{ color: `hsl(var(--brand))` }}>
                             API Key (X-API-Key)
                           </div>
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <code className="flex-1 break-all text-xs font-mono" style={{ color: `hsl(var(--brand))` }}>{o.api_key}</code>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale"
-                              onClick={() => {
-                                navigator.clipboard.writeText(o.api_key!);
-                                toast.success("API Key copiada!");
-                              }}
-                            >
-                              <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
-                            </Button>
-                          </div>
+                          <ApiKeyField value={o.api_key} />
                           <div className="text-[10px] uppercase tracking-widest font-semibold opacity-70 pt-1" style={{ color: `hsl(var(--brand))` }}>
                             URL Base
                           </div>

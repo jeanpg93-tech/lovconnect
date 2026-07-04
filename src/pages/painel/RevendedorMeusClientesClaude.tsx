@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity, Copy, KeyRound, Ban, ShieldAlert, Store, Code2, Phone, Hash } from "lucide-react";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
+import ApiKeyReveal from "@/components/painel/ApiKeyReveal";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -247,23 +248,27 @@ export default function RevendedorMeusClientesClaude() {
                   </div>
                 )}
 
-                {(o.provider_api_key || o.code) && (
+                {o.provider_api_key ? (
+                  <div className="mt-2">
+                    <ApiKeyReveal value={o.provider_api_key} />
+                  </div>
+                ) : o.code ? (
                   <div className="mt-2 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1.5">
                     <KeyRound className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <code className="flex-1 truncate font-mono text-[11px] text-foreground/90">{o.provider_api_key ?? o.code}</code>
+                    <code className="flex-1 truncate font-mono text-[11px] text-foreground/90">{o.code}</code>
                     <Button
                       variant="ghost"
                       size="sm"
                       className="h-6 px-2"
                       onClick={() => {
-                        navigator.clipboard.writeText((o.provider_api_key ?? o.code)!);
-                        toast.success(o.provider_api_key ? "API Key copiada" : "Código copiado");
+                        navigator.clipboard.writeText(o.code!);
+                        toast.success("Código copiado");
                       }}
                     >
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
-                )}
+                ) : null}
 
                 {noEmail ? (
                   <div className="mt-3 rounded-lg border border-dashed border-border bg-background/40 p-3 text-[11px] text-muted-foreground">
