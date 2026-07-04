@@ -80,14 +80,15 @@ Deno.serve(async (req) => {
 
     // Pedidos: por customer_id OU (fallback) por customer_email dentro do mesmo revendedor
     const emailLower = String(customer.email).toLowerCase();
+    const orderCols = "id, plan_code, status, provider_key_id, code, provider_api_key, provider_response, created_at, sale_price_cents, customer_email";
     const { data: byId } = await admin
       .from("claude_orders")
-      .select("id, plan_code, status, provider_key_id, code, provider_response, created_at, sale_price_cents, customer_email")
+      .select(orderCols)
       .eq("customer_id", customer.id)
       .order("created_at", { ascending: false });
     const { data: byEmail } = await admin
       .from("claude_orders")
-      .select("id, plan_code, status, provider_key_id, code, provider_response, created_at, sale_price_cents, customer_email")
+      .select(orderCols)
       .eq("reseller_id", customer.reseller_id)
       .ilike("customer_email", emailLower)
       .order("created_at", { ascending: false });
@@ -99,12 +100,22 @@ Deno.serve(async (req) => {
       return true;
     }).map((o: any) => {
       const code = String(o.code ?? "").trim() || extractProviderCode(o.provider_response);
+      const apiKey = String(
+        o.provider_api_key ??
+        o.provider_response?.apiKey ??
+        o.provider_response?.api_key ??
+        o.provider_response?.data?.apiKey ??
+        o.provider_response?.data?.api_key ??
+        ""
+      ).trim() || null;
       return {
         id: o.id,
         plan_code: o.plan_code,
         status: o.status,
         provider_key_id: o.provider_key_id,
         code,
+        api_key: apiKey,
+        provider_base_url: "https://claude-ss.ia.br/",
         created_at: o.created_at,
         sale_price_cents: o.sale_price_cents,
         customer_email: o.customer_email,
