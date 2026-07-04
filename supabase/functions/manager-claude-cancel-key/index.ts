@@ -7,6 +7,12 @@ const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const CLAUDE_API_KEY = Deno.env.get('CLAUDE_RESELLER_API_KEY')!;
 const CLAUDE_BASE_URL = (Deno.env.get('CLAUDE_RESELLER_API_BASE_URL') ?? '').replace(/\/$/, '');
 
+const PLAN_LABELS: Record<string, string> = {
+  'pro_30d': 'Pro · 30 dias',
+  '5x_30d':  '5x · 30 dias',
+  '20x_30d': '20x · 30 dias',
+};
+
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
     status,
@@ -51,7 +57,7 @@ Deno.serve(async (req) => {
     if (orderId) {
       const { data } = await admin
         .from('claude_orders')
-        .select('id, status, code, provider_key_id, cost_cents, plan_code, is_manager_manual, cancel_attempts')
+        .select('id, status, code, provider_key_id, cost_cents, plan_code, is_manager_manual, cancel_attempts, customer_name, customer_email, customer_whatsapp')
         .eq('id', orderId)
         .maybeSingle();
       order = data;
@@ -116,6 +122,23 @@ Deno.serve(async (req) => {
         cancelled_at: now,
         cancel_attempts: [...prevAttempts, attempt],
       }).eq('id', order.id);
+    }
+
+    // Notifica gerente via Telegram
+    try {
+      const planLabel = order?.plan_code ? (PLAN_LABELS[order.plan_code] ?? order.plan_code) : '—';
+      const refundBRL = 'R$ ' + (Number(refundCents || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const txt =
+        `🚫 <b>Chave Claude cancelada (Gerente · manual)</b>\n` +
+        `📦 Plano: ${planLabel}\n` +
+        (order?.code ? `🔑 Chave: <code>${order.code}</code>\n` : '') +
+        (order?.customer_name ? `👤 Cliente: ${order.customer_name}` : '') +
+        (order?.customer_whatsapp ? ` (${order.customer_whatsapp})` : '') +
+        (order?.customer_email ? `\n📧 ${order.customer_email}` : '') +
+        `\n↩️ Estorno no fornecedor: ${refundBRL}`;
+      await admin.rpc('telegram_enqueue', { _text: txt });
+    } catch (e) {
+      console.warn('telegram_enqueue (manager claude cancel) failed', e);
     }
 
     return json({

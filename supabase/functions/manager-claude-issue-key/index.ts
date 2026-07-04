@@ -133,13 +133,18 @@ Deno.serve(async (req) => {
     // Notifica gerente via Telegram (emissão manual pelo painel do gerente)
     try {
       const planLabel = PLAN_LABELS[planCode] ?? planCode;
+      const costBRL = 'R$ ' + (Number(costCents || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const txt =
         `🤖 <b>Venda Claude (Gerente · manual)</b>\n` +
         `📦 Plano: ${planLabel}\n` +
         (code ? `🔑 Chave: <code>${code}</code>\n` : '') +
+        (providerKeyId ? `🆔 Provider Key ID: <code>${providerKeyId}</code>\n` : '') +
+        (providerUserId ? `👥 User ID: <code>${providerUserId}</code>\n` : '') +
         `👤 Cliente: ${customerName}` +
         (customerWhatsapp ? ` (${customerWhatsapp})` : '') +
-        (customerEmail ? `\n📧 ${customerEmail}` : '');
+        (customerEmail ? `\n📧 ${customerEmail}` : '') +
+        `\n💵 Custo: ${costBRL}` +
+        `\n💳 Pagamento: Emissão manual (sem débito de revendedor)`;
       await admin.rpc('telegram_enqueue', { _text: txt });
     } catch (e) {
       console.warn('telegram_enqueue (manager claude issue) failed', e);
