@@ -146,8 +146,26 @@ export default function RevendedorClaude() {
     setIssuing(null);
     if (skipped) return toast.error("Sessão expirada");
     if (error) {
-      const msg = (data as any)?.error ?? (error as any)?.message ?? "Erro ao emitir chave";
-      return toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      const raw = (data as any)?.error ?? (error as any)?.message ?? "";
+      const status = (data as any)?.status;
+      let friendly = "Erro ao emitir chave. Tente novamente em instantes.";
+      if (raw === "provider_error" || String(raw).includes("provider_error")) {
+        friendly =
+          status && status >= 500
+            ? "O provedor está instável no momento. Aguarde alguns segundos e tente novamente. Se persistir, tente sem preencher o e-mail — ele pode já estar vinculado a outra chave ativa."
+            : `O provedor recusou a solicitação${status ? ` (HTTP ${status})` : ""}. Verifique os dados e tente novamente.`;
+      } else if (raw === "insufficient_balance") {
+        friendly = "Saldo insuficiente para emitir esta chave.";
+      } else if (raw === "customer_name_required") {
+        friendly = "Informe o nome do cliente.";
+      } else if (raw === "invalid_plan_code") {
+        friendly = "Plano inválido.";
+      } else if (raw === "provider_not_configured") {
+        friendly = "Integração com o provedor não configurada. Contate o suporte.";
+      } else if (typeof raw === "string" && raw) {
+        friendly = raw;
+      }
+      return toast.error(friendly, { duration: 8000 });
     }
     if (data?.code) {
       setRevealed({
