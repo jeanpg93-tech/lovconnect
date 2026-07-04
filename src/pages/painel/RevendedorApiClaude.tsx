@@ -434,6 +434,13 @@ function TabEndpoints() {
 # Se o cliente ainda nao usou a chave, "consumo" volta null.
 # Use este endpoint para alimentar o card "Consumo de tokens" do painel do cliente.`}
       />
+      <div className="rounded-lg border border-sky-500/40 bg-gradient-to-r from-sky-500/10 via-sky-500/5 to-transparent p-4 text-xs text-sky-100 shadow">
+        <p className="font-semibold text-sky-200 mb-1">🔄 Atualização automática do consumo no painel do cliente</p>
+        <p className="leading-relaxed">
+          O portal Claude do cliente <strong>não atualiza sozinho</strong> — quem faz o refresh é a aplicação do revendedor. Faça <strong>polling</strong> deste endpoint (recomendado a cada <strong>15–30s</strong> enquanto a aba estiver visível, pausando quando <code className="font-mono bg-black/40 px-1 rounded">document.hidden === true</code>) e atualize o card de "Consumo de tokens" e o status da chave (<code className="font-mono bg-black/40 px-1 rounded">consumo.status</code> / <code className="font-mono bg-black/40 px-1 rounded">expira_em</code>).
+          Combine também com o webhook <code className="font-mono bg-black/40 px-1 rounded">claude.key.issued</code> / <code className="font-mono bg-black/40 px-1 rounded">claude.key.expired</code> para reagir a mudanças de status sem depender só do polling.
+        </p>
+      </div>
       <CodeBlock
         title="POST /chaves/{id}/cancelar — Cancelar / Revogar chave"
         body={`curl -X POST "${BASE_URL}/chaves/PEDIDO_ID/cancelar" \\
