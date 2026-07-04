@@ -272,6 +272,7 @@ export default function RevendedorDashboard() {
         claudeOrdersRes,
         integRes,
         announcementsRes,
+        balanceTxRes,
       ] = await Promise.all([
         supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
         supabase.from("reseller_tier_state").select("total_spent_cents").eq("reseller_id", r.id).maybeSingle(),
@@ -286,6 +287,26 @@ export default function RevendedorDashboard() {
         supabase.from("claude_orders").select("id,plan_code,sale_price_cents,status,created_at,customer_name,customer_whatsapp,provider_transaction_id").eq("reseller_id", r.id).gte("created_at", since).order("created_at", { ascending: false }),
         supabase.from("reseller_integrations").select("misticpay_enabled,connection_status").eq("reseller_id", r.id).maybeSingle(),
         supabase.from("announcements").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
+        supabase
+          .from("balance_transactions")
+          .select("id,kind,amount_cents,description,reference_id,created_at")
+          .eq("reseller_id", r.id)
+          .gte("created_at", since)
+          .in("kind", [
+            "bonus",
+            "affiliate_bonus",
+            "adjustment",
+            "manual_credit",
+            "manual_debit",
+            "refund",
+            "panel_refund",
+            "credit_purchase_refund",
+            "license_purchase_refund",
+            "claude_key_refund",
+            "claude_key_issue_refund",
+          ])
+          .order("created_at", { ascending: false })
+          .limit(50),
       ]);
 
       setBalance(balanceRes.data?.balance_cents ?? 0);
