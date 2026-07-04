@@ -275,18 +275,21 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          is_public: boolean
           key: string
           updated_at: string
           updated_by: string | null
           value: Json
         }
         Insert: {
+          is_public?: boolean
           key: string
           updated_at?: string
           updated_by?: string | null
           value: Json
         }
         Update: {
+          is_public?: boolean
           key?: string
           updated_at?: string
           updated_by?: string | null
@@ -4862,6 +4865,13 @@ export type Database = {
           reseller_cost_mode: string
           sale_price_cents: number
           updated_at: string
+        }[]
+      }
+      admin_provider_credit_orders_bot_emails: {
+        Args: never
+        Returns: {
+          email_convite_bot: string
+          id: string
         }[]
       }
       admin_recent_provider_cost_by_credits: {
