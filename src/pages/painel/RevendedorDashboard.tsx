@@ -396,6 +396,20 @@ export default function RevendedorDashboard() {
             channel: c.provider_transaction_id ? "loja" : "api",
           },
         })),
+        ...balanceTxs.map((tx: any) => ({
+          id: `tx-${tx.id}`,
+          type: "transaction" as const,
+          title: TX_LABELS[tx.kind] ?? (tx.description || tx.kind),
+          amount_cents: Math.abs(tx.amount_cents ?? 0),
+          status: (tx.amount_cents ?? 0) < 0 ? "canceled" : "completed",
+          created_at: tx.created_at,
+          metadata: {
+            kind: tx.kind,
+            description: tx.description,
+            reference_id: tx.reference_id,
+            signed_amount_cents: tx.amount_cents,
+          },
+        })),
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       setActivities(combinedActivities);
