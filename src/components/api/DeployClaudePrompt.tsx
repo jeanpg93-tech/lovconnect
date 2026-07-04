@@ -14,11 +14,12 @@ Você é um engenheiro sênior. Implemente a integração abaixo no projeto **se
 
 ## 🆕 Versão 2 — atualização de julho/2026
 Se você já implementou a versão anterior desta API, **estas são as novidades — adicione-as sem quebrar o que já funciona**:
-- **Entrega direta:** \`POST /chaves\` agora aceita \`customer_email\` e a resposta pode incluir \`api_key\`, \`user_id\` e \`provider_base_url\`. Quando vierem, mostre-os no modal de sucesso (o cliente já pode usar sem passar pelo Portal).
+- **\`email\` agora é OBRIGATÓRIO** em \`POST /chaves\` (sem ele → \`400 email_obrigatorio\`). A resposta pode incluir \`api_key\`, \`user_id\` e \`provider_base_url\` — quando vierem, mostre-os no modal de sucesso (o cliente já pluga direto no Cursor/Cline sem passar pelo Portal).
+- **Saldo insuficiente vira 202 \`awaiting_balance\`** em vez de erro definitivo: o pedido fica em espera e a chave é entregue via webhook \`claude.key.issued\` assim que você recarregar. Não reenvie \`POST /chaves\`.
 - **Novo endpoint \`POST /chaves/{id}/renovar\`:** renova o plano do cliente pelo mesmo e-mail, sem gerar nova chave. Debita saldo.
 - **Novo endpoint \`POST /teste\`:** emite chave de teste de 15 min sem custo (máx. 5/h por API Key). Ótimo para botão "Testar grátis" na landing.
 - **\`GET /chaves/{id}\` enriquecido:** agora devolve \`customer_email/name/whatsapp\`, \`redeemed_at\`, \`expired_at\`, \`cancelled_at\`, \`tokens_exhausted_at\`, \`is_renewal\`.
-- **Novos webhooks:** \`claude.key.redeemed\`, \`claude.key.expired\`, \`claude.key.cancelled\`, \`claude.tokens.limit_reached\` — todos assinados com HMAC-SHA256 no header \`X-Signature\`. Responda 2xx a eventos desconhecidos para não quebrar integração no futuro.
+- **Webhook \`claude.key.renewed\`** foi adicionado e novos eventos (\`claude.key.expired\`, \`claude.tokens.limit_reached\` etc.) chegarão em breve — todos assinados com HMAC-SHA256 no header \`X-Signature\`. **Responda 2xx a qualquer \`event\` desconhecido** para não quebrar a integração no futuro.
 
 ## ⚠️ Regra de ouro — fonte única da verdade
 **Toda a lógica de saldo, planos, preços, emissão de chave Claude e histórico DEVE vir da API do fornecedor descrita abaixo.** É proibido:
@@ -67,58 +68,91 @@ Integrar a API Claude do meu provedor para que meu painel possa:
 
 ## 📚 Endpoints disponíveis
 
-### GET /saldo
-Retorna o saldo do revendedor.
+> ℹ️ **Header obrigatório em toda requisição:** \`X-API-Key: <MINHA_CHAVE>\`.
+> Para emissão/renovação, envie também \`Idempotency-Key: <uuid>\` — não use \`request_id\` no body (o servidor prioriza o header).
+> Todas as respostas seguem o padrão \`{ success: true, ... }\` ou \`{ success: false, error: "codigo" }\`.
+
+### GET /status
+Verifica se a integração está viva e se o produto Claude está liberado para você.
 \`\`\`json
-{ "balance_cents": 125000, "balance_brl": "R$ 1.250,00" }
+{ "success": true, "claude_enabled": true }
+\`\`\`
+
+### GET /saldo
+Retorna o saldo da carteira (em centavos BRL).
+\`\`\`json
+{ "success": true, "saldo_centavos": 125000, "saldo": "1250.00" }
 \`\`\`
 
 ### GET /planos
-Lista de planos ativos com preço efetivo.
+Lista de planos ativos com **seu** preço efetivo (já com markup do nível/overrides).
 \`\`\`json
-{ "items": [
-  { "plan_code": "pro_30d",  "label": "Pro · 30 dias",  "price_cents": 8000,  "price_brl": "R$ 80,00" },
-  { "plan_code": "5x_30d",   "label": "5x · 30 dias",   "price_cents": 15000, "price_brl": "R$ 150,00" },
-  { "plan_code": "20x_30d",  "label": "20x · 30 dias",  "price_cents": 25000, "price_brl": "R$ 250,00" }
+{ "success": true, "planos": [
+  { "plano": "pro_30d",  "preco_centavos": 8000,  "preco": "80.00",  "disponivel": true },
+  { "plano": "5x_7d",    "preco_centavos": 5900,  "preco": "59.00",  "disponivel": true },
+  { "plano": "5x_30d",   "preco_centavos": 14900, "preco": "149.00", "disponivel": true },
+  { "plano": "20x_30d",  "preco_centavos": 24900, "preco": "249.00", "disponivel": true }
 ] }
 \`\`\`
+> Códigos oficiais de \`plano\`: \`pro_30d\`, \`5x_7d\`, \`5x_30d\`, \`20x_30d\`. Nunca hardcode preços — leia daqui a cada emissão.
 
 ### POST /chaves
 Emite uma chave Claude e debita do saldo.
+**Header:** \`Idempotency-Key: <uuid-v4>\` (evita cobrança duplicada em retries).
 **Body:**
 \`\`\`json
-{ "plano": "pro_30d",
+{ "plano": "5x_30d",
   "id_cliente": "cliente@dominio.com",
   "nome": "Cliente João",
   "email": "cliente@dominio.com",
-  "whatsapp": "5511999999999",
-  "request_id": "uuid-v4-idempotencia" }
+  "whatsapp": "5511999999999" }
 \`\`\`
-> ⚠️ **\`email\` é OBRIGATÓRIO** (validado no servidor — sem ele a API responde \`400 email_obrigatorio\`). É por meio do e-mail que o fornecedor entrega a chave e que o consumo de tokens é vinculado ao cliente. **Envie também \`nome\` e \`whatsapp\`** (opcionais, mas fortemente recomendados) para o revendedor conseguir identificar/atender o cliente no painel "Meus Clientes Claude".
-**Resposta 200:**
+> ⚠️ **\`email\` é OBRIGATÓRIO** (validado no servidor — sem ele a API responde \`400 email_obrigatorio\`). É por meio do e-mail que o fornecedor entrega a chave e vincula o consumo de tokens. **Envie também \`nome\` e \`whatsapp\`** — opcionais, mas recomendados para atender o cliente no painel "Meus Clientes Claude".
+**Resposta 200 (chave emitida):**
 \`\`\`json
-{ "ok": true, "order_id": "uuid", "plan_code": "pro_30d",
-  "chave": "sk-ant-api03-...", "expires_at": "2026-06-01T...",
-  "cost_cents": 8000, "balance_after_cents": 117000 }
+{ "success": true,
+  "pedido_id": "uuid",
+  "plano": "5x_30d",
+  "preco_centavos": 14900,
+  "codigo": "CLAUDE-XXXXX-XXXXX",
+  "provider_key_id": "prov_abc123",
+  "api_key": "kp_user_...",
+  "user_id": "u_...",
+  "provider_base_url": "https://claude-ss.ia.br/" }
 \`\`\`
-> ⚠️ A \`chave\` só é retornada nesta resposta e no webhook — armazene com segurança.
+> ⚠️ O \`codigo\` (e o \`api_key\` de entrega direta) só voltam nesta resposta e no webhook \`claude.key.issued\` — armazene com segurança e exiba **uma única vez** para o cliente.
+> Quando \`api_key\` vier preenchido, o cliente já pode plugar direto no Cursor/Cline/Claude Code com \`provider_base_url\`. Senão, ele resgata o \`codigo\` no portal.
 
-**Erros:** \`401\` chave inválida · \`402\` saldo insuficiente · \`403\` chave revogada · \`409\` \`request_id\` já usado · \`502\` falha no provedor.
+**Resposta 202 (saldo insuficiente — pedido em espera):**
+\`\`\`json
+{ "success": false, "error": "saldo_insuficiente", "status": "awaiting_balance",
+  "pedido_id": "uuid", "saldo_centavos": 5000, "preco_centavos": 14900 }
+\`\`\`
+> Trate como "aguardando confirmação". Quando o revendedor recarregar o painel, o fornecedor emite a chave automaticamente e dispara o webhook \`claude.key.issued\`. **Não** reenvie \`POST /chaves\` — geraria pedido duplicado.
+
+**Erros:** \`400 email_obrigatorio\` · \`400 invalid_plano\` / \`plano_indisponivel\` · \`401\` chave inválida · \`402 saldo_insuficiente\` · \`403\` revendedor inativo / Claude não habilitado · \`502 provider_error\` / \`provider_network_error\`.
 
 ### GET /chaves
-Últimos 50 pedidos (\`?limit=50\`, máx 200). Não devolve o valor da \`chave\`.
+Últimos 50 pedidos do revendedor. **Não** devolve o \`codigo\`/\`api_key\` (por segurança).
+\`\`\`json
+{ "success": true, "chaves": [
+  { "id": "uuid", "plan_code": "5x_30d", "status": "issued",
+    "sale_price_cents": 14900, "provider_key_id": "prov_...",
+    "created_at": "2026-07-04T12:00:00Z", "error_message": null }
+] }
+\`\`\`
 
 ### GET /chaves/{id}
-Detalhe completo de um pedido específico. Use para consultar o status atual de uma chave sob demanda (sem baixar a lista inteira).
+Detalhe completo de um pedido. Use para consultar o status atual sem baixar a lista inteira.
 
 **Resposta 200:**
 \`\`\`json
 { "success": true, "chave": {
   "id": "uuid",
-  "plan_code": "pro_30d",
+  "plan_code": "5x_30d",
   "status": "issued",
-  "code": "ACT-XXXXXX",
-  "sale_price_cents": 8000,
+  "code": "CLAUDE-XXXXX-XXXXX",
+  "sale_price_cents": 14900,
   "provider_key_id": "prv_...",
   "customer_email": "cliente@dominio.com",
   "customer_name": "Nome do Cliente",
@@ -132,7 +166,7 @@ Detalhe completo de um pedido específico. Use para consultar o status atual de 
   "error_message": null
 } }
 \`\`\`
-> \`status\` possíveis: \`issued\` (aguardando resgate) · \`redeemed\` (cliente resgatou/ativa) · \`expired\` · \`cancelled\` · \`cancel_failed\`.
+> \`status\` possíveis: \`pending\` · \`awaiting_balance\` · \`issued\` (aguardando resgate) · \`redeemed\` (cliente ativou) · \`expired\` · \`cancelled\` · \`cancel_failed\` · \`refunded\` · \`failed\`.
 **Erros:** \`404\` pedido não encontrado.
 
 ### GET /chaves/{id}/consumo
@@ -151,7 +185,7 @@ Snapshot de consumo de tokens do cliente (best-effort — depende do fornecedor)
   "tokens_limite_semanal": 2500000
 } }
 \`\`\`
-> Use no card **"Consumo de tokens"** do painel do cliente. Se \`consumo\` vier \`null\`, mostre "O fornecedor ainda não retornou dados de consumo para esta chave." e ofereça um botão de atualizar (o consumo aparece após o primeiro uso real da chave).
+> Use no card **"Consumo de tokens"** do painel do cliente. Se \`consumo\` vier \`null\`, mostre "O fornecedor ainda não retornou dados de consumo para esta chave." e ofereça um botão de atualizar — o consumo aparece após o primeiro uso real. A resposta também traz \`provider_error\` quando o fornecedor não pôde ser consultado.
 
 ### POST /chaves/{id}/cancelar
 Cancela uma chave e devolve o valor ao saldo do revendedor **se estiver dentro da janela de 7 dias** desde a emissão. Passado esse prazo, envie \`{ "force": true }\` para cancelar sem estorno.
@@ -162,69 +196,78 @@ Cancela uma chave e devolve o valor ao saldo do revendedor **se estiver dentro d
 \`\`\`
 **Resposta 200:**
 \`\`\`json
-{ "success": true, "pedido_id": "uuid", "refund_cents": 8000, "refund_waived": false, "age_days": 2 }
+{ "success": true, "pedido_id": "uuid", "refund_cents": 14900, "refund_waived": false, "age_days": 2 }
 \`\`\`
-**Erros:** \`404\` pedido não encontrado · \`409\` status inválido ou prazo expirado (\`error: "refund_window_expired"\`) · \`422\` chave sem \`provider_key_id\`.
+**Erros:** \`404\` pedido não encontrado · \`409 invalid_status\` · \`409 refund_window_expired\` (fora do prazo — reenvie com \`force: true\`) · \`422 missing_provider_key_id\` · \`502 provider_error\`.
 
 > ⚠️ Cancelar bloqueia a conta do cliente final no fornecedor. Confirme com o cliente antes.
 
 ### POST /chaves/{id}/renovar
 Renova o plano de um cliente existente pelo mesmo e-mail — **não gera nova chave**, apenas estende a validade/tokens no fornecedor. Debita o custo padrão do plano do saldo do revendedor.
 
+**Header:** \`Idempotency-Key: <uuid-v4>\` (recomendado).
 **Body (opcional):**
 \`\`\`json
-{ "email": "cliente@dominio.com", "request_id": "uuid-v4-idempotencia" }
+{ "email": "cliente@dominio.com" }
 \`\`\`
 > Se \`email\` for omitido, usa o e-mail salvo no pedido original.
 
 **Resposta 200:**
 \`\`\`json
 { "success": true, "pedido_id": "uuid", "pedido_original_id": "uuid",
-  "plano": "pro_30d", "preco_centavos": 8000, "email": "cliente@dominio.com" }
+  "plano": "5x_30d", "preco_centavos": 14900, "email": "cliente@dominio.com" }
 \`\`\`
-**Erros:** \`400\` \`email_required\` (pedido sem e-mail e nenhum enviado) · \`402\` \`saldo_insuficiente\` · \`404\` pedido não encontrado · \`502\` erro no provedor.
+**Erros:** \`400 email_required\` (pedido sem e-mail e nenhum enviado) · \`400 email_obrigatorio\` (formato inválido) · \`402 saldo_insuficiente\` · \`404\` pedido não encontrado · \`502 provider_error\`.
 
 ### POST /teste
 Emite uma chave de teste de **15 minutos** sem custo. Máximo 5 chamadas por hora por API Key.
 
 **Body (opcional):**
 \`\`\`json
-{ "email": "leadi@dominio.com" }
+{ "email": "lead@dominio.com" }
 \`\`\`
 **Resposta 200:**
 \`\`\`json
-{ "success": true, "codigo": "sk-ant-...", "api_key": "kp_user_...",
+{ "success": true, "codigo": "CLAUDE-XXXXX-XXXXX", "api_key": "kp_user_...",
   "user_id": "u_...", "provider_base_url": "https://claude-ss.ia.br/", "duracao_minutos": 15 }
 \`\`\`
 **Erros:** \`429\` \`rate_limited\`.
 
-### 🚧 Próximos endpoints (em desenvolvimento)
-O fornecedor recebeu novidades que estão sendo implementadas neste painel em fases. **Nenhum plano ou preço será alterado** — permanecem \`pro_30d\`, \`5x_30d\`, \`20x_30d\`.
-- **Entrega direta com \`email\`**: ao emitir passando \`email\`, o retorno incluirá \`api_key\` (\`kp_user_...\`) e \`user_id\` — o cliente já usa direto no Cursor/Cline/Claude Code sem passar por ativação.
-- **Webhooks do provedor**: novos eventos \`claude.key.expired\` e \`claude.tokens.limit_reached\` (mesma assinatura HMAC do \`claude.key.issued\`).
+### Webhook (POST do servidor para a URL configurada)
+Disparado sempre que um evento acontece. Header de assinatura: \`X-Signature: sha256=<hex>\` (HMAC-SHA256 do corpo cru, usando \`CLAUDE_WEBHOOK_SECRET\`). O corpo sempre inclui \`event\` e \`sent_at\`.
 
-Já hoje mantenha seu receiver **event-agnóstico** (retornar 2xx para eventos desconhecidos) para que esses novos eventos entrem sem quebrar a integração.
-
-### Webhook (POST do servidor para a URL configurada na chave)
-Disparado quando uma chave é emitida. Header de assinatura: \`x-signature: sha256=<hex>\`.
-**Payload:**
+**Payload \`claude.key.issued\`:**
 \`\`\`json
-{ "event": "claude.key.issued", "order_id": "uuid",
-  "plan_code": "pro_30d", "chave": "sk-ant-api03-...",
-  "cost_cents": 8000, "occurred_at": "ISO8601" }
+{ "event": "claude.key.issued",
+  "pedido_id": "uuid",
+  "plano": "5x_30d",
+  "preco_centavos": 14900,
+  "codigo": "CLAUDE-XXXXX-XXXXX",
+  "provider_key_id": "prov_abc123",
+  "id_cliente": "cliente@dominio.com",
+  "sent_at": "2026-07-01T12:34:56Z" }
 \`\`\`
+**Payload \`claude.key.renewed\`:**
+\`\`\`json
+{ "event": "claude.key.renewed",
+  "pedido_id": "uuid-renov", "pedido_original_id": "uuid",
+  "plano": "5x_30d", "preco_centavos": 14900,
+  "email": "cliente@dominio.com", "sent_at": "..." }
+\`\`\`
+> **Regra event-agnóstica:** responda 2xx a qualquer \`event\` desconhecido (apenas registre/ignore). Novos eventos (\`claude.key.expired\`, \`claude.tokens.limit_reached\` etc.) entrarão sem quebrar sua integração. Só rejeite com 401 quando a assinatura HMAC não bater.
 
 ## 🧱 O que adicionar no projeto (sem remover nada do que já existe)
 
 ### 1. Backend (edge function)
 Crie a edge function **\`claude-proxy\`** que:
-- Aceita: \`GET /saldo\`, \`GET /planos\`, \`POST /chaves\`, \`GET /chaves\`, \`GET /chaves/{id}\`.
-- Lê o segredo \`CLAUDE_RESELLER_API_KEY\` e injeta no header \`x-api-key\` ao chamar \`${baseUrl}\`.
+- Aceita e proxeia: \`GET /status\`, \`GET /saldo\`, \`GET /planos\`, \`POST /chaves\`, \`GET /chaves\`, \`GET /chaves/{id}\`, \`GET /chaves/{id}/consumo\`, \`POST /chaves/{id}/cancelar\`, \`POST /chaves/{id}/renovar\`, \`POST /teste\`.
+- Lê o segredo \`CLAUDE_RESELLER_API_KEY\` e injeta no header \`X-API-Key\` ao chamar \`${baseUrl}\`.
+- Repassa o header \`Idempotency-Key\` do cliente quando presente (nunca deixe o frontend chamar direto — a chave nunca pode ir pro bundle).
 - Retorna o JSON cru do upstream + \`status\` HTTP correspondente.
 - CORS liberado para o domínio do app.
 
 ### 2. Cliente TypeScript
-Crie \`src/integrations/claude/client.ts\` com funções tipadas: \`getSaldo()\`, \`getPlanos()\`, \`emitirChave(input)\`, \`listarPedidos(limit?)\`, \`getPedido(id)\`. Todas chamando a edge function \`claude-proxy\`.
+Crie \`src/integrations/claude/client.ts\` com funções tipadas: \`getStatus()\`, \`getSaldo()\`, \`getPlanos()\`, \`emitirChave(input)\`, \`listarPedidos(limit?)\`, \`getPedido(id)\`, \`getConsumo(id)\`, \`cancelarChave(id, force?)\`, \`renovarChave(id, email?)\`, \`emitirTeste(email?)\`. Todas chamando a edge function \`claude-proxy\` e gerando \`Idempotency-Key\` (UUID v4) nas rotas de emissão/renovação.
 
 ### 3. Páginas novas (NÃO substituir páginas existentes)
 > Apenas no **MODO A**. No **MODO B**, pule esta seção inteira e entregue os componentes plugáveis descritos no topo.
