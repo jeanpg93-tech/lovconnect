@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
     } catch { /* noop */ }
 
     let orderId: string | null = null;
+    let createdAt: string | null = null;
     try {
       const { data: inserted, error: insErr } = await admin
         .from('claude_orders')
@@ -112,7 +113,6 @@ Deno.serve(async (req) => {
           profit_cents: 0,
           status: 'issued',
           code,
-          code_revealed_at: new Date().toISOString(),
           provider_key_id: providerKeyId ?? null,
           provider_api_key: providerApiKey ?? null,
           provider_user_id: providerUserId ?? null,
@@ -122,10 +122,10 @@ Deno.serve(async (req) => {
           customer_email: customerEmail || null,
           customer_identifier: customerEmail || customerWhatsapp || customerName,
         })
-        .select('id')
+        .select('id, created_at')
         .single();
       if (insErr) console.error('[manager-claude-issue-key] persist_error', insErr);
-      else orderId = inserted?.id ?? null;
+      else { orderId = inserted?.id ?? null; createdAt = (inserted as any)?.created_at ?? null; }
     } catch (persistErr) {
       console.error('[manager-claude-issue-key] persist_exception', persistErr);
     }
@@ -153,6 +153,7 @@ Deno.serve(async (req) => {
     return json({
       id: orderId,
       code,
+      created_at: createdAt,
       provider_key_id: providerKeyId,
       api_key: providerApiKey ?? null,
       user_id: providerUserId ?? null,

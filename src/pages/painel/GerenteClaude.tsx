@@ -261,7 +261,7 @@ export default function GerenteClaude() {
         code: data.code,
         api_key: data.api_key ?? null,
         cost_cents: cost,
-        created_at: new Date().toISOString(),
+        created_at: data.created_at ?? new Date().toISOString(),
         status: "issued",
         cancelled_at: null,
         customer_name: customerName.trim(),
