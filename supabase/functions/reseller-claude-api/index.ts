@@ -413,6 +413,9 @@ Deno.serve(async (req) => {
 
       const planCode = String(origOrder.plan_code);
       if (!PLAN_CODES.has(planCode)) return json({ success: false, error: "invalid_plano" }, 400);
+      if (!customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+        return json({ success: false, error: "email_obrigatorio", message: "O campo 'email' do cliente é obrigatório e deve ser válido." }, 400);
+      }
 
       // Idempotência
       if (requestId) {
