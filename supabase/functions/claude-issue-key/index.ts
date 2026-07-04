@@ -272,6 +272,42 @@ Deno.serve(async (req) => {
       console.warn('telegram_enqueue (claude issue) failed', e);
     }
 
+    // WhatsApp automático ao cliente final (best-effort, não bloqueia a resposta)
+    if (customerWhatsapp && customerWhatsapp.length >= 10) {
+      try {
+        const { data: integ } = await admin
+          .from('reseller_integrations')
+          .select('evolution_enabled, connection_status')
+          .eq('reseller_id', reseller.id)
+          .maybeSingle();
+        if (integ?.evolution_enabled && integ?.connection_status === 'connected') {
+          fetch(`${SUPABASE_URL}/functions/v1/evolution-send-sale`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+            },
+            body: JSON.stringify({
+              reseller_id: reseller.id,
+              kind: 'claude',
+              to: customerWhatsapp,
+              vars: {
+                nome: customerName ?? '',
+                plano: PLAN_LABELS[planCode] ?? planCode,
+                codigo: code ?? '',
+                chave: code ?? '',
+                api_key: providerApiKey ?? '',
+                base_url: providerApiKey ? 'https://claude-ss.ia.br/' : '',
+                valor_cents: String(saleCents ?? 0),
+              },
+            }),
+          }).catch((e) => console.warn('evolution-send-sale (claude) failed', e));
+        }
+      } catch (e) {
+        console.warn('evolution-send-sale (claude) lookup failed', e);
+      }
+    }
+
     return jsonResponse({
       order_id: order.id,
       plan_code: planCode,
