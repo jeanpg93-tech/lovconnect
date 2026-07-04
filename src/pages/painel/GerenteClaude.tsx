@@ -100,6 +100,38 @@ export default function GerenteClaude() {
         const raw = localStorage.getItem(HISTORY_KEY);
         if (raw) setHistory(JSON.parse(raw));
       } catch { /* noop */ }
+      // Load persistent history from DB (manager manual issuances)
+      try {
+        const { data: dbRows } = await supabase
+          .from("claude_orders")
+          .select("id, plan_code, code, cost_cents, created_at, customer_name, customer_whatsapp, customer_email")
+          .eq("is_manager_manual", true)
+          .not("code", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (dbRows && dbRows.length) {
+          setHistory((prev) => {
+            const byCode = new Map<string, Issued>();
+            for (const r of dbRows as any[]) {
+              byCode.set(r.code, {
+                id: r.id,
+                plan: r.plan_code as PlanCode,
+                code: r.code,
+                cost_cents: r.cost_cents ?? 0,
+                created_at: r.created_at,
+                customer_name: r.customer_name ?? undefined,
+                customer_whatsapp: r.customer_whatsapp ?? undefined,
+                customer_email: r.customer_email ?? undefined,
+              });
+            }
+            // Keep any localStorage entries not yet in DB
+            for (const r of prev) if (!byCode.has(r.code)) byCode.set(r.code, r);
+            return Array.from(byCode.values()).sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+            );
+          });
+        }
+      } catch { /* noop */ }
       setLoading(false);
     })();
   }, []);

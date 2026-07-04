@@ -449,7 +449,9 @@ export type Database = {
           error_message: string | null
           expired_at: string | null
           id: string
+          is_manager_manual: boolean
           is_renewal: boolean
+          manager_user_id: string | null
           paid_at: string | null
           pix_expires_at: string | null
           plan_code: string
@@ -464,7 +466,7 @@ export type Database = {
           refund_waived: boolean
           renewal_note: string | null
           request_id: string | null
-          reseller_id: string
+          reseller_id: string | null
           sale_price_cents: number
           status: Database["public"]["Enums"]["claude_order_status"]
           tokens_exhausted_at: string | null
@@ -488,7 +490,9 @@ export type Database = {
           error_message?: string | null
           expired_at?: string | null
           id?: string
+          is_manager_manual?: boolean
           is_renewal?: boolean
+          manager_user_id?: string | null
           paid_at?: string | null
           pix_expires_at?: string | null
           plan_code: string
@@ -503,7 +507,7 @@ export type Database = {
           refund_waived?: boolean
           renewal_note?: string | null
           request_id?: string | null
-          reseller_id: string
+          reseller_id?: string | null
           sale_price_cents?: number
           status?: Database["public"]["Enums"]["claude_order_status"]
           tokens_exhausted_at?: string | null
@@ -527,7 +531,9 @@ export type Database = {
           error_message?: string | null
           expired_at?: string | null
           id?: string
+          is_manager_manual?: boolean
           is_renewal?: boolean
+          manager_user_id?: string | null
           paid_at?: string | null
           pix_expires_at?: string | null
           plan_code?: string
@@ -542,7 +548,7 @@ export type Database = {
           refund_waived?: boolean
           renewal_note?: string | null
           request_id?: string | null
-          reseller_id?: string
+          reseller_id?: string | null
           sale_price_cents?: number
           status?: Database["public"]["Enums"]["claude_order_status"]
           tokens_exhausted_at?: string | null

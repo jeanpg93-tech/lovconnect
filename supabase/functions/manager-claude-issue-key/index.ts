@@ -3,6 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.0';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const CLAUDE_API_KEY = Deno.env.get('CLAUDE_RESELLER_API_KEY')!;
 const CLAUDE_BASE_URL = (Deno.env.get('CLAUDE_RESELLER_API_BASE_URL') ?? '').replace(/\/$/, '');
 
@@ -78,7 +79,51 @@ Deno.serve(async (req) => {
 
     if (!code) return json({ error: 'provider_no_code', body: parsed }, 502);
 
+    // Persist manager issuance for permanent history
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    let costCents = 0;
+    try {
+      const { data: priceRow } = await admin
+        .from('claude_plan_prices')
+        .select('cost_cents')
+        .eq('plan_code', planCode)
+        .maybeSingle();
+      costCents = Number(priceRow?.cost_cents ?? 0);
+    } catch { /* noop */ }
+
+    let orderId: string | null = null;
+    try {
+      const { data: inserted, error: insErr } = await admin
+        .from('claude_orders')
+        .insert({
+          manager_user_id: userData.user.id,
+          is_manager_manual: true,
+          plan_code: planCode,
+          cost_cents: costCents,
+          sale_price_cents: 0,
+          profit_cents: 0,
+          status: 'issued',
+          code,
+          code_revealed_at: new Date().toISOString(),
+          provider_key_id: providerKeyId ?? null,
+          provider_api_key: providerApiKey ?? null,
+          provider_user_id: providerUserId ?? null,
+          provider_response: parsed,
+          customer_name: customerName,
+          customer_whatsapp: customerWhatsapp || null,
+          customer_email: customerEmail || null,
+          customer_identifier: customerEmail || customerWhatsapp || customerName,
+        })
+        .select('id')
+        .single();
+      if (insErr) console.error('[manager-claude-issue-key] persist_error', insErr);
+      else orderId = inserted?.id ?? null;
+    } catch (persistErr) {
+      console.error('[manager-claude-issue-key] persist_exception', persistErr);
+    }
+
     return json({
+      id: orderId,
       code,
       provider_key_id: providerKeyId,
       api_key: providerApiKey ?? null,
