@@ -379,10 +379,12 @@ Qualquer dúvida, é só chamar!`;
   const filteredHistory = history.filter((h) => {
     if (!search) return true;
     const q = search.toLowerCase();
+    const isCancelled = h.status === "cancelled" || !!h.cancelled_at;
     return (
       (PLAN_LABELS[h.plan] ?? "").toLowerCase().includes(q) ||
       h.code.toLowerCase().includes(q) ||
       h.id.toLowerCase().includes(q) ||
+      (isCancelled ? "cancelada" : "emitida").includes(q) ||
       (h.status ?? "").toLowerCase().includes(q) ||
       (h.customer_name ?? "").toLowerCase().includes(q) ||
       (h.customer_whatsapp ?? "").toLowerCase().includes(q) ||
