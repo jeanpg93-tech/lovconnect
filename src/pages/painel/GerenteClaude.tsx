@@ -90,13 +90,19 @@ export default function GerenteClaude() {
   const [selected, setSelected] = useState<PlanCode>("20x_30d");
   const [issuing, setIssuing] = useState<PlanCode | null>(null);
   const [revealed, setRevealed] = useState<{
+    id?: string | null;
     code: string;
     plan: PlanCode;
     apiKey?: string | null;
     userId?: string | null;
     providerBaseUrl?: string | null;
+    customerName?: string;
+    customerWhatsapp?: string;
+    customerEmail?: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [history, setHistory] = useState<Issued[]>([]);
   const [search, setSearch] = useState("");
   const [customerName, setCustomerName] = useState("");
@@ -233,11 +239,15 @@ export default function GerenteClaude() {
     }
     if (data?.code) {
       setRevealed({
+        id: data.id ?? null,
         code: data.code,
         plan: selected,
         apiKey: data.api_key ?? null,
         userId: data.user_id ?? null,
         providerBaseUrl: data.provider_base_url ?? null,
+        customerName: customerName.trim(),
+        customerWhatsapp: customerWhatsapp.replace(/\D+/g, ""),
+        customerEmail: customerEmail.trim() || undefined,
       });
       const cost = plans.find((p) => p.plan_code === selected)?.cost_cents ?? 0;
       const entry: Issued = {
@@ -265,6 +275,68 @@ export default function GerenteClaude() {
     await navigator.clipboard.writeText(revealed.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyField = async (key: string, value: string) => {
+    await navigator.clipboard.writeText(value);
+    setCopiedField(key);
+    toast.success("Copiado!");
+    setTimeout(() => setCopiedField((k) => (k === key ? null : k)), 1800);
+  };
+
+  const buildClientMessage = () => {
+    if (!revealed) return "";
+    const nome = revealed.customerName ? `Olá, ${revealed.customerName}!` : "Olá!";
+    const plano = PLAN_LABELS[revealed.plan];
+    const baseUrl = revealed.providerBaseUrl ?? "https://claude-ss.ia.br/";
+    if (revealed.apiKey) {
+      return `${nome} Aqui estão suas credenciais do plano *${plano}*:
+
+🔑 *API Key (ANTHROPIC_AUTH_TOKEN):*
+${revealed.apiKey}
+
+🌐 *Base URL (ANTHROPIC_BASE_URL):*
+${baseUrl}
+
+Use no Cursor, Cline ou Claude Code definindo essas duas variáveis. Qualquer dúvida, é só chamar!`;
+    }
+    return `${nome} Aqui está sua chave do plano *${plano}*:
+
+🔑 ${revealed.code}
+
+Qualquer dúvida, é só chamar!`;
+  };
+
+  const cancelRevealed = async () => {
+    if (!revealed) return;
+    if (!confirm("Cancelar esta chave no fornecedor? A chave será revogada imediatamente.")) return;
+    setCancelling(true);
+    const { data, error } = await invokeAuthenticatedFunction<any>(
+      "manager-claude-cancel-key",
+      {
+        method: "POST",
+        body: {
+          order_id: revealed.id ?? undefined,
+          code: revealed.code,
+        },
+      },
+    );
+    setCancelling(false);
+    if (error) {
+      const msg = (data as any)?.error ?? (error as any)?.message ?? "Falha ao cancelar";
+      if (msg === "already_redeemed") {
+        toast.error("Chave já foi resgatada — não é mais cancelável pelo fornecedor.");
+      } else {
+        toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      }
+      return;
+    }
+    toast.success("Chave cancelada no fornecedor");
+    // remove from local list
+    if (revealed.id) {
+      persist(history.filter((h) => h.id !== revealed.id));
+    }
+    setRevealed(null);
   };
 
   if (loading)
@@ -666,11 +738,52 @@ export default function GerenteClaude() {
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRevealed(null)}>Fechar</Button>
-            <Button onClick={copy}>
-              {copied ? <><Check className="mr-2 h-4 w-4" /> Copiado</> : <><Copy className="mr-2 h-4 w-4" /> Copiar chave</>}
+          {revealed && (
+            <div className="mt-3 space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[11px] uppercase tracking-wide text-primary font-semibold">Mensagem para o cliente</div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => copyField("msg", buildClientMessage())}>
+                    {copiedField === "msg" ? <><Check className="h-4 w-4 mr-1" /> Copiado</> : <><Copy className="h-4 w-4 mr-1" /> Copiar mensagem</>}
+                  </Button>
+                  {revealed.customerWhatsapp && revealed.customerWhatsapp.length >= 10 && (
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => {
+                        const num = revealed.customerWhatsapp!.startsWith("55") ? revealed.customerWhatsapp! : `55${revealed.customerWhatsapp}`;
+                        const url = `https://wa.me/${num}?text=${encodeURIComponent(buildClientMessage())}`;
+                        window.open(url, "_blank", "noopener,noreferrer");
+                      }}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-1" /> Enviar WhatsApp
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <pre className="whitespace-pre-wrap text-xs font-sans bg-background/60 rounded-md border border-border p-2 max-h-48 overflow-auto">{buildClientMessage()}</pre>
+              {(!revealed.customerWhatsapp || revealed.customerWhatsapp.length < 10) && (
+                <div className="text-[11px] text-muted-foreground">
+                  Sem WhatsApp preenchido — use "Copiar mensagem" e envie manualmente.
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="flex-wrap gap-2 sm:justify-between">
+            <Button
+              variant="outline"
+              onClick={cancelRevealed}
+              disabled={cancelling}
+              className="border-rose-500/40 text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
+            >
+              {cancelling ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cancelando...</> : <>Cancelar e estornar</>}
             </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setRevealed(null)}>Fechar</Button>
+              <Button onClick={copy}>
+                {copied ? <><Check className="mr-2 h-4 w-4" /> Copiado</> : <><Copy className="mr-2 h-4 w-4" /> Copiar chave</>}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
