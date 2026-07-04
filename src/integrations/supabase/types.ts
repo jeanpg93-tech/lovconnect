@@ -5223,6 +5223,7 @@ export type Database = {
       manager_list_claude_manual_orders: {
         Args: { _limit?: number }
         Returns: {
+          cancelled_at: string
           code: string
           cost_cents: number
           created_at: string
@@ -5232,6 +5233,7 @@ export type Database = {
           id: string
           plan_code: string
           provider_api_key: string
+          status: string
         }[]
       }
       mark_all_notifications_read: { Args: never; Returns: undefined }

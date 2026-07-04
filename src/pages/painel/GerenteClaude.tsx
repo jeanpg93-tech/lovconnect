@@ -45,6 +45,8 @@ type Issued = {
   api_key?: string | null;
   cost_cents: number;
   created_at: string;
+  status?: string | null;
+  cancelled_at?: string | null;
   customer_name?: string;
   customer_whatsapp?: string;
   customer_email?: string;
@@ -150,6 +152,8 @@ export default function GerenteClaude() {
                 api_key: r.provider_api_key ?? null,
                 cost_cents: r.cost_cents ?? 0,
                 created_at: r.created_at,
+                status: r.status ?? "issued",
+                cancelled_at: r.cancelled_at ?? null,
                 customer_name: r.customer_name ?? undefined,
                 customer_whatsapp: r.customer_whatsapp ?? undefined,
                 customer_email: r.customer_email ?? undefined,
@@ -258,6 +262,8 @@ export default function GerenteClaude() {
         api_key: data.api_key ?? null,
         cost_cents: cost,
         created_at: new Date().toISOString(),
+        status: "issued",
+        cancelled_at: null,
         customer_name: customerName.trim(),
         customer_whatsapp: customerWhatsapp.replace(/\D+/g, ""),
         customer_email: customerEmail.trim() || undefined,
@@ -333,9 +339,9 @@ Qualquer dúvida, é só chamar!`;
       return;
     }
     toast.success("Chave cancelada no fornecedor");
-    // remove from local list
     if (revealed.id) {
-      persist(history.filter((h) => h.id !== revealed.id));
+      const now = new Date().toISOString();
+      persist(history.map((h) => h.id === revealed.id ? { ...h, status: "cancelled", cancelled_at: now } : h));
     }
     setRevealed(null);
   };
@@ -358,7 +364,8 @@ Qualquer dúvida, é só chamar!`;
       return;
     }
     toast.success("Chave cancelada no fornecedor");
-    persist(history.filter((x) => x.id !== h.id));
+    const now = new Date().toISOString();
+    persist(history.map((x) => x.id === h.id ? { ...x, status: "cancelled", cancelled_at: now } : x));
     if (revealed?.id === h.id) setRevealed(null);
   };
 
@@ -372,10 +379,13 @@ Qualquer dúvida, é só chamar!`;
   const filteredHistory = history.filter((h) => {
     if (!search) return true;
     const q = search.toLowerCase();
+    const isCancelled = h.status === "cancelled" || !!h.cancelled_at;
     return (
       (PLAN_LABELS[h.plan] ?? "").toLowerCase().includes(q) ||
       h.code.toLowerCase().includes(q) ||
       h.id.toLowerCase().includes(q) ||
+      (isCancelled ? "cancelada" : "emitida").includes(q) ||
+      (h.status ?? "").toLowerCase().includes(q) ||
       (h.customer_name ?? "").toLowerCase().includes(q) ||
       (h.customer_whatsapp ?? "").toLowerCase().includes(q) ||
       (h.customer_email ?? "").toLowerCase().includes(q)
@@ -583,10 +593,15 @@ Qualquer dúvida, é só chamar!`;
             </div>
           ) : (
             <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
-              {filteredHistory.map((h) => (
+              {filteredHistory.map((h) => {
+                const isCancelled = h.status === "cancelled" || !!h.cancelled_at;
+                return (
                 <div
                   key={h.id}
-                  className="rounded-xl border border-border bg-background/40 p-3 transition-colors hover:border-primary/30"
+                  className={cn(
+                    "rounded-xl border bg-background/40 p-3 transition-colors",
+                    isCancelled ? "border-rose-500/30 opacity-80" : "border-border hover:border-primary/30",
+                  )}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -607,28 +622,43 @@ Qualquer dúvida, é só chamar!`;
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      <Badge variant="outline" className="text-[10px] font-bold uppercase bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
-                        Emitida
-                      </Badge>
-                      <Button
-                        type="button"
-                        size="sm"
+                      <Badge
                         variant="outline"
-                        className="h-7 px-2 text-[11px] border-rose-500/40 text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
-                        onClick={() => cancelKey({ id: h.id, code: h.code })}
-                        disabled={cancellingId === h.id}
-                        title="Cancelar e estornar"
-                      >
-                        {cancellingId === h.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <><XCircle className="h-3.5 w-3.5 mr-1" /> Cancelar</>
+                        className={cn(
+                          "text-[10px] font-bold uppercase",
+                          isCancelled
+                            ? "bg-rose-500/15 text-rose-500 border-rose-500/30"
+                            : "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
                         )}
-                      </Button>
+                      >
+                        {isCancelled ? "Cancelada" : "Emitida"}
+                      </Badge>
+                      {!isCancelled && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-[11px] border-rose-500/40 text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
+                          onClick={() => cancelKey({ id: h.id, code: h.code })}
+                          disabled={cancellingId === h.id}
+                          title="Cancelar e estornar"
+                        >
+                          {cancellingId === h.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <><XCircle className="h-3.5 w-3.5 mr-1" /> Cancelar</>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>{new Date(h.created_at).toLocaleString("pt-BR")}</span>
+                    <span>
+                      {new Date(h.created_at).toLocaleString("pt-BR")}
+                      {isCancelled && h.cancelled_at && (
+                        <span className="ml-1 text-rose-500">· cancelada {new Date(h.cancelled_at).toLocaleString("pt-BR")}</span>
+                      )}
+                    </span>
                     <span className="font-semibold text-foreground">{fmtBRL(h.cost_cents)}</span>
                   </div>
                   <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-border bg-background/60 p-1.5">
@@ -735,7 +765,7 @@ Qualquer dúvida, é só chamar!`;
                     );
                   })()}
                 </div>
-              ))}
+              );})}
             </div>
           )}
         </div>

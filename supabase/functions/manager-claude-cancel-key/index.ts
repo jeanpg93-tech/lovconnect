@@ -63,6 +63,9 @@ Deno.serve(async (req) => {
       order = data;
       if (!order) return json({ error: 'order_not_found' }, 404);
       if (!order.is_manager_manual) return json({ error: 'not_manager_order' }, 403);
+      if (order.status === 'cancelled') {
+        return json({ ok: true, order_id: order.id, refund_cents: Number(order.cost_cents) || 0, already_cancelled: true });
+      }
     }
 
     const providerKeyRef =
