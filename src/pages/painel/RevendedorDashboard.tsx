@@ -323,6 +323,21 @@ export default function RevendedorDashboard() {
       const ords = (ordersRes.data ?? []) || [];
       const recharges = (rechargesRes.data ?? []) || [];
       const claudeOrds = (claudeOrdersRes.data ?? []) || [];
+      const balanceTxs = (balanceTxRes.data ?? []) || [];
+
+      const TX_LABELS: Record<string, string> = {
+        bonus: "Bônus recebido",
+        affiliate_bonus: "Bônus de indicação",
+        adjustment: "Ajuste do gerente",
+        manual_credit: "Recarga manual",
+        manual_debit: "Débito manual",
+        refund: "Estorno",
+        panel_refund: "Estorno (painel)",
+        credit_purchase_refund: "Estorno de recarga",
+        license_purchase_refund: "Estorno de licença",
+        claude_key_refund: "Estorno Claude",
+        claude_key_issue_refund: "Estorno Claude",
+      };
 
       const combinedActivities: ActivityItem[] = [
         ...ords
