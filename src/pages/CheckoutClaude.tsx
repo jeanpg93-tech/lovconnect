@@ -20,7 +20,17 @@ const PLANS: { code: PlanCode; label: string; desc: string }[] = [
   { code: "20x_30d", label: "20x — 30 dias", desc: "10M tokens · 30 dias" },
 ];
 
-type Reseller = { id: string; slug: string; display_name: string; store_name?: string | null; claude_enabled: boolean };
+type Reseller = {
+  id: string;
+  slug: string;
+  display_name: string;
+  store_name?: string | null;
+  tagline?: string | null;
+  logo_url?: string | null;
+  primary_color?: string | null;
+  background_color?: string | null;
+  claude_enabled: boolean;
+};
 
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -196,22 +206,70 @@ export default function CheckoutClaude() {
     );
   }
 
+  const accent = reseller.primary_color || "#ef4444";
+  const bg = reseller.background_color || "#050505";
+  const title = reseller.store_name || reseller.display_name;
+
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div
+      className="min-h-screen relative overflow-hidden py-10 px-4"
+      style={{ background: bg }}
+    >
+      {/* Halos de fundo */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div
+          className="absolute -top-24 -left-24 w-[28rem] h-[28rem] rounded-full blur-[120px] opacity-30 animate-pulse"
+          style={{ background: accent, animationDuration: "6s" }}
+        />
+        <div
+          className="absolute top-1/2 -right-24 w-80 h-80 rounded-full blur-[100px] opacity-20 animate-pulse"
+          style={{ background: accent, animationDuration: "8s" }}
+        />
+      </div>
+
+      <div className="relative max-w-2xl mx-auto space-y-6">
         <div>
-          <Button asChild variant="ghost" size="sm" className="gap-2">
-            <Link to={`/loja/${slug}`}>
-              <ArrowLeft className="h-4 w-4" /> Voltar para a loja
-            </Link>
-          </Button>
+          <Link
+            to={`/loja/${slug}`}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            Voltar para a loja
+          </Link>
         </div>
-        <header className="text-center space-y-1">
-          <div className="inline-flex items-center gap-2 text-xs font-medium text-primary bg-primary/10 rounded-full px-3 py-1">
+
+        <header className="flex flex-col items-center text-center gap-3">
+          {reseller.logo_url ? (
+            <div
+              className="h-16 w-16 rounded-2xl border overflow-hidden bg-card/80 backdrop-blur flex items-center justify-center"
+              style={{ borderColor: `${accent}50`, boxShadow: `0 10px 40px -10px ${accent}66` }}
+            >
+              <img src={reseller.logo_url} alt={title} className="h-full w-full object-contain" />
+            </div>
+          ) : null}
+          <div
+            className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest"
+            style={{ background: `${accent}12`, borderColor: `${accent}33`, color: accent }}
+          >
+            <span className="relative flex h-2 w-2">
+              <span
+                className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping"
+                style={{ background: accent }}
+              />
+              <span
+                className="relative inline-flex h-2 w-2 rounded-full"
+                style={{ background: accent }}
+              />
+            </span>
             <Sparkles className="h-3 w-3" /> Claude API
           </div>
-          <h1 className="text-2xl font-bold">{reseller.store_name || reseller.display_name}</h1>
-          <p className="text-sm text-muted-foreground">Compre seu plano Claude e receba a chave na hora após o PIX.</p>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">{title}</h1>
+          {reseller.tagline ? (
+            <p className="text-sm text-muted-foreground">{reseller.tagline}</p>
+          ) : null}
+          <p className="text-sm text-muted-foreground">
+            Compre seu plano Claude e receba a chave na hora após o PIX.
+          </p>
         </header>
 
         {status === "issued" ? (
@@ -289,75 +347,160 @@ export default function CheckoutClaude() {
             </CardContent>
           </Card>
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Escolha seu plano</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                {PLANS.filter(p => prices[p.code] !== undefined).map((p) => (
+          <div
+            className="relative rounded-3xl border p-6 sm:p-8 backdrop-blur-2xl animate-fade-in"
+            style={{
+              background: "rgba(23, 23, 23, 0.4)",
+              borderColor: "rgba(255,255,255,0.06)",
+              boxShadow: `0 0 60px -20px ${accent}40, inset 0 1px 0 rgba(255,255,255,0.03)`,
+            }}
+          >
+            <h2 className="text-xl font-semibold text-foreground mb-6">Escolha seu plano</h2>
+
+            <div className="space-y-3 mb-8">
+              {PLANS.filter((p) => prices[p.code] !== undefined).map((p) => {
+                const isSel = plan === p.code;
+                return (
                   <button
                     key={p.code}
                     type="button"
                     onClick={() => setPlan(p.code)}
-                    className={`text-left rounded-lg border p-3 transition ${plan === p.code ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+                    className="w-full text-left relative flex items-center justify-between p-5 rounded-2xl border transition-all hover:scale-[1.01] active:scale-[0.99] group"
+                    style={
+                      isSel
+                        ? {
+                            borderColor: `${accent}80`,
+                            background: `${accent}0d`,
+                            boxShadow: `0 0 24px -6px ${accent}66, inset 0 0 0 1px ${accent}30`,
+                          }
+                        : {
+                            borderColor: "rgba(255,255,255,0.08)",
+                            background: "rgba(255,255,255,0.03)",
+                          }
+                    }
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold">{p.label}</div>
-                        <div className="text-xs text-muted-foreground">{p.desc}</div>
-                      </div>
-                      <div className="text-lg font-bold text-primary">{brl(prices[p.code])}</div>
+                    <div className="flex flex-col">
+                      <span className="text-foreground font-bold text-base sm:text-lg">{p.label}</span>
+                      <span className="text-xs text-muted-foreground">{p.desc}</span>
+                    </div>
+                    <div
+                      className="text-lg sm:text-xl font-bold tracking-tight tabular-nums"
+                      style={{ color: isSel ? accent : "hsl(var(--foreground) / 0.85)" }}
+                    >
+                      {brl(prices[p.code])}
                     </div>
                   </button>
-                ))}
+                );
+              })}
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Nome completo <span style={{ color: accent }}>*</span>
+                  </Label>
+                  <input
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Seu nome"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none transition-all"
+                    style={{ boxShadow: "none" }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = `${accent}80`;
+                      e.currentTarget.style.boxShadow = `0 0 0 3px ${accent}22`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = "";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    E-mail <span style={{ color: accent }}>*</span>
+                  </Label>
+                  <input
+                    required
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="voce@email.com"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none transition-all"
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = `${accent}80`;
+                      e.currentTarget.style.boxShadow = `0 0 0 3px ${accent}22`;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = "";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  />
+                </div>
               </div>
-              <div className="grid gap-3">
-                <div>
-                  <Label>Nome completo <span className="text-destructive">*</span></Label>
-                  <Input required aria-required value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">WhatsApp</Label>
+                  <input
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    placeholder="(11) 90000-0000"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-white/30 transition-all"
+                  />
                 </div>
-                <div>
-                  <Label>E-mail <span className="text-destructive">*</span></Label>
-                  <Input required aria-required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>WhatsApp</Label>
-                    <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" />
-                  </div>
-                  <div>
-                    <Label>CPF (opcional)</Label>
-                    <Input value={document_} onChange={(e) => setDocument(e.target.value)} placeholder="000.000.000-00" />
-                  </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">CPF (opcional)</Label>
+                  <input
+                    value={document_}
+                    onChange={(e) => setDocument(e.target.value)}
+                    placeholder="000.000.000-00"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-white/30 transition-all"
+                  />
                 </div>
               </div>
-              <Button
-                className="w-full"
-                size="lg"
+            </div>
+
+            <div className="mt-8 space-y-3">
+              <button
+                type="button"
                 disabled={submitting || !name || !email || !currentPrice}
                 onClick={submit}
+                className="w-full relative overflow-hidden group py-4 px-6 rounded-2xl text-white font-bold text-base sm:text-lg transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-3"
+                style={{
+                  background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
+                  boxShadow: `0 10px 30px -8px ${accent}80, 0 0 0 1px ${accent}40 inset`,
+                }}
               >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Gerar PIX de {currentPrice ? brl(currentPrice) : "—"}
-              </Button>
+                <span
+                  className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"
+                  style={{
+                    background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)",
+                  }}
+                />
+                {submitting ? <Loader2 className="h-5 w-5 animate-spin relative" /> : <Zap className="h-5 w-5 relative" />}
+                <span className="relative">
+                  Gerar PIX de {currentPrice ? brl(currentPrice) : "—"}
+                </span>
+              </button>
+
               {isTestReseller && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-2 border-dashed"
+                <button
+                  type="button"
                   onClick={runTestFlow}
                   disabled={submitting || !currentPrice}
+                  className="w-full py-3 px-6 rounded-2xl border border-white/10 bg-white/5 text-muted-foreground font-medium text-sm hover:bg-white/10 hover:text-foreground transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                  Gerar + Liberar PIX (conta de testes)
-                </Button>
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" style={{ color: accent }} />}
+                  Gerar + <span style={{ color: accent }}>Liberar</span> PIX (conta de testes)
+                </button>
               )}
-              <p className="text-xs text-center text-muted-foreground">
-                Após o pagamento, sua chave é emitida automaticamente e enviada para o portal do cliente.
-              </p>
-            </CardContent>
-          </Card>
+            </div>
+
+            <p className="mt-6 text-center text-muted-foreground text-[11px] leading-relaxed max-w-[80%] mx-auto">
+              Após o pagamento, sua chave é emitida automaticamente e enviada para o portal do cliente.
+            </p>
+          </div>
         )}
       </div>
     </div>

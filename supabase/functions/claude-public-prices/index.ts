@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
         .eq("is_active", true)
         .order("sort_order", { ascending: true }),
       admin.from("claude_reseller_price_overrides").select("plan_code, markup_mode, markup_value_cents").eq("reseller_id", (reseller as any).id).eq("is_active", true),
-      admin.from("reseller_storefronts").select("store_name").eq("reseller_id", (reseller as any).id).maybeSingle(),
+      admin.from("reseller_storefronts").select("store_name, tagline, logo_url, primary_color, background_color").eq("reseller_id", (reseller as any).id).maybeSingle(),
     ]);
 
     const prices: Record<string, number> = {};
@@ -62,6 +62,10 @@ Deno.serve(async (req) => {
         slug: (reseller as any).slug,
         display_name: (reseller as any).display_name,
         store_name: (storefront as any)?.store_name || null,
+        tagline: (storefront as any)?.tagline || null,
+        logo_url: (storefront as any)?.logo_url || null,
+        primary_color: (storefront as any)?.primary_color || null,
+        background_color: (storefront as any)?.background_color || null,
       },
       prices,
       ordered,
