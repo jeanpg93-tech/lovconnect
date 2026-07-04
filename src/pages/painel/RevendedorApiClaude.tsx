@@ -389,6 +389,13 @@ function TabEndpoints() {
 # O campo "code" NÃO volta aqui por segurança.
 # Ele só é retornado na resposta imediata do POST /chaves e no webhook.`}
       />
+      <div className="rounded-lg border border-sky-500/40 bg-gradient-to-r from-sky-500/10 via-sky-500/5 to-transparent p-4 text-xs text-sky-100 shadow">
+        <p className="font-semibold text-sky-200 mb-1">📊 Este endpoint retorna TODAS as suas vendas — do painel Lovable e da API — juntas.</p>
+        <p className="leading-relaxed">
+          Não existe filtro por origem: qualquer chave que você emita (aqui pelo painel, pelo seu site via <code className="font-mono bg-black/40 px-1 rounded">POST /chaves</code>, ou por qualquer integração sua) aparece nesta listagem.
+          Se o painel/site do revendedor mostrar <strong>0 pedidos</strong> mesmo após vender, é porque ele está lendo apenas o próprio banco local — <strong>o site deve chamar este <code className="font-mono bg-black/40 px-1 rounded">GET /chaves</code></strong> (ou sincronizar via webhook <code className="font-mono bg-black/40 px-1 rounded">claude.key.issued</code>) para exibir o histórico completo. Essa sincronização é responsabilidade da aplicação do revendedor.
+        </p>
+      </div>
       <CodeBlock
         title="GET /chaves/{id} — Detalhe de um pedido"
         body={`curl -X GET "${BASE_URL}/chaves/PEDIDO_ID" \\
