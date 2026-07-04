@@ -8,6 +8,11 @@ const CLAUDE_API_KEY = Deno.env.get('CLAUDE_RESELLER_API_KEY')!;
 const CLAUDE_BASE_URL = (Deno.env.get('CLAUDE_RESELLER_API_BASE_URL') ?? '').replace(/\/$/, '');
 
 const PLAN_CODES = new Set(['pro_30d', '5x_30d', '20x_30d']);
+const PLAN_LABELS: Record<string, string> = {
+  'pro_30d': 'Pro · 30 dias',
+  '5x_30d':  '5x · 30 dias',
+  '20x_30d': '20x · 30 dias',
+};
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -120,6 +125,21 @@ Deno.serve(async (req) => {
       else orderId = inserted?.id ?? null;
     } catch (persistErr) {
       console.error('[manager-claude-issue-key] persist_exception', persistErr);
+    }
+
+    // Notifica gerente via Telegram (emissão manual pelo painel do gerente)
+    try {
+      const planLabel = PLAN_LABELS[planCode] ?? planCode;
+      const txt =
+        `🤖 <b>Venda Claude (Gerente · manual)</b>\n` +
+        `📦 Plano: ${planLabel}\n` +
+        (code ? `🔑 Chave: <code>${code}</code>\n` : '') +
+        `👤 Cliente: ${customerName}` +
+        (customerWhatsapp ? ` (${customerWhatsapp})` : '') +
+        (customerEmail ? `\n📧 ${customerEmail}` : '');
+      await admin.rpc('telegram_enqueue', { _text: txt });
+    } catch (e) {
+      console.warn('telegram_enqueue (manager claude issue) failed', e);
     }
 
     return json({
