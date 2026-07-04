@@ -185,7 +185,23 @@ Deno.serve(async (req) => {
         try { parsed = JSON.parse(txt); } catch {}
         if (r.ok) {
           const list = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.users) ? parsed.users : [];
-          providerUser = list.find((u: any) => String(u?.email ?? "").toLowerCase() === emailLower) ?? null;
+          // Set of possible provider identifiers pulled from this customer's orders
+          const providerIds = new Set(
+            orders
+              .flatMap((o: any) => [o.provider_key_id, o.code, o.api_key])
+              .map((v: any) => String(v ?? "").trim())
+              .filter(Boolean),
+          );
+          const matchById = (u: any) => {
+            const candidates = [u?.id, u?.credential, u?.key, u?.code, u?.apiKey, u?.api_key, u?.keyId, u?.key_id, u?.userId, u?.user_id]
+              .map((v: any) => String(v ?? "").trim())
+              .filter(Boolean);
+            return candidates.some((c) => providerIds.has(c));
+          };
+          providerUser =
+            list.find(matchById) ??
+            list.find((u: any) => String(u?.email ?? "").toLowerCase() === emailLower) ??
+            null;
         } else {
           providerError = `provider_${r.status}`;
         }
