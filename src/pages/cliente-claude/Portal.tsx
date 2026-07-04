@@ -689,9 +689,19 @@ export default function ClienteClaudePortal() {
                           </Button>
                         </div>
                       )}
-                      {o.cancel_requested_at && (
+                      {o.cancel_requested_at && !["cancelled", "refunded"].includes(o.status) && (
                         <div className="text-[11px] rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
                           Cancelamento solicitado em {fmtDate(o.cancel_requested_at)} — aguardando o revendedor concluir.
+                        </div>
+                      )}
+                      {o.status === "cancelled" && !o.customer_refunded_at && (
+                        <div className="text-[11px] rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
+                          Chave cancelada. Aguardando o revendedor confirmar o envio do estorno via PIX.
+                        </div>
+                      )}
+                      {o.customer_refunded_at && (
+                        <div className="text-[11px] rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-300">
+                          ✅ Estorno confirmado pelo revendedor em {fmtDate(o.customer_refunded_at)}.
                         </div>
                       )}
                     </div>
