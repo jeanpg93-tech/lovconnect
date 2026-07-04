@@ -108,6 +108,7 @@ export default function GerenteClaude() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [history, setHistory] = useState<Issued[]>([]);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "cancelled">("all");
   const [customerName, setCustomerName] = useState("");
   const [customerWhatsapp, setCustomerWhatsapp] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -377,9 +378,11 @@ Qualquer dúvida, é só chamar!`;
     );
 
   const filteredHistory = history.filter((h) => {
+    const isCancelled = h.status === "cancelled" || !!h.cancelled_at;
+    if (statusFilter === "issued" && isCancelled) return false;
+    if (statusFilter === "cancelled" && !isCancelled) return false;
     if (!search) return true;
     const q = search.toLowerCase();
-    const isCancelled = h.status === "cancelled" || !!h.cancelled_at;
     return (
       (PLAN_LABELS[h.plan] ?? "").toLowerCase().includes(q) ||
       h.code.toLowerCase().includes(q) ||
@@ -391,6 +394,9 @@ Qualquer dúvida, é só chamar!`;
       (h.customer_email ?? "").toLowerCase().includes(q)
     );
   });
+
+  const issuedCount = history.filter((h) => !(h.status === "cancelled" || !!h.cancelled_at)).length;
+  const cancelledCount = history.length - issuedCount;
 
   return (
     <PageContainer>
@@ -585,6 +591,25 @@ Qualquer dúvida, é só chamar!`;
               placeholder="Buscar por plano ou chave…"
               className="pl-8 h-9 text-xs"
             />
+          </div>
+
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {([
+              { key: "all", label: `Todas · ${history.length}` },
+              { key: "issued", label: `Emitidas · ${issuedCount}` },
+              { key: "cancelled", label: `Canceladas · ${cancelledCount}` },
+            ] as const).map((f) => (
+              <Button
+                key={f.key}
+                type="button"
+                size="sm"
+                variant={statusFilter === f.key ? "default" : "outline"}
+                className="h-7 px-2.5 text-[11px]"
+                onClick={() => setStatusFilter(f.key)}
+              >
+                {f.label}
+              </Button>
+            ))}
           </div>
 
           {filteredHistory.length === 0 ? (
