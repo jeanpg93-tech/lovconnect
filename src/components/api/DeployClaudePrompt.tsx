@@ -17,7 +17,7 @@ Se você já implementou a versão anterior desta API, **estas são as novidades
 - **\`email\` agora é OBRIGATÓRIO** em \`POST /chaves\` (sem ele → \`400 email_obrigatorio\`). A resposta pode incluir \`api_key\`, \`user_id\` e \`provider_base_url\` — quando vierem, mostre-os no modal de sucesso (o cliente já pluga direto no Cursor/Cline sem passar pelo Portal).
 - **Saldo insuficiente vira 202 \`awaiting_balance\`** em vez de erro definitivo: o pedido fica em espera e a chave é entregue via webhook \`claude.key.issued\` assim que você recarregar. Não reenvie \`POST /chaves\`.
 - **Novo endpoint \`POST /chaves/{id}/renovar\`:** renova o plano do cliente pelo mesmo e-mail, sem gerar nova chave. Debita saldo.
-- **Novo endpoint \`POST /teste\`:** emite chave de teste de 15 min sem custo (máx. 5/h por API Key). Ótimo para botão "Testar grátis" na landing.
+- **Novo endpoint \`POST /teste\` (opcional):** emite chave de teste de 15 min sem custo (máx. 5/h por API Key). **O revendedor decide se quer oferecer** — pergunte ao dono do projeto se ele quer expor um botão "Testar grátis" na landing/loja. Se sim, implemente; se não, apenas deixe a função no cliente TS e não crie UI.
 - **\`GET /chaves/{id}\` enriquecido:** agora devolve \`customer_email/name/whatsapp\`, \`redeemed_at\`, \`expired_at\`, \`cancelled_at\`, \`tokens_exhausted_at\`, \`is_renewal\`.
 - **Webhook \`claude.key.renewed\`** foi adicionado e novos eventos (\`claude.key.expired\`, \`claude.tokens.limit_reached\` etc.) chegarão em breve — todos assinados com HMAC-SHA256 no header \`X-Signature\`. **Responda 2xx a qualquer \`event\` desconhecido** para não quebrar a integração no futuro.
 
@@ -221,6 +221,8 @@ Renova o plano de um cliente existente pelo mesmo e-mail — **não gera nova ch
 
 ### POST /teste
 Emite uma chave de teste de **15 minutos** sem custo. Máximo 5 chamadas por hora por API Key.
+
+> ⚠️ **Recurso opcional.** Só implemente a UI de "Testar grátis" se o revendedor confirmar que quer oferecer aos clientes. Caso contrário, deixe apenas a função no cliente TS (útil para testes internos) e não exponha botão público.
 
 **Body (opcional):**
 \`\`\`json
