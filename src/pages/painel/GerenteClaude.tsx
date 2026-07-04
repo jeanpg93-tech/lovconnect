@@ -702,7 +702,7 @@ Qualquer dúvida, é só chamar!`;
       </div>
 
       <Dialog open={!!revealed} onOpenChange={(o) => !o && setRevealed(null)}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" /> Chave gerada
