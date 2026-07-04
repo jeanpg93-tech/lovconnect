@@ -1,0 +1,1 @@
+GRANT SELECT (provider_api_key) ON public.claude_orders TO authenticated;
