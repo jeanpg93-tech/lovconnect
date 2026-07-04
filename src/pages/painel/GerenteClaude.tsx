@@ -108,7 +108,7 @@ export default function GerenteClaude() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [history, setHistory] = useState<Issued[]>([]);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "cancelled">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "redeemed" | "expired" | "cancelled">("all");
   const [customerName, setCustomerName] = useState("");
   const [customerWhatsapp, setCustomerWhatsapp] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
