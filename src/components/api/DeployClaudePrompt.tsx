@@ -121,6 +121,30 @@ Snapshot de consumo de tokens do cliente (best-effort — depende do fornecedor)
 \`\`\`
 > Use no card **"Consumo de tokens"** do painel do cliente. Se \`consumo\` vier \`null\`, mostre "O fornecedor ainda não retornou dados de consumo para esta chave." e ofereça um botão de atualizar (o consumo aparece após o primeiro uso real da chave).
 
+### POST /chaves/{id}/cancelar
+Cancela uma chave e devolve o valor ao saldo do revendedor **se estiver dentro da janela de 7 dias** desde a emissão. Passado esse prazo, envie \`{ "force": true }\` para cancelar sem estorno.
+
+**Body (opcional):**
+\`\`\`json
+{ "force": false }
+\`\`\`
+**Resposta 200:**
+\`\`\`json
+{ "success": true, "pedido_id": "uuid", "refund_cents": 8000, "refund_waived": false, "age_days": 2 }
+\`\`\`
+**Erros:** \`404\` pedido não encontrado · \`409\` status inválido ou prazo expirado (\`error: "refund_window_expired"\`) · \`422\` chave sem \`provider_key_id\`.
+
+> ⚠️ Cancelar bloqueia a conta do cliente final no fornecedor. Confirme com o cliente antes.
+
+### 🚧 Próximos endpoints (em desenvolvimento)
+O fornecedor recebeu novidades que estão sendo implementadas neste painel em fases. **Nenhum plano ou preço será alterado** — permanecem \`pro_30d\`, \`5x_30d\`, \`20x_30d\`.
+- **Entrega direta com \`email\`**: ao emitir passando \`email\`, o retorno incluirá \`api_key\` (\`kp_user_...\`) e \`user_id\` — o cliente já usa direto no Cursor/Cline/Claude Code sem passar por ativação.
+- **POST /chaves/{id}/renovar**: renova o plano de um cliente existente pelo mesmo e-mail, sem gerar chave nova.
+- **POST /chaves/teste**: emite chave de teste de 15 minutos (sem custo) para captação.
+- **Webhooks do provedor**: novos eventos \`claude.key.expired\` e \`claude.tokens.limit_reached\` (mesma assinatura HMAC do \`claude.key.issued\`).
+
+Já hoje mantenha seu receiver **event-agnóstico** (retornar 2xx para eventos desconhecidos) para que esses novos eventos entrem sem quebrar a integração.
+
 ### Webhook (POST do servidor para a URL configurada na chave)
 Disparado quando uma chave é emitida. Header de assinatura: \`x-signature: sha256=<hex>\`.
 **Payload:**
