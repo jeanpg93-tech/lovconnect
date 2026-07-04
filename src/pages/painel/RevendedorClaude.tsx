@@ -481,6 +481,60 @@ Qualquer dúvida, é só chamar!`
             />
           </div>
 
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {([
+              { key: "all", label: `Todas · ${history.length}` },
+              { key: "issued", label: `Emitidas · ${countBy("issued")}` },
+              { key: "redeemed", label: `Resgatadas · ${countBy("redeemed")}` },
+              { key: "expired", label: `Expiradas · ${countBy("expired")}` },
+              { key: "cancelled", label: `Canceladas · ${countBy("cancelled")}` },
+              { key: "failed", label: `Falhas · ${countBy("failed")}` },
+            ] as const).map((f) => (
+              <Button
+                key={f.key}
+                type="button"
+                size="sm"
+                variant={statusFilter === f.key ? "default" : "outline"}
+                className="h-7 px-2.5 text-[11px]"
+                onClick={() => setStatusFilter(f.key)}
+              >
+                {f.label}
+              </Button>
+            ))}
+          </div>
+
+          <details className="group mb-3 rounded-lg border border-primary/40 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-3 py-2 text-[11px] text-muted-foreground shadow-[0_0_0_1px_hsl(var(--primary)/0.15),0_8px_24px_-12px_hsl(var(--primary)/0.35)] transition-colors hover:border-primary/60">
+            <summary className="flex cursor-pointer select-none list-none items-center gap-2 font-semibold text-primary [&::-webkit-details-marker]:hidden">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 ring-1 ring-primary/40">
+                <Info className="h-3 w-3" />
+              </span>
+              <span className="flex-1 uppercase tracking-wide text-[11px]">O que significa cada status?</span>
+              <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+            </summary>
+            <ul className="mt-3 space-y-1.5">
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_MAP.issued.cls)}>Emitida</Badge>
+                <span>Chave gerada no fornecedor e ainda não ativada pelo cliente.</span>
+              </li>
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_MAP.redeemed.cls)}>Resgatada</Badge>
+                <span>Cliente já ativou a chave e a API está em uso.</span>
+              </li>
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_MAP.expired.cls)}>Expirada</Badge>
+                <span>Prazo do plano acabou e o fornecedor invalidou a chave.</span>
+              </li>
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_MAP.cancelled.cls)}>Cancelada</Badge>
+                <span>Venda cancelada com estorno do valor para a sua carteira.</span>
+              </li>
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_MAP.failed.cls)}>Falhou</Badge>
+                <span>A emissão não completou no fornecedor — o valor não foi debitado.</span>
+              </li>
+            </ul>
+          </details>
+
           {filteredHistory.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
               {history.length === 0 ? "Nenhuma chave emitida ainda." : "Nenhum resultado."}
