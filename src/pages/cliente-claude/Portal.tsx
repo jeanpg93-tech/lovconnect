@@ -75,6 +75,7 @@ type Order = {
   created_at: string;
   sale_price_cents: number;
   cancel_requested_at?: string | null;
+  customer_refunded_at?: string | null;
 };
 
 type ExtensionKey = {
