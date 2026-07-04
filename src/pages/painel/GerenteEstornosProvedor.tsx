@@ -80,14 +80,25 @@ export default function GerenteEstornosProvedor() {
       await supabase.functions.invoke("audit-cancelled-purchases", { body: {} });
     } catch { /* silencioso */ }
 
-    const { data, error } = await supabase
-      .from("reseller_credit_purchases")
-      .select(
-        "id,reseller_id,credits,price_cents,status,tipo_entrega,provider_pedido_id,created_at,updated_at,error_message,provider_response,resellers:reseller_id(display_name)"
-      )
-      .in("status", STATUSES_TO_SHOW)
-      .order("updated_at", { ascending: false })
-      .limit(200);
+    const { data: rpcData, error } = await supabase.rpc(
+      "admin_list_credit_purchases_by_status" as any,
+      { _statuses: STATUSES_TO_SHOW, _limit: 200 },
+    );
+    // enriquece com display_name do revendedor (a RPC retorna a linha crua)
+    const baseRows = (rpcData ?? []) as any[];
+    const rIds = Array.from(new Set(baseRows.map((r) => r.reseller_id).filter(Boolean)));
+    let nameMap = new Map<string, string>();
+    if (rIds.length > 0) {
+      const { data: rs } = await supabase
+        .from("resellers")
+        .select("id, display_name")
+        .in("id", rIds);
+      nameMap = new Map((rs ?? []).map((x: any) => [x.id, x.display_name]));
+    }
+    const data = baseRows.map((r) => ({
+      ...r,
+      resellers: { display_name: nameMap.get(r.reseller_id) ?? null },
+    }));
     if (error) {
       toast.error(error.message);
       return;

@@ -245,13 +245,25 @@ export default function GerenteAcompanharRecargas() {
   };
 
   const loadManualOrders = async () => {
-    const { data: rows } = await supabase
-      .from("reseller_credit_purchases")
-      .select("id, provider_pedido_id, credits, price_cents, status, created_at, updated_at, tipo_entrega, customer_name, customer_whatsapp, provider_response, reseller_id, resellers:reseller_id(display_name, user_id)")
-      .contains("provider_response", { manual: true } as any)
-      .order("created_at", { ascending: false })
-      .limit(500);
-    const items = (rows ?? []) as any[];
+    const { data: raw } = await supabase.rpc(
+      "admin_list_manual_credit_purchases" as any,
+      { _limit: 500 },
+    );
+    const baseItems = (raw ?? []) as any[];
+    // hidratar resellers:reseller_id(display_name, user_id) — RPC retorna a linha crua
+    const rIds = Array.from(new Set(baseItems.map((r) => r.reseller_id).filter(Boolean)));
+    let resMap = new Map<string, { display_name: string | null; user_id: string | null }>();
+    if (rIds.length > 0) {
+      const { data: rs } = await supabase
+        .from("resellers")
+        .select("id, display_name, user_id")
+        .in("id", rIds);
+      resMap = new Map((rs ?? []).map((x: any) => [x.id, { display_name: x.display_name, user_id: x.user_id }]));
+    }
+    const items = baseItems.map((r) => ({
+      ...r,
+      resellers: resMap.get(r.reseller_id) ?? null,
+    }));
     const userIds = Array.from(new Set(items.map((r) => r.resellers?.user_id).filter(Boolean)));
     let emailMap = new Map<string, string>();
     if (userIds.length > 0) {

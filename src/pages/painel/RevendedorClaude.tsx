@@ -111,7 +111,7 @@ export default function RevendedorClaude() {
     const [{ data: def }, { data: ov }, { data: hist }, { data: bal }] = await Promise.all([
       supabase.from("claude_plan_prices").select("plan_code, markup_mode, markup_value_cents, sale_price_cents, is_active"),
       supabase.from("claude_reseller_price_overrides").select("*").eq("reseller_id", r.id),
-      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id, provider_api_key, customer_name, customer_whatsapp, customer_email").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(200),
+      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id, customer_name, customer_whatsapp, customer_email").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(200),
       supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
     ]);
 
@@ -577,9 +577,9 @@ Qualquer dúvida, é só chamar!`
                       <span>{new Date(h.created_at).toLocaleString("pt-BR")}</span>
                       <span className="font-semibold text-foreground">{fmtBRL(h.sale_price_cents)}</span>
                     </div>
-                    {h.provider_api_key && (
+                    {h.provider_key_id && (
                       <div className="mt-2">
-                        <ApiKeyReveal value={h.provider_api_key} />
+                        <ApiKeyReveal claudeOrderId={h.id} />
                       </div>
                     )}
                     {h.status === "failed" && h.error_message && (

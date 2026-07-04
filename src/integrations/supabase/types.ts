@@ -4894,6 +4894,98 @@ export type Database = {
           updated_at: string
         }[]
       }
+      admin_list_credit_purchases_by_status: {
+        Args: { _limit?: number; _statuses: string[] }
+        Returns: {
+          alert_permissao_sent_at: string | null
+          alert_stuck_configurando_sent_at: string | null
+          api_key_id: string | null
+          balance_refunded_at: string | null
+          cancellation_status: string
+          cancelled_at: string | null
+          cancelled_by: string | null
+          client_refund_endtoend_id: string | null
+          client_refund_error: string | null
+          client_refund_method: string | null
+          client_refund_pix_key: string | null
+          client_refunded_at: string | null
+          cost_cents: number | null
+          created_at: string
+          credits: number
+          customer_name: string | null
+          customer_whatsapp: string | null
+          email_conta_lovable: string | null
+          error_message: string | null
+          id: string
+          is_test: boolean
+          price_cents: number
+          promotion_discount_cents: number
+          promotion_id: string | null
+          provider_pedido_id: string | null
+          provider_response: Json | null
+          reseller_id: string
+          status: string
+          storefront_order_id: string | null
+          telegram_last_state: string | null
+          telegram_message_id: number | null
+          tipo_entrega: string | null
+          updated_at: string
+          workspace_id: string | null
+          workspace_name: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "reseller_credit_purchases"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      admin_list_manual_credit_purchases: {
+        Args: { _limit?: number }
+        Returns: {
+          alert_permissao_sent_at: string | null
+          alert_stuck_configurando_sent_at: string | null
+          api_key_id: string | null
+          balance_refunded_at: string | null
+          cancellation_status: string
+          cancelled_at: string | null
+          cancelled_by: string | null
+          client_refund_endtoend_id: string | null
+          client_refund_error: string | null
+          client_refund_method: string | null
+          client_refund_pix_key: string | null
+          client_refunded_at: string | null
+          cost_cents: number | null
+          created_at: string
+          credits: number
+          customer_name: string | null
+          customer_whatsapp: string | null
+          email_conta_lovable: string | null
+          error_message: string | null
+          id: string
+          is_test: boolean
+          price_cents: number
+          promotion_discount_cents: number
+          promotion_id: string | null
+          provider_pedido_id: string | null
+          provider_response: Json | null
+          reseller_id: string
+          status: string
+          storefront_order_id: string | null
+          telegram_last_state: string | null
+          telegram_message_id: number | null
+          tipo_entrega: string | null
+          updated_at: string
+          workspace_id: string | null
+          workspace_name: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "reseller_credit_purchases"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       admin_provider_credit_orders_bot_emails: {
         Args: never
         Returns: {
@@ -5166,6 +5258,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_claude_order_api_key: { Args: { _order_id: string }; Returns: string }
       get_credit_pack_cost: {
         Args: { _plan_id: string; _reseller_id: string }
         Returns: number
