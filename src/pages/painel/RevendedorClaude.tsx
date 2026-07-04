@@ -79,6 +79,8 @@ export default function RevendedorClaude() {
     apiKey?: string | null;
     userId?: string | null;
     providerBaseUrl?: string | null;
+    customerName?: string;
+    customerWhatsapp?: string;
   } | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<PlanCode>("20x_30d");
   const [copied, setCopied] = useState(false);
