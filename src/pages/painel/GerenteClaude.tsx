@@ -606,9 +606,26 @@ Qualquer dúvida, é só chamar!`;
                         #{h.id.slice(0, 8).toUpperCase()}
                       </div>
                     </div>
-                    <Badge variant="outline" className="text-[10px] font-bold uppercase shrink-0 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
-                      Emitida
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <Badge variant="outline" className="text-[10px] font-bold uppercase bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
+                        Emitida
+                      </Badge>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[11px] border-rose-500/40 text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
+                        onClick={() => cancelKey({ id: h.id, code: h.code })}
+                        disabled={cancellingId === h.id}
+                        title="Cancelar e estornar"
+                      >
+                        {cancellingId === h.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <><XCircle className="h-3.5 w-3.5 mr-1" /> Cancelar</>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
                     <span>{new Date(h.created_at).toLocaleString("pt-BR")}</span>
