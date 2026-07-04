@@ -689,7 +689,8 @@ function PriceCard({ row, onSaved }: { row: PlanPrice; onSaved: (r: PlanPrice) =
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Preço salvo");
-    onSaved(data as PlanPrice);
+    // repõe cost_cents/reseller_cost_cents locais (não vieram do SELECT por restrição de coluna)
+    onSaved({ ...(data as any), cost_cents: costCents, reseller_cost_cents: resellerCostCents } as PlanPrice);
   };
 
   return (
