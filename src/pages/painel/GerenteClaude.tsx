@@ -128,13 +128,10 @@ export default function GerenteClaude() {
       } catch { /* noop */ }
       // Load persistent history from DB (manager manual issuances)
       try {
-        const { data: dbRows } = await supabase
-          .from("claude_orders")
-          .select("id, plan_code, code, provider_api_key, cost_cents, created_at, customer_name, customer_whatsapp, customer_email")
-          .eq("is_manager_manual", true)
-          .not("code", "is", null)
-          .order("created_at", { ascending: false })
-          .limit(200);
+        const { data: dbRows } = await supabase.rpc(
+          "manager_list_claude_manual_orders",
+          { _limit: 200 },
+        );
         if (dbRows && dbRows.length) {
           setHistory((prev) => {
             const byCode = new Map<string, Issued>();

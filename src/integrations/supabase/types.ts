@@ -5220,6 +5220,20 @@ export type Database = {
       }
       is_reseller_active: { Args: { _user_id: string }; Returns: boolean }
       lookup_affiliate_code: { Args: { _code: string }; Returns: Json }
+      manager_list_claude_manual_orders: {
+        Args: { _limit?: number }
+        Returns: {
+          code: string
+          cost_cents: number
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_whatsapp: string
+          id: string
+          plan_code: string
+          provider_api_key: string
+        }[]
+      }
       mark_all_notifications_read: { Args: never; Returns: undefined }
       notify_license_order_sale: {
         Args: { _order_id: string }
