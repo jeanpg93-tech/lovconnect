@@ -42,6 +42,7 @@ type Issued = {
   id: string;
   plan: PlanCode;
   code: string;
+  api_key?: string | null;
   cost_cents: number;
   created_at: string;
   customer_name?: string;
@@ -104,7 +105,7 @@ export default function GerenteClaude() {
       try {
         const { data: dbRows } = await supabase
           .from("claude_orders")
-          .select("id, plan_code, code, cost_cents, created_at, customer_name, customer_whatsapp, customer_email")
+          .select("id, plan_code, code, provider_api_key, cost_cents, created_at, customer_name, customer_whatsapp, customer_email")
           .eq("is_manager_manual", true)
           .not("code", "is", null)
           .order("created_at", { ascending: false })
@@ -117,6 +118,7 @@ export default function GerenteClaude() {
                 id: r.id,
                 plan: r.plan_code as PlanCode,
                 code: r.code,
+                api_key: r.provider_api_key ?? null,
                 cost_cents: r.cost_cents ?? 0,
                 created_at: r.created_at,
                 customer_name: r.customer_name ?? undefined,
@@ -191,6 +193,7 @@ export default function GerenteClaude() {
         id: crypto.randomUUID(),
         plan: selected,
         code: data.code,
+        api_key: data.api_key ?? null,
         cost_cents: cost,
         created_at: new Date().toISOString(),
         customer_name: customerName.trim(),
@@ -465,6 +468,25 @@ export default function GerenteClaude() {
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+                  {h.api_key && (
+                    <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 p-1.5">
+                      <span className="text-[9px] font-bold uppercase text-primary/80 shrink-0 pl-1">API</span>
+                      <code className="flex-1 font-mono text-[11px] truncate select-all px-1">{h.api_key}</code>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 shrink-0"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(h.api_key!);
+                          toast.success("API Key copiada");
+                        }}
+                        title="Copiar API Key"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
