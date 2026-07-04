@@ -94,7 +94,7 @@ Emite uma chave Claude e debita do saldo.
   "whatsapp": "5511999999999",
   "request_id": "uuid-v4-idempotencia" }
 \`\`\`
-> ⚠️ **Sempre envie \`nome\`, \`email\` e \`whatsapp\`** (mesmo que opcionais no schema) — sem eles o revendedor não consegue diferenciar/atender o cliente no painel "Meus Clientes Claude", e o consumo de tokens não pode ser vinculado (a ligação com o fornecedor é feita pelo \`email\`).
+> ⚠️ **\`email\` é OBRIGATÓRIO** (validado no servidor — sem ele a API responde \`400 email_obrigatorio\`). É por meio do e-mail que o fornecedor entrega a chave e que o consumo de tokens é vinculado ao cliente. **Envie também \`nome\` e \`whatsapp\`** (opcionais, mas fortemente recomendados) para o revendedor conseguir identificar/atender o cliente no painel "Meus Clientes Claude".
 **Resposta 200:**
 \`\`\`json
 { "ok": true, "order_id": "uuid", "plan_code": "pro_30d",

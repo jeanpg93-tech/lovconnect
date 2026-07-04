@@ -413,6 +413,7 @@ function TabErros() {
     ["403", "Claude API não habilitada", "Produto Claude não liberado para você"],
     ["400", "invalid_plano", "Código de plano inválido"],
     ["400", "plano_indisponivel", "Plano temporariamente desativado"],
+    ["400", "email_obrigatorio", "Campo 'email' do cliente ausente ou inválido"],
     ["402", "saldo_insuficiente", "Carteira não cobre o custo — não descontamos nada"],
     ["404", "Pedido não encontrado", "ID de pedido inexistente"],
     ["500", "provider_not_configured", "Fornecedor não configurado — contate o suporte"],
@@ -483,7 +484,7 @@ curl -X POST "${BASE_URL}/chaves" \\
   -H "X-API-Key: SUA_API_KEY" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: pedido-42" \\
-  -d '{ "plano": "5x_30d", "id_cliente": "cliente@email.com" }'`}
+  -d '{ "plano": "5x_30d", "email": "cliente@email.com", "nome": "João" }'`}
         />
       </section>
 
