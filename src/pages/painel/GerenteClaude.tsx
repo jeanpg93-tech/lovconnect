@@ -28,6 +28,19 @@ const PLAN_LIMITS: Record<PlanCode, string> = {
 };
 const PLAN_ORDER: PlanCode[] = ["pro_30d", "5x_30d", "20x_30d"];
 
+const STATUS_LABELS: Record<string, string> = {
+  issued: "Emitida",
+  redeemed: "Resgatada",
+  expired: "Expirada",
+  cancelled: "Cancelada",
+};
+const STATUS_STYLES: Record<string, string> = {
+  issued: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+  redeemed: "bg-sky-500/15 text-sky-500 border-sky-500/30",
+  expired: "bg-amber-500/15 text-amber-500 border-amber-500/30",
+  cancelled: "bg-rose-500/15 text-rose-500 border-rose-500/30",
+};
+
 const PLAN_GRADIENTS: Record<PlanCode, string> = {
   pro_30d: "from-emerald-500/20 via-emerald-500/5 to-transparent",
   "5x_30d": "from-blue-500/20 via-blue-500/5 to-transparent",
@@ -108,7 +121,7 @@ export default function GerenteClaude() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [history, setHistory] = useState<Issued[]>([]);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "cancelled">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "redeemed" | "expired" | "cancelled">("all");
   const [customerName, setCustomerName] = useState("");
   const [customerWhatsapp, setCustomerWhatsapp] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -379,15 +392,16 @@ Qualquer dúvida, é só chamar!`;
 
   const filteredHistory = history.filter((h) => {
     const isCancelled = h.status === "cancelled" || !!h.cancelled_at;
-    if (statusFilter === "issued" && isCancelled) return false;
-    if (statusFilter === "cancelled" && !isCancelled) return false;
+    const effective = isCancelled ? "cancelled" : (h.status ?? "issued");
+    if (statusFilter !== "all" && effective !== statusFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
+    const label = STATUS_LABELS[effective] ?? effective;
     return (
       (PLAN_LABELS[h.plan] ?? "").toLowerCase().includes(q) ||
       h.code.toLowerCase().includes(q) ||
       h.id.toLowerCase().includes(q) ||
-      (isCancelled ? "cancelada" : "emitida").includes(q) ||
+      label.toLowerCase().includes(q) ||
       (h.status ?? "").toLowerCase().includes(q) ||
       (h.customer_name ?? "").toLowerCase().includes(q) ||
       (h.customer_whatsapp ?? "").toLowerCase().includes(q) ||
@@ -395,8 +409,14 @@ Qualquer dúvida, é só chamar!`;
     );
   });
 
-  const issuedCount = history.filter((h) => !(h.status === "cancelled" || !!h.cancelled_at)).length;
-  const cancelledCount = history.length - issuedCount;
+  const countBy = (s: string) => history.filter((h) => {
+    const isC = h.status === "cancelled" || !!h.cancelled_at;
+    return (isC ? "cancelled" : (h.status ?? "issued")) === s;
+  }).length;
+  const issuedCount = countBy("issued");
+  const redeemedCount = countBy("redeemed");
+  const expiredCount = countBy("expired");
+  const cancelledCount = countBy("cancelled");
 
   return (
     <PageContainer>
@@ -597,6 +617,8 @@ Qualquer dúvida, é só chamar!`;
             {([
               { key: "all", label: `Todas · ${history.length}` },
               { key: "issued", label: `Emitidas · ${issuedCount}` },
+              { key: "redeemed", label: `Resgatadas · ${redeemedCount}` },
+              { key: "expired", label: `Expiradas · ${expiredCount}` },
               { key: "cancelled", label: `Canceladas · ${cancelledCount}` },
             ] as const).map((f) => (
               <Button
@@ -620,6 +642,7 @@ Qualquer dúvida, é só chamar!`;
             <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
               {filteredHistory.map((h) => {
                 const isCancelled = h.status === "cancelled" || !!h.cancelled_at;
+                const effStatus = isCancelled ? "cancelled" : (h.status ?? "issued");
                 return (
                 <div
                   key={h.id}
@@ -651,14 +674,12 @@ Qualquer dúvida, é só chamar!`;
                         variant="outline"
                         className={cn(
                           "text-[10px] font-bold uppercase",
-                          isCancelled
-                            ? "bg-rose-500/15 text-rose-500 border-rose-500/30"
-                            : "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+                          STATUS_STYLES[effStatus] ?? STATUS_STYLES.issued,
                         )}
                       >
-                        {isCancelled ? "Cancelada" : "Emitida"}
+                        {STATUS_LABELS[effStatus] ?? effStatus}
                       </Badge>
-                      {!isCancelled && (
+                      {effStatus === "issued" && (
                         <Button
                           type="button"
                           size="sm"
