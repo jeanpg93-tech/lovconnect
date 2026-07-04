@@ -42,6 +42,7 @@ type Issued = {
   id: string;
   plan: PlanCode;
   code: string;
+  api_key?: string | null;
   cost_cents: number;
   created_at: string;
   customer_name?: string;
@@ -104,7 +105,7 @@ export default function GerenteClaude() {
       try {
         const { data: dbRows } = await supabase
           .from("claude_orders")
-          .select("id, plan_code, code, cost_cents, created_at, customer_name, customer_whatsapp, customer_email")
+          .select("id, plan_code, code, provider_api_key, cost_cents, created_at, customer_name, customer_whatsapp, customer_email")
           .eq("is_manager_manual", true)
           .not("code", "is", null)
           .order("created_at", { ascending: false })
@@ -117,6 +118,7 @@ export default function GerenteClaude() {
                 id: r.id,
                 plan: r.plan_code as PlanCode,
                 code: r.code,
+                api_key: r.provider_api_key ?? null,
                 cost_cents: r.cost_cents ?? 0,
                 created_at: r.created_at,
                 customer_name: r.customer_name ?? undefined,
@@ -191,6 +193,7 @@ export default function GerenteClaude() {
         id: crypto.randomUUID(),
         plan: selected,
         code: data.code,
+        api_key: data.api_key ?? null,
         cost_cents: cost,
         created_at: new Date().toISOString(),
         customer_name: customerName.trim(),
