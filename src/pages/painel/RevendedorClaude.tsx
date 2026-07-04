@@ -622,8 +622,11 @@ Qualquer dúvida, é só chamar!`
             <span>Copie agora — estes dados <strong>não serão exibidos novamente</strong>.</span>
           </div>
           {!revealed?.apiKey && (
-            <div className="rounded-lg border border-border bg-background/60 p-3 font-mono text-sm break-all select-all">
-              {revealed?.code}
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-background/60 p-3">
+              <div className="flex-1 font-mono text-sm break-all select-all">{revealed?.code}</div>
+              <Button size="sm" variant="outline" onClick={() => revealed && copyField("code", revealed.code)}>
+                {copiedField === "code" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
             </div>
           )}
           {revealed?.apiKey && (
@@ -634,22 +637,54 @@ Qualquer dúvida, é só chamar!`
               </div>
               <div className="space-y-1">
                 <div className="text-[11px] uppercase tracking-wide text-muted-foreground">API Key (ANTHROPIC_AUTH_TOKEN)</div>
-                <div className="rounded-lg border border-border bg-background/60 p-3 font-mono text-xs break-all select-all">
-                  {revealed.apiKey}
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-background/60 p-2">
+                  <div className="flex-1 font-mono text-xs break-all select-all px-1">{revealed.apiKey}</div>
+                  <Button size="sm" variant="outline" onClick={() => copyField("apiKey", revealed.apiKey!)}>
+                    {copiedField === "apiKey" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Base URL (ANTHROPIC_BASE_URL)</div>
-                <div className="rounded-lg border border-border bg-background/60 p-3 font-mono text-xs break-all select-all">
-                  {revealed.providerBaseUrl ?? "https://claude-ss.ia.br/"}
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-background/60 p-2">
+                  <div className="flex-1 font-mono text-xs break-all select-all px-1">{revealed.providerBaseUrl ?? "https://claude-ss.ia.br/"}</div>
+                  <Button size="sm" variant="outline" onClick={() => copyField("baseUrl", revealed.providerBaseUrl ?? "https://claude-ss.ia.br/")}>
+                    {copiedField === "baseUrl" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
                 </div>
               </div>
+            </div>
+          )}
+          {revealed && (
+            <div className="mt-3 space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[11px] uppercase tracking-wide text-primary font-semibold">Mensagem pronta para o cliente</div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => copyField("msg", buildClientMessage())}>
+                    {copiedField === "msg" ? <><Check className="h-4 w-4 mr-1" /> Copiado</> : <><Copy className="h-4 w-4 mr-1" /> Copiar</>}
+                  </Button>
+                  {revealed.customerWhatsapp && revealed.customerWhatsapp.length >= 10 && (
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => {
+                        const num = revealed.customerWhatsapp!.startsWith("55") ? revealed.customerWhatsapp! : `55${revealed.customerWhatsapp}`;
+                        const url = `https://wa.me/${num}?text=${encodeURIComponent(buildClientMessage())}`;
+                        window.open(url, "_blank", "noopener,noreferrer");
+                      }}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-1" /> Enviar WhatsApp
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <pre className="whitespace-pre-wrap text-xs font-sans bg-background/60 rounded-md border border-border p-2 max-h-48 overflow-auto">{buildClientMessage()}</pre>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setRevealed(null)}>Fechar</Button>
             <Button onClick={copy}>
-              {copied ? <><Check className="mr-2 h-4 w-4" /> Copiado</> : <><Copy className="mr-2 h-4 w-4" /> Copiar chave</>}
+              {copied ? <><Check className="mr-2 h-4 w-4" /> Copiado</> : <><Copy className="mr-2 h-4 w-4" /> Copiar tudo</>}
             </Button>
           </DialogFooter>
         </DialogContent>
