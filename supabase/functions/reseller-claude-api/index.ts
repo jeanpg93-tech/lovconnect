@@ -527,6 +527,47 @@ Deno.serve(async (req) => {
         email,
       }).catch(() => {});
 
+      // WhatsApp automático ao cliente final na renovação (best-effort)
+      const waRenew = String((origOrder as any).customer_whatsapp ?? "").replace(/\D+/g, "");
+      if (waRenew.length >= 10) {
+        try {
+          const { data: integ } = await svc
+            .from("reseller_integrations")
+            .select("evolution_enabled, evolution_send_on_api, connection_status")
+            .eq("reseller_id", reseller.id)
+            .maybeSingle();
+          if (
+            integ?.evolution_enabled &&
+            (integ as any).evolution_send_on_api !== false &&
+            integ?.connection_status === "connected"
+          ) {
+            fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/evolution-send-sale`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
+              },
+              body: JSON.stringify({
+                reseller_id: reseller.id,
+                kind: "claude",
+                to: waRenew,
+                vars: {
+                  nome: (origOrder as any).customer_name ?? "",
+                  plano: PLAN_LABELS[planCode] ?? planCode,
+                  codigo: "",
+                  chave: "",
+                  api_key: "",
+                  base_url: "https://claude-ss.ia.br/",
+                  valor_cents: String(saleCents ?? 0),
+                },
+              }),
+            }).catch((e) => console.warn("evolution-send-sale (claude renew) failed", e));
+          }
+        } catch (e) {
+          console.warn("evolution-send-sale (claude renew) lookup failed", e);
+        }
+      }
+
       return json({
         success: true,
         pedido_id: renewOrder.id,
@@ -792,6 +833,47 @@ Deno.serve(async (req) => {
         await svc.rpc("telegram_enqueue", { _text: txt });
       } catch (e) {
         console.warn("telegram_enqueue (claude api) failed", e);
+      }
+
+      // WhatsApp automático ao cliente final (best-effort)
+      const waNumber = (customerWhatsapp ?? "").replace(/\D+/g, "");
+      if (waNumber.length >= 10) {
+        try {
+          const { data: integ } = await svc
+            .from("reseller_integrations")
+            .select("evolution_enabled, evolution_send_on_api, connection_status")
+            .eq("reseller_id", reseller.id)
+            .maybeSingle();
+          if (
+            integ?.evolution_enabled &&
+            (integ as any).evolution_send_on_api !== false &&
+            integ?.connection_status === "connected"
+          ) {
+            fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/evolution-send-sale`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
+              },
+              body: JSON.stringify({
+                reseller_id: reseller.id,
+                kind: "claude",
+                to: waNumber,
+                vars: {
+                  nome: customerName ?? "",
+                  plano: PLAN_LABELS[planCode] ?? planCode,
+                  codigo: code ?? "",
+                  chave: code ?? "",
+                  api_key: providerApiKey ?? "",
+                  base_url: providerApiKey ? "https://claude-ss.ia.br/" : "",
+                  valor_cents: String(saleCents ?? 0),
+                },
+              }),
+            }).catch((e) => console.warn("evolution-send-sale (claude api) failed", e));
+          }
+        } catch (e) {
+          console.warn("evolution-send-sale (claude api) lookup failed", e);
+        }
       }
 
       return json({

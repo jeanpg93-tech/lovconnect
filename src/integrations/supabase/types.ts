@@ -2964,6 +2964,7 @@ export type Database = {
           evolution_message_template: string
           evolution_send_on_api: boolean
           evolution_template_api: string | null
+          evolution_template_claude: string | null
           evolution_template_recharge: string | null
           evolution_template_storefront: string | null
           instance_name: string | null
@@ -2991,6 +2992,7 @@ export type Database = {
           evolution_message_template?: string
           evolution_send_on_api?: boolean
           evolution_template_api?: string | null
+          evolution_template_claude?: string | null
           evolution_template_recharge?: string | null
           evolution_template_storefront?: string | null
           instance_name?: string | null
@@ -3018,6 +3020,7 @@ export type Database = {
           evolution_message_template?: string
           evolution_send_on_api?: boolean
           evolution_template_api?: string | null
+          evolution_template_claude?: string | null
           evolution_template_recharge?: string | null
           evolution_template_storefront?: string | null
           instance_name?: string | null

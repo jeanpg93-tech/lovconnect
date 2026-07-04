@@ -23,6 +23,7 @@ type Integ = {
   evolution_template_recharge: string | null;
   evolution_template_storefront: string | null;
   evolution_template_api: string | null;
+  evolution_template_claude: string | null;
   connection_status: string;
   last_connected_at: string | null;
   profile_name: string | null;
@@ -35,6 +36,7 @@ type Defaults = {
   license: string;
   recharge: string;
   storefront: string;
+  claude: string;
 };
 
 export default function RevendedorIntegracaoWhatsApp() {
@@ -48,8 +50,9 @@ export default function RevendedorIntegracaoWhatsApp() {
   const [tplRecharge, setTplRecharge] = useState("");
   const [tplStorefront, setTplStorefront] = useState("");
   const [tplApi, setTplApi] = useState("");
+  const [tplClaude, setTplClaude] = useState("");
   const [integ, setInteg] = useState<Integ | null>(null);
-  const [defaults, setDefaults] = useState<Defaults>({ license: "", recharge: "", storefront: "" });
+  const [defaults, setDefaults] = useState<Defaults>({ license: "", recharge: "", storefront: "", claude: "" });
 
   const [qrOpen, setQrOpen] = useState(false);
   const [qrBase64, setQrBase64] = useState<string | null>(null);
@@ -71,19 +74,20 @@ export default function RevendedorIntegracaoWhatsApp() {
     const [{ data: row }, { data: appS }] = await Promise.all([
       supabase
         .from("reseller_integrations")
-        .select("evolution_enabled, evolution_send_on_api, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, evolution_template_api, connection_status, last_connected_at, profile_name, profile_number, profile_picture_url, messages_sent_count")
+        .select("evolution_enabled, evolution_send_on_api, evolution_instance, evolution_message_template, evolution_template_recharge, evolution_template_storefront, evolution_template_api, evolution_template_claude, connection_status, last_connected_at, profile_name, profile_number, profile_picture_url, messages_sent_count")
         .eq("reseller_id", r.id).maybeSingle(),
       supabase
         .from("app_settings")
         .select("key, value")
-        .in("key", ["evolution_template_license", "evolution_template_recharge", "evolution_template_storefront"]),
+        .in("key", ["evolution_template_license", "evolution_template_recharge", "evolution_template_storefront", "evolution_template_claude"]),
     ]);
 
-    const defs: Defaults = { license: "", recharge: "", storefront: "" };
+    const defs: Defaults = { license: "", recharge: "", storefront: "", claude: "" };
     (appS ?? []).forEach((s: any) => {
       if (s.key === "evolution_template_license") defs.license = s.value as string;
       if (s.key === "evolution_template_recharge") defs.recharge = s.value as string;
       if (s.key === "evolution_template_storefront") defs.storefront = s.value as string;
+      if (s.key === "evolution_template_claude") defs.claude = s.value as string;
     });
     setDefaults(defs);
 
@@ -95,11 +99,13 @@ export default function RevendedorIntegracaoWhatsApp() {
       setTplRecharge((row as any).evolution_template_recharge ?? defs.recharge);
       setTplStorefront((row as any).evolution_template_storefront ?? defs.storefront);
       setTplApi((row as any).evolution_template_api ?? "");
+      setTplClaude((row as any).evolution_template_claude ?? defs.claude);
     } else {
       setTplLicense(defs.license);
       setTplRecharge(defs.recharge);
       setTplStorefront(defs.storefront);
       setTplApi("");
+      setTplClaude(defs.claude);
     }
     setLoading(false);
   };
@@ -122,6 +128,7 @@ export default function RevendedorIntegracaoWhatsApp() {
       evolution_template_recharge: tplRecharge,
       evolution_template_storefront: tplStorefront,
       evolution_template_api: tplApi.trim() ? tplApi : null,
+      evolution_template_claude: tplClaude.trim() ? tplClaude : null,
     } as any, { onConflict: "reseller_id" });
     setSaving(false);
     if (error) toast.error(error.message);
@@ -326,7 +333,7 @@ export default function RevendedorIntegracaoWhatsApp() {
         <div>
           <h3 className="font-display text-base font-semibold">Mensagens enviadas ao comprador</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Variáveis disponíveis: <code>{"{nome}"}</code>, <code>{"{chave}"}</code>, <code>{"{tipo}"}</code>, <code>{"{valor}"}</code>, <code>{"{link}"}</code>, <code>{"{loja}"}</code>. Use <code>*texto*</code> para negrito.
+            Variáveis: <code>{"{nome}"}</code>, <code>{"{chave}"}</code>, <code>{"{tipo}"}</code>, <code>{"{valor}"}</code>, <code>{"{link}"}</code>, <code>{"{loja}"}</code>. Para chaves Claude também: <code>{"{plano}"}</code>, <code>{"{api_key}"}</code>, <code>{"{base_url}"}</code>, <code>{"{codigo}"}</code>. Use <code>*texto*</code> para negrito.
           </p>
         </div>
 
@@ -347,6 +354,12 @@ export default function RevendedorIntegracaoWhatsApp() {
           value={tplRecharge}
           onChange={setTplRecharge}
           defaultValue={defaults.recharge}
+        />
+        <TemplateField
+          label="Venda de chave Claude (manual e API)"
+          value={tplClaude}
+          onChange={setTplClaude}
+          defaultValue={defaults.claude}
         />
       </section>
 
