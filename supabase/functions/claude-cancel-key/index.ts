@@ -130,12 +130,21 @@ Deno.serve(async (req) => {
       }, 502);
     }
 
-    // Estorna saldo do revendedor. Prioriza valor do fornecedor; fallback no custo local.
-    // Fora da janela: NÃO devolve nada, mesmo que force=true.
-    const providerRefund = Number(providerResp?.refunded_amount_cents);
-    const baseRefund = Number.isFinite(providerRefund) && providerRefund > 0
-      ? providerRefund
-      : (Number(order.cost_cents) || 0);
+    // Estorna EXATAMENTE o valor que foi debitado da carteira do revendedor.
+    // O fornecedor pode devolver/relatar apenas o custo interno (ex.: R$20), mas
+    // a carteira do revendedor foi cobrada pelo custo real do nível (ex.: R$58).
+    // Portanto, a fonte da verdade é a transação `claude_key_issue` vinculada ao pedido.
+    const { data: issueTx } = await admin
+      .from('balance_transactions')
+      .select('amount_cents')
+      .eq('reseller_id', reseller.id)
+      .eq('reference_id', order.id)
+      .eq('kind', 'claude_key_issue')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const debitedCents = issueTx ? Math.abs(Number((issueTx as any).amount_cents) || 0) : 0;
+    const baseRefund = debitedCents > 0 ? debitedCents : (Number(order.cost_cents) || 0);
     const refundCents = withinWindow ? baseRefund : 0;
     if (refundCents > 0) {
       const { error: cErr } = await admin.rpc('credit_reseller_balance', {
