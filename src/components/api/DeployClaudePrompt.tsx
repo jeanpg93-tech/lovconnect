@@ -101,7 +101,31 @@ Emite uma chave Claude e debita do saldo.
 Últimos 50 pedidos (\`?limit=50\`, máx 200). Não devolve o valor da \`chave\`.
 
 ### GET /chaves/{id}
-Detalhe de um pedido específico.
+Detalhe completo de um pedido específico. Use para consultar o status atual de uma chave sob demanda (sem baixar a lista inteira).
+
+**Resposta 200:**
+\`\`\`json
+{ "success": true, "chave": {
+  "id": "uuid",
+  "plan_code": "pro_30d",
+  "status": "issued",
+  "code": "ACT-XXXXXX",
+  "sale_price_cents": 8000,
+  "provider_key_id": "prv_...",
+  "customer_email": "cliente@dominio.com",
+  "customer_name": "Nome do Cliente",
+  "customer_whatsapp": "5511999999999",
+  "created_at": "2026-07-04T12:00:00Z",
+  "redeemed_at": null,
+  "expired_at": null,
+  "cancelled_at": null,
+  "tokens_exhausted_at": null,
+  "is_renewal": false,
+  "error_message": null
+} }
+\`\`\`
+> \`status\` possíveis: \`issued\` (aguardando resgate) · \`redeemed\` (cliente resgatou/ativa) · \`expired\` · \`cancelled\` · \`cancel_failed\`.
+**Erros:** \`404\` pedido não encontrado.
 
 ### GET /chaves/{id}/consumo
 Snapshot de consumo de tokens do cliente (best-effort — depende do fornecedor).
