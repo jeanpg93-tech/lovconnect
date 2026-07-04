@@ -5338,6 +5338,7 @@ export type Database = {
         Returns: string[]
       }
       unaccent_safe: { Args: { _s: string }; Returns: string }
+      validate_webhook_url: { Args: { url: string }; Returns: undefined }
     }
     Enums: {
       app_role: "gerente" | "revendedor" | "cliente"
