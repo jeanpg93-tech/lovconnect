@@ -393,6 +393,227 @@ Deno.serve(async (req) => {
       });
     }
 
+    // POST /chaves/{id}/renovar — renova a chave/cliente por e-mail no fornecedor
+    if (action === "chaves" && req.method === "POST" && subId && (route[2] ?? "") === "renovar") {
+      if (!CLAUDE_BASE_URL) return json({ success: false, error: "provider_not_configured" }, 500);
+      const bodyR = await req.json().catch(() => ({}));
+      const requestId = req.headers.get("idempotency-key") || (bodyR?.request_id ? String(bodyR.request_id) : null);
+
+      const { data: origOrder } = await svc
+        .from("claude_orders")
+        .select("id, plan_code, customer_email, customer_name, customer_whatsapp, customer_identifier, status")
+        .eq("reseller_id", reseller.id)
+        .eq("id", subId)
+        .maybeSingle();
+      if (!origOrder) return json({ success: false, error: "Pedido não encontrado" }, 404);
+
+      const emailOverride = bodyR?.email ? String(bodyR.email).trim().toLowerCase().slice(0, 200) : null;
+      const email = emailOverride ?? (origOrder.customer_email ? String(origOrder.customer_email).toLowerCase() : null);
+      if (!email) return json({ success: false, error: "email_required", message: "O pedido original não tem e-mail; envie 'email' no body." }, 400);
+
+      const planCode = String(origOrder.plan_code);
+      if (!PLAN_CODES.has(planCode)) return json({ success: false, error: "invalid_plano" }, 400);
+
+      // Idempotência
+      if (requestId) {
+        const { data: prior } = await svc
+          .from("claude_orders")
+          .select("id, plan_code, status, sale_price_cents, provider_key_id")
+          .eq("reseller_id", reseller.id)
+          .eq("request_id", requestId)
+          .maybeSingle();
+        if (prior) return json({ success: true, idempotent: true, pedido: prior });
+      }
+
+      const [{ data: defaultPrice }, { data: override }] = await Promise.all([
+        svc.from("claude_plan_prices").select("*").eq("plan_code", planCode).maybeSingle(),
+        svc.from("claude_reseller_price_overrides").select("*").eq("reseller_id", reseller.id).eq("plan_code", planCode).maybeSingle(),
+      ]);
+      if (!defaultPrice || !defaultPrice.is_active) return json({ success: false, error: "plano_indisponivel" }, 400);
+
+      const costCents = defaultPrice.cost_cents;
+      const resellerCostCents = (defaultPrice as any).reseller_cost_cents ?? defaultPrice.sale_price_cents;
+      const saleCents = override && override.is_active
+        ? computeSale(costCents, override.markup_mode, override.markup_value_cents)
+        : defaultPrice.sale_price_cents;
+      const profitCents = saleCents - resellerCostCents;
+
+      const { data: balRow } = await svc.from("reseller_balances").select("balance_cents").eq("reseller_id", reseller.id).maybeSingle();
+      const balance = balRow?.balance_cents ?? 0;
+      if (balance < resellerCostCents) {
+        return json({
+          success: false,
+          error: "saldo_insuficiente",
+          saldo_centavos: balance,
+          preco_centavos: resellerCostCents,
+          message: "Recarregue a carteira e reenvie a renovação.",
+        }, 402);
+      }
+
+      const { data: renewOrder, error: rErr } = await svc.from("claude_orders").insert({
+        reseller_id: reseller.id,
+        plan_code: planCode,
+        customer_identifier: origOrder.customer_identifier,
+        customer_name: origOrder.customer_name,
+        customer_email: email,
+        customer_whatsapp: origOrder.customer_whatsapp,
+        cost_cents: costCents,
+        sale_price_cents: saleCents,
+        profit_cents: profitCents,
+        status: "pending",
+        request_id: requestId,
+        is_renewal: true,
+        renewal_note: `Renovação do pedido ${origOrder.id}`,
+      }).select().single();
+      if (rErr) throw rErr;
+
+      let providerResp: any = null; let providerStatus = 0;
+      try {
+        const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/renew`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${CLAUDE_API_KEY}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ email, kind: planCode }),
+        });
+        providerStatus = r.status;
+        const txt = await r.text();
+        try { providerResp = JSON.parse(txt); } catch { providerResp = { raw: txt }; }
+      } catch (e) {
+        await svc.from("claude_orders").update({ status: "failed", error_message: `network: ${(e as Error).message}` }).eq("id", renewOrder.id);
+        return json({ success: false, error: "provider_network_error" }, 502);
+      }
+      if (providerStatus < 200 || providerStatus >= 300) {
+        await svc.from("claude_orders").update({
+          status: "failed",
+          provider_response: providerResp,
+          error_message: `provider_${providerStatus}`,
+        }).eq("id", renewOrder.id);
+        return json({ success: false, error: "provider_error", status: providerStatus, body: providerResp }, 502);
+      }
+
+      const { data: debited, error: debitErr } = await svc.rpc("debit_reseller_balance", {
+        _reseller_id: reseller.id,
+        _amount_cents: resellerCostCents,
+        _kind: "claude_key_renew",
+        _description: `Renovação Claude ${planCode} (API)`,
+        _reference_id: renewOrder.id,
+      });
+      if (debitErr || debited !== true) {
+        await svc.from("claude_orders").update({
+          status: "failed",
+          provider_response: providerResp,
+          error_message: `debit_failed: ${debitErr?.message ?? "insufficient_balance"}`,
+        }).eq("id", renewOrder.id);
+        return json({ success: false, error: debitErr ? "debit_failed" : "saldo_insuficiente" }, 402);
+      }
+
+      const providerUserId: string | undefined =
+        providerResp?.userId ?? providerResp?.user_id ?? providerResp?.data?.userId ?? providerResp?.data?.user_id;
+      await svc.from("claude_orders").update({
+        status: "issued",
+        provider_response: providerResp,
+        provider_user_id: providerUserId ?? null,
+        code_revealed_at: new Date().toISOString(),
+      }).eq("id", renewOrder.id);
+
+      dispatchWebhook(svc, reseller.id, "claude.key.renewed", {
+        pedido_id: renewOrder.id,
+        pedido_original_id: origOrder.id,
+        plano: planCode,
+        preco_centavos: saleCents,
+        email,
+      }).catch(() => {});
+
+      return json({
+        success: true,
+        pedido_id: renewOrder.id,
+        pedido_original_id: origOrder.id,
+        plano: planCode,
+        preco_centavos: saleCents,
+        email,
+        provider_response: providerResp,
+      });
+    }
+
+    // POST /teste — chave de teste 15 minutos (sem custo)
+    if (action === "teste" && req.method === "POST") {
+      if (!CLAUDE_BASE_URL) return json({ success: false, error: "provider_not_configured" }, 500);
+      const bodyT = await req.json().catch(() => ({}));
+      const email = bodyT?.email ? String(bodyT.email).trim().toLowerCase().slice(0, 200) : null;
+
+      // Throttle simples: máx 5 trials/hora por revendedor
+      const oneHourAgo = new Date(Date.now() - 3600_000).toISOString();
+      const { count } = await svc
+        .from("claude_orders")
+        .select("id", { count: "exact", head: true })
+        .eq("reseller_id", reseller.id)
+        .eq("plan_code", "trial_15m")
+        .gte("created_at", oneHourAgo);
+      if ((count ?? 0) >= 5) {
+        return json({ success: false, error: "rate_limited", message: "Limite de 5 testes por hora atingido." }, 429);
+      }
+
+      let providerResp: any = null; let providerStatus = 0;
+      try {
+        const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/test`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${CLAUDE_API_KEY}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ ...(email ? { email } : {}) }),
+        });
+        providerStatus = r.status;
+        const txt = await r.text();
+        try { providerResp = JSON.parse(txt); } catch { providerResp = { raw: txt }; }
+      } catch (e) {
+        return json({ success: false, error: "provider_network_error", detail: (e as Error).message }, 502);
+      }
+      if (providerStatus < 200 || providerStatus >= 300) {
+        return json({ success: false, error: "provider_error", status: providerStatus, body: providerResp }, 502);
+      }
+
+      const code: string | undefined =
+        providerResp?.code ?? providerResp?.key ?? providerResp?.data?.code ?? providerResp?.data?.key;
+      const providerKeyId: string | undefined =
+        providerResp?.id ?? providerResp?.key_id ?? providerResp?.data?.id;
+      const providerApiKey: string | undefined =
+        providerResp?.apiKey ?? providerResp?.api_key ?? providerResp?.data?.apiKey ?? providerResp?.data?.api_key;
+      const providerUserId: string | undefined =
+        providerResp?.userId ?? providerResp?.user_id ?? providerResp?.data?.userId ?? providerResp?.data?.user_id;
+
+      // Registro leve para contagem/throttle (sem custo)
+      await svc.from("claude_orders").insert({
+        reseller_id: reseller.id,
+        plan_code: "trial_15m",
+        customer_email: email,
+        cost_cents: 0,
+        sale_price_cents: 0,
+        profit_cents: 0,
+        status: "issued",
+        code,
+        provider_key_id: providerKeyId,
+        provider_api_key: providerApiKey ?? null,
+        provider_user_id: providerUserId ?? null,
+        provider_response: providerResp,
+        code_revealed_at: new Date().toISOString(),
+        error_message: "trial_15m",
+      });
+
+      return json({
+        success: true,
+        codigo: code,
+        api_key: providerApiKey ?? null,
+        user_id: providerUserId ?? null,
+        provider_base_url: providerApiKey ? "https://claude-ss.ia.br/" : null,
+        duracao_minutos: 15,
+      });
+    }
+
     if (action === "chaves" && req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       const planCode = String(body?.plano ?? body?.plan_code ?? "").trim();
