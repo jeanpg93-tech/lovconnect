@@ -451,9 +451,11 @@ export type Database = {
           pix_expires_at: string | null
           plan_code: string
           profit_cents: number
+          provider_api_key: string | null
           provider_key_id: string | null
           provider_response: Json | null
           provider_transaction_id: string | null
+          provider_user_id: string | null
           qr_code_base64: string | null
           redeemed_at: string | null
           refund_waived: boolean
@@ -488,9 +490,11 @@ export type Database = {
           pix_expires_at?: string | null
           plan_code: string
           profit_cents?: number
+          provider_api_key?: string | null
           provider_key_id?: string | null
           provider_response?: Json | null
           provider_transaction_id?: string | null
+          provider_user_id?: string | null
           qr_code_base64?: string | null
           redeemed_at?: string | null
           refund_waived?: boolean
@@ -525,9 +529,11 @@ export type Database = {
           pix_expires_at?: string | null
           plan_code?: string
           profit_cents?: number
+          provider_api_key?: string | null
           provider_key_id?: string | null
           provider_response?: Json | null
           provider_transaction_id?: string | null
+          provider_user_id?: string | null
           qr_code_base64?: string | null
           redeemed_at?: string | null
           refund_waived?: boolean
