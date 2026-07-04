@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
 
     // Pedidos: por customer_id OU (fallback) por customer_email dentro do mesmo revendedor
     const emailLower = String(customer.email).toLowerCase();
-    const orderCols = "id, plan_code, status, provider_key_id, code, provider_api_key, provider_response, created_at, sale_price_cents, customer_email";
+    const orderCols = "id, plan_code, status, provider_key_id, code, provider_api_key, provider_response, created_at, sale_price_cents, customer_email, cancel_requested_at, cancel_request_note, customer_refunded_at, customer_refund_pix_key, customer_refund_pix_key_type, customer_refund_full_name";
     const { data: byId } = await admin
       .from("claude_orders")
       .select(orderCols)
@@ -119,6 +119,12 @@ Deno.serve(async (req) => {
         created_at: o.created_at,
         sale_price_cents: o.sale_price_cents,
         customer_email: o.customer_email,
+        cancel_requested_at: o.cancel_requested_at ?? null,
+        cancel_request_note: o.cancel_request_note ?? null,
+        customer_refunded_at: o.customer_refunded_at ?? null,
+        customer_refund_pix_key: o.customer_refund_pix_key ?? null,
+        customer_refund_pix_key_type: o.customer_refund_pix_key_type ?? null,
+        customer_refund_full_name: o.customer_refund_full_name ?? null,
       };
     });
 

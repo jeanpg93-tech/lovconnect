@@ -445,6 +445,12 @@ export type Database = {
           customer_id: string | null
           customer_identifier: string | null
           customer_name: string | null
+          customer_refund_full_name: string | null
+          customer_refund_note: string | null
+          customer_refund_pix_key: string | null
+          customer_refund_pix_key_type: string | null
+          customer_refunded_at: string | null
+          customer_refunded_by: string | null
           customer_whatsapp: string | null
           error_message: string | null
           expired_at: string | null
@@ -486,6 +492,12 @@ export type Database = {
           customer_id?: string | null
           customer_identifier?: string | null
           customer_name?: string | null
+          customer_refund_full_name?: string | null
+          customer_refund_note?: string | null
+          customer_refund_pix_key?: string | null
+          customer_refund_pix_key_type?: string | null
+          customer_refunded_at?: string | null
+          customer_refunded_by?: string | null
           customer_whatsapp?: string | null
           error_message?: string | null
           expired_at?: string | null
@@ -527,6 +539,12 @@ export type Database = {
           customer_id?: string | null
           customer_identifier?: string | null
           customer_name?: string | null
+          customer_refund_full_name?: string | null
+          customer_refund_note?: string | null
+          customer_refund_pix_key?: string | null
+          customer_refund_pix_key_type?: string | null
+          customer_refunded_at?: string | null
+          customer_refunded_by?: string | null
           customer_whatsapp?: string | null
           error_message?: string | null
           expired_at?: string | null

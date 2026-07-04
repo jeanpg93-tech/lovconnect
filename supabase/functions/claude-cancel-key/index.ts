@@ -54,7 +54,9 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (oErr) throw oErr;
     if (!order) return json({ error: 'order_not_found' }, 404);
-    if (order.status !== 'issued') return json({ error: 'invalid_status', status: order.status }, 409);
+    if (!['issued', 'cancel_requested'].includes(order.status)) {
+      return json({ error: 'invalid_status', status: order.status }, 409);
+    }
     // Fallback: se o fornecedor não devolveu um ID separado, o próprio "code" é o identificador.
     const providerKeyRef = String(order.provider_key_id ?? order.code ?? '').trim();
     if (!providerKeyRef) return json({ error: 'missing_provider_key_id' }, 422);

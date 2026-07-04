@@ -75,6 +75,7 @@ type Order = {
   created_at: string;
   sale_price_cents: number;
   cancel_requested_at?: string | null;
+  customer_refunded_at?: string | null;
 };
 
 type ExtensionKey = {
@@ -201,6 +202,9 @@ export default function ClienteClaudePortal() {
   const [pixCopied, setPixCopied] = useState(false);
   const [cancelOrder, setCancelOrder] = useState<Order | null>(null);
   const [cancelNote, setCancelNote] = useState("");
+  const [cancelPixFullName, setCancelPixFullName] = useState("");
+  const [cancelPixKeyType, setCancelPixKeyType] = useState<string>("cpf");
+  const [cancelPixKey, setCancelPixKey] = useState("");
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
   const [baseUrlCopied, setBaseUrlCopied] = useState(false);
   const CLAUDE_BASE_URL = "https://claude-ss.ia.br/";
@@ -221,10 +225,23 @@ export default function ClienteClaudePortal() {
 
   const submitCancelRequest = async () => {
     if (!cancelOrder) return;
+    const inWindow = withinRefundWindow(cancelOrder);
+    if (inWindow) {
+      if (!cancelPixFullName.trim() || !cancelPixKey.trim()) {
+        toast.error("Preencha nome completo e chave PIX para o estorno.");
+        return;
+      }
+    }
     setCancelSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("claude-customer-request-cancel", {
-        body: { order_id: cancelOrder.id, note: cancelNote || null },
+        body: {
+          order_id: cancelOrder.id,
+          note: cancelNote || null,
+          pix_full_name: inWindow ? cancelPixFullName.trim() : null,
+          pix_key: inWindow ? cancelPixKey.trim() : null,
+          pix_key_type: inWindow ? cancelPixKeyType : null,
+        },
       });
       if (error) throw error;
       if (!(data as any)?.ok) throw new Error((data as any)?.error ?? "erro_desconhecido");
@@ -232,6 +249,9 @@ export default function ClienteClaudePortal() {
       setOrders((prev) => prev.map((o) => o.id === cancelOrder.id ? { ...o, cancel_requested_at: new Date().toISOString(), status: o.status === "issued" ? "cancel_requested" : o.status } : o));
       setCancelOrder(null);
       setCancelNote("");
+      setCancelPixFullName("");
+      setCancelPixKey("");
+      setCancelPixKeyType("cpf");
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao solicitar cancelamento");
     } finally {
@@ -669,9 +689,19 @@ export default function ClienteClaudePortal() {
                           </Button>
                         </div>
                       )}
-                      {o.cancel_requested_at && (
+                      {o.cancel_requested_at && !["cancelled", "refunded"].includes(o.status) && (
                         <div className="text-[11px] rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
                           Cancelamento solicitado em {fmtDate(o.cancel_requested_at)} — aguardando o revendedor concluir.
+                        </div>
+                      )}
+                      {o.status === "cancelled" && !o.customer_refunded_at && (
+                        <div className="text-[11px] rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
+                          Chave cancelada. Aguardando o revendedor confirmar o envio do estorno via PIX.
+                        </div>
+                      )}
+                      {o.customer_refunded_at && (
+                        <div className="text-[11px] rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-300">
+                          ✅ Estorno confirmado pelo revendedor em {fmtDate(o.customer_refunded_at)}.
                         </div>
                       )}
                     </div>
@@ -867,9 +897,47 @@ export default function ClienteClaudePortal() {
                 </div>
               )}
               {cancelOrder && withinRefundWindow(cancelOrder) ? (
-                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-300 text-xs">
-                  ✅ Dentro do prazo de 7 dias — se o revendedor concluir o cancelamento, o valor pago poderá ser estornado.
-                </div>
+                <>
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-300 text-xs">
+                    ✅ Dentro do prazo de 7 dias — informe abaixo seus dados de PIX para receber o estorno.
+                  </div>
+                  <div className="grid gap-2">
+                    <div>
+                      <Label className="text-xs">Nome completo do titular do PIX *</Label>
+                      <Input
+                        value={cancelPixFullName}
+                        onChange={(e) => setCancelPixFullName(e.target.value)}
+                        placeholder="Ex.: João da Silva"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-xs">Tipo *</Label>
+                        <select
+                          value={cancelPixKeyType}
+                          onChange={(e) => setCancelPixKeyType(e.target.value)}
+                          className="mt-1 h-10 w-full rounded-md border border-white/15 bg-white/5 px-2 text-sm"
+                        >
+                          <option value="cpf">CPF</option>
+                          <option value="cnpj">CNPJ</option>
+                          <option value="email">E-mail</option>
+                          <option value="phone">Telefone</option>
+                          <option value="random">Aleatória</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Chave PIX *</Label>
+                        <Input
+                          value={cancelPixKey}
+                          onChange={(e) => setCancelPixKey(e.target.value)}
+                          placeholder="Sua chave PIX"
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-rose-300 text-xs">
                   ⚠️ Fora do prazo de 7 dias — o cancelamento pode ser solicitado, mas <b>não há direito a estorno</b> (política do serviço).
