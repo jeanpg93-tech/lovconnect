@@ -861,10 +861,12 @@ export default function RevendedorDashboard() {
               <div className="group relative overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur p-4 transition-all duration-300 hover:border-amber-500/40 hover:shadow-[0_0_28px_-8px_hsl(38_92%_50%/0.55)]">
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-amber-500/10 blur-2xl" />
                 <div className="relative gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-start justify-center">
-                  <ShieldCheck className="h-3 w-3 text-amber-500" /> Licenças
+                  <ShieldCheck className="h-3 w-3 text-amber-500" /> Licenças Ext. · 30d
                 </div>
-                <div className="relative mt-2 font-display font-black text-xl">{stats.activeLicenses}</div>
-                <div className="relative text-[10px] text-muted-foreground mt-0.5">ativas</div>
+                <div className="relative mt-2 font-display font-black text-xl text-amber-500">{fmtBRL(licenses30.cents)}</div>
+                <div className="relative text-[10px] text-muted-foreground mt-0.5">
+                  {licenses30.count} venda{licenses30.count === 1 ? "" : "s"} · {stats.activeLicenses} ativa{stats.activeLicenses === 1 ? "" : "s"}
+                </div>
               </div>
             </div>
           </div>
