@@ -487,7 +487,10 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify({ kind: planCode }),
+          body: JSON.stringify({
+            kind: planCode,
+            ...(customerEmail ? { email: customerEmail } : {}),
+          }),
         });
         providerStatus = r.status;
         const txt = await r.text();
@@ -510,6 +513,10 @@ Deno.serve(async (req) => {
         providerResp?.code ?? providerResp?.key ?? providerResp?.data?.code ?? providerResp?.data?.key;
       const providerKeyId: string | undefined =
         providerResp?.id ?? providerResp?.key_id ?? providerResp?.data?.id;
+      const providerApiKey: string | undefined =
+        providerResp?.apiKey ?? providerResp?.api_key ?? providerResp?.data?.apiKey ?? providerResp?.data?.api_key;
+      const providerUserId: string | undefined =
+        providerResp?.userId ?? providerResp?.user_id ?? providerResp?.data?.userId ?? providerResp?.data?.user_id;
 
       // SECURITY: atomic debit via RPC to prevent TOCTOU / double-spend.
       const { data: debited, error: debitErr } = await svc.rpc("debit_reseller_balance", {
@@ -532,6 +539,8 @@ Deno.serve(async (req) => {
         status: "issued",
         code,
         provider_key_id: providerKeyId,
+        provider_api_key: providerApiKey ?? null,
+        provider_user_id: providerUserId ?? null,
         provider_response: providerResp,
         code_revealed_at: new Date().toISOString(),
       }).eq("id", order.id);
@@ -571,6 +580,10 @@ Deno.serve(async (req) => {
         preco_centavos: saleCents,
         codigo: code, // one-time
         provider_key_id: providerKeyId,
+        // Entrega direta (só quando `email` foi enviado e o fornecedor retornou credenciais):
+        api_key: providerApiKey ?? null,
+        user_id: providerUserId ?? null,
+        provider_base_url: providerApiKey ? "https://claude-ss.ia.br/" : null,
       });
     }
 

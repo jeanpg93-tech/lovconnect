@@ -169,7 +169,10 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify({ kind: order.plan_code }),
+          body: JSON.stringify({
+            kind: order.plan_code,
+            ...(order.customer_email ? { email: String(order.customer_email).toLowerCase() } : {}),
+          }),
         });
         providerStatus = r.status;
         const txt = await r.text();
@@ -206,11 +209,17 @@ Deno.serve(async (req) => {
         providerResp?.code ?? providerResp?.key ?? providerResp?.data?.code ?? providerResp?.data?.key;
       const providerKeyId: string | undefined =
         providerResp?.id ?? providerResp?.key_id ?? providerResp?.data?.id;
+      const providerApiKey: string | undefined =
+        providerResp?.apiKey ?? providerResp?.api_key ?? providerResp?.data?.apiKey ?? providerResp?.data?.api_key;
+      const providerUserId: string | undefined =
+        providerResp?.userId ?? providerResp?.user_id ?? providerResp?.data?.userId ?? providerResp?.data?.user_id;
 
       await svc.from("claude_orders").update({
         status: "issued",
         code,
         provider_key_id: providerKeyId,
+        provider_api_key: providerApiKey ?? null,
+        provider_user_id: providerUserId ?? null,
         provider_response: providerResp,
         code_revealed_at: new Date().toISOString(),
         error_message: null,

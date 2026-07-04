@@ -53,7 +53,10 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      body: JSON.stringify({ kind: planCode }),
+      body: JSON.stringify({
+        kind: planCode,
+        ...(customerEmail ? { email: customerEmail } : {}),
+      }),
     });
     const txt = await r.text();
     let parsed: any = null;
@@ -68,12 +71,19 @@ Deno.serve(async (req) => {
       parsed?.code ?? parsed?.key ?? parsed?.data?.code ?? parsed?.data?.key;
     const providerKeyId: string | undefined =
       parsed?.id ?? parsed?.key_id ?? parsed?.data?.id;
+    const providerApiKey: string | undefined =
+      parsed?.apiKey ?? parsed?.api_key ?? parsed?.data?.apiKey ?? parsed?.data?.api_key;
+    const providerUserId: string | undefined =
+      parsed?.userId ?? parsed?.user_id ?? parsed?.data?.userId ?? parsed?.data?.user_id;
 
     if (!code) return json({ error: 'provider_no_code', body: parsed }, 502);
 
     return json({
       code,
       provider_key_id: providerKeyId,
+      api_key: providerApiKey ?? null,
+      user_id: providerUserId ?? null,
+      provider_base_url: providerApiKey ? 'https://claude-ss.ia.br/' : null,
       plan_code: planCode,
       customer: { name: customerName, whatsapp: customerWhatsapp, email: customerEmail || null },
     });
