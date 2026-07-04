@@ -634,6 +634,30 @@ Qualquer dúvida, é só chamar!`;
             ))}
           </div>
 
+          <details className="mb-3 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-[11px] text-muted-foreground">
+            <summary className="cursor-pointer select-none font-semibold text-foreground/80">
+              O que significa cada status?
+            </summary>
+            <ul className="mt-2 space-y-1.5">
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_STYLES.issued)}>Emitida</Badge>
+                <span>Chave gerada no fornecedor e ainda não ativada pelo cliente.</span>
+              </li>
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_STYLES.redeemed)}>Resgatada</Badge>
+                <span>Cliente já ativou o código e a API está em uso.</span>
+              </li>
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_STYLES.expired)}>Expirada</Badge>
+                <span>Prazo do plano acabou (ex.: 30 dias) e o fornecedor invalidou a chave.</span>
+              </li>
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_STYLES.cancelled)}>Cancelada</Badge>
+                <span>Chave cancelada manualmente por você com estorno do custo.</span>
+              </li>
+            </ul>
+          </details>
+
           {filteredHistory.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
               {history.length === 0 ? "Nenhuma chave emitida ainda." : "Nenhum resultado."}
