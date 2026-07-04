@@ -145,6 +145,10 @@ export default function GerenteClaude() {
 
   const issue = async () => {
     if (customerName.trim().length < 2) return toast.error("Informe o nome do cliente");
+    const emailTrimmed = customerEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+      return toast.error("Informe um e-mail válido do cliente");
+    }
     setIssuing(selected);
     const { data, error, skipped } = await invokeAuthenticatedFunction<any>(
       "manager-claude-issue-key",
@@ -154,7 +158,7 @@ export default function GerenteClaude() {
           plan_code: selected,
           customer_name: customerName.trim(),
           customer_whatsapp: customerWhatsapp.replace(/\D+/g, ""),
-          customer_email: customerEmail.trim() || null,
+          customer_email: emailTrimmed,
         },
       },
     );
@@ -359,7 +363,7 @@ export default function GerenteClaude() {
 
           <div className="mt-3">
             <Label className="text-xs">
-              E-mail do cliente <span className="text-muted-foreground">(opcional)</span>
+             E-mail do cliente <span className="text-primary">*</span>
             </Label>
             <div className="relative mt-1.5">
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -369,6 +373,7 @@ export default function GerenteClaude() {
                 placeholder="cliente@email.com"
                 type="email"
                 inputMode="email"
+                required
                 className="pl-9"
               />
             </div>
