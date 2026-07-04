@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
           cost_cents: costCents,
           sale_price_cents: 0,
           profit_cents: 0,
-          status: 'delivered',
+          status: 'issued',
           code,
           code_revealed_at: new Date().toISOString(),
           provider_key_id: providerKeyId ?? null,
