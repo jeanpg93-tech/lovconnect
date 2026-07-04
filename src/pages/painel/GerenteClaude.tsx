@@ -103,6 +103,8 @@ export default function GerenteClaude() {
   const [customerWhatsapp, setCustomerWhatsapp] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [usageByEmail, setUsageByEmail] = useState<Record<string, UsageInfo>>({});
+  const [usageByOrderId, setUsageByOrderId] = useState<Record<string, UsageInfo>>({});
+  const [usageLoaded, setUsageLoaded] = useState(false);
   const [usageLoading, setUsageLoading] = useState(false);
 
   useEffect(() => {
@@ -177,6 +179,8 @@ export default function GerenteClaude() {
       if (u.email) map[u.email.toLowerCase()] = u;
     }
     setUsageByEmail(map);
+    setUsageByOrderId((data.usage_by_order_id ?? {}) as Record<string, UsageInfo>);
+    setUsageLoaded(true);
   };
 
   useEffect(() => {
@@ -240,7 +244,7 @@ export default function GerenteClaude() {
       });
       const cost = plans.find((p) => p.plan_code === selected)?.cost_cents ?? 0;
       const entry: Issued = {
-        id: crypto.randomUUID(),
+        id: data.id ?? crypto.randomUUID(),
         plan: selected,
         code: data.code,
         api_key: data.api_key ?? null,
@@ -554,8 +558,15 @@ export default function GerenteClaude() {
                     </div>
                   )}
                   {(() => {
-                    const u = h.customer_email ? usageByEmail[h.customer_email.toLowerCase()] : null;
-                    if (!u) return null;
+                    const u = usageByOrderId[h.id] ?? (h.customer_email ? usageByEmail[h.customer_email.toLowerCase()] : null);
+                    if (!u) {
+                      if (!usageLoaded || usageLoading) return null;
+                      return (
+                        <div className="mt-2 rounded-lg border border-border bg-background/60 p-2 text-[10px] text-muted-foreground">
+                          Consumo ainda não localizado no provedor para esta chave.
+                        </div>
+                      );
+                    }
                     const pctWindow = u.tokenLimit && u.tokensInWindow != null
                       ? Math.min(100, Math.round((Number(u.tokensInWindow) / Number(u.tokenLimit)) * 100))
                       : null;

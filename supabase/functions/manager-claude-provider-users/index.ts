@@ -3,6 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.0';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const CLAUDE_API_KEY = Deno.env.get('CLAUDE_RESELLER_API_KEY')!;
 const CLAUDE_BASE_URL = (Deno.env.get('CLAUDE_RESELLER_API_BASE_URL') ?? '').replace(/\/$/, '');
 
@@ -33,6 +34,15 @@ Deno.serve(async (req) => {
 
     if (!CLAUDE_BASE_URL) return json({ error: 'provider_not_configured' }, 500);
 
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data: orders } = await admin
+      .from('claude_orders')
+      .select('id, code, customer_email, provider_key_id, provider_user_id')
+      .eq('is_manager_manual', true)
+      .not('code', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(300);
+
     const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/users`, {
       headers: { Authorization: `Bearer ${CLAUDE_API_KEY}`, Accept: 'application/json' },
     });
@@ -42,22 +52,54 @@ Deno.serve(async (req) => {
     if (!r.ok) return json({ error: 'provider_error', status: r.status, body: parsed }, 502);
 
     const users: any[] = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.users) ? parsed.users : [];
-    const compact = users.map((u) => ({
+    const compact = users.map((u) => {
+      const usage = u?.usage ?? {};
+      return {
+      id: u?.id ?? u?.userId ?? u?.user_id ?? null,
+      keyId: u?.keyId ?? u?.key_id ?? u?.providerKeyId ?? u?.provider_key_id ?? null,
+      code: u?.code ?? u?.key ?? null,
       email: String(u?.email ?? '').trim().toLowerCase(),
       kind: u?.kind ?? null,
       status: u?.status ?? null,
       accountExpiresAt: u?.accountExpiresAt ?? null,
       redeemedAt: u?.redeemedAt ?? null,
-      tokensConsumed: u?.usage?.tokensConsumed ?? null,
-      tokenLimit: u?.usage?.tokenLimit ?? null,
-      tokensInWindow: u?.usage?.tokensInWindow ?? null,
-      tokenWindowHours: u?.usage?.tokenWindowHours ?? null,
-      percentRemaining: u?.usage?.percentRemaining ?? null,
-      weeklyTokenLimit: u?.usage?.weeklyTokenLimit ?? null,
-      weeklyTokensInWindow: u?.usage?.weeklyTokensInWindow ?? null,
-    }));
+      tokensConsumed: usage?.tokensConsumed ?? null,
+      tokenLimit: usage?.tokenLimit ?? null,
+      tokensInWindow: usage?.tokensInWindow ?? null,
+      tokenWindowHours: usage?.tokenWindowHours ?? null,
+      percentRemaining: usage?.percentRemaining ?? null,
+      weeklyTokenLimit: usage?.weeklyTokenLimit ?? null,
+      weeklyTokensInWindow: usage?.weeklyTokensInWindow ?? null,
+    };
+    });
 
-    return json({ ok: true, users: compact });
+    const byEmail = new Map<string, any>();
+    const byUserId = new Map<string, any>();
+    const byKeyId = new Map<string, any>();
+    const byCode = new Map<string, any>();
+    for (const u of compact) {
+      if (u.email) byEmail.set(String(u.email).toLowerCase(), u);
+      if (u.id) byUserId.set(String(u.id), u);
+      if (u.keyId) byKeyId.set(String(u.keyId), u);
+      if (u.code) byCode.set(String(u.code), u);
+    }
+
+    const usageByOrderId: Record<string, unknown> = {};
+    for (const o of orders ?? []) {
+      const email = String(o.customer_email ?? '').trim().toLowerCase();
+      const providerUserId = String(o.provider_user_id ?? '').trim();
+      const providerKeyId = String(o.provider_key_id ?? '').trim();
+      const code = String(o.code ?? '').trim();
+      const match =
+        (providerUserId && byUserId.get(providerUserId)) ||
+        (providerKeyId && byKeyId.get(providerKeyId)) ||
+        (email && byEmail.get(email)) ||
+        (code && byCode.get(code)) ||
+        null;
+      if (match) usageByOrderId[o.id] = match;
+    }
+
+    return json({ ok: true, users: compact, usage_by_order_id: usageByOrderId });
   } catch (e) {
     console.error('[manager-claude-provider-users] error', e);
     return json({ error: String((e as Error)?.message ?? e) }, 500);
