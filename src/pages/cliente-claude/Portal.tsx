@@ -257,6 +257,26 @@ export default function ClienteClaudePortal() {
     return () => { cancelled = true; };
   }, [navigate, storeSlug]);
 
+  // Auto-refresh do consumo e status das chaves (a cada 20s enquanto a aba estiver visível)
+  useEffect(() => {
+    if (!customer) return;
+    let cancelled = false;
+    const refresh = async () => {
+      if (document.hidden) return;
+      const { data: usageResp } = await supabase.functions.invoke("claude-my-usage", {
+        body: { reseller_slug: storeSlug || null },
+      });
+      if (cancelled || !usageResp?.ok) return;
+      setOrders(usageResp.orders ?? []);
+      setUsage(usageResp.usage ?? null);
+      setExtensionKeys(usageResp.extension_keys ?? []);
+    };
+    const iv = setInterval(refresh, 20000);
+    const onVis = () => { if (!document.hidden) refresh(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { cancelled = true; clearInterval(iv); document.removeEventListener("visibilitychange", onVis); };
+  }, [customer?.id, storeSlug]);
+
   const changePassword = async () => {
     if (newPassword.length < 8) return toast.error("Senha precisa de ao menos 8 caracteres");
     setSaving(true);
