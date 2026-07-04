@@ -34,6 +34,11 @@ type Order = {
   cancel_requested_at?: string | null;
   cancel_request_note?: string | null;
   refund_waived?: boolean;
+  customer_refund_full_name?: string | null;
+  customer_refund_pix_key?: string | null;
+  customer_refund_pix_key_type?: string | null;
+  customer_refunded_at?: string | null;
+  customer_refund_note?: string | null;
   usage: null | {
     email: string;
     status?: string;
@@ -87,6 +92,8 @@ export default function RevendedorMeusClientesClaude() {
   const [search, setSearch] = useState("");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [confirmRefundTarget, setConfirmRefundTarget] = useState<Order | null>(null);
+  const [confirmingRefund, setConfirmingRefund] = useState(false);
 
   const load = async (silent = false) => {
     if (silent) setRefreshing(true); else setLoading(true);
@@ -122,6 +129,26 @@ export default function RevendedorMeusClientesClaude() {
       }
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const doConfirmRefund = async () => {
+    if (!confirmRefundTarget) return;
+    setConfirmingRefund(true);
+    try {
+      const { data, error } = await invokeAuthenticatedFunction<any>("claude-confirm-customer-refund", {
+        method: "POST",
+        body: { order_id: confirmRefundTarget.id },
+      });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.message ?? (data as any)?.error ?? "Falha ao confirmar estorno");
+      } else {
+        toast.success("Estorno confirmado. O cliente foi notificado.");
+        setConfirmRefundTarget(null);
+        load(true);
+      }
+    } finally {
+      setConfirmingRefund(false);
     }
   };
 
