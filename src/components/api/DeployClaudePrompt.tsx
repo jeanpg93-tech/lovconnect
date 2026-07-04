@@ -12,6 +12,14 @@ function buildPrompt(baseUrl: string) {
 
 Você é um engenheiro sênior. Implemente a integração abaixo no projeto **sem remover, renomear ou quebrar nenhuma rota, página, tabela, função ou componente existente**. Apenas **adicione** o que for necessário. Mantenha o estilo visual atual (design tokens, sidebar, layout).
 
+## 🆕 Versão 2 — atualização de julho/2026
+Se você já implementou a versão anterior desta API, **estas são as novidades — adicione-as sem quebrar o que já funciona**:
+- **Entrega direta:** \`POST /chaves\` agora aceita \`customer_email\` e a resposta pode incluir \`api_key\`, \`user_id\` e \`provider_base_url\`. Quando vierem, mostre-os no modal de sucesso (o cliente já pode usar sem passar pelo Portal).
+- **Novo endpoint \`POST /chaves/{id}/renovar\`:** renova o plano do cliente pelo mesmo e-mail, sem gerar nova chave. Debita saldo.
+- **Novo endpoint \`POST /teste\`:** emite chave de teste de 15 min sem custo (máx. 5/h por API Key). Ótimo para botão "Testar grátis" na landing.
+- **\`GET /chaves/{id}\` enriquecido:** agora devolve \`customer_email/name/whatsapp\`, \`redeemed_at\`, \`expired_at\`, \`cancelled_at\`, \`tokens_exhausted_at\`, \`is_renewal\`.
+- **Novos webhooks:** \`claude.key.redeemed\`, \`claude.key.expired\`, \`claude.key.cancelled\`, \`claude.tokens.limit_reached\` — todos assinados com HMAC-SHA256 no header \`X-Signature\`. Responda 2xx a eventos desconhecidos para não quebrar integração no futuro.
+
 ## ⚠️ Regra de ouro — fonte única da verdade
 **Toda a lógica de saldo, planos, preços, emissão de chave Claude e histórico DEVE vir da API do fornecedor descrita abaixo.** É proibido:
 - Inventar planos, preços ou limites locais (sempre buscar via \`GET /planos\`).
