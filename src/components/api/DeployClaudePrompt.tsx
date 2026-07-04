@@ -14,11 +14,12 @@ Você é um engenheiro sênior. Implemente a integração abaixo no projeto **se
 
 ## 🆕 Versão 2 — atualização de julho/2026
 Se você já implementou a versão anterior desta API, **estas são as novidades — adicione-as sem quebrar o que já funciona**:
-- **Entrega direta:** \`POST /chaves\` agora aceita \`customer_email\` e a resposta pode incluir \`api_key\`, \`user_id\` e \`provider_base_url\`. Quando vierem, mostre-os no modal de sucesso (o cliente já pode usar sem passar pelo Portal).
+- **\`email\` agora é OBRIGATÓRIO** em \`POST /chaves\` (sem ele → \`400 email_obrigatorio\`). A resposta pode incluir \`api_key\`, \`user_id\` e \`provider_base_url\` — quando vierem, mostre-os no modal de sucesso (o cliente já pluga direto no Cursor/Cline sem passar pelo Portal).
+- **Saldo insuficiente vira 202 \`awaiting_balance\`** em vez de erro definitivo: o pedido fica em espera e a chave é entregue via webhook \`claude.key.issued\` assim que você recarregar. Não reenvie \`POST /chaves\`.
 - **Novo endpoint \`POST /chaves/{id}/renovar\`:** renova o plano do cliente pelo mesmo e-mail, sem gerar nova chave. Debita saldo.
 - **Novo endpoint \`POST /teste\`:** emite chave de teste de 15 min sem custo (máx. 5/h por API Key). Ótimo para botão "Testar grátis" na landing.
 - **\`GET /chaves/{id}\` enriquecido:** agora devolve \`customer_email/name/whatsapp\`, \`redeemed_at\`, \`expired_at\`, \`cancelled_at\`, \`tokens_exhausted_at\`, \`is_renewal\`.
-- **Novos webhooks:** \`claude.key.redeemed\`, \`claude.key.expired\`, \`claude.key.cancelled\`, \`claude.tokens.limit_reached\` — todos assinados com HMAC-SHA256 no header \`X-Signature\`. Responda 2xx a eventos desconhecidos para não quebrar integração no futuro.
+- **Webhook \`claude.key.renewed\`** foi adicionado e novos eventos (\`claude.key.expired\`, \`claude.tokens.limit_reached\` etc.) chegarão em breve — todos assinados com HMAC-SHA256 no header \`X-Signature\`. **Responda 2xx a qualquer \`event\` desconhecido** para não quebrar a integração no futuro.
 
 ## ⚠️ Regra de ouro — fonte única da verdade
 **Toda a lógica de saldo, planos, preços, emissão de chave Claude e histórico DEVE vir da API do fornecedor descrita abaixo.** É proibido:
@@ -259,13 +260,14 @@ Disparado sempre que um evento acontece. Header de assinatura: \`X-Signature: sh
 
 ### 1. Backend (edge function)
 Crie a edge function **\`claude-proxy\`** que:
-- Aceita: \`GET /saldo\`, \`GET /planos\`, \`POST /chaves\`, \`GET /chaves\`, \`GET /chaves/{id}\`.
-- Lê o segredo \`CLAUDE_RESELLER_API_KEY\` e injeta no header \`x-api-key\` ao chamar \`${baseUrl}\`.
+- Aceita e proxeia: \`GET /status\`, \`GET /saldo\`, \`GET /planos\`, \`POST /chaves\`, \`GET /chaves\`, \`GET /chaves/{id}\`, \`GET /chaves/{id}/consumo\`, \`POST /chaves/{id}/cancelar\`, \`POST /chaves/{id}/renovar\`, \`POST /teste\`.
+- Lê o segredo \`CLAUDE_RESELLER_API_KEY\` e injeta no header \`X-API-Key\` ao chamar \`${baseUrl}\`.
+- Repassa o header \`Idempotency-Key\` do cliente quando presente (nunca deixe o frontend chamar direto — a chave nunca pode ir pro bundle).
 - Retorna o JSON cru do upstream + \`status\` HTTP correspondente.
 - CORS liberado para o domínio do app.
 
 ### 2. Cliente TypeScript
-Crie \`src/integrations/claude/client.ts\` com funções tipadas: \`getSaldo()\`, \`getPlanos()\`, \`emitirChave(input)\`, \`listarPedidos(limit?)\`, \`getPedido(id)\`. Todas chamando a edge function \`claude-proxy\`.
+Crie \`src/integrations/claude/client.ts\` com funções tipadas: \`getStatus()\`, \`getSaldo()\`, \`getPlanos()\`, \`emitirChave(input)\`, \`listarPedidos(limit?)\`, \`getPedido(id)\`, \`getConsumo(id)\`, \`cancelarChave(id, force?)\`, \`renovarChave(id, email?)\`, \`emitirTeste(email?)\`. Todas chamando a edge function \`claude-proxy\` e gerando \`Idempotency-Key\` (UUID v4) nas rotas de emissão/renovação.
 
 ### 3. Páginas novas (NÃO substituir páginas existentes)
 > Apenas no **MODO A**. No **MODO B**, pule esta seção inteira e entregue os componentes plugáveis descritos no topo.
