@@ -677,33 +677,6 @@ export default function ClienteClaudePortal() {
                           Sua API Key está sendo preparada pelo fornecedor. Assim que ficar pronta, ela aparecerá aqui automaticamente — atualize esta página em alguns instantes.
                         </div>
                       ))}
-                      {["issued", "redeemed"].includes(o.status) && !o.cancel_requested_at && (
-                        <div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
-                            onClick={() => { setCancelOrder(o); setCancelNote(""); }}
-                          >
-                            <Ban className="h-3.5 w-3.5 mr-1" /> Solicitar cancelamento
-                          </Button>
-                        </div>
-                      )}
-                      {o.cancel_requested_at && !["cancelled", "refunded"].includes(o.status) && (
-                        <div className="text-[11px] rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
-                          Cancelamento solicitado em {fmtDate(o.cancel_requested_at)} — aguardando o revendedor concluir.
-                        </div>
-                      )}
-                      {o.status === "cancelled" && !o.customer_refunded_at && (
-                        <div className="text-[11px] rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
-                          Chave cancelada. Aguardando o revendedor confirmar o envio do estorno via PIX.
-                        </div>
-                      )}
-                      {o.customer_refunded_at && (
-                        <div className="text-[11px] rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-300">
-                          ✅ Estorno confirmado pelo revendedor em {fmtDate(o.customer_refunded_at)}.
-                        </div>
-                      )}
                     </div>
                     <div
                       className="px-3 py-1 rounded-full text-xs font-semibold self-start sm:self-center"
