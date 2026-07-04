@@ -202,6 +202,9 @@ export default function ClienteClaudePortal() {
   const [pixCopied, setPixCopied] = useState(false);
   const [cancelOrder, setCancelOrder] = useState<Order | null>(null);
   const [cancelNote, setCancelNote] = useState("");
+  const [cancelPixFullName, setCancelPixFullName] = useState("");
+  const [cancelPixKeyType, setCancelPixKeyType] = useState<string>("cpf");
+  const [cancelPixKey, setCancelPixKey] = useState("");
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
   const [baseUrlCopied, setBaseUrlCopied] = useState(false);
   const CLAUDE_BASE_URL = "https://claude-ss.ia.br/";
@@ -222,10 +225,23 @@ export default function ClienteClaudePortal() {
 
   const submitCancelRequest = async () => {
     if (!cancelOrder) return;
+    const inWindow = withinRefundWindow(cancelOrder);
+    if (inWindow) {
+      if (!cancelPixFullName.trim() || !cancelPixKey.trim()) {
+        toast.error("Preencha nome completo e chave PIX para o estorno.");
+        return;
+      }
+    }
     setCancelSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("claude-customer-request-cancel", {
-        body: { order_id: cancelOrder.id, note: cancelNote || null },
+        body: {
+          order_id: cancelOrder.id,
+          note: cancelNote || null,
+          pix_full_name: inWindow ? cancelPixFullName.trim() : null,
+          pix_key: inWindow ? cancelPixKey.trim() : null,
+          pix_key_type: inWindow ? cancelPixKeyType : null,
+        },
       });
       if (error) throw error;
       if (!(data as any)?.ok) throw new Error((data as any)?.error ?? "erro_desconhecido");
@@ -233,6 +249,9 @@ export default function ClienteClaudePortal() {
       setOrders((prev) => prev.map((o) => o.id === cancelOrder.id ? { ...o, cancel_requested_at: new Date().toISOString(), status: o.status === "issued" ? "cancel_requested" : o.status } : o));
       setCancelOrder(null);
       setCancelNote("");
+      setCancelPixFullName("");
+      setCancelPixKey("");
+      setCancelPixKeyType("cpf");
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao solicitar cancelamento");
     } finally {
