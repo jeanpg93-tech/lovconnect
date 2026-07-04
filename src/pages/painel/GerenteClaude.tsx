@@ -617,6 +617,8 @@ Qualquer dúvida, é só chamar!`;
             {([
               { key: "all", label: `Todas · ${history.length}` },
               { key: "issued", label: `Emitidas · ${issuedCount}` },
+              { key: "redeemed", label: `Resgatadas · ${redeemedCount}` },
+              { key: "expired", label: `Expiradas · ${expiredCount}` },
               { key: "cancelled", label: `Canceladas · ${cancelledCount}` },
             ] as const).map((f) => (
               <Button
