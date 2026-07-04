@@ -136,11 +136,39 @@ Cancela uma chave e devolve o valor ao saldo do revendedor **se estiver dentro d
 
 > ⚠️ Cancelar bloqueia a conta do cliente final no fornecedor. Confirme com o cliente antes.
 
+### POST /chaves/{id}/renovar
+Renova o plano de um cliente existente pelo mesmo e-mail — **não gera nova chave**, apenas estende a validade/tokens no fornecedor. Debita o custo padrão do plano do saldo do revendedor.
+
+**Body (opcional):**
+\`\`\`json
+{ "email": "cliente@dominio.com", "request_id": "uuid-v4-idempotencia" }
+\`\`\`
+> Se \`email\` for omitido, usa o e-mail salvo no pedido original.
+
+**Resposta 200:**
+\`\`\`json
+{ "success": true, "pedido_id": "uuid", "pedido_original_id": "uuid",
+  "plano": "pro_30d", "preco_centavos": 8000, "email": "cliente@dominio.com" }
+\`\`\`
+**Erros:** \`400\` \`email_required\` (pedido sem e-mail e nenhum enviado) · \`402\` \`saldo_insuficiente\` · \`404\` pedido não encontrado · \`502\` erro no provedor.
+
+### POST /teste
+Emite uma chave de teste de **15 minutos** sem custo. Máximo 5 chamadas por hora por API Key.
+
+**Body (opcional):**
+\`\`\`json
+{ "email": "leadi@dominio.com" }
+\`\`\`
+**Resposta 200:**
+\`\`\`json
+{ "success": true, "codigo": "sk-ant-...", "api_key": "kp_user_...",
+  "user_id": "u_...", "provider_base_url": "https://claude-ss.ia.br/", "duracao_minutos": 15 }
+\`\`\`
+**Erros:** \`429\` \`rate_limited\`.
+
 ### 🚧 Próximos endpoints (em desenvolvimento)
 O fornecedor recebeu novidades que estão sendo implementadas neste painel em fases. **Nenhum plano ou preço será alterado** — permanecem \`pro_30d\`, \`5x_30d\`, \`20x_30d\`.
 - **Entrega direta com \`email\`**: ao emitir passando \`email\`, o retorno incluirá \`api_key\` (\`kp_user_...\`) e \`user_id\` — o cliente já usa direto no Cursor/Cline/Claude Code sem passar por ativação.
-- **POST /chaves/{id}/renovar**: renova o plano de um cliente existente pelo mesmo e-mail, sem gerar chave nova.
-- **POST /chaves/teste**: emite chave de teste de 15 minutos (sem custo) para captação.
 - **Webhooks do provedor**: novos eventos \`claude.key.expired\` e \`claude.tokens.limit_reached\` (mesma assinatura HMAC do \`claude.key.issued\`).
 
 Já hoje mantenha seu receiver **event-agnóstico** (retornar 2xx para eventos desconhecidos) para que esses novos eventos entrem sem quebrar a integração.
