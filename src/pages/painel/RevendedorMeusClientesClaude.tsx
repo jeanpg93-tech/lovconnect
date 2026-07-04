@@ -275,6 +275,31 @@ export default function RevendedorMeusClientesClaude() {
                   </div>
                 )}
 
+                {o.customer_refund_pix_key && !o.customer_refunded_at && (
+                  <div className="mt-2 rounded-lg border border-sky-500/30 bg-sky-500/5 p-2 text-[11px] text-sky-700 dark:text-sky-300">
+                    <div className="font-semibold flex items-center gap-1"><Copy className="h-3 w-3" /> PIX para estorno do cliente</div>
+                    <div className="mt-1 grid gap-0.5">
+                      <div>Nome: <b>{o.customer_refund_full_name ?? "—"}</b></div>
+                      <div>Tipo: <b className="uppercase">{o.customer_refund_pix_key_type ?? "—"}</b></div>
+                      <div className="flex items-center gap-1">
+                        Chave: <code className="font-mono truncate">{o.customer_refund_pix_key}</code>
+                        <Button
+                          variant="ghost" size="sm" className="h-5 px-1"
+                          onClick={() => { navigator.clipboard.writeText(o.customer_refund_pix_key!); toast.success("Chave PIX copiada"); }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {o.customer_refunded_at && (
+                  <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2 text-[11px] text-emerald-700 dark:text-emerald-300">
+                    ✅ Estorno ao cliente confirmado em {new Date(o.customer_refunded_at).toLocaleString("pt-BR")}.
+                  </div>
+                )}
+
                 {o.provider_api_key ? (
                   <div className="mt-2">
                     <ApiKeyReveal value={o.provider_api_key} />
@@ -388,6 +413,18 @@ export default function RevendedorMeusClientesClaude() {
                     </Button>
                   </div>
                 )}
+
+                {o.status === "cancelled" && o.customer_refund_pix_key && !o.customer_refunded_at && (
+                  <div className="mt-2 flex justify-stretch sm:justify-end">
+                    <Button
+                      size="sm"
+                      className="h-8 w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
+                      onClick={() => setConfirmRefundTarget(o)}
+                    >
+                      ✓ Confirmar estorno enviado
+                    </Button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -425,6 +462,37 @@ export default function RevendedorMeusClientesClaude() {
             >
               {cancelling ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Ban className="mr-1 h-3.5 w-3.5" />}
               {cancelTarget?.within_refund_window ? "Cancelar com estorno" : "Cancelar sem estorno"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!confirmRefundTarget} onOpenChange={(o) => !o && setConfirmRefundTarget(null)}>
+        <AlertDialogContent className="max-w-[95vw] sm:max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar estorno enviado ao cliente</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <div>Confirme que você já enviou o PIX de estorno para o cliente abaixo. O cliente será notificado no portal.</div>
+                {confirmRefundTarget?.customer_refund_pix_key && (
+                  <div className="rounded-lg border border-border bg-muted/40 p-2 text-xs">
+                    <div>Nome: <b>{confirmRefundTarget?.customer_refund_full_name ?? "—"}</b></div>
+                    <div>Chave ({confirmRefundTarget?.customer_refund_pix_key_type}): <code className="font-mono">{confirmRefundTarget?.customer_refund_pix_key}</code></div>
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground">Esta ação não movimenta seu saldo — é apenas o registro da confirmação manual do PIX enviado ao cliente.</div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+            <AlertDialogCancel disabled={confirmingRefund} className="mt-0 w-full sm:w-auto">Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmingRefund}
+              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
+              onClick={(e) => { e.preventDefault(); doConfirmRefund(); }}
+            >
+              {confirmingRefund ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+              Confirmar estorno
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
