@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search, User, MessageCircle, Mail, Ban } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search, User, MessageCircle, Mail, Ban, Info, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
@@ -60,6 +60,8 @@ const PLAN_BADGES: Partial<Record<PlanCode, { label: string; cls: string }>> = {
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   issued: { label: "Emitida", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
+  redeemed: { label: "Resgatada", cls: "bg-sky-500/15 text-sky-500 border-sky-500/30" },
+  expired: { label: "Expirada", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
   pending: { label: "Pendente", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
   failed: { label: "Falhou", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
   refunded: { label: "Estornada", cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
@@ -88,6 +90,7 @@ export default function RevendedorClaude() {
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "redeemed" | "expired" | "cancelled" | "failed">("all");
   const [customerName, setCustomerName] = useState("");
   const [customerWhatsapp, setCustomerWhatsapp] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -107,7 +110,7 @@ export default function RevendedorClaude() {
     const [{ data: def }, { data: ov }, { data: hist }, { data: bal }] = await Promise.all([
       supabase.from("claude_plan_prices").select("plan_code, markup_mode, markup_value_cents, sale_price_cents, is_active"),
       supabase.from("claude_reseller_price_overrides").select("*").eq("reseller_id", r.id),
-      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id, customer_name, customer_whatsapp, customer_email").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id, provider_api_key, customer_name, customer_whatsapp, customer_email").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(200),
       supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
     ]);
 
@@ -279,6 +282,10 @@ Qualquer dúvida, é só chamar!`
 
   const selected = prices.find((p) => p.plan_code === selectedPlan) ?? prices[0];
   const filteredHistory = history.filter((h) => {
+    if (statusFilter !== "all") {
+      const eff = h.status === "cancel_failed" ? "cancelled" : h.status;
+      if (eff !== statusFilter) return false;
+    }
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -289,6 +296,7 @@ Qualquer dúvida, é só chamar!`
       (h.id ?? "").toLowerCase().includes(q)
     );
   });
+  const countBy = (s: string) => history.filter((h) => (h.status === "cancel_failed" ? "cancelled" : h.status) === s).length;
 
   return (
     <PageContainer>
