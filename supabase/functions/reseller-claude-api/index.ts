@@ -224,7 +224,7 @@ Deno.serve(async (req) => {
     if (action === "chaves" && req.method === "GET" && subId && (route[2] ?? "") === "consumo") {
       const { data: order } = await svc
         .from("claude_orders")
-        .select("id, plan_code, status, provider_key_id, customer_email, created_at")
+        .select("id, plan_code, status, provider_key_id, code, provider_api_key, customer_email, created_at")
         .eq("reseller_id", reseller.id)
         .eq("id", subId)
         .maybeSingle();
@@ -243,11 +243,21 @@ Deno.serve(async (req) => {
           if (r.ok) {
             const list = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.users) ? parsed.users : [];
             const emailLower = String(order.customer_email ?? "").toLowerCase();
-            const providerId = String(order.provider_key_id ?? "").trim();
-            providerUser = list.find((u: any) =>
-              (providerId && String(u?.id ?? u?.credential ?? "") === providerId) ||
-              (emailLower && String(u?.email ?? "").toLowerCase() === emailLower)
-            ) ?? null;
+            const providerIds = new Set(
+              [(order as any).provider_key_id, (order as any).code, (order as any).provider_api_key]
+                .map((v: any) => String(v ?? "").trim())
+                .filter(Boolean),
+            );
+            const matchById = (u: any) => {
+              const candidates = [u?.id, u?.credential, u?.key, u?.code, u?.apiKey, u?.api_key, u?.keyId, u?.key_id, u?.userId, u?.user_id]
+                .map((v: any) => String(v ?? "").trim())
+                .filter(Boolean);
+              return candidates.some((c) => providerIds.has(c));
+            };
+            providerUser =
+              list.find(matchById) ??
+              (emailLower ? list.find((u: any) => String(u?.email ?? "").toLowerCase() === emailLower) : null) ??
+              null;
           } else {
             providerError = `provider_${r.status}`;
           }
@@ -819,6 +829,8 @@ Deno.serve(async (req) => {
         plano: planCode,
         preco_centavos: saleCents,
         codigo: code,
+        api_key: providerApiKey ?? null,
+        base_url: providerApiKey ? "https://claude-ss.ia.br/" : null,
         provider_key_id: providerKeyId,
         id_cliente: customerId,
       }).catch((e) => console.warn("[reseller-claude-api] webhook issued dispatch failed", e));
