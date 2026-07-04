@@ -593,6 +593,25 @@ Qualquer dúvida, é só chamar!`;
             />
           </div>
 
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {([
+              { key: "all", label: `Todas · ${history.length}` },
+              { key: "issued", label: `Emitidas · ${issuedCount}` },
+              { key: "cancelled", label: `Canceladas · ${cancelledCount}` },
+            ] as const).map((f) => (
+              <Button
+                key={f.key}
+                type="button"
+                size="sm"
+                variant={statusFilter === f.key ? "default" : "outline"}
+                className="h-7 px-2.5 text-[11px]"
+                onClick={() => setStatusFilter(f.key)}
+              >
+                {f.label}
+              </Button>
+            ))}
+          </div>
+
           {filteredHistory.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
               {history.length === 0 ? "Nenhuma chave emitida ainda." : "Nenhum resultado."}
