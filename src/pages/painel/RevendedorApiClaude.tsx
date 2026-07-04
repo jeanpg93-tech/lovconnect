@@ -748,11 +748,18 @@ User-Agent: LovConnect-Webhook/1.0
   "pedido_id": "uuid",
   "plano": "5x_30d",
   "preco_centavos": 14900,
-  "codigo": "sk-ant-...",
+  "codigo": "CLAUDE-XXXXX-XXXXX",
   "provider_key_id": "abc123",
   "id_cliente": "cliente@exemplo.com",
   "sent_at": "2026-07-01T12:34:56Z"
-}`}
+}
+
+// Outros eventos disparados (mesmo formato de assinatura HMAC):
+//   claude.key.renewed     → { pedido_id, pedido_original_id, plano, preco_centavos, email }
+//   webhook.test           → payload de teste vindo do botão "Enviar evento de teste".
+//
+// Sempre retorne 2xx para eventos desconhecidos — assim novos tipos
+// não quebrarão sua integração no futuro.`}
         </pre>
         <h4 className="text-sm font-semibold pt-2">Validando a assinatura (Node.js)</h4>
         <pre className="text-[11px] leading-relaxed bg-background/60 border border-border rounded-md p-3 overflow-auto">
