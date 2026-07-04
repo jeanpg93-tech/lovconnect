@@ -314,12 +314,12 @@ export default function CheckoutClaude() {
               </div>
               <div className="grid gap-3">
                 <div>
-                  <Label>Nome completo</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
+                  <Label>Nome completo <span className="text-destructive">*</span></Label>
+                  <Input required aria-required value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
                 </div>
                 <div>
-                  <Label>E-mail</Label>
-                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" />
+                  <Label>E-mail <span className="text-destructive">*</span></Label>
+                  <Input required aria-required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
