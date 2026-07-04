@@ -331,14 +331,32 @@ function TabEndpoints() {
     "whatsapp": "5511999999999"
   }'
 
-# Resposta
+# ⚠️ email é OBRIGATÓRIO (400 email_obrigatorio se ausente/inválido).
+# É por ele que o fornecedor entrega a chave e vincula o consumo.
+
+# Resposta 200 (com entrega direta quando o fornecedor devolve credenciais)
 {
   "success": true,
   "pedido_id": "uuid",
   "plano": "5x_30d",
   "preco_centavos": 14900,
   "codigo": "CLAUDE-XXXXX-XXXXX",
-  "provider_key_id": "prov_abc123"
+  "provider_key_id": "prov_abc123",
+  "api_key": "kp_user_...",            // opcional — usar direto no Cursor/Cline
+  "user_id": "u_...",                  // opcional
+  "provider_base_url": "https://claude-ss.ia.br/"  // opcional
+}
+
+# Resposta 202 (saldo insuficiente — pedido fica em espera)
+{
+  "success": false,
+  "error": "saldo_insuficiente",
+  "status": "awaiting_balance",
+  "pedido_id": "uuid",
+  "saldo_centavos": 5000,
+  "preco_centavos": 14900
+  // Assim que você recarregar o painel com valor suficiente,
+  // a chave é gerada e o webhook claude.key.issued é disparado.
 }`}
       />
       <CodeBlock
@@ -355,7 +373,12 @@ function TabEndpoints() {
   -H "X-API-Key: SUA_API_KEY"
 
 # status: pending | issued | redeemed | cancel_requested |
-#         cancelled | cancel_rejected | refunded | expired | failed`}
+#         cancelled | cancel_rejected | refunded | expired |
+#         failed | awaiting_balance
+#
+# Campos adicionais: customer_email, customer_name, customer_whatsapp,
+# redeemed_at, expired_at, cancelled_at, tokens_exhausted_at, is_renewal,
+# error_message.`}
       />
       <CodeBlock
         title="GET /chaves/{id}/consumo — Consumo de tokens (best-effort)"
@@ -401,6 +424,51 @@ function TabEndpoints() {
 # Resposta (fora do prazo, sem force)
 # { "success": false, "error": "refund_window_expired",
 #   "age_days": 12, "refund_window_days": 7 }`}
+      />
+      <CodeBlock
+        title="POST /chaves/{id}/renovar — Renovar plano do mesmo cliente"
+        body={`curl -X POST "${BASE_URL}/chaves/PEDIDO_ID/renovar" \\
+  -H "X-API-Key: SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: renov-42" \\
+  -d '{ "email": "cliente@email.com" }'
+
+# Renova o plano do cliente pelo mesmo e-mail — NÃO gera nova chave,
+# apenas estende a validade/tokens no fornecedor. Debita o custo padrão
+# do plano do seu saldo.
+# Se "email" for omitido, usa o e-mail salvo no pedido original.
+
+# Resposta
+{
+  "success": true,
+  "pedido_id": "uuid-renovacao",
+  "pedido_original_id": "uuid-original",
+  "plano": "5x_30d",
+  "preco_centavos": 14900,
+  "email": "cliente@email.com"
+}
+
+# Erros: 400 email_obrigatorio | 402 saldo_insuficiente |
+#        404 pedido não encontrado | 502 provider_error`}
+      />
+      <CodeBlock
+        title="POST /teste — Chave de teste (15 min, sem custo)"
+        body={`curl -X POST "${BASE_URL}/teste" \\
+  -H "X-API-Key: SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "email": "lead@email.com" }'
+
+# Limite: 5 chamadas por hora por API Key (429 rate_limited).
+
+# Resposta
+{
+  "success": true,
+  "codigo": "sk-ant-...",
+  "api_key": "kp_user_...",
+  "user_id": "u_...",
+  "provider_base_url": "https://claude-ss.ia.br/",
+  "duracao_minutos": 15
+}`}
       />
     </div>
   );
