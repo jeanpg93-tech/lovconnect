@@ -83,9 +83,8 @@ export default function GerenteClaude() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("claude_plan_prices")
-        .select("plan_code, cost_cents, is_active");
+      // cost_cents é restrito por RLS de coluna — usa RPC de gerente
+      const { data } = await supabase.rpc("admin_claude_plan_prices_full" as any);
       const rows = PLAN_ORDER
         .map((pc) => {
           const row: any = (data ?? []).find((r: any) => r.plan_code === pc);

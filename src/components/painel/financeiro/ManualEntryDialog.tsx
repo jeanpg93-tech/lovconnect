@@ -83,12 +83,12 @@ export default function ManualEntryDialog({ open, onOpenChange, initial, prefill
   useEffect(() => {
     if (!open) return;
     (async () => {
-      const { data } = await supabase
-        .from("claude_plan_prices")
-        .select("plan_code, cost_cents, sale_price_cents, sort_order, is_active")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-      const opts: ClaudePlanOption[] = ((data as any[]) || []).map((r) => ({
+      // cost_cents/reseller_cost_cents são restritos por RLS de coluna — usa RPC de gerente
+      const { data } = await supabase.rpc("admin_claude_plan_prices_full" as any);
+      const opts: ClaudePlanOption[] = ((data as any[]) || [])
+        .filter((r) => r.is_active)
+        .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        .map((r) => ({
         plan_code: r.plan_code,
         label: CLAUDE_PLAN_LABELS[r.plan_code] || `Claude ${r.plan_code}`,
         cost_cents: Number(r.cost_cents || 0),
