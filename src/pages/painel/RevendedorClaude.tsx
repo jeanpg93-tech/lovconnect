@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search, User, MessageCircle, Mail, Ban } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search, User, MessageCircle, Mail, Ban, Info, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
@@ -60,6 +60,8 @@ const PLAN_BADGES: Partial<Record<PlanCode, { label: string; cls: string }>> = {
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   issued: { label: "Emitida", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
+  redeemed: { label: "Resgatada", cls: "bg-sky-500/15 text-sky-500 border-sky-500/30" },
+  expired: { label: "Expirada", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
   pending: { label: "Pendente", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
   failed: { label: "Falhou", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
   refunded: { label: "Estornada", cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
@@ -88,6 +90,7 @@ export default function RevendedorClaude() {
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "redeemed" | "expired" | "cancelled" | "failed">("all");
   const [customerName, setCustomerName] = useState("");
   const [customerWhatsapp, setCustomerWhatsapp] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -107,7 +110,7 @@ export default function RevendedorClaude() {
     const [{ data: def }, { data: ov }, { data: hist }, { data: bal }] = await Promise.all([
       supabase.from("claude_plan_prices").select("plan_code, markup_mode, markup_value_cents, sale_price_cents, is_active"),
       supabase.from("claude_reseller_price_overrides").select("*").eq("reseller_id", r.id),
-      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id, customer_name, customer_whatsapp, customer_email").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id, provider_api_key, customer_name, customer_whatsapp, customer_email").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(200),
       supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
     ]);
 
@@ -279,6 +282,10 @@ Qualquer dúvida, é só chamar!`
 
   const selected = prices.find((p) => p.plan_code === selectedPlan) ?? prices[0];
   const filteredHistory = history.filter((h) => {
+    if (statusFilter !== "all") {
+      const eff = h.status === "cancel_failed" ? "cancelled" : h.status;
+      if (eff !== statusFilter) return false;
+    }
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -289,6 +296,7 @@ Qualquer dúvida, é só chamar!`
       (h.id ?? "").toLowerCase().includes(q)
     );
   });
+  const countBy = (s: string) => history.filter((h) => (h.status === "cancel_failed" ? "cancelled" : h.status) === s).length;
 
   return (
     <PageContainer>
@@ -473,6 +481,60 @@ Qualquer dúvida, é só chamar!`
             />
           </div>
 
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {([
+              { key: "all", label: `Todas · ${history.length}` },
+              { key: "issued", label: `Emitidas · ${countBy("issued")}` },
+              { key: "redeemed", label: `Resgatadas · ${countBy("redeemed")}` },
+              { key: "expired", label: `Expiradas · ${countBy("expired")}` },
+              { key: "cancelled", label: `Canceladas · ${countBy("cancelled")}` },
+              { key: "failed", label: `Falhas · ${countBy("failed")}` },
+            ] as const).map((f) => (
+              <Button
+                key={f.key}
+                type="button"
+                size="sm"
+                variant={statusFilter === f.key ? "default" : "outline"}
+                className="h-7 px-2.5 text-[11px]"
+                onClick={() => setStatusFilter(f.key)}
+              >
+                {f.label}
+              </Button>
+            ))}
+          </div>
+
+          <details className="group mb-3 rounded-lg border border-primary/40 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-3 py-2 text-[11px] text-muted-foreground shadow-[0_0_0_1px_hsl(var(--primary)/0.15),0_8px_24px_-12px_hsl(var(--primary)/0.35)] transition-colors hover:border-primary/60">
+            <summary className="flex cursor-pointer select-none list-none items-center gap-2 font-semibold text-primary [&::-webkit-details-marker]:hidden">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 ring-1 ring-primary/40">
+                <Info className="h-3 w-3" />
+              </span>
+              <span className="flex-1 uppercase tracking-wide text-[11px]">O que significa cada status?</span>
+              <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+            </summary>
+            <ul className="mt-3 space-y-1.5">
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_MAP.issued.cls)}>Emitida</Badge>
+                <span>Chave gerada no fornecedor e ainda não ativada pelo cliente.</span>
+              </li>
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_MAP.redeemed.cls)}>Resgatada</Badge>
+                <span>Cliente já ativou a chave e a API está em uso.</span>
+              </li>
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_MAP.expired.cls)}>Expirada</Badge>
+                <span>Prazo do plano acabou e o fornecedor invalidou a chave.</span>
+              </li>
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_MAP.cancelled.cls)}>Cancelada</Badge>
+                <span>Venda cancelada com estorno do valor para a sua carteira.</span>
+              </li>
+              <li className="flex gap-2">
+                <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_MAP.failed.cls)}>Falhou</Badge>
+                <span>A emissão não completou no fornecedor — o valor não foi debitado.</span>
+              </li>
+            </ul>
+          </details>
+
           {filteredHistory.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
               {history.length === 0 ? "Nenhuma chave emitida ainda." : "Nenhum resultado."}
@@ -514,6 +576,25 @@ Qualquer dúvida, é só chamar!`
                       <span>{new Date(h.created_at).toLocaleString("pt-BR")}</span>
                       <span className="font-semibold text-foreground">{fmtBRL(h.sale_price_cents)}</span>
                     </div>
+                    {h.provider_api_key && (
+                      <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 p-1.5">
+                        <span className="text-[9px] font-bold uppercase text-primary/80 shrink-0 pl-1">API</span>
+                        <code className="flex-1 font-mono text-[11px] truncate select-all px-1">{h.provider_api_key}</code>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0"
+                          onClick={async () => {
+                            await navigator.clipboard.writeText(h.provider_api_key);
+                            toast.success("API Key copiada");
+                          }}
+                          title="Copiar API Key"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
                     {h.status === "failed" && h.error_message && (
                       <div className="mt-2 text-[10px] text-rose-500/90 line-clamp-2">{h.error_message}</div>
                     )}
