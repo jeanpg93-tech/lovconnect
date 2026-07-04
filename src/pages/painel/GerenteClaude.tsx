@@ -738,11 +738,52 @@ Qualquer dúvida, é só chamar!`;
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRevealed(null)}>Fechar</Button>
-            <Button onClick={copy}>
-              {copied ? <><Check className="mr-2 h-4 w-4" /> Copiado</> : <><Copy className="mr-2 h-4 w-4" /> Copiar chave</>}
+          {revealed && (
+            <div className="mt-3 space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[11px] uppercase tracking-wide text-primary font-semibold">Mensagem para o cliente</div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => copyField("msg", buildClientMessage())}>
+                    {copiedField === "msg" ? <><Check className="h-4 w-4 mr-1" /> Copiado</> : <><Copy className="h-4 w-4 mr-1" /> Copiar mensagem</>}
+                  </Button>
+                  {revealed.customerWhatsapp && revealed.customerWhatsapp.length >= 10 && (
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => {
+                        const num = revealed.customerWhatsapp!.startsWith("55") ? revealed.customerWhatsapp! : `55${revealed.customerWhatsapp}`;
+                        const url = `https://wa.me/${num}?text=${encodeURIComponent(buildClientMessage())}`;
+                        window.open(url, "_blank", "noopener,noreferrer");
+                      }}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-1" /> Enviar WhatsApp
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <pre className="whitespace-pre-wrap text-xs font-sans bg-background/60 rounded-md border border-border p-2 max-h-48 overflow-auto">{buildClientMessage()}</pre>
+              {(!revealed.customerWhatsapp || revealed.customerWhatsapp.length < 10) && (
+                <div className="text-[11px] text-muted-foreground">
+                  Sem WhatsApp preenchido — use "Copiar mensagem" e envie manualmente.
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="flex-wrap gap-2 sm:justify-between">
+            <Button
+              variant="outline"
+              onClick={cancelRevealed}
+              disabled={cancelling}
+              className="border-rose-500/40 text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
+            >
+              {cancelling ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cancelando...</> : <>Cancelar e estornar</>}
             </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setRevealed(null)}>Fechar</Button>
+              <Button onClick={copy}>
+                {copied ? <><Check className="mr-2 h-4 w-4" /> Copiado</> : <><Copy className="mr-2 h-4 w-4" /> Copiar chave</>}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
