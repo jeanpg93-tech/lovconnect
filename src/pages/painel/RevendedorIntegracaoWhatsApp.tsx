@@ -333,7 +333,7 @@ export default function RevendedorIntegracaoWhatsApp() {
         <div>
           <h3 className="font-display text-base font-semibold">Mensagens enviadas ao comprador</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Variáveis disponíveis: <code>{"{nome}"}</code>, <code>{"{chave}"}</code>, <code>{"{tipo}"}</code>, <code>{"{valor}"}</code>, <code>{"{link}"}</code>, <code>{"{loja}"}</code>. Use <code>*texto*</code> para negrito.
+            Variáveis: <code>{"{nome}"}</code>, <code>{"{chave}"}</code>, <code>{"{tipo}"}</code>, <code>{"{valor}"}</code>, <code>{"{link}"}</code>, <code>{"{loja}"}</code>. Para chaves Claude também: <code>{"{plano}"}</code>, <code>{"{api_key}"}</code>, <code>{"{base_url}"}</code>, <code>{"{codigo}"}</code>. Use <code>*texto*</code> para negrito.
           </p>
         </div>
 
@@ -354,6 +354,12 @@ export default function RevendedorIntegracaoWhatsApp() {
           value={tplRecharge}
           onChange={setTplRecharge}
           defaultValue={defaults.recharge}
+        />
+        <TemplateField
+          label="Venda de chave Claude (manual e API)"
+          value={tplClaude}
+          onChange={setTplClaude}
+          defaultValue={defaults.claude}
         />
       </section>
 
