@@ -20,7 +20,7 @@ const PLANS: { code: PlanCode; label: string; desc: string }[] = [
   { code: "20x_30d", label: "20x — 30 dias", desc: "10M tokens · 30 dias" },
 ];
 
-type Reseller = { id: string; slug: string; display_name: string; claude_enabled: boolean };
+type Reseller = { id: string; slug: string; display_name: string; store_name?: string | null; claude_enabled: boolean };
 
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -210,7 +210,7 @@ export default function CheckoutClaude() {
           <div className="inline-flex items-center gap-2 text-xs font-medium text-primary bg-primary/10 rounded-full px-3 py-1">
             <Sparkles className="h-3 w-3" /> Claude API
           </div>
-          <h1 className="text-2xl font-bold">{reseller.display_name}</h1>
+          <h1 className="text-2xl font-bold">{reseller.store_name || reseller.display_name}</h1>
           <p className="text-sm text-muted-foreground">Compre seu plano Claude e receba a chave na hora após o PIX.</p>
         </header>
 
