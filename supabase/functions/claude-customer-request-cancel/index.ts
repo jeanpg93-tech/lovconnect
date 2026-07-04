@@ -99,6 +99,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const orderId = String(body?.order_id ?? "").trim();
     const note = body?.note ? String(body.note).slice(0, 500) : null;
+    const pixFullName = body?.pix_full_name ? String(body.pix_full_name).trim().slice(0, 120) : null;
+    const pixKey = body?.pix_key ? String(body.pix_key).trim().slice(0, 200) : null;
+    const pixKeyType = body?.pix_key_type ? String(body.pix_key_type).trim().slice(0, 20) : null;
     if (!orderId) return json({ error: "missing_order_id" }, 400);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -127,6 +130,9 @@ Deno.serve(async (req) => {
     await admin.from("claude_orders").update({
       cancel_requested_at: new Date().toISOString(),
       cancel_request_note: note,
+      customer_refund_full_name: pixFullName,
+      customer_refund_pix_key: pixKey,
+      customer_refund_pix_key_type: pixKeyType,
       // Não trocamos status se já 'redeemed' (perde o histórico)
       ...(order.status === "issued" ? { status: "cancel_requested" as const } : {}),
     }).eq("id", order.id);
@@ -143,6 +149,12 @@ Deno.serve(async (req) => {
       `Plano: *${order.plan_code}*\n` +
       `Chave: ${order.code ?? "—"}\n` +
       `Prazo estorno: *${withinWindow ? "dentro dos 7 dias ✅" : "expirado ⚠️ (sem estorno)"}*` +
+      (withinWindow && pixKey
+        ? `\n\n💸 *Dados para estorno via PIX:*\n` +
+          `Nome: *${pixFullName ?? "—"}*\n` +
+          `Tipo: *${pixKeyType ?? "—"}*\n` +
+          `Chave: \`${pixKey}\``
+        : "") +
       (note ? `\nObs.: ${note}` : "");
     try { await notifyResellerWhatsapp(admin, order.reseller_id, waText); } catch (_) {}
     try {
@@ -157,6 +169,9 @@ Deno.serve(async (req) => {
             plan_code: order.plan_code,
             within_refund_window: withinWindow,
             customer_email: customer.email,
+            pix_full_name: pixFullName,
+            pix_key: pixKey,
+            pix_key_type: pixKeyType,
           },
         });
       }
