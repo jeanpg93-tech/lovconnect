@@ -587,46 +587,6 @@ export default function ClienteClaudePortal() {
           </div>
         </div>
 
-        {usage && (
-          <Card className="border-white/10 bg-white/[0.03] backdrop-blur-xl animate-fade-in" style={{ boxShadow: `0 0 30px hsl(var(--brand) / 0.1)` }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" style={{ color: `hsl(var(--brand))` }} /> Consumo de tokens
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {dailyUsed != null && (
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="opacity-80">Janela de {usage.tokenWindowHours ?? 5}h</span>
-                    <span className="font-mono">{fmtTokens(usage.tokensInWindow)} / {fmtTokens(usage.tokenLimit)}</span>
-                  </div>
-                  <div className="h-2 rounded-full overflow-hidden bg-white/10">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${dailyUsed}%`, background: `linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.6))`, boxShadow: `0 0 12px hsl(var(--brand) / 0.7)` }}
-                    />
-                  </div>
-                </div>
-              )}
-              {weeklyUsed != null && (
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="opacity-80">Janela semanal</span>
-                    <span className="font-mono">{fmtTokens(usage.weeklyTokensInWindow)} / {fmtTokens(usage.weeklyTokenLimit)}</span>
-                  </div>
-                  <div className="h-2 rounded-full overflow-hidden bg-white/10">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${weeklyUsed}%`, background: `linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.6))`, boxShadow: `0 0 12px hsl(var(--brand) / 0.7)` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
         <Card className="border-white/10 bg-white/[0.03] backdrop-blur-xl animate-fade-in" style={{ boxShadow: `0 0 30px hsl(var(--brand) / 0.1)` }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -648,30 +608,48 @@ export default function ClienteClaudePortal() {
                       <div className="font-medium text-sm">{PLAN_LABELS[o.plan_code] ?? o.plan_code}</div>
                       <div className="text-xs opacity-60">Emitida em {fmtDate(o.created_at)}</div>
                       {o.status === "issued" && (o.api_key ? (
-                        <div className="rounded-lg border border-white/10 bg-black/40 p-2.5 space-y-2">
-                          <div className="text-[10px] uppercase tracking-widest font-semibold opacity-70" style={{ color: `hsl(var(--brand))` }}>
-                            API Key (X-API-Key)
+                        <div
+                          className="rounded-xl border bg-black/50 p-3 space-y-3"
+                          style={{ borderColor: `hsl(var(--brand) / 0.35)`, boxShadow: `0 0 24px hsl(var(--brand) / 0.2)` }}
+                        >
+                          <div
+                            className="rounded-lg border p-3 space-y-2"
+                            style={{ borderColor: `hsl(var(--brand) / 0.4)`, background: `hsl(var(--brand) / 0.08)` }}
+                          >
+                            <div className="text-[10px] uppercase tracking-widest font-bold" style={{ color: `hsl(var(--brand))` }}>
+                              URL Base
+                            </div>
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                              <code
+                                className="flex-1 break-all font-mono text-sm sm:text-base font-semibold"
+                                style={{ color: `hsl(var(--brand))` }}
+                              >
+                                {o.provider_base_url ?? "https://claude-ss.ia.br/"}
+                              </code>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(o.provider_base_url ?? "https://claude-ss.ia.br/");
+                                  toast.success("URL copiada!");
+                                }}
+                              >
+                                <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+                              </Button>
+                            </div>
                           </div>
-                          <ApiKeyField value={o.api_key} />
-                          <div className="text-[10px] uppercase tracking-widest font-semibold opacity-70 pt-1" style={{ color: `hsl(var(--brand))` }}>
-                            URL Base
-                          </div>
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <code className="flex-1 break-all text-xs font-mono opacity-90">{o.provider_base_url ?? "https://claude-ss.ia.br/"}</code>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale"
-                              onClick={() => {
-                                navigator.clipboard.writeText(o.provider_base_url ?? "https://claude-ss.ia.br/");
-                                toast.success("URL copiada!");
-                              }}
-                            >
-                              <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
-                            </Button>
+                          <div
+                            className="rounded-lg border p-3 space-y-2"
+                            style={{ borderColor: `hsl(var(--brand) / 0.4)`, background: `hsl(var(--brand) / 0.08)` }}
+                          >
+                            <div className="text-[10px] uppercase tracking-widest font-bold" style={{ color: `hsl(var(--brand))` }}>
+                              API Key (X-API-Key)
+                            </div>
+                            <ApiKeyField value={o.api_key} />
                           </div>
                           <p className="text-[11px] opacity-70 leading-snug">
-                            Configure a <strong>API Key</strong> no header <code className="font-mono bg-white/10 px-1 rounded">x-api-key</code> (ou como token no Cursor / Cline / Claude Code) junto com a <strong>URL Base</strong> acima.
+                            Configure a <strong>API Key</strong> no header <code className="font-mono bg-white/10 px-1 rounded">x-api-key</code> (ou como token no Claude Desktop / VS Code / Cursor / Cline) junto com a <strong>URL Base</strong> acima.
                           </p>
                         </div>
                       ) : (
@@ -737,6 +715,46 @@ export default function ClienteClaudePortal() {
             )}
           </CardContent>
         </Card>
+
+        {usage && (
+          <Card className="border-white/10 bg-white/[0.03] backdrop-blur-xl animate-fade-in" style={{ boxShadow: `0 0 30px hsl(var(--brand) / 0.1)` }}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" style={{ color: `hsl(var(--brand))` }} /> Consumo de tokens
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {dailyUsed != null && (
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="opacity-80">Janela de {usage.tokenWindowHours ?? 5}h</span>
+                    <span className="font-mono">{fmtTokens(usage.tokensInWindow)} / {fmtTokens(usage.tokenLimit)}</span>
+                  </div>
+                  <div className="h-2 rounded-full overflow-hidden bg-white/10">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${dailyUsed}%`, background: `linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.6))`, boxShadow: `0 0 12px hsl(var(--brand) / 0.7)` }}
+                    />
+                  </div>
+                </div>
+              )}
+              {weeklyUsed != null && (
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="opacity-80">Janela semanal</span>
+                    <span className="font-mono">{fmtTokens(usage.weeklyTokensInWindow)} / {fmtTokens(usage.weeklyTokenLimit)}</span>
+                  </div>
+                  <div className="h-2 rounded-full overflow-hidden bg-white/10">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${weeklyUsed}%`, background: `linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.6))`, boxShadow: `0 0 12px hsl(var(--brand) / 0.7)` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {extensionKeys.length > 0 && (
           <Card className="border-white/10 bg-white/[0.03] backdrop-blur-xl animate-fade-in" style={{ boxShadow: `0 0 30px hsl(var(--brand) / 0.1)` }}>
