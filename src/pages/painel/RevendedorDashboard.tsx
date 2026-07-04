@@ -177,7 +177,7 @@ const PIE_COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#3b82f6", "#a8
 
 type ActivityItem = {
   id: string;
-  type: "sale" | "recharge" | "claude_sale";
+  type: "sale" | "recharge" | "claude_sale" | "transaction";
   title: string;
   amount_cents: number;
   status: string;
