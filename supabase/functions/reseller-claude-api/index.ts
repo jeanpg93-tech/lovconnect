@@ -413,7 +413,7 @@ Deno.serve(async (req) => {
 
       const planCode = String(origOrder.plan_code);
       if (!PLAN_CODES.has(planCode)) return json({ success: false, error: "invalid_plano" }, 400);
-      if (!customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return json({ success: false, error: "email_obrigatorio", message: "O campo 'email' do cliente é obrigatório e deve ser válido." }, 400);
       }
 
@@ -667,6 +667,9 @@ Deno.serve(async (req) => {
       const customerWhatsapp = body?.whatsapp ? String(body.whatsapp).trim().slice(0, 40) : null;
       const requestId = req.headers.get("idempotency-key") || (body?.request_id ? String(body.request_id) : null);
       if (!PLAN_CODES.has(planCode)) return json({ success: false, error: "invalid_plano" }, 400);
+      if (!customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+        return json({ success: false, error: "email_obrigatorio", message: "O campo 'email' do cliente é obrigatório e deve ser válido. Sem ele o fornecedor não entrega a chave." }, 400);
+      }
 
       // Idempotency
       if (requestId) {
