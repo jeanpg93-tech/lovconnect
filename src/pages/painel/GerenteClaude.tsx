@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Copy, Check, KeyRound, CheckCircle2, History as HistoryIcon, Search, Sparkles, AlertTriangle, User, MessageCircle, Mail } from "lucide-react";
+import { Loader2, Copy, Check, KeyRound, CheckCircle2, History as HistoryIcon, Search, Sparkles, AlertTriangle, User, MessageCircle, Mail, Activity, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
@@ -52,6 +52,27 @@ type Issued = {
 
 const HISTORY_KEY = "gerente_claude_issued_v2";
 
+type UsageInfo = {
+  email: string;
+  status?: string | null;
+  tokensConsumed?: number | null;
+  tokenLimit?: number | null;
+  tokensInWindow?: number | null;
+  tokenWindowHours?: number | null;
+  percentRemaining?: number | null;
+  weeklyTokensInWindow?: number | null;
+  weeklyTokenLimit?: number | null;
+  accountExpiresAt?: string | null;
+};
+
+const fmtTokens = (n: number | null | undefined) => {
+  if (n == null || !isFinite(Number(n))) return "—";
+  const v = Number(n);
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
+  return String(v);
+};
+
 const formatWhatsapp = (v: string) => {
   const d = v.replace(/\D+/g, "").slice(0, 11);
   if (d.length <= 2) return d;
@@ -81,6 +102,8 @@ export default function GerenteClaude() {
   const [customerName, setCustomerName] = useState("");
   const [customerWhatsapp, setCustomerWhatsapp] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [usageByEmail, setUsageByEmail] = useState<Record<string, UsageInfo>>({});
+  const [usageLoading, setUsageLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -137,6 +160,29 @@ export default function GerenteClaude() {
       setLoading(false);
     })();
   }, []);
+
+  const loadUsage = async () => {
+    setUsageLoading(true);
+    const { data, error } = await invokeAuthenticatedFunction<any>(
+      "manager-claude-provider-users",
+      { method: "POST", body: {} },
+    );
+    setUsageLoading(false);
+    if (error || !data?.users) {
+      toast.error("Não foi possível carregar consumo do provedor");
+      return;
+    }
+    const map: Record<string, UsageInfo> = {};
+    for (const u of data.users as UsageInfo[]) {
+      if (u.email) map[u.email.toLowerCase()] = u;
+    }
+    setUsageByEmail(map);
+  };
+
+  useEffect(() => {
+    if (!loading) loadUsage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   const persist = (list: Issued[]) => {
     setHistory(list);
@@ -407,7 +453,22 @@ export default function GerenteClaude() {
               <HistoryIcon className="h-4 w-4 text-primary" />
               <h3 className="font-display text-sm font-semibold">Chaves emitidas</h3>
             </div>
-            <Badge variant="outline" className="text-[10px] font-bold uppercase">{history.length}</Badge>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-[11px]"
+                onClick={loadUsage}
+                disabled={usageLoading}
+                title="Atualizar consumo de tokens"
+              >
+                {usageLoading
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <RefreshCw className="h-3.5 w-3.5" />}
+              </Button>
+              <Badge variant="outline" className="text-[10px] font-bold uppercase">{history.length}</Badge>
+            </div>
           </div>
 
           <div className="relative mb-3">
@@ -492,6 +553,67 @@ export default function GerenteClaude() {
                       </Button>
                     </div>
                   )}
+                  {(() => {
+                    const u = h.customer_email ? usageByEmail[h.customer_email.toLowerCase()] : null;
+                    if (!u) return null;
+                    const pctWindow = u.tokenLimit && u.tokensInWindow != null
+                      ? Math.min(100, Math.round((Number(u.tokensInWindow) / Number(u.tokenLimit)) * 100))
+                      : null;
+                    const pctWeekly = u.weeklyTokenLimit && u.weeklyTokensInWindow != null
+                      ? Math.min(100, Math.round((Number(u.weeklyTokensInWindow) / Number(u.weeklyTokenLimit)) * 100))
+                      : null;
+                    return (
+                      <div className="mt-2 rounded-lg border border-border bg-background/60 p-2 space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground">
+                          <span className="flex items-center gap-1"><Activity className="h-3 w-3 text-primary" /> Consumo</span>
+                          {u.status && <span className="normal-case tracking-normal">{u.status}</span>}
+                        </div>
+                        {pctWindow != null && (
+                          <div>
+                            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                              <span>Janela {u.tokenWindowHours ?? 12}h</span>
+                              <span className="font-mono text-foreground">
+                                {fmtTokens(u.tokensInWindow)} / {fmtTokens(u.tokenLimit)} · {pctWindow}%
+                              </span>
+                            </div>
+                            <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full transition-all",
+                                  pctWindow >= 90 ? "bg-rose-500" : pctWindow >= 70 ? "bg-amber-500" : "bg-emerald-500",
+                                )}
+                                style={{ width: `${pctWindow}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {pctWeekly != null && (
+                          <div>
+                            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                              <span>Semanal</span>
+                              <span className="font-mono text-foreground">
+                                {fmtTokens(u.weeklyTokensInWindow)} / {fmtTokens(u.weeklyTokenLimit)} · {pctWeekly}%
+                              </span>
+                            </div>
+                            <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full transition-all",
+                                  pctWeekly >= 90 ? "bg-rose-500" : pctWeekly >= 70 ? "bg-amber-500" : "bg-primary",
+                                )}
+                                style={{ width: `${pctWeekly}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {u.tokensConsumed != null && (
+                          <div className="text-[10px] text-muted-foreground">
+                            Total consumido: <span className="font-mono text-foreground">{fmtTokens(u.tokensConsumed)}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
