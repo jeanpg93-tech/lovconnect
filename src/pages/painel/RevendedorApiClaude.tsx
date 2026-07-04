@@ -458,6 +458,10 @@ function TabEndpoints() {
   -H "Content-Type: application/json" \\
   -d '{ "email": "lead@email.com" }'
 
+# OPCIONAL — este endpoint é uma cortesia. Você (revendedor) decide se
+# quer oferecer "Testar grátis" aos seus clientes. Se não quiser, basta
+# não expor o botão/formulário no seu sistema — nada é debitado quando
+# a chave de teste é emitida.
 # Limite: 5 chamadas por hora por API Key (429 rate_limited).
 
 # Resposta
