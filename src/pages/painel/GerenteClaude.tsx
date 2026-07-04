@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Copy, Check, KeyRound, CheckCircle2, History as HistoryIcon, Search, Sparkles, AlertTriangle, User, MessageCircle, Mail, Activity, RefreshCw } from "lucide-react";
+import { Loader2, Copy, Check, KeyRound, CheckCircle2, History as HistoryIcon, Search, Sparkles, AlertTriangle, User, MessageCircle, Mail, Activity, RefreshCw, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
@@ -102,6 +102,7 @@ export default function GerenteClaude() {
   } | null>(null);
   const [copied, setCopied] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [history, setHistory] = useState<Issued[]>([]);
   const [search, setSearch] = useState("");
@@ -337,6 +338,28 @@ Qualquer dúvida, é só chamar!`;
       persist(history.filter((h) => h.id !== revealed.id));
     }
     setRevealed(null);
+  };
+
+  const cancelKey = async (h: { id: string; code: string }) => {
+    if (!confirm("Cancelar esta chave no fornecedor? A chave será revogada imediatamente.")) return;
+    setCancellingId(h.id);
+    const { data, error } = await invokeAuthenticatedFunction<any>(
+      "manager-claude-cancel-key",
+      { method: "POST", body: { order_id: h.id, code: h.code } },
+    );
+    setCancellingId(null);
+    if (error) {
+      const msg = (data as any)?.error ?? (error as any)?.message ?? "Falha ao cancelar";
+      if (msg === "already_redeemed") {
+        toast.error("Chave já foi resgatada — não é mais cancelável pelo fornecedor.");
+      } else {
+        toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      }
+      return;
+    }
+    toast.success("Chave cancelada no fornecedor");
+    persist(history.filter((x) => x.id !== h.id));
+    if (revealed?.id === h.id) setRevealed(null);
   };
 
   if (loading)
