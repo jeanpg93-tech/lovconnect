@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Copy, Check, KeyRound, CheckCircle2, History as HistoryIcon, Search, Sparkles, AlertTriangle, User, MessageCircle, Mail, Activity, RefreshCw, XCircle } from "lucide-react";
+import { Loader2, Copy, Check, KeyRound, CheckCircle2, History as HistoryIcon, Search, Sparkles, AlertTriangle, User, MessageCircle, Mail, Activity, RefreshCw, XCircle, Info, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import { toast } from "sonner";
@@ -649,11 +649,15 @@ Qualquer dúvida, é só chamar!`;
             ))}
           </div>
 
-          <details className="mb-3 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-[11px] text-muted-foreground">
-            <summary className="cursor-pointer select-none font-semibold text-foreground/80">
-              O que significa cada status?
+          <details className="group mb-3 rounded-lg border border-primary/40 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-3 py-2 text-[11px] text-muted-foreground shadow-[0_0_0_1px_hsl(var(--primary)/0.15),0_8px_24px_-12px_hsl(var(--primary)/0.35)] transition-colors hover:border-primary/60">
+            <summary className="flex cursor-pointer select-none list-none items-center gap-2 font-semibold text-primary [&::-webkit-details-marker]:hidden">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 ring-1 ring-primary/40">
+                <Info className="h-3 w-3" />
+              </span>
+              <span className="flex-1 uppercase tracking-wide text-[11px]">O que significa cada status?</span>
+              <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
             </summary>
-            <ul className="mt-2 space-y-1.5">
+            <ul className="mt-3 space-y-1.5">
               <li className="flex gap-2">
                 <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", STATUS_STYLES.issued)}>Emitida</Badge>
                 <span>Chave gerada no fornecedor e ainda não ativada pelo cliente.</span>
