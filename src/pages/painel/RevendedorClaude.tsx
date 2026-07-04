@@ -14,6 +14,7 @@ import {
 import { Loader2, Sparkles, Copy, Check, AlertTriangle, History as HistoryIcon, KeyRound, CheckCircle2, Search, User, MessageCircle, Mail, Ban, Info, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
+import ApiKeyReveal from "@/components/painel/ApiKeyReveal";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
