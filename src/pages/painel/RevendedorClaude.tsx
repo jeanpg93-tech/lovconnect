@@ -240,6 +240,41 @@ export default function RevendedorClaude() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const copyField = async (key: string, value: string) => {
+    await navigator.clipboard.writeText(value);
+    setCopiedField(key);
+    toast.success("Copiado!");
+    setTimeout(() => setCopiedField((k) => (k === key ? null : k)), 1800);
+  };
+
+  const buildClientMessage = () => {
+    if (!revealed) return "";
+    const nome = revealed.customerName ? `Olá, ${revealed.customerName}!` : "Olá!";
+    const plano = PLAN_LABELS[revealed.plan];
+    const baseUrl = revealed.providerBaseUrl ?? "https://claude-ss.ia.br/";
+    if (revealed.apiKey) {
+      return (
+`${nome} Aqui estão suas credenciais do plano *${plano}*:
+
+🔑 *API Key (ANTHROPIC_AUTH_TOKEN):*
+${revealed.apiKey}
+
+🌐 *Base URL (ANTHROPIC_BASE_URL):*
+${baseUrl}
+
+Use no Cursor, Cline ou Claude Code definindo essas duas variáveis. Qualquer dúvida, é só chamar!`
+      );
+    }
+    return (
+`${nome} Aqui está sua chave do plano *${plano}*:
+
+🔑 ${revealed.code}
+
+Qualquer dúvida, é só chamar!`
+    );
+  };
+
   if (loading) return <div className="flex h-40 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
 
   const selected = prices.find((p) => p.plan_code === selectedPlan) ?? prices[0];
