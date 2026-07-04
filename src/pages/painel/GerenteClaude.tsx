@@ -642,6 +642,7 @@ Qualquer dúvida, é só chamar!`;
             <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
               {filteredHistory.map((h) => {
                 const isCancelled = h.status === "cancelled" || !!h.cancelled_at;
+                const effStatus = isCancelled ? "cancelled" : (h.status ?? "issued");
                 return (
                 <div
                   key={h.id}
@@ -673,14 +674,12 @@ Qualquer dúvida, é só chamar!`;
                         variant="outline"
                         className={cn(
                           "text-[10px] font-bold uppercase",
-                          isCancelled
-                            ? "bg-rose-500/15 text-rose-500 border-rose-500/30"
-                            : "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+                          STATUS_STYLES[effStatus] ?? STATUS_STYLES.issued,
                         )}
                       >
-                        {isCancelled ? "Cancelada" : "Emitida"}
+                        {STATUS_LABELS[effStatus] ?? effStatus}
                       </Badge>
-                      {!isCancelled && (
+                      {effStatus === "issued" && (
                         <Button
                           type="button"
                           size="sm"
