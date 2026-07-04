@@ -35,13 +35,14 @@ Deno.serve(async (req) => {
       return json({ error: "reseller_not_available" }, 404);
     }
 
-    const [{ data: defs }, { data: ovs }] = await Promise.all([
+    const [{ data: defs }, { data: ovs }, { data: storefront }] = await Promise.all([
       admin
         .from("claude_plan_prices")
         .select("plan_code, cost_cents, sale_price_cents, sort_order")
         .eq("is_active", true)
         .order("sort_order", { ascending: true }),
       admin.from("claude_reseller_price_overrides").select("plan_code, markup_mode, markup_value_cents").eq("reseller_id", (reseller as any).id).eq("is_active", true),
+      admin.from("reseller_storefronts").select("store_name").eq("reseller_id", (reseller as any).id).maybeSingle(),
     ]);
 
     const prices: Record<string, number> = {};
@@ -60,6 +61,7 @@ Deno.serve(async (req) => {
         id: (reseller as any).id,
         slug: (reseller as any).slug,
         display_name: (reseller as any).display_name,
+        store_name: (storefront as any)?.store_name || null,
       },
       prices,
       ordered,
