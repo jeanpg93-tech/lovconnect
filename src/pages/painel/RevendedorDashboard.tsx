@@ -1061,7 +1061,7 @@ export default function RevendedorDashboard() {
               <HistoryIcon className="h-4 w-4 md:h-5 md:w-5 text-primary" /> Atividades Recentes
             </h3>
             <Button asChild variant="ghost" size="sm" className="h-7 md:h-8 px-2 text-[10px] md:text-xs text-primary">
-              <Link to="/painel/revendedor/licencas">Ver tudo</Link>
+              <Link to="/painel/revendedor/transacoes">Ver tudo</Link>
             </Button>
           </div>
 
