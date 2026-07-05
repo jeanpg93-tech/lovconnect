@@ -17,6 +17,9 @@ const TEST_RESELLER_ID = "68fddcfb-5e1f-492c-be75-9a8a3d2a63fa";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+// Token dedicado para o bypass do misticpay-webhook (nunca reutilizar a
+// service-role key em headers de requisições).
+const MISTICPAY_TEST_BYPASS_TOKEN = Deno.env.get("MISTICPAY_TEST_BYPASS_TOKEN") ?? "";
 
 type Kind = "recharge" | "pack" | "activation" | "subscription" | "storefront" | "claude";
 
@@ -110,7 +113,7 @@ Deno.serve(async (req) => {
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${SERVICE_ROLE_KEY}`,
-        "x-test-bypass-token": SERVICE_ROLE_KEY,
+        "x-test-bypass-token": MISTICPAY_TEST_BYPASS_TOKEN,
       },
       body: JSON.stringify({
         transactionId: txId,
