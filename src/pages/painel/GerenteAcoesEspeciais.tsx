@@ -302,38 +302,84 @@ export default function GerenteAcoesEspeciais() {
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {scheduledPromos.map((p) => (
-              <Card key={p.id}>
+              <Card
+                key={p.id}
+                className="relative overflow-hidden border-border/60 bg-gradient-to-br from-card via-card to-primary/5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+              >
+                <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary/30 to-transparent" />
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <CardTitle className="text-base flex items-center gap-2 flex-wrap">
-                        {p.name}
-                        <Badge variant={STATUS_VARIANT[p.status]}>{STATUS_LABEL[p.status]}</Badge>
-                      </CardTitle>
-                      {p.description && <CardDescription className="mt-1">{p.description}</CardDescription>}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <CardTitle className="text-base leading-tight">{p.name}</CardTitle>
+                        <Badge variant="secondary" className="gap-1 text-[10px] uppercase tracking-wide font-semibold">
+                          <CalendarIcon className="h-3 w-3" /> Agendada
+                        </Badge>
+                      </div>
+                      {p.description && (
+                        <CardDescription className="mt-1.5 line-clamp-2">{p.description}</CardDescription>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-4">
                   <PromoValues p={p} compact />
-                  <div className="text-xs text-muted-foreground grid grid-cols-2 gap-1">
-                    <div>Início: {fmtBR(p.starts_at)}</div>
-                    <div>Fim: {p.ends_at ? fmtBR(p.ends_at) : "sem fim"}</div>
+
+                  <div className="rounded-lg border border-border/50 bg-muted/30 px-3 py-2 grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Play className="h-3 w-3 text-emerald-500 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Início</div>
+                        <div className="font-medium truncate">{p.starts_at ? fmtBR(p.starts_at) : "ao ativar"}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Square className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Fim</div>
+                        <div className="font-medium truncate">{p.ends_at ? fmtBR(p.ends_at) : "sem fim"}</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => activateNow(p)} className="gap-1.5">
-                      <Play className="h-3.5 w-3.5" /> Ativar agora
+
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => activateNow(p)}
+                      className="gap-1.5 flex-1 sm:flex-none bg-gradient-to-r from-primary to-primary/85 hover:from-primary hover:to-primary shadow-sm shadow-primary/30"
+                    >
+                      <Play className="h-3.5 w-3.5 fill-current" /> Ativar agora
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => { setEditing(p); setCreateOpen(true); }} className="gap-1.5">
-                      <Pencil className="h-3.5 w-3.5" /> Editar
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setEditing(p); setCreateOpen(true); }}
+                      className="gap-1.5 h-8 px-2.5"
+                      title="Editar"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Editar</span>
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => duplicatePromo(p)} className="gap-1.5">
-                      <Copy className="h-3.5 w-3.5" /> Duplicar
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => duplicatePromo(p)}
+                      className="gap-1.5 h-8 px-2.5"
+                      title="Duplicar"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Duplicar</span>
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="ghost" className="gap-1.5 text-destructive hover:text-destructive">
-                          <Trash2 className="h-3.5 w-3.5" /> Cancelar
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1.5 h-8 px-2.5 text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
+                          title="Cancelar"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Cancelar</span>
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
