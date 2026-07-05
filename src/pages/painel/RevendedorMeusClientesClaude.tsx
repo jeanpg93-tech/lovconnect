@@ -473,7 +473,36 @@ export default function RevendedorMeusClientesClaude() {
                 )}
 
                 {["issued", "redeemed", "cancel_requested"].includes(o.status) && (
-                  <div className="mt-3 flex justify-stretch sm:justify-end">
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    {o.customer_email && (
+                      o.portal_active ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-full sm:w-auto"
+                          disabled={provisioningId === o.id}
+                          onClick={() => provisionPortal(o, "reset")}
+                        >
+                          {provisioningId === o.id
+                            ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            : <RotateCw className="mr-1 h-3 w-3" />}
+                          Reenviar / resetar senha
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-full sm:w-auto border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10"
+                          disabled={provisioningId === o.id}
+                          onClick={() => provisionPortal(o, "provision")}
+                        >
+                          {provisioningId === o.id
+                            ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            : <UserPlus className="mr-1 h-3 w-3" />}
+                          Criar acesso ao portal
+                        </Button>
+                      )
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
