@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import ClaudePromoBanner from "@/components/painel/ClaudePromoBanner";
 
 type PlanCode = string;
 const PLAN_LABELS: Record<string, string> = {
@@ -146,6 +147,7 @@ export default function ClaudePriceTable() {
 
   return (
     <div>
+      <ClaudePromoBanner className="mb-3" />
       {tier?.name && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3">
           <Crown className="h-4 w-4 text-primary" />
