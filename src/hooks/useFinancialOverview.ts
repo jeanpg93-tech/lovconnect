@@ -206,15 +206,13 @@ export function useFinancialOverview(range: DateRange, customRange?: CustomRange
     //                       (já contabilizada dentro de "Recargas" — informativa aqui)
     //  - custo real do dono = claude_plan_prices.cost_cents (fornecedor)
     // ========================================================================
-    let coQ = supabase
-      .from("claude_orders")
-      .select("id, reseller_id, plan_code, sale_price_cents, cost_cents, paid_at, created_at, status, customer_name")
-      .in("status", ["issued", "redeemed"]);
-    if (startIso) coQ = coQ.gte("paid_at", startIso);
-    if (endIso) coQ = coQ.lte("paid_at", endIso);
-    coQ = excludeDemos(coQ);
-    const { data: claudeRows } = await coQ;
-    const claudeArr = (claudeRows || []) as any[];
+    const { data: claudeRows } = await supabase.rpc(
+      "admin_claude_orders_financial" as any,
+      { _from: startIso ?? null, _to: endIso ?? null },
+    );
+    const claudeArr = (((claudeRows as any[]) || [])
+      .filter((r: any) => ["issued", "redeemed"].includes(r.status))
+      .filter((r: any) => !demoIds.includes(r.reseller_id))) as any[];
     const claudePlanCodes = Array.from(new Set(claudeArr.map((c) => c.plan_code).filter(Boolean)));
     const supplierCostByPlan: Record<string, number> = {};
     if (claudePlanCodes.length) {

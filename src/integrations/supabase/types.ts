@@ -4886,6 +4886,21 @@ export type Database = {
         Args: { _amount_cents: number; _reseller_id: string }
         Returns: undefined
       }
+      admin_claude_orders_financial: {
+        Args: { _from?: string; _to?: string }
+        Returns: {
+          cost_cents: number
+          created_at: string
+          customer_name: string
+          id: string
+          paid_at: string
+          plan_code: string
+          profit_cents: number
+          reseller_id: string
+          sale_price_cents: number
+          status: string
+        }[]
+      }
       admin_claude_plan_prices_full: {
         Args: never
         Returns: {
@@ -5007,6 +5022,19 @@ export type Database = {
         Returns: {
           cost_cents: number
           credits: number
+        }[]
+      }
+      admin_recharge_intents_recent: {
+        Args: { _limit?: number }
+        Returns: {
+          amount_cents: number
+          bonus_cents: number
+          created_at: string
+          id: string
+          paid_at: string
+          payer_name: string
+          reseller_id: string
+          status: string
         }[]
       }
       admin_reseller_credit_purchases_costs: {

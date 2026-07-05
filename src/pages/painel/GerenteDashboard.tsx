@@ -331,11 +331,7 @@ export default function GerenteDashboard() {
         .select("id,created_at,status,license_type,price_cents,reseller_id,extension_id,error_message,buyer_name,product_type,credit_amount")
         .order("created_at", { ascending: false })
         .limit(FETCH_LIMIT),
-      supabase
-        .from("recharge_intents")
-        .select("id,created_at,status,amount_cents,bonus_cents,reseller_id,payer_name,paid_at")
-        .order("created_at", { ascending: false })
-        .limit(FETCH_LIMIT),
+      supabase.rpc("admin_recharge_intents_recent" as any, { _limit: FETCH_LIMIT }),
     ]);
 
     // API Logs (nós com provedor e revendedor com nós)
