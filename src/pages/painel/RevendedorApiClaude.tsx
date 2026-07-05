@@ -265,7 +265,7 @@ function TabInicio() {
                 ["5x_7d", "5x · 7 dias · ~600K tokens"],
                 ["5x_30d", "5x · 30 dias · 2,5M tokens"],
                 ["20x_30d", "20x · 30 dias · 10M tokens"],
-                ["trial_15m", "Teste · 15 minutos · sem custo (via POST /teste)"],
+                ["trial_15m_50msg", "Teste GRÁTIS · 15 minutos OU 50 mensagens (via POST /teste)"],
               ].map(([k, v]) => (
                 <tr key={k}>
                   <td className="py-1.5 font-mono text-primary">{k}</td>
