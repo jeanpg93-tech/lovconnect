@@ -670,7 +670,13 @@ export default function PublicStorefront() {
         <Store className="h-10 w-10 text-muted-foreground" />
         <h1 className="text-xl font-semibold">Loja não encontrada</h1>
         <p className="text-sm text-muted-foreground">Esta loja não existe ou está desativada.</p>
-        <Link to="/" className="text-sm underline">Voltar</Link>
+        <button
+          type="button"
+          onClick={() => (window.history.length > 1 ? window.history.back() : (window.location.href = "/"))}
+          className="text-sm underline"
+        >
+          Voltar
+        </button>
       </div>
     );
   }
