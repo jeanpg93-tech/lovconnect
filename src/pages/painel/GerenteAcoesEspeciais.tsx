@@ -635,6 +635,9 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
         if (editing.activation_referral_extra_pct != null) {
           setReferralExtraPct(Number(editing.activation_referral_extra_pct));
         }
+        const cbt = editing.claude_discount_by_tier;
+        setUseClaude(!!cbt && Object.keys(cbt).length > 0);
+        setClaudeByTier(cbt ? Object.fromEntries(Object.entries(cbt).map(([k, v]) => [k, Number(v)])) : {});
         setStartMode(editing.starts_at ? "schedule" : "now");
         setEndMode(editing.ends_at ? "schedule" : "none");
         setStartsAt(toLocalInputValue(editing.starts_at));
@@ -654,6 +657,8 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
         setPromoteTierId("");
         setUseReferralExtra(false);
         setReferralExtraPct(5);
+        setUseClaude(false);
+        setClaudeByTier({});
         setStartMode("now"); setEndMode("none");
         setStartsAt(""); setEndsAt("");
       }
