@@ -112,6 +112,7 @@ export default function PublicStorefront() {
   const [claudePlans, setClaudePlans] = useState<{ code: string; label: string; price_cents: number; sort_order: number }[]>([]);
   const [claudeLoading, setClaudeLoading] = useState(false);
   const [claudeAvailable, setClaudeAvailable] = useState(false);
+  const [claudeTrialOpen, setClaudeTrialOpen] = useState(false);
   
   // Device Reset
   const [resetKey, setResetKey] = useState("");
