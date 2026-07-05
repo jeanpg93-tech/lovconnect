@@ -6,7 +6,7 @@ import { useClaudePromoForReseller } from "@/hooks/useClaudePromoForReseller";
 import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import { ArrowRight, ShieldCheck, Zap, Cpu } from "lucide-react";
 
-const STORAGE_KEY = "lovconnect:claude_launch_modal:v8";
+const STORAGE_KEY = "lovconnect:claude_launch_modal:v9";
 
 /**
  * Modal de lançamento do Claude — dispara UMA vez, geral, para revendedores
