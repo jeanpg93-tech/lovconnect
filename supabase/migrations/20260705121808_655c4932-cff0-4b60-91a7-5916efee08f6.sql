@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "Autenticado ve revendedores ativos" ON public.resellers;
+CREATE POLICY "Autenticado ve revendedores ativos" ON public.resellers FOR SELECT TO authenticated USING (is_active = true);
