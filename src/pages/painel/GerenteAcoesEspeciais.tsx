@@ -812,17 +812,6 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
 
     setSaving(true);
     try {
-      if (willActivate) {
-        // Encerra ativa atual (se houver) para respeitar unique partial index
-        const { data: cur } = await supabase.from("promotions")
-          .select("id").eq("status", "active").maybeSingle();
-        if (cur && (!editing || cur.id !== editing.id)) {
-          await supabase.from("promotions")
-            .update({ status: "ended", deactivated_at: new Date().toISOString() })
-            .eq("id", cur.id);
-        }
-      }
-
       if (editing) {
         const { error } = await supabase.from("promotions").update(payload).eq("id", editing.id);
         if (error) throw error;
