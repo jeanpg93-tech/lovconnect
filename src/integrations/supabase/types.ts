@@ -457,6 +457,7 @@ export type Database = {
           id: string
           is_manager_manual: boolean
           is_renewal: boolean
+          is_trial: boolean
           manager_user_id: string | null
           paid_at: string | null
           pix_expires_at: string | null
@@ -476,6 +477,8 @@ export type Database = {
           sale_price_cents: number
           status: Database["public"]["Enums"]["claude_order_status"]
           tokens_exhausted_at: string | null
+          trial_duration_minutes: number | null
+          trial_messages_limit: number | null
           updated_at: string
         }
         Insert: {
@@ -504,6 +507,7 @@ export type Database = {
           id?: string
           is_manager_manual?: boolean
           is_renewal?: boolean
+          is_trial?: boolean
           manager_user_id?: string | null
           paid_at?: string | null
           pix_expires_at?: string | null
@@ -523,6 +527,8 @@ export type Database = {
           sale_price_cents?: number
           status?: Database["public"]["Enums"]["claude_order_status"]
           tokens_exhausted_at?: string | null
+          trial_duration_minutes?: number | null
+          trial_messages_limit?: number | null
           updated_at?: string
         }
         Update: {
@@ -551,6 +557,7 @@ export type Database = {
           id?: string
           is_manager_manual?: boolean
           is_renewal?: boolean
+          is_trial?: boolean
           manager_user_id?: string | null
           paid_at?: string | null
           pix_expires_at?: string | null
@@ -570,6 +577,8 @@ export type Database = {
           sale_price_cents?: number
           status?: Database["public"]["Enums"]["claude_order_status"]
           tokens_exhausted_at?: string | null
+          trial_duration_minutes?: number | null
+          trial_messages_limit?: number | null
           updated_at?: string
         }
         Relationships: [
