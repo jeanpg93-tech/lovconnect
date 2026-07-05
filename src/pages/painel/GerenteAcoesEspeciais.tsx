@@ -498,6 +498,13 @@ function PromoValues({ p, compact, big }: { p: Promotion; compact?: boolean; big
   if (p.activation_discount_cents != null) items.push({ icon: <Rocket className={sz} />, label: "Adesão", value: `-${fmtBRL(p.activation_discount_cents)}` });
   if (p.activation_fixed_price_cents != null) items.push({ icon: <Rocket className={sz} />, label: "Adesão por", value: fmtBRL(p.activation_fixed_price_cents) });
   if (p.activation_bonus_cents != null && p.activation_bonus_cents > 0) items.push({ icon: <Gift className={sz} />, label: "Bônus na adesão", value: `+${fmtBRL(p.activation_bonus_cents)}` });
+  if (p.claude_discount_by_tier && Object.keys(p.claude_discount_by_tier).length > 0) {
+    const parts = Object.entries(p.claude_discount_by_tier)
+      .filter(([, v]) => Number(v) > 0)
+      .map(([slug, v]) => `${slug} -${v}%`)
+      .join(" / ");
+    if (parts) items.push({ icon: <Sparkles className={sz} />, label: "Claude por nível", value: parts });
+  }
   if (items.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2">
