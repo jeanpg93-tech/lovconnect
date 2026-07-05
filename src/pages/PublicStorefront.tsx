@@ -15,6 +15,7 @@ import { StorefrontBackground } from "@/components/storefront/StorefrontBackgrou
 import { StorefrontVisualEffects, type VisualEffect } from "@/components/storefront/StorefrontVisualEffects";
 import { ReportStoreDialog } from "@/components/storefront/ReportStoreDialog";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
+import IssueClaudeTrialDialog from "@/components/painel/IssueClaudeTrialDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -111,6 +112,7 @@ export default function PublicStorefront() {
   const [claudePlans, setClaudePlans] = useState<{ code: string; label: string; price_cents: number; sort_order: number }[]>([]);
   const [claudeLoading, setClaudeLoading] = useState(false);
   const [claudeAvailable, setClaudeAvailable] = useState(false);
+  const [claudeTrialOpen, setClaudeTrialOpen] = useState(false);
   
   // Device Reset
   const [resetKey, setResetKey] = useState("");
@@ -1353,6 +1355,25 @@ export default function PublicStorefront() {
                       </Link>
                     </div>
 
+                    {/* Teste grátis */}
+                    <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-center">
+                      <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-primary">
+                        <Sparkles className="h-3 w-3" /> Grátis
+                      </div>
+                      <h3 className="mt-2 text-sm font-bold">Experimente antes de comprar</h3>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        Teste o Claude por <strong>15 minutos</strong> ou <strong>50 mensagens</strong> — o que vier primeiro.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setClaudeTrialOpen(true)}
+                        className="mt-3 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold text-white shadow"
+                        style={{ background: color }}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" /> Testar grátis agora
+                      </button>
+                    </div>
+
                     {/* Onde usar / Compatibilidade */}
                     <div className="mt-8">
                       <div className="flex items-center gap-2 justify-center mb-3">
@@ -1586,6 +1607,12 @@ export default function PublicStorefront() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <IssueClaudeTrialDialog
+        open={claudeTrialOpen}
+        onOpenChange={setClaudeTrialOpen}
+        mode="storefront"
+        storefrontSlug={slug}
+      />
     </div>
   );
 }

@@ -592,23 +592,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // POST /teste — chave de teste 15 minutos (sem custo)
-    if (action === "teste" && req.method === "POST") {
+    // POST /teste — Conta de teste GRATUITA (15 minutos OU 50 mensagens, o que vier primeiro).
+    // Não debita saldo. Limite do provedor: 20 testes/dia por conta de revenda (429 no upstream).
+    if ((action === "teste" || action === "testes") && req.method === "POST") {
       if (!CLAUDE_BASE_URL) return json({ success: false, error: "provider_not_configured" }, 500);
       const bodyT = await req.json().catch(() => ({}));
       const email = bodyT?.email ? String(bodyT.email).trim().toLowerCase().slice(0, 200) : null;
-
-      // Throttle simples: máx 5 trials/hora por revendedor
-      const oneHourAgo = new Date(Date.now() - 3600_000).toISOString();
-      const { count } = await svc
-        .from("claude_orders")
-        .select("id", { count: "exact", head: true })
-        .eq("reseller_id", reseller.id)
-        .eq("plan_code", "trial_15m")
-        .gte("created_at", oneHourAgo);
-      if ((count ?? 0) >= 5) {
-        return json({ success: false, error: "rate_limited", message: "Limite de 5 testes por hora atingido." }, 429);
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return json({ success: false, error: "email_obrigatorio", message: "Informe o campo 'email' do cliente." }, 400);
       }
+      const customerName = bodyT?.nome ? String(bodyT.nome).trim().slice(0, 120) : null;
+      const customerWhatsapp = bodyT?.whatsapp ? String(bodyT.whatsapp).replace(/\D+/g, '').slice(0, 15) : null;
 
       let providerResp: any = null; let providerStatus = 0;
       try {
@@ -619,7 +613,7 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify({ ...(email ? { email } : {}) }),
+          body: JSON.stringify({ email }),
         });
         providerStatus = r.status;
         const txt = await r.text();
@@ -628,6 +622,16 @@ Deno.serve(async (req) => {
         return json({ success: false, error: "provider_network_error", detail: (e as Error).message }, 502);
       }
       if (providerStatus < 200 || providerStatus >= 300) {
+        // Traduz erros comuns do provedor
+        if (providerStatus === 403) {
+          return json({ success: false, error: "trial_disabled_by_admin", message: "Recurso de teste não habilitado pelo admin do provedor. Solicite a liberação." }, 403);
+        }
+        if (providerStatus === 409) {
+          return json({ success: false, error: "email_already_has_account", message: "Este e-mail já possui uma conta no provedor." }, 409);
+        }
+        if (providerStatus === 429) {
+          return json({ success: false, error: "provider_daily_limit_reached", message: "Limite diário de 20 testes atingido no provedor. Fale com o admin para liberar mais." }, 429);
+        }
         return json({ success: false, error: "provider_error", status: providerStatus, body: providerResp }, 502);
       }
 
@@ -640,10 +644,15 @@ Deno.serve(async (req) => {
       const providerUserId: string | undefined =
         providerResp?.userId ?? providerResp?.user_id ?? providerResp?.data?.userId ?? providerResp?.data?.user_id;
 
-      // Registro leve para contagem/throttle (sem custo)
+      // Registro leve (sem custo)
       await svc.from("claude_orders").insert({
         reseller_id: reseller.id,
-        plan_code: "trial_15m",
+        plan_code: "trial_15m_50msg",
+        is_trial: true,
+        trial_duration_minutes: 15,
+        trial_messages_limit: 50,
+        customer_name: customerName,
+        customer_whatsapp: customerWhatsapp,
         customer_email: email,
         cost_cents: 0,
         sale_price_cents: 0,
@@ -655,7 +664,7 @@ Deno.serve(async (req) => {
         provider_user_id: providerUserId ?? null,
         provider_response: providerResp,
         code_revealed_at: new Date().toISOString(),
-        error_message: "trial_15m",
+        error_message: "trial_15m_50msg",
       });
 
       return json({
@@ -664,7 +673,11 @@ Deno.serve(async (req) => {
         api_key: providerApiKey ?? null,
         user_id: providerUserId ?? null,
         provider_base_url: providerApiKey ? "https://claude-ss.ia.br/" : null,
+        email,
+        trial: { duracao_minutos: 15, mensagens_limite: 50 },
         duracao_minutos: 15,
+        mensagens_limite: 50,
+        aviso: "Teste grátis — expira em 15 minutos OU 50 mensagens (o que vier primeiro). Não debita saldo.",
       });
     }
 

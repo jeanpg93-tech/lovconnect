@@ -17,7 +17,7 @@ Se você já implementou a versão anterior desta API, **estas são as novidades
 - **\`email\` agora é OBRIGATÓRIO** em \`POST /chaves\` (sem ele → \`400 email_obrigatorio\`). A resposta pode incluir \`api_key\`, \`user_id\` e \`provider_base_url\` — quando vierem, mostre-os no modal de sucesso (o cliente já pluga direto no Cursor/Cline sem passar pelo Portal).
 - **Saldo insuficiente vira 202 \`awaiting_balance\`** em vez de erro definitivo: o pedido fica em espera e a chave é entregue via webhook \`claude.key.issued\` assim que você recarregar. Não reenvie \`POST /chaves\`.
 - **Novo endpoint \`POST /chaves/{id}/renovar\`:** renova o plano do cliente pelo mesmo e-mail, sem gerar nova chave. Debita saldo.
-- **Novo endpoint \`POST /teste\` (opcional):** emite chave de teste de 15 min sem custo (máx. 5/h por API Key). **O revendedor decide se quer oferecer** — pergunte ao dono do projeto se ele quer expor um botão "Testar grátis" na landing/loja. Se sim, implemente; se não, apenas deixe a função no cliente TS e não crie UI.
+- **Novo endpoint \`POST /teste\` (opcional):** emite uma conta de TESTE GRATUITA que expira em **15 MINUTOS *ou* 50 MENSAGENS** (o que vier primeiro). NÃO debita saldo. Retorna \`api_key\` (kp_user_…) pronta para uso. Limite do provedor: 20 testes/dia por conta de revenda (429 \`provider_daily_limit_reached\` quando estoura — fale com o admin para liberar mais). **O revendedor decide se quer oferecer** — se sim, exponha um botão "Testar grátis (15 min ou 50 msgs)" e sempre deixe explícito o limite duplo na UI.
 - **\`GET /chaves/{id}\` enriquecido:** agora devolve \`customer_email/name/whatsapp\`, \`redeemed_at\`, \`expired_at\`, \`cancelled_at\`, \`tokens_exhausted_at\`, \`is_renewal\`.
 - **Webhook \`claude.key.renewed\`** foi adicionado e novos eventos (\`claude.key.expired\`, \`claude.tokens.limit_reached\` etc.) chegarão em breve — todos assinados com HMAC-SHA256 no header \`X-Signature\`. **Responda 2xx a qualquer \`event\` desconhecido** para não quebrar a integração no futuro.
 
@@ -220,20 +220,26 @@ Renova o plano de um cliente existente pelo mesmo e-mail — **não gera nova ch
 **Erros:** \`400 email_required\` (pedido sem e-mail e nenhum enviado) · \`400 email_obrigatorio\` (formato inválido) · \`402 saldo_insuficiente\` · \`404\` pedido não encontrado · \`502 provider_error\`.
 
 ### POST /teste
-Emite uma chave de teste de **15 minutos** sem custo. Máximo 5 chamadas por hora por API Key.
+Emite uma **conta de teste GRATUITA** que expira em **15 MINUTOS** *ou* após **50 MENSAGENS** — o que vier primeiro. NÃO debita saldo da carteira do revendedor.
 
-> ⚠️ **Recurso opcional.** Só implemente a UI de "Testar grátis" se o revendedor confirmar que quer oferecer aos clientes. Caso contrário, deixe apenas a função no cliente TS (útil para testes internos) e não exponha botão público.
+> ⚠️ **Recurso opcional.** Só implemente a UI de "Testar grátis" se o revendedor confirmar que quer oferecer aos clientes finais. Se implementar, o botão/aviso DEVE deixar explícito o limite duplo: **"15 min ou 50 mensagens — o que vier primeiro"**.
+>
+> Limite do provedor: **20 testes por dia** por conta de revenda. Ao estourar, o endpoint devolve \`429 provider_daily_limit_reached\` — não retente automaticamente; oriente o revendedor a falar com o admin para liberar mais.
 
-**Body (opcional):**
+**Body (obrigatório):**
 \`\`\`json
-{ "email": "lead@dominio.com" }
+{ "email": "lead@dominio.com", "nome": "opcional", "whatsapp": "opcional" }
 \`\`\`
 **Resposta 200:**
 \`\`\`json
 { "success": true, "codigo": "CLAUDE-XXXXX-XXXXX", "api_key": "kp_user_...",
-  "user_id": "u_...", "provider_base_url": "https://claude-ss.ia.br/", "duracao_minutos": 15 }
+  "user_id": "u_...", "email": "lead@dominio.com",
+  "provider_base_url": "https://claude-ss.ia.br/",
+  "trial": { "duracao_minutos": 15, "mensagens_limite": 50 },
+  "duracao_minutos": 15, "mensagens_limite": 50,
+  "aviso": "Teste grátis — expira em 15 minutos OU 50 mensagens (o que vier primeiro). Não debita saldo." }
 \`\`\`
-**Erros:** \`429\` \`rate_limited\`.
+**Erros:** \`400 email_obrigatorio\` · \`403 trial_disabled_by_admin\` (admin do provedor não liberou testes) · \`409 email_already_has_account\` (use outro e-mail) · \`429 provider_daily_limit_reached\` (limite diário do provedor — não retente) · \`502 provider_error\`.
 
 ### Webhook (POST do servidor para a URL configurada)
 Disparado sempre que um evento acontece. Header de assinatura: \`X-Signature: sha256=<hex>\` (HMAC-SHA256 do corpo cru, usando \`CLAUDE_WEBHOOK_SECRET\`). O corpo sempre inclui \`event\` e \`sent_at\`.
