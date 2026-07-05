@@ -122,7 +122,9 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
   const raw = await req.text();
-  const signature = req.headers.get('x-webhook-signature') ?? req.headers.get('x-signature') ?? '';
+  const rawSig = req.headers.get('x-webhook-signature') ?? req.headers.get('x-signature') ?? '';
+  // Providers frequently prefix the digest with `sha256=`; accept both formats.
+  const signature = rawSig.replace(/^sha256=/i, '').trim();
   let signatureOk = false;
   if (WEBHOOK_SECRET) {
     try {

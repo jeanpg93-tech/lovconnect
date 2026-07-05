@@ -7,9 +7,10 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const CLAUDE_API_KEY = Deno.env.get('CLAUDE_RESELLER_API_KEY')!;
 const CLAUDE_BASE_URL = (Deno.env.get('CLAUDE_RESELLER_API_BASE_URL') ?? '').replace(/\/$/, '');
 
-const PLAN_CODES = new Set(['pro_30d', '5x_30d', '20x_30d']);
+const PLAN_CODES = new Set(['pro_30d', '5x_7d', '5x_30d', '20x_30d']);
 const PLAN_LABELS: Record<string, string> = {
   'pro_30d': 'Pro · 30 dias',
+  '5x_7d':   '5x · 7 dias',
   '5x_30d':  '5x · 30 dias',
   '20x_30d': '20x · 30 dias',
 };
