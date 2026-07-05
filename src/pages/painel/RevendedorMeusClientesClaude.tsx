@@ -597,6 +597,99 @@ export default function RevendedorMeusClientesClaude() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!portalResult} onOpenChange={(o) => !o && setPortalResult(null)}>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4 text-emerald-500" />
+              {portalResult?.action === "reset" ? "Nova senha do portal gerada" : "Acesso ao portal criado"}
+            </DialogTitle>
+            <DialogDescription>
+              {portalResult?.already_existed && portalResult?.action === "provision"
+                ? "Este cliente já possuía portal — nenhuma senha nova foi gerada."
+                : "Envie os dados abaixo ao cliente. A senha temporária aparece só uma vez."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {portalResult && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1.5 text-xs">
+                <div><span className="text-muted-foreground">Portal:</span> <code className="font-mono">{portalResult.portal_url}</code></div>
+                <div><span className="text-muted-foreground">E-mail:</span> <b>{portalResult.email}</b></div>
+                {portalResult.temp_password ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Senha temporária:</span>
+                    <code className="flex-1 rounded bg-background/60 px-2 py-1 font-mono text-[12px]">{portalResult.temp_password}</code>
+                    <Button
+                      size="sm" variant="ghost" className="h-6 px-2"
+                      onClick={() => { navigator.clipboard.writeText(portalResult.temp_password!); toast.success("Senha copiada"); }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground">Senha existente mantida — use "Reenviar / resetar senha" se o cliente esqueceu.</div>
+                )}
+              </div>
+
+              {portalResult.temp_password && (
+                <>
+                  <div className="rounded-lg border border-border bg-background/40 p-3 text-[11px] whitespace-pre-line font-mono">
+                    {buildPortalMessage(portalResult.email, portalResult.temp_password, portalResult.portal_url)}
+                  </div>
+
+                  {portalResult.whatsapp_sent ? (
+                    <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2 text-[11px] text-emerald-600">
+                      <CheckCircle2 className="h-3.5 w-3.5 mt-0.5" />
+                      Mensagem enviada automaticamente pelo WhatsApp configurado.
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 text-[11px] text-amber-600">
+                      <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      <span>Não enviei automaticamente ({portalResult.whatsapp_skipped ?? "sem WhatsApp/API"}). Copie a mensagem ou use o botão do WhatsApp.</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button
+                      variant="outline" size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          buildPortalMessage(portalResult.email, portalResult.temp_password, portalResult.portal_url),
+                        );
+                        toast.success("Mensagem copiada");
+                      }}
+                    >
+                      <Copy className="mr-1 h-3.5 w-3.5" /> Copiar mensagem
+                    </Button>
+                    {portalResult.order.customer_whatsapp && (
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                        onClick={() => {
+                          const digits = portalResult.order.customer_whatsapp!.replace(/\D+/g, "");
+                          const to = digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
+                          const msg = encodeURIComponent(
+                            buildPortalMessage(portalResult.email, portalResult.temp_password, portalResult.portal_url),
+                          );
+                          window.open(`https://wa.me/${to}?text=${msg}`, "_blank");
+                        }}
+                      >
+                        <MessageCircle className="mr-1 h-3.5 w-3.5" /> Abrir WhatsApp
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPortalResult(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
