@@ -4,7 +4,9 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import { useClaudePromoForReseller } from "@/hooks/useClaudePromoForReseller";
 import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
-import { ArrowRight, ShieldCheck, Zap, Cpu } from "lucide-react";
+import { ArrowRight, ShieldCheck, Zap, Cpu, Tag } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const STORAGE_KEY = "lovconnect:claude_launch_modal:v12";
 
@@ -16,8 +18,24 @@ const STORAGE_KEY = "lovconnect:claude_launch_modal:v12";
 export default function ClaudeLaunchModal() {
   const { info, loading } = useClaudePromoForReseller();
   const { claude: claudeEnabled, loading: methodsLoading } = useResellerEnabledMethods();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const [hasPrices, setHasPrices] = useState<boolean | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data: r } = await supabase.from("resellers").select("id").eq("user_id", user.id).maybeSingle();
+      if (!r?.id) { setHasPrices(false); return; }
+      const { count } = await supabase
+        .from("claude_reseller_price_overrides")
+        .select("plan_code", { count: "exact", head: true })
+        .eq("reseller_id", r.id)
+        .eq("is_active", true);
+      setHasPrices((count ?? 0) > 0);
+    })();
+  }, [user]);
 
   useEffect(() => {
     if (loading || methodsLoading || !info || !claudeEnabled) return;
@@ -56,7 +74,7 @@ export default function ClaudeLaunchModal() {
         <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-[#ff3b2f]/10 blur-[100px]" />
         <div className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 rounded-full bg-[#ff8a5c]/10 blur-[80px]" />
 
-        <div className="relative z-10 flex flex-col items-center p-8 text-center">
+        <div className="relative flex flex-col items-center p-8 text-center">
           {/* Badge de lançamento */}
           <div className="mb-6 animate-bounce">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#ff3b2f]/40 bg-[#1a0a0a] px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-[#ff3b2f]">
@@ -65,11 +83,11 @@ export default function ClaudeLaunchModal() {
             </span>
           </div>
 
-          {/* Logo com glow pulsante */}
-          <div className="group relative mb-4">
+          {/* Logo com glow pulsante — mesmo ícone do menu lateral (sparkle) */}
+          <div className="group relative mb-4 h-56 w-56">
             <div className="absolute inset-0 animate-pulse rounded-full bg-[#ff3b2f] opacity-30 blur-3xl transition-opacity duration-500 group-hover:opacity-60" />
             <div className="absolute inset-4 animate-pulse rounded-full bg-[#ff8a5c] opacity-20 blur-2xl [animation-delay:400ms]" />
-            <ClaudeIcon className="relative h-64 w-64 transition-transform duration-500 group-hover:scale-105" />
+            <ClaudeIcon className="relative h-56 w-56 object-cover object-top transition-transform duration-500 group-hover:scale-105" />
           </div>
 
           {/* Headline */}
@@ -125,7 +143,7 @@ export default function ClaudeLaunchModal() {
             </div>
           </div>
 
-          {/* CTAs */}
+          {/* CTAs — se ainda não configurou preços, direciona pra cadastrar */}
           <div className="grid w-full gap-3 sm:grid-cols-2">
             <button
               onClick={() => go("/painel/revendedor/precos?tab=claude")}
@@ -133,16 +151,30 @@ export default function ClaudeLaunchModal() {
             >
               ver preços
             </button>
-            <button
-              onClick={() => go("/painel/revendedor/claude")}
-              className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#ff3b2f] py-4 font-mono text-[10px] font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,59,47,0.4)] transition-all duration-300 hover:bg-[#ff5147] hover:shadow-[0_0_32px_rgba(255,59,47,0.7)]"
-            >
-              <span className="relative z-10 inline-flex items-center gap-2">
-                gerar minha primeira chave
-                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-              </span>
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
-            </button>
+            {hasPrices === false ? (
+              <button
+                onClick={() => go("/painel/revendedor/precos?tab=claude")}
+                className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#ff3b2f] py-4 font-mono text-[10px] font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,59,47,0.4)] transition-all duration-300 hover:bg-[#ff5147] hover:shadow-[0_0_32px_rgba(255,59,47,0.7)]"
+              >
+                <span className="relative z-10 inline-flex items-center gap-2">
+                  <Tag className="h-3 w-3" />
+                  cadastrar preços de venda
+                  <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                </span>
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
+              </button>
+            ) : (
+              <button
+                onClick={() => go("/painel/revendedor/claude")}
+                className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#ff3b2f] py-4 font-mono text-[10px] font-bold uppercase tracking-widest text-white shadow-[0_0_20px_rgba(255,59,47,0.4)] transition-all duration-300 hover:bg-[#ff5147] hover:shadow-[0_0_32px_rgba(255,59,47,0.7)]"
+              >
+                <span className="relative z-10 inline-flex items-center gap-2">
+                  gerar minha primeira chave
+                  <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                </span>
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
+              </button>
+            )}
           </div>
         </div>
       </DialogContent>
