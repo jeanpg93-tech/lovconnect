@@ -229,6 +229,9 @@ export default function RevendedorClaude() {
   const openConfirm = () => {
     if (!selected?.is_active) return;
     if (customerName.trim().length < 2) return toast.error("Informe o nome do cliente");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+      return toast.error("Informe um e-mail válido do cliente");
+    }
     if (balance < selected.sale_price_cents) return toast.error("Saldo insuficiente");
     setConfirmChecks({ data: false, debit: false, once: false });
     setConfirmOpen(true);
@@ -447,7 +450,7 @@ Qualquer dúvida, é só chamar!`
 
           <div className="mt-3">
             <Label className="text-xs">
-              E-mail do cliente <span className="text-muted-foreground">(opcional — permite acompanhar o consumo de tokens)</span>
+              E-mail do cliente <span className="text-primary">*</span> <span className="text-muted-foreground">(permite acompanhar o consumo de tokens)</span>
             </Label>
             <div className="relative mt-1.5">
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
