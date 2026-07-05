@@ -13,6 +13,7 @@ import { Loader2, Copy, Check, KeyRound, CheckCircle2, History as HistoryIcon, S
 import { cn } from "@/lib/utils";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import ApiKeyReveal from "@/components/painel/ApiKeyReveal";
+import IssueClaudeTrialDialog from "@/components/painel/IssueClaudeTrialDialog";
 import { toast } from "sonner";
 
 type PlanCode = "pro_30d" | "5x_30d" | "20x_30d";
