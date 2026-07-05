@@ -202,6 +202,36 @@ function mapLicenseTypeToDuration(type: string): string {
   return t || "—";
 }
 
+function providerEmailAlreadyExists(resp: any): boolean {
+  const msg = String(
+    resp?.error ??
+    resp?.message ??
+    resp?.detail ??
+    resp?.raw ??
+    resp?.data?.error ??
+    resp?.data?.message ??
+    "",
+  ).toLowerCase();
+  return (
+    msg.includes("e-mail já cadastrado") ||
+    msg.includes("email já cadastrado") ||
+    msg.includes("e-mail ja cadastrado") ||
+    msg.includes("email ja cadastrado") ||
+    msg.includes("already registered") ||
+    msg.includes("already exists") ||
+    msg.includes("already has")
+  );
+}
+
+function extractClaudeProviderFields(resp: any) {
+  return {
+    code: resp?.code ?? resp?.key ?? resp?.data?.code ?? resp?.data?.key,
+    providerKeyId: resp?.id ?? resp?.key_id ?? resp?.data?.id,
+    providerApiKey: resp?.apiKey ?? resp?.api_key ?? resp?.data?.apiKey ?? resp?.data?.api_key,
+    providerUserId: resp?.userId ?? resp?.user_id ?? resp?.data?.userId ?? resp?.data?.user_id,
+  };
+}
+
 async function triggerReleasePending(orderIds: string[]) {
   for (const id of orderIds) {
     try {
@@ -895,7 +925,9 @@ Deno.serve(async (req) => {
           _amount_cents: resellerCostCents,
         });
 
-        // Chama o provedor Claude para emitir a chave
+        // Chama o provedor Claude. Renovações usam /renew (não /keys), e uma
+        // venda nova com e-mail já existente no provedor cai para /renew para
+        // não falhar depois que o PIX já foi confirmado.
         const CLAUDE_API_KEY = Deno.env.get("CLAUDE_RESELLER_API_KEY") ?? "";
         const CLAUDE_BASE_URL = (Deno.env.get("CLAUDE_RESELLER_API_BASE_URL") ?? "").replace(/\/$/, "");
         let providerResp: any = null;
@@ -904,7 +936,271 @@ Deno.serve(async (req) => {
           providerResp = { error: "provider_not_configured" };
         } else {
           try {
-            const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/keys`, {
+            const customerEmail = String((claudeOrder as any).customer_email ?? "").trim().toLowerCase();
+            const callProvider = async (path: string) => {
+              const r = await fetch(`${CLAUDE_BASE_URL}${path}`, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${CLAUDE_API_KEY}`,
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                },
+                body: JSON.stringify({
+                  kind: planCode,
+                  ...(customerEmail ? { email: customerEmail } : {}),
+                }),
+              });
+              const txt = await r.text();
+              let body: any = null;
+              try { body = JSON.parse(txt); } catch { body = { raw: txt }; }
+              return { status: r.status, body };
+            };
+
+            const firstPath = (claudeOrder as any).is_renewal ? "/api/rsl/renew" : "/api/rsl/keys";
+            let result = await callProvider(firstPath);
+            if (firstPath === "/api/rsl/keys" && result.status === 409 && customerEmail && providerEmailAlreadyExists(result.body)) {
+              result = await callProvider("/api/rsl/renew");
+            }
+            providerStatus = result.status;
+            providerResp = result.body;
+          } catch (e) {
+            providerResp = { error: `network_error: ${(e as Error)?.message ?? e}` };
+          }
+        }
+
+        if (providerStatus < 200 || providerStatus >= 300) {
+          // Estorna o débito — não entregamos a chave
+          await admin.rpc("credit_reseller_balance", {
+            _reseller_id: resellerId,
+            _amount_cents: resellerCostCents,
+            _kind: "claude_refund",
+            _description: `Estorno Claude (falha provedor): ${(claudeOrder as any).id}`,
+            _reference_id: (claudeOrder as any).id,
+          });
+          await admin.from("claude_orders").update({
+            status: "failed",
+            provider_response: providerResp,
+            error_message: `provider_${providerStatus || "error"}`,
+          }).eq("id", (claudeOrder as any).id);
+          return json({ ok: false, kind: "claude_provider_failed" }, 502);
+        }
+
+        let { code, providerKeyId, providerApiKey, providerUserId } = extractClaudeProviderFields(providerResp);
+        if ((!code || !providerKeyId || !providerApiKey || !providerUserId) && (claudeOrder as any).customer_email) {
+          const { data: prior } = await admin
+            .from("claude_orders")
+            .select("code, provider_key_id, provider_api_key, provider_user_id")
+            .eq("reseller_id", resellerId)
+            .ilike("customer_email", String((claudeOrder as any).customer_email).toLowerCase())
+            .neq("id", (claudeOrder as any).id)
+            .not("code", "is", null)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          code = code ?? prior?.code;
+          providerKeyId = providerKeyId ?? prior?.provider_key_id;
+          providerApiKey = providerApiKey ?? prior?.provider_api_key;
+          providerUserId = providerUserId ?? prior?.provider_user_id;
+        }
+
+        await admin.from("claude_orders").update({
+          status: "issued",
+          code,
+          provider_key_id: providerKeyId,
+          provider_api_key: providerApiKey ?? null,
+          provider_user_id: providerUserId ?? null,
+          provider_response: providerResp,
+          code_revealed_at: new Date().toISOString(),
+          error_message: null,
+        }).eq("id", (claudeOrder as any).id);
+
+        // Notifica revendedor
+        try {
+          const { data: r } = await admin.from("resellers").select("user_id, display_name").eq("id", resellerId).maybeSingle();
+          const isRenewal = !!(claudeOrder as any).is_renewal;
+          const title = isRenewal ? "Renovação Claude paga" : "Venda Claude paga";
+          const emoji = isRenewal ? "🔄" : "🤖";
+          if ((r as any)?.user_id) {
+            await admin.from("notifications").insert({
+              user_id: (r as any).user_id,
+              type: isRenewal ? "claude_renewal_paid" : "claude_sale_paid",
+              title,
+              body: `Cliente ${((claudeOrder as any).customer_name ?? (claudeOrder as any).customer_email ?? "—")} pagou ${planCode}.`,
+              link: "/painel/revendedor/claude",
+              metadata: { order_id: (claudeOrder as any).id, plan_code: planCode },
+            });
+          }
+          const amountBRL = "R$ " + (Number((claudeOrder as any).sale_price_cents ?? 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          await admin.from("telegram_outbox").insert({
+            text:
+              `${emoji} <b>${title}</b>\n` +
+              "👨‍💼 Revendedor: " + ((r as any)?.display_name ?? "—") + "\n" +
+              "👤 Cliente: " + ((claudeOrder as any).customer_name ?? "—") + "\n" +
+              "📦 Plano: " + planCode + "\n" +
+              "💵 Valor: " + amountBRL + "\n" +
+              "💳 Pagamento: PIX (MisticPay)",
+          });
+        } catch (_) {}
+
+        return json({ ok: true, kind: "claude_order_issued" });
+      }
+
+      // Try pack purchase (revendedor Pack comprando créditos avulsos)
+      const { data: packPurchase } = await admin
+        .from("reseller_pack_purchases")
+        .select("*")
+        .eq("provider_tx_id", txId)
+        .maybeSingle();
+
+      if (packPurchase) {
+        if ((packPurchase as any).status === "paid") return json({ ok: true, already: true });
+
+        if (status === "COMPLETO" || status === "PAID" || status === "SUCCESS") {
+          const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
+          const ok = await verifyTx(mci, mcs, txId, (packPurchase as any).reseller_id);
+          if (!ok) {
+            console.warn("[webhook] pack purchase tx not confirmed by MisticPay", txId);
+            return json({ ok: false, reason: "unverified_transaction" }, 403);
+          }
+
+          await admin.from("reseller_pack_purchases").update({
+            status: "paid",
+            paid_at: paidAt,
+          }).eq("id", (packPurchase as any).id);
+
+          await recordMisticPayFee(admin, txId, "pack_purchase", (packPurchase as any).id, `Pack: ${(packPurchase as any).pack_name ?? "—"}`, paidAt, feeCents);
+
+          const { data: newBal, error: credErr } = await admin.rpc("pack_credit_balance", {
+            _reseller_id: (packPurchase as any).reseller_id,
+            _credits: (packPurchase as any).credits,
+            _kind: "purchase",
+            _purchase_id: (packPurchase as any).id,
+            _description: `Compra ${(packPurchase as any).pack_name} (${(packPurchase as any).credits} créditos)`,
+            _actor_id: null,
+          });
+          if (credErr) {
+            console.error("[webhook] pack_credit_balance failed", credErr);
+            return json({ ok: false, error: credErr.message }, 500);
+          }
+
+          try {
+            const { data: r } = await admin
+              .from("resellers").select("display_name, user_id")
+              .eq("id", (packPurchase as any).reseller_id).maybeSingle();
+            const amountBRL = "R$ " +
+              (Number((packPurchase as any).price_cents) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            await admin.from("telegram_outbox").insert({
+              text:
+                "📦 <b>Compra de Pacote — Revendedor Pack</b>\n" +
+                "👨‍💼 Revendedor: " + ((r as any)?.display_name ?? "—") + "\n" +
+                "💵 Valor: " + amountBRL + "\n" +
+                "🎁 Pacote: " + (packPurchase as any).pack_name + " (" + (packPurchase as any).credits + " licenças)\n" +
+                "📊 Licenças restantes: " + (newBal ?? "?"),
+            });
+            if ((r as any)?.user_id) {
+              await admin.from("notifications").insert({
+                user_id: (r as any).user_id,
+                type: "pack_purchase_paid",
+                title: "Pacote confirmado!",
+                body: `${(packPurchase as any).credits} licenças liberadas. Restam: ${newBal ?? "?"}.`,
+                link: "/painel/revendedor/gerar-chave",
+              });
+
+              // Notifica o revendedor sobre o pacote confirmado via WhatsApp
+              await triggerWhatsAppNotify({
+                event_key: "pack_purchase_confirmed",
+                reseller_id: (packPurchase as any).reseller_id,
+                vars: {
+                  pack_name: (packPurchase as any).pack_name,
+                  credits: String((packPurchase as any).credits),
+                },
+              });
+            }
+          } catch (e) {
+            console.warn("[webhook] pack notify failed", e);
+          }
+
+          // Após creditar o pack, tenta liberar vendas em espera (pack ou saldo)
+          try {
+            const { data: released } = await admin.rpc("try_release_pending_orders", {
+              _reseller_id: (packPurchase as any).reseller_id,
+            });
+            const ids = Array.isArray(released) ? released.filter(Boolean) : [];
+            if (ids.length > 0) {
+              triggerReleasePending(ids as string[]);
+            }
+          } catch (e) {
+            console.warn("try_release_pending_orders (pack) failed", e);
+          }
+
+          return json({ ok: true, kind: "pack_purchase" });
+        }
+
+        if (status === "FALHA" || status === "CANCELADO" || status === "FAILED") {
+          await admin.from("reseller_pack_purchases").update({ status: "failed" }).eq("id", (packPurchase as any).id);
+          return json({ ok: true });
+        }
+        return json({ ok: true, status });
+      }
+
+      console.warn("no intent/order/sale for tx", txId);
+      return json({ ok: false, reason: "not found" }, 200);
+    }
+
+    if (storeOrder.status === "completed" || storeOrder.status === "paid") {
+      return json({ ok: true, already: true });
+    }
+
+    if (status === "FALHA" || status === "CANCELADO") {
+      await admin.from("storefront_orders").update({
+        status: "failed",
+        raw_response: payload,
+      }).eq("id", storeOrder.id);
+      return json({ ok: true });
+    }
+
+    if (status !== "COMPLETO") {
+      return json({ ok: true, status });
+    }
+
+    // Antes de qualquer débito/entrega da venda de loja pública, confirma com a MisticPay
+    // usando as credenciais do PRÓPRIO revendedor dono da loja (a venda foi cobrada com elas).
+    {
+      const { data: integ } = await admin
+        .from("reseller_integrations")
+        .select("misticpay_client_id, misticpay_client_secret")
+        .eq("reseller_id", storeOrder.reseller_id)
+        .maybeSingle();
+      const ok = await verifyTx(
+        integ?.misticpay_client_id,
+        integ?.misticpay_client_secret,
+        txId,
+        storeOrder.reseller_id,
+      );
+      if (!ok) {
+        console.warn("[webhook] storefront tx not confirmed by MisticPay", txId, "reseller", storeOrder.reseller_id);
+        return json({ ok: false, reason: "unverified_transaction" }, 403);
+      }
+    }
+
+    // Se a venda saiu da LOJA PRÓPRIA do gerente (LovaStore), registra automaticamente
+    // a receita no Financeiro. Idempotente pelo id do storefront_order.
+    await recordLovaStoreRevenue(admin, storeOrder, paidAt);
+
+    // ... existing storefront handling continues below
+    {
+      const noop = null;
+      void noop;
+    }
+
+    
+    /*
+      The block below used to continue here. This comment intentionally keeps
+      patch context stable; no runtime behavior change.
+    */
+    
+    if (false) {
+      const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/keys`, {
               method: "POST",
               headers: {
                 Authorization: `Bearer ${CLAUDE_API_KEY}`,
@@ -916,13 +1212,8 @@ Deno.serve(async (req) => {
                 ...((claudeOrder as any).customer_email ? { email: (claudeOrder as any).customer_email } : {}),
               }),
             });
-            providerStatus = r.status;
-            const txt = await r.text();
-            try { providerResp = JSON.parse(txt); } catch { providerResp = { raw: txt }; }
-          } catch (e) {
-            providerResp = { error: `network_error: ${(e as Error)?.message ?? e}` };
-          }
-        }
+      });
+    }
 
         if (providerStatus < 200 || providerStatus >= 300) {
           // Estorna o débito — não entregamos a chave
