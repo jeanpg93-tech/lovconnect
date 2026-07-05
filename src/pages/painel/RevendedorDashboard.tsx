@@ -11,6 +11,8 @@ import { useTranslation } from "react-i18next";
 import PricingIssuesBanner from "@/components/painel/PricingIssuesBanner";
 import PackLowBalanceBanner from "@/components/painel/PackLowBalanceBanner";
 import DeliveryModeCard from "@/components/painel/DeliveryModeCard";
+import ClaudePromoDashboardCard from "@/components/painel/ClaudePromoDashboardCard";
+import ClaudeLaunchModal from "@/components/painel/ClaudeLaunchModal";
 import OriginStatsCard from "@/components/painel/OriginStatsCard";
 import ChannelStatsCard from "@/components/painel/ChannelStatsCard";
 import OriginBadge, { readOriginFromNotes } from "@/components/painel/OriginBadge";
@@ -707,6 +709,7 @@ export default function RevendedorDashboard() {
   return (
     <>
     <div className="space-y-6 pb-20 md:pb-0">
+      <ClaudePromoDashboardCard />
       <PricingIssuesBannerSlot />
       <PackLowBalanceBanner />
       <DeliveryModeCard />
