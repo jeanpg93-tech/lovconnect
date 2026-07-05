@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
+import claudeLogo from "@/assets/claude-logo.png.asset.json";
 import { useClaudePromoForReseller } from "@/hooks/useClaudePromoForReseller";
 import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import { ArrowRight, ShieldCheck, Zap, Cpu, Tag } from "lucide-react";
@@ -87,7 +87,12 @@ export default function ClaudeLaunchModal() {
           <div className="group relative mb-4 h-56 w-56">
             <div className="absolute inset-0 animate-pulse rounded-full bg-[#ff3b2f] opacity-30 blur-3xl transition-opacity duration-500 group-hover:opacity-60" />
             <div className="absolute inset-4 animate-pulse rounded-full bg-[#ff8a5c] opacity-20 blur-2xl [animation-delay:400ms]" />
-            <ClaudeIcon className="relative h-40 w-40 text-[#ff3b2f] drop-shadow-[0_0_20px_rgba(255,59,47,0.6)] transition-transform duration-500 group-hover:scale-105" />
+            <img
+              src={claudeLogo.url}
+              alt="Claude"
+              draggable={false}
+              className="relative h-56 w-56 select-none object-contain transition-transform duration-500 group-hover:scale-105"
+            />
           </div>
 
           {/* Headline */}
