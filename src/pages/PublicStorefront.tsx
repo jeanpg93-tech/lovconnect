@@ -1300,6 +1300,32 @@ export default function PublicStorefront() {
                       <p className="text-xs text-muted-foreground">Chave API oficial da Anthropic · Ativação instantânea via PIX</p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {/* Card de teste grátis — sempre primeiro */}
+                      <button
+                        type="button"
+                        onClick={() => setClaudeTrialOpen(true)}
+                        className="group relative overflow-hidden rounded-2xl border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 p-5 transition-all backdrop-blur-xl text-left"
+                      >
+                        <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[9px] font-black uppercase tracking-widest">
+                          Grátis
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-black uppercase tracking-widest text-primary">Teste</div>
+                            <div className="text-sm font-bold mt-1">15 min ou 50 msgs</div>
+                          </div>
+                          <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                        </div>
+                        <div className="mt-4 flex items-end justify-between">
+                          <div>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-widest">custo</div>
+                            <div className="text-2xl font-black tracking-tight">R$ 0,00</div>
+                          </div>
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-primary group-hover:underline">
+                            Testar →
+                          </div>
+                        </div>
+                      </button>
                       {claudeLoading && claudePlans.length === 0
                         ? Array.from({ length: 3 }).map((_, i) => (
                             <div
@@ -1353,25 +1379,6 @@ export default function PublicStorefront() {
                       >
                         Ver todos os planos e comprar →
                       </Link>
-                    </div>
-
-                    {/* Teste grátis */}
-                    <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-center">
-                      <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-primary">
-                        <Sparkles className="h-3 w-3" /> Grátis
-                      </div>
-                      <h3 className="mt-2 text-sm font-bold">Experimente antes de comprar</h3>
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        Teste o Claude por <strong>15 minutos</strong> ou <strong>50 mensagens</strong> — o que vier primeiro.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setClaudeTrialOpen(true)}
-                        className="mt-3 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold text-white shadow"
-                        style={{ background: color }}
-                      >
-                        <Sparkles className="h-3.5 w-3.5" /> Testar grátis agora
-                      </button>
                     </div>
 
                     {/* Onde usar / Compatibilidade */}
