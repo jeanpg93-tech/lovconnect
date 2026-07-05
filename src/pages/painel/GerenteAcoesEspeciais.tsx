@@ -983,7 +983,9 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
             </Button>
           )}
           <Button onClick={() => handleSave(false)} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : (startMode === "now" && !editing ? "Ativar" : "Salvar")}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+              startMode === "now" && (!editing || editing.status !== "active") ? "Ativar" : "Salvar"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
