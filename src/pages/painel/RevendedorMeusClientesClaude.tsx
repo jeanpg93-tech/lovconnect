@@ -4,7 +4,7 @@ import { PageContainer } from "@/components/painel/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity, Copy, KeyRound, Ban, ShieldAlert, Store, Code2, Phone, Hash } from "lucide-react";
+import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity, Copy, KeyRound, Ban, ShieldAlert, Store, Code2, Phone, Hash, UserPlus, RotateCw, MessageCircle, CheckCircle2 } from "lucide-react";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import ApiKeyReveal from "@/components/painel/ApiKeyReveal";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 
 type Order = {
   id: string;
@@ -31,6 +34,7 @@ type Order = {
   provider_status?: string | null;
   refund_deadline_at?: string | null;
   within_refund_window?: boolean;
+  portal_active?: boolean;
   cancel_requested_at?: string | null;
   cancel_request_note?: string | null;
   refund_waived?: boolean;
@@ -94,6 +98,56 @@ export default function RevendedorMeusClientesClaude() {
   const [cancelling, setCancelling] = useState(false);
   const [confirmRefundTarget, setConfirmRefundTarget] = useState<Order | null>(null);
   const [confirmingRefund, setConfirmingRefund] = useState(false);
+  const [provisioningId, setProvisioningId] = useState<string | null>(null);
+  const [portalResult, setPortalResult] = useState<null | {
+    order: Order;
+    email: string;
+    temp_password: string | null;
+    already_existed: boolean;
+    action: "provision" | "reset";
+    whatsapp_sent: boolean;
+    whatsapp_skipped: string | null;
+    portal_url: string;
+  }>(null);
+
+  const buildPortalMessage = (email: string, password: string | null, portalUrl: string) =>
+    `Olá! Você agora tem acesso ao portal para acompanhar o consumo dos seus tokens Claude.\n\n` +
+    `🔗 Portal: ${portalUrl}\n` +
+    `📧 E-mail: ${email}\n` +
+    (password ? `🔒 Senha temporária: ${password}\n\n` : `\n`) +
+    `No primeiro acesso você será solicitado a definir uma nova senha.`;
+
+  const provisionPortal = async (order: Order, action: "provision" | "reset") => {
+    if (!order.customer_email) {
+      toast.error("Este cliente não tem e-mail cadastrado.");
+      return;
+    }
+    setProvisioningId(order.id);
+    try {
+      const portal_url = `${window.location.origin}/cliente-claude/login`;
+      const { data, error } = await invokeAuthenticatedFunction<any>("claude-reseller-provision-portal", {
+        method: "POST",
+        body: { order_id: order.id, action, send_whatsapp: true, portal_url },
+      });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.detail ?? (data as any)?.error ?? "Falha ao provisionar portal");
+        return;
+      }
+      setPortalResult({
+        order,
+        email: (data as any).email,
+        temp_password: (data as any).temp_password ?? null,
+        already_existed: !!(data as any).already_existed,
+        action,
+        whatsapp_sent: !!(data as any).whatsapp_sent,
+        whatsapp_skipped: (data as any).whatsapp_skipped ?? null,
+        portal_url,
+      });
+      load(true);
+    } finally {
+      setProvisioningId(null);
+    }
+  };
 
   const load = async (silent = false) => {
     if (silent) setRefreshing(true); else setLoading(true);
@@ -257,9 +311,26 @@ export default function RevendedorMeusClientesClaude() {
                   {(() => {
                     const meta = STATUS_META[o.status] ?? { label: o.status, className: "border-border bg-muted/40 text-foreground" };
                     return (
-                      <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", meta.className)}>
-                        {meta.label}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <Badge variant="outline" className={cn("text-[10px] font-bold uppercase", meta.className)}>
+                          {meta.label}
+                        </Badge>
+                        {o.customer_email ? (
+                          o.portal_active ? (
+                            <Badge variant="outline" className="text-[9px] font-bold uppercase border-emerald-500/40 bg-emerald-500/10 text-emerald-500">
+                              <CheckCircle2 className="mr-0.5 h-2.5 w-2.5" /> Portal ativo
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] font-bold uppercase border-border bg-muted/40 text-muted-foreground">
+                              Sem portal
+                            </Badge>
+                          )
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] font-bold uppercase border-rose-500/40 bg-rose-500/10 text-rose-500">
+                            Sem e-mail
+                          </Badge>
+                        )}
+                      </div>
                     );
                   })()}
                 </div>
@@ -402,7 +473,36 @@ export default function RevendedorMeusClientesClaude() {
                 )}
 
                 {["issued", "redeemed", "cancel_requested"].includes(o.status) && (
-                  <div className="mt-3 flex justify-stretch sm:justify-end">
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    {o.customer_email && (
+                      o.portal_active ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-full sm:w-auto"
+                          disabled={provisioningId === o.id}
+                          onClick={() => provisionPortal(o, "reset")}
+                        >
+                          {provisioningId === o.id
+                            ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            : <RotateCw className="mr-1 h-3 w-3" />}
+                          Reenviar / resetar senha
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-full sm:w-auto border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10"
+                          disabled={provisioningId === o.id}
+                          onClick={() => provisionPortal(o, "provision")}
+                        >
+                          {provisioningId === o.id
+                            ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            : <UserPlus className="mr-1 h-3 w-3" />}
+                          Criar acesso ao portal
+                        </Button>
+                      )
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -497,6 +597,99 @@ export default function RevendedorMeusClientesClaude() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!portalResult} onOpenChange={(o) => !o && setPortalResult(null)}>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4 text-emerald-500" />
+              {portalResult?.action === "reset" ? "Nova senha do portal gerada" : "Acesso ao portal criado"}
+            </DialogTitle>
+            <DialogDescription>
+              {portalResult?.already_existed && portalResult?.action === "provision"
+                ? "Este cliente já possuía portal — nenhuma senha nova foi gerada."
+                : "Envie os dados abaixo ao cliente. A senha temporária aparece só uma vez."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {portalResult && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1.5 text-xs">
+                <div><span className="text-muted-foreground">Portal:</span> <code className="font-mono">{portalResult.portal_url}</code></div>
+                <div><span className="text-muted-foreground">E-mail:</span> <b>{portalResult.email}</b></div>
+                {portalResult.temp_password ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Senha temporária:</span>
+                    <code className="flex-1 rounded bg-background/60 px-2 py-1 font-mono text-[12px]">{portalResult.temp_password}</code>
+                    <Button
+                      size="sm" variant="ghost" className="h-6 px-2"
+                      onClick={() => { navigator.clipboard.writeText(portalResult.temp_password!); toast.success("Senha copiada"); }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground">Senha existente mantida — use "Reenviar / resetar senha" se o cliente esqueceu.</div>
+                )}
+              </div>
+
+              {portalResult.temp_password && (
+                <>
+                  <div className="rounded-lg border border-border bg-background/40 p-3 text-[11px] whitespace-pre-line font-mono">
+                    {buildPortalMessage(portalResult.email, portalResult.temp_password, portalResult.portal_url)}
+                  </div>
+
+                  {portalResult.whatsapp_sent ? (
+                    <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2 text-[11px] text-emerald-600">
+                      <CheckCircle2 className="h-3.5 w-3.5 mt-0.5" />
+                      Mensagem enviada automaticamente pelo WhatsApp configurado.
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 text-[11px] text-amber-600">
+                      <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      <span>Não enviei automaticamente ({portalResult.whatsapp_skipped ?? "sem WhatsApp/API"}). Copie a mensagem ou use o botão do WhatsApp.</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button
+                      variant="outline" size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          buildPortalMessage(portalResult.email, portalResult.temp_password, portalResult.portal_url),
+                        );
+                        toast.success("Mensagem copiada");
+                      }}
+                    >
+                      <Copy className="mr-1 h-3.5 w-3.5" /> Copiar mensagem
+                    </Button>
+                    {portalResult.order.customer_whatsapp && (
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                        onClick={() => {
+                          const digits = portalResult.order.customer_whatsapp!.replace(/\D+/g, "");
+                          const to = digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
+                          const msg = encodeURIComponent(
+                            buildPortalMessage(portalResult.email, portalResult.temp_password, portalResult.portal_url),
+                          );
+                          window.open(`https://wa.me/${to}?text=${msg}`, "_blank");
+                        }}
+                      >
+                        <MessageCircle className="mr-1 h-3.5 w-3.5" /> Abrir WhatsApp
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPortalResult(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
