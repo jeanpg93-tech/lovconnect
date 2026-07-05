@@ -1148,6 +1148,21 @@ function PromotionSummary(props: {
     title: `+${props.referralExtraPct}% extras para o indicador`,
     desc: "Quem indicou ganha a comissão do nível dele + esses % sobre o valor da adesão.",
   });
+  if (props.useClaude) {
+    const parts = Object.entries(props.claudeByTier)
+      .filter(([, v]) => Number(v) > 0)
+      .map(([slug, v]) => {
+        const t = props.tiers.find((x) => x.slug === slug);
+        return `${t?.name ?? slug}: -${v}%`;
+      });
+    if (parts.length > 0) {
+      items.push({
+        icon: <Sparkles className="h-4 w-4 text-violet-500" />,
+        title: `Desconto Claude por nível`,
+        desc: parts.join(" · ") + ". Aplicado no custo debitado da carteira do revendedor.",
+      });
+    }
+  }
 
   const startLabel =
     props.startMode === "now" ? "Inicia: agora ao salvar" :
