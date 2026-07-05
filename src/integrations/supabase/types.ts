@@ -5033,6 +5033,10 @@ export type Database = {
           status: string
         }[]
       }
+      admin_storefront_order_raw_response: {
+        Args: { _id: string }
+        Returns: Json
+      }
       admin_tier_claude_prices_matrix: {
         Args: never
         Returns: {
