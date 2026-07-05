@@ -82,6 +82,7 @@ EVOLUTION_API_KEY · EVOLUTION_BASE_URL · EXTENSION_PROVIDER_API_KEY · LOVABLE
 | MisticPay | `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/misticpay-webhook` | Painel MisticPay |
 | Evolution (WhatsApp do sistema) | `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/system-whatsapp-webhook?secret=<webhook_secret>` | Painel Evolution. `webhook_secret` está em `system_whatsapp_settings` |
 | Provedor de licenças (Lovax) | `base_url` em `provider_settings` aponta para `https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api` (sem webhook reverso) | n/a |
+| Provedor Claude (fornecedor → nosso backend) | `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/claude-provider-webhook` — registrado no fornecedor via função `claude-register-webhook`. Autenticado por HMAC usando o secret `CLAUDE_PROVIDER_WEBHOOK_SECRET`. Ao migrar, gere um novo secret, chame `claude-register-webhook` com a nova URL e atualize o secret. | Painel do fornecedor Claude |
 
 ---
 
