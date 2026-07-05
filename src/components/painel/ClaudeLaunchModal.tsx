@@ -6,7 +6,7 @@ import { useClaudePromoForReseller } from "@/hooks/useClaudePromoForReseller";
 import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import { ArrowRight, ShieldCheck, Zap, Cpu } from "lucide-react";
 
-const STORAGE_KEY = "lovconnect:claude_launch_modal:v4";
+const STORAGE_KEY = "lovconnect:claude_launch_modal:v5";
 
 /**
  * Modal de lançamento do Claude — dispara UMA vez, geral, para revendedores
@@ -62,10 +62,8 @@ export default function ClaudeLaunchModal() {
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
               lançamento
             </div>
-            <div className="flex items-center justify-center gap-3">
-              <span className="flex h-14 w-14 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-500 shadow-red-glow-sm">
-                <ClaudeIcon className="h-7 w-7" />
-              </span>
+            <div className="flex items-center justify-center">
+              <ClaudeIcon className="h-16 w-16" />
             </div>
             <h3 className="font-display text-3xl font-black uppercase tracking-tighter">
               claude chegou.
