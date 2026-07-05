@@ -378,11 +378,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    // Bypass de teste: somente quando o painel envia o cabeçalho com o service-role
-    // key e a transação pertence à conta de testes (Jean Gomes). Isso permite
-    // "liberar" um PIX sem o pagamento real para validar o fluxo end-to-end.
+    // Bypass de teste: exige um token dedicado (`MISTICPAY_TEST_BYPASS_TOKEN`) —
+    // NUNCA aceitamos a service-role key aqui, para não expor esse segredo em
+    // headers de requisições vindas do painel. A transação ainda precisa
+    // pertencer à conta de testes (Jean Gomes).
     const bypassToken = req.headers.get("x-test-bypass-token") ?? "";
-    const __TEST_BYPASS = !!bypassToken && bypassToken === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const expectedBypass = Deno.env.get("MISTICPAY_TEST_BYPASS_TOKEN") ?? "";
+    const __TEST_BYPASS = !!bypassToken && !!expectedBypass && bypassToken === expectedBypass;
 
     const payload = await req.json().catch(() => ({}));
     const txId = String(payload?.transactionId ?? "");
