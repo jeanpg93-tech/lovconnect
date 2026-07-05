@@ -87,7 +87,7 @@ export default function ClaudePromoDashboardCard() {
           </div>
 
           <Link
-            to="/painel/claude/gerar"
+            to="/painel/revendedor/claude"
             className="group/btn inline-flex h-fit shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3.5 font-mono text-xs font-bold uppercase tracking-widest text-primary-foreground shadow-red-glow-sm transition-all hover:bg-primary/90 active:scale-95"
           >
             <ClaudeIcon className="h-4 w-4" />
