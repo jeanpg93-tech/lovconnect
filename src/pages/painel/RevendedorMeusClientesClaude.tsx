@@ -98,6 +98,56 @@ export default function RevendedorMeusClientesClaude() {
   const [cancelling, setCancelling] = useState(false);
   const [confirmRefundTarget, setConfirmRefundTarget] = useState<Order | null>(null);
   const [confirmingRefund, setConfirmingRefund] = useState(false);
+  const [provisioningId, setProvisioningId] = useState<string | null>(null);
+  const [portalResult, setPortalResult] = useState<null | {
+    order: Order;
+    email: string;
+    temp_password: string | null;
+    already_existed: boolean;
+    action: "provision" | "reset";
+    whatsapp_sent: boolean;
+    whatsapp_skipped: string | null;
+    portal_url: string;
+  }>(null);
+
+  const buildPortalMessage = (email: string, password: string | null, portalUrl: string) =>
+    `Olá! Você agora tem acesso ao portal para acompanhar o consumo dos seus tokens Claude.\n\n` +
+    `🔗 Portal: ${portalUrl}\n` +
+    `📧 E-mail: ${email}\n` +
+    (password ? `🔒 Senha temporária: ${password}\n\n` : `\n`) +
+    `No primeiro acesso você será solicitado a definir uma nova senha.`;
+
+  const provisionPortal = async (order: Order, action: "provision" | "reset") => {
+    if (!order.customer_email) {
+      toast.error("Este cliente não tem e-mail cadastrado.");
+      return;
+    }
+    setProvisioningId(order.id);
+    try {
+      const portal_url = `${window.location.origin}/cliente-claude/login`;
+      const { data, error } = await invokeAuthenticatedFunction<any>("claude-reseller-provision-portal", {
+        method: "POST",
+        body: { order_id: order.id, action, send_whatsapp: true, portal_url },
+      });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.detail ?? (data as any)?.error ?? "Falha ao provisionar portal");
+        return;
+      }
+      setPortalResult({
+        order,
+        email: (data as any).email,
+        temp_password: (data as any).temp_password ?? null,
+        already_existed: !!(data as any).already_existed,
+        action,
+        whatsapp_sent: !!(data as any).whatsapp_sent,
+        whatsapp_skipped: (data as any).whatsapp_skipped ?? null,
+        portal_url,
+      });
+      load(true);
+    } finally {
+      setProvisioningId(null);
+    }
+  };
 
   const load = async (silent = false) => {
     if (silent) setRefreshing(true); else setLoading(true);
