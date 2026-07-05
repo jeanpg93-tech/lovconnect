@@ -604,6 +604,29 @@ Deno.serve(async (req) => {
       const customerName = bodyT?.nome ? String(bodyT.nome).trim().slice(0, 120) : null;
       const customerWhatsapp = bodyT?.whatsapp ? String(bodyT.whatsapp).replace(/\D+/g, '').slice(0, 15) : null;
 
+      // Anti-abuso persistente por e-mail / WhatsApp (24h).
+      // Observação: o IP aqui é o servidor do revendedor (não o cliente final),
+      // então usamos email/whatsapp como controle principal.
+      {
+        const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const orFilter: string[] = [`name.eq.claude:${email}`];
+        if (customerWhatsapp) orFilter.push(`phone.eq.${customerWhatsapp}`);
+        const { data: dup } = await svc
+          .from("trial_registrations")
+          .select("id")
+          .or(orFilter.join(","))
+          .gte("created_at", since24h)
+          .limit(1)
+          .maybeSingle();
+        if (dup) {
+          return json({
+            success: false,
+            error: "trial_rate_limited",
+            message: "Já foi gerado um teste para este e-mail ou WhatsApp nas últimas 24h.",
+          }, 429);
+        }
+      }
+
       let providerResp: any = null; let providerStatus = 0;
       try {
         const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/test`, {
@@ -666,6 +689,16 @@ Deno.serve(async (req) => {
         code_revealed_at: new Date().toISOString(),
         error_message: "trial_15m_50msg",
       });
+
+      // Registra anti-abuso (e-mail / whatsapp)
+      if (code) {
+        await svc.from("trial_registrations").insert({
+          name: `claude:${email}`,
+          phone: customerWhatsapp || "",
+          ip_address: "reseller-api",
+          license_key: code,
+        });
+      }
 
       // Notificação Telegram para o gerente
       try {

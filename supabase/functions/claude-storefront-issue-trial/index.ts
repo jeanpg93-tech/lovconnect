@@ -14,18 +14,14 @@ const json = (data: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-// Rate limit simples em memória por IP
-const ipHits = new Map<string, { count: number; ts: number }>();
-function checkIpRate(ip: string, maxPerHour = 5): boolean {
-  const now = Date.now();
-  const entry = ipHits.get(ip);
-  if (!entry || now - entry.ts > 3600_000) {
-    ipHits.set(ip, { count: 1, ts: now });
-    return true;
-  }
-  if (entry.count >= maxPerHour) return false;
-  entry.count += 1;
-  return true;
+function extractIp(req: Request): string {
+  const raw =
+    req.headers.get('cf-connecting-ip') ??
+    req.headers.get('x-forwarded-for') ??
+    req.headers.get('x-real-ip') ??
+    '';
+  const ip = raw.split(',')[0].trim();
+  return /^[0-9a-fA-F:.]{3,45}$/.test(ip) ? ip : 'unknown';
 }
 
 Deno.serve(async (req) => {
@@ -42,14 +38,31 @@ Deno.serve(async (req) => {
     if (!slug) return json({ error: 'reseller_slug_required' }, 400);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'email_required', message: 'Informe um e-mail válido.' }, 400);
 
-    const ip = req.headers.get('cf-connecting-ip') ?? req.headers.get('x-forwarded-for') ?? 'unknown';
-    if (!checkIpRate(ip.split(',')[0].trim())) {
-      return json({ error: 'ip_rate_limited', message: 'Muitas tentativas. Aguarde alguns minutos.' }, 429);
-    }
-
+    const ip = extractIp(req);
     if (!CLAUDE_BASE_URL) return json({ error: 'provider_not_configured' }, 500);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+    // Anti-abuso persistente: 1 teste Claude por IP, e-mail ou WhatsApp a cada 24h
+    {
+      const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const orFilter: string[] = [`name.eq.claude:${email}`];
+      if (ip !== 'unknown') orFilter.push(`ip_address.eq.${ip}`);
+      if (whatsapp) orFilter.push(`phone.eq.${whatsapp}`);
+      const { data: dup } = await admin
+        .from('trial_registrations')
+        .select('id')
+        .or(orFilter.join(','))
+        .gte('created_at', since24h)
+        .limit(1)
+        .maybeSingle();
+      if (dup) {
+        return json({
+          error: 'trial_rate_limited',
+          message: 'Já foi gerado um teste com este e-mail, WhatsApp ou IP nas últimas 24h. Tente novamente mais tarde.',
+        }, 429);
+      }
+    }
 
     const { data: reseller } = await admin
       .from('resellers')
@@ -112,6 +125,16 @@ Deno.serve(async (req) => {
       code_revealed_at: new Date().toISOString(),
       error_message: 'trial_storefront',
     } as any);
+
+    // Registra anti-abuso (por IP / e-mail / whatsapp)
+    if (code) {
+      await admin.from('trial_registrations').insert({
+        name: `claude:${email}`,
+        phone: whatsapp || '',
+        ip_address: ip,
+        license_key: code,
+      });
+    }
 
     try {
       const txt =
