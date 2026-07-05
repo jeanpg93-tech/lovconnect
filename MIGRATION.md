@@ -74,6 +74,12 @@ generate-testimonials-ai · expire-pending-storefront-orders · telegram-webhook
 
 EVOLUTION_API_KEY · EVOLUTION_BASE_URL · EXTENSION_PROVIDER_API_KEY · LOVABLE_API_KEY (substituir por OpenAI/Anthropic fora do Lovable) · MISTICPAY_CLIENT_ID · MISTICPAY_CLIENT_SECRET · TELEGRAM_API_KEY
 
+Secrets adicionais do módulo Claude:
+
+- `CLAUDE_RESELLER_API_KEY` — token do fornecedor Claude.
+- `CLAUDE_RESELLER_API_BASE_URL` — base URL do fornecedor Claude.
+- `CLAUDE_PROVIDER_WEBHOOK_SECRET` — HMAC compartilhado com o fornecedor para validar o webhook `claude-provider-webhook`. Sem esse secret, o fornecedor envia atualizações e nosso backend rejeita por assinatura inválida — os status das chaves (resgatada / cancelada / expirada / tokens esgotados) deixam de atualizar em tempo real. Em um novo deploy: gerar o secret, chamar `claude-register-webhook` com a URL nova e conferir a resposta `ok:true` do fornecedor.
+
 ### Webhooks externos a reapontar
 
 | Serviço | URL atual | Onde alterar no novo projeto |
@@ -82,6 +88,7 @@ EVOLUTION_API_KEY · EVOLUTION_BASE_URL · EXTENSION_PROVIDER_API_KEY · LOVABLE
 | MisticPay | `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/misticpay-webhook` | Painel MisticPay |
 | Evolution (WhatsApp do sistema) | `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/system-whatsapp-webhook?secret=<webhook_secret>` | Painel Evolution. `webhook_secret` está em `system_whatsapp_settings` |
 | Provedor de licenças (Lovax) | `base_url` em `provider_settings` aponta para `https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api` (sem webhook reverso) | n/a |
+| Provedor Claude (fornecedor → nosso backend) | `https://qoemkofkeleuhjifvauh.supabase.co/functions/v1/claude-provider-webhook` — registrado no fornecedor via função `claude-register-webhook`. Autenticado por HMAC usando o secret `CLAUDE_PROVIDER_WEBHOOK_SECRET`. Ao migrar, gere um novo secret, chame `claude-register-webhook` com a nova URL e atualize o secret. | Painel do fornecedor Claude |
 
 ---
 
@@ -216,6 +223,7 @@ No novo projeto Supabase, configurar (Functions → Secrets):
 - `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`
 - `LOVAX_API_*` (provedor de licenças externo)
 - `LOVABLE_CREDITS_API_*` (provedor de recargas externo)
+- `CLAUDE_RESELLER_API_KEY`, `CLAUDE_RESELLER_API_BASE_URL`, `CLAUDE_PROVIDER_WEBHOOK_SECRET` (provedor Claude — webhook secret é obrigatório para receber status das chaves)
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (gerados automaticamente)
 
 No frontend (`.env`):
