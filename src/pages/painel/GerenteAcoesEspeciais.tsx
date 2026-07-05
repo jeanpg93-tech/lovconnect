@@ -965,6 +965,8 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
             tiers={tiers}
             useReferralExtra={useReferralExtra}
             referralExtraPct={referralExtraPct}
+            useClaude={useClaude}
+            claudeByTier={claudeByTier}
             startMode={startMode}
             startsAt={startsAt}
             endMode={endMode}
