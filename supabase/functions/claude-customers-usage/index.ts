@@ -121,32 +121,39 @@ Deno.serve(async (req) => {
     // Espelha status terminais recebidos do provedor no banco (sem esperar webhook).
     const patches: Array<{ id: string; patch: Record<string, unknown> }> = [];
     for (const [orderId, pk] of providerKeyByOrder.entries()) {
-      const provStatus = String(pk?.status ?? '').toLowerCase();
+      // Provider may wrap the payload as {key:{...}} or {data:{...}}; be tolerant.
+      const keyObj = (pk && typeof pk === 'object') ? (pk.key ?? pk.data ?? pk) : pk;
+      const provStatus = String(keyObj?.status ?? keyObj?.state ?? '').toLowerCase();
       const patch: Record<string, unknown> = {};
-      if (provStatus === 'redeemed' && !patches.find((p) => p.id === orderId)) {
+      if (provStatus === 'redeemed' || provStatus === 'used' || provStatus === 'activated') {
         patch.status = 'redeemed';
-        if (pk?.redeemedAt) patch.redeemed_at = pk.redeemedAt;
+        patch.redeemed_at = keyObj?.redeemedAt ?? keyObj?.redeemed_at ?? new Date().toISOString();
       } else if (provStatus === 'cancelled' || provStatus === 'canceled' || provStatus === 'revoked') {
         patch.status = 'cancelled';
-        patch.cancelled_at = pk?.cancelledAt ?? new Date().toISOString();
+        patch.cancelled_at = keyObj?.cancelledAt ?? keyObj?.cancelled_at ?? new Date().toISOString();
       } else if (provStatus === 'expired') {
         patch.status = 'expired';
-        patch.expired_at = pk?.expiredAt ?? new Date().toISOString();
+        patch.expired_at = keyObj?.expiredAt ?? keyObj?.expired_at ?? new Date().toISOString();
       }
       if (Object.keys(patch).length) patches.push({ id: orderId, patch });
     }
-    await Promise.all(patches.map((p) =>
-      admin.from('claude_orders').update(p.patch).eq('id', p.id)
-    ));
+    if (patches.length) {
+      console.log('[claude-customers-usage] reconciling', patches.length, 'orders', patches.map((p) => ({ id: p.id, ...p.patch })));
+    }
+    await Promise.all(patches.map(async (p) => {
+      const { error } = await admin.from('claude_orders').update(p.patch).eq('id', p.id);
+      if (error) console.error('[claude-customers-usage] patch failed', p.id, error.message);
+    }));
 
     const REFUND_WINDOW_DAYS = 7;
     const enriched = (orders ?? []).map((o) => {
       const email = String(o.customer_email ?? '').trim().toLowerCase();
       const match = email ? byEmail.get(email) : null;
-      const pk = providerKeyByOrder.get(o.id);
+      const pkRaw = providerKeyByOrder.get(o.id);
+      const pk = (pkRaw && typeof pkRaw === 'object') ? (pkRaw.key ?? pkRaw.data ?? pkRaw) : pkRaw;
       const patched = patches.find((p) => p.id === o.id)?.patch as { status?: string } | undefined;
       const effectiveStatus = (patched?.status as string) ?? o.status;
-      const providerStatus = String(pk?.status ?? '').toLowerCase() || null;
+      const providerStatus = String(pk?.status ?? pk?.state ?? '').toLowerCase() || null;
       const createdMs = new Date(o.created_at).getTime();
       const refundDeadlineMs = createdMs + REFUND_WINDOW_DAYS * 86_400_000;
       const withinRefundWindow = Date.now() <= refundDeadlineMs;
