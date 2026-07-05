@@ -341,6 +341,59 @@ Deno.serve(async (req) => {
         return json({ success: false, error: "provider_network_error", detail: (e as Error).message }, 502);
       }
       if (providerStatus < 200 || providerStatus >= 300) {
+        // 409 = já cancelada/reembolsada no provedor — sincroniza estado local.
+        if (providerStatus === 409) {
+          const provStatus = String(providerResp?.status ?? "").toLowerCase();
+          const errMsg = String(providerResp?.error ?? providerResp?.message ?? "").toLowerCase();
+          const alreadyCancelled =
+            provStatus === "cancelled" ||
+            provStatus === "refunded" ||
+            /cancel|reembols|refund/.test(errMsg);
+          if (alreadyCancelled) {
+            const { data: existingRefund } = await svc
+              .from("balance_transactions")
+              .select("id")
+              .eq("reseller_id", reseller.id)
+              .eq("reference_id", order.id)
+              .eq("kind", "claude_key_refund")
+              .maybeSingle();
+            let refundCents = 0;
+            if (!existingRefund && withinWindow) {
+              const { data: issueTx } = await svc
+                .from("balance_transactions")
+                .select("amount_cents")
+                .eq("reseller_id", reseller.id)
+                .eq("reference_id", order.id)
+                .eq("kind", "claude_key_issue")
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              const debited = issueTx ? Math.abs(Number((issueTx as any).amount_cents) || 0) : 0;
+              refundCents = debited > 0 ? debited : (Number(order.cost_cents) || 0);
+              if (refundCents > 0) {
+                await svc.rpc("credit_reseller_balance", {
+                  _reseller_id: reseller.id,
+                  _amount_cents: refundCents,
+                  _kind: "claude_key_refund",
+                  _description: `Estorno cancelamento Claude (sync provedor ${order.id})`,
+                  _reference_id: order.id,
+                });
+              }
+            }
+            await svc.from("claude_orders").update({
+              status: "cancelled",
+              cancelled_at: new Date().toISOString(),
+              refund_waived: !withinWindow && !existingRefund,
+            }).eq("id", order.id);
+            return json({
+              success: true,
+              synced: true,
+              order_id: order.id,
+              refund_cents: refundCents,
+              message: "Chave já estava cancelada no provedor — status sincronizado.",
+            });
+          }
+        }
         await svc.from("claude_orders").update({
           status: "cancel_failed",
           provider_response: providerResp,
