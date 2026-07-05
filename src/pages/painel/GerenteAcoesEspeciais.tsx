@@ -217,62 +217,110 @@ export default function GerenteAcoesEspeciais() {
         </Button>
       </div>
 
-      {/* === PROMOÇÃO ATIVA === */}
+      {/* === PROMOÇÕES ATIVAS === */}
       <section className="space-y-3">
         <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" /> Promoção ativa agora
+          <Sparkles className="h-4 w-4 text-primary" />
+          {activePromos.length > 1 ? `Promoções ativas agora (${activePromos.length})` : "Promoção ativa agora"}
         </h2>
         {loadingPromos ? (
           <Card><CardContent className="py-8 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></CardContent></Card>
-        ) : activePromo ? (
-          <Card className="border-primary/50 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent shadow-md">
-            <CardHeader className="pb-3">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                <div className="min-w-0">
-                  <CardTitle className="flex items-center gap-2 text-lg break-words">
-                    {activePromo.name}
-                    <Badge className="gap-1.5">
-                      <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
-                      </span>
-                      Ao vivo
-                    </Badge>
-                  </CardTitle>
-                  {activePromo.description && (
-                    <CardDescription className="mt-1">{activePromo.description}</CardDescription>
-                  )}
-                </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" className="gap-1.5 w-full sm:w-auto shrink-0">
-                      <Square className="h-3.5 w-3.5" /> Desativar agora
+        ) : activePromos.length > 0 ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {activePromos.map((ap) => (
+              <Card
+                key={ap.id}
+                className="relative overflow-hidden border-primary/50 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent shadow-md shadow-primary/10"
+              >
+                <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary via-primary/60 to-transparent" />
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <CardTitle className="text-base leading-tight break-words">{ap.name}</CardTitle>
+                        <Badge className="gap-1.5 text-[10px] uppercase tracking-wide font-semibold">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75" />
+                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
+                          </span>
+                          Ao vivo
+                        </Badge>
+                      </div>
+                      {ap.description && (
+                        <CardDescription className="mt-1.5 line-clamp-2">{ap.description}</CardDescription>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <PromoValues p={ap} compact />
+                  {ap.ends_at && <Countdown endsAt={ap.ends_at} />}
+
+                  <div className="rounded-lg border border-border/50 bg-muted/30 px-3 py-2 grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Play className="h-3 w-3 text-emerald-500 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Início</div>
+                        <div className="font-medium truncate">{fmtBR(ap.starts_at ?? ap.activated_at)}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Square className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Fim</div>
+                        <div className="font-medium truncate">{ap.ends_at ? fmtBR(ap.ends_at) : "sem data fim"}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setEditing(ap); setCreateOpen(true); }}
+                      className="gap-1.5 h-8 px-2.5"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Editar</span>
                     </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Desativar promoção?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        A promoção "{activePromo.name}" será encerrada imediatamente.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => deactivateNow(activePromo)}>Desativar</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <PromoValues p={activePromo} big />
-              {activePromo.ends_at && <Countdown endsAt={activePromo.ends_at} />}
-              <div className="text-xs text-muted-foreground grid sm:grid-cols-2 gap-1.5">
-                <div><span className="font-medium text-foreground">Início:</span> {fmtBR(activePromo.starts_at ?? activePromo.activated_at)}</div>
-                <div><span className="font-medium text-foreground">Fim:</span> {activePromo.ends_at ? fmtBR(activePromo.ends_at) : "sem data fim"}</div>
-              </div>
-            </CardContent>
-          </Card>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => duplicatePromo(ap)}
+                      className="gap-1.5 h-8 px-2.5"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Duplicar</span>
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1.5 h-8 px-2.5 text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
+                        >
+                          <Square className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Desativar</span>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Desativar promoção?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            A promoção "{ap.name}" será encerrada imediatamente.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deactivateNow(ap)}>Desativar</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         ) : (
           <Card>
             <CardContent className="py-10 text-center space-y-2">
