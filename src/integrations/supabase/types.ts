@@ -1869,6 +1869,7 @@ export type Database = {
           activation_fixed_price_cents: number | null
           activation_promote_to_tier_id: string | null
           activation_referral_extra_pct: number | null
+          claude_discount_by_tier: Json | null
           created_at: string
           created_by: string | null
           credit_discount_pct: number | null
@@ -1891,6 +1892,7 @@ export type Database = {
           activation_fixed_price_cents?: number | null
           activation_promote_to_tier_id?: string | null
           activation_referral_extra_pct?: number | null
+          claude_discount_by_tier?: Json | null
           created_at?: string
           created_by?: string | null
           credit_discount_pct?: number | null
@@ -1913,6 +1915,7 @@ export type Database = {
           activation_fixed_price_cents?: number | null
           activation_promote_to_tier_id?: string | null
           activation_referral_extra_pct?: number | null
+          claude_discount_by_tier?: Json | null
           created_at?: string
           created_by?: string | null
           credit_discount_pct?: number | null
@@ -5268,6 +5271,16 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_active_claude_promotion: {
+        Args: never
+        Returns: {
+          claude_discount_by_tier: Json
+          ends_at: string
+          id: string
+          name: string
+          starts_at: string
+        }[]
+      }
       get_active_promotion: {
         Args: never
         Returns: {
@@ -5278,6 +5291,7 @@ export type Database = {
           activation_fixed_price_cents: number | null
           activation_promote_to_tier_id: string | null
           activation_referral_extra_pct: number | null
+          claude_discount_by_tier: Json | null
           created_at: string
           created_by: string | null
           credit_discount_pct: number | null
