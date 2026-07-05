@@ -88,6 +88,19 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {
+    // Autenticação: apenas chamadas internas (service-role bearer) ou gerentes.
+    const authTok = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+    if (authTok !== SERVICE_ROLE_KEY) {
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+      const userClient = createClient(SUPABASE_URL, anonKey, {
+        global: { headers: { Authorization: `Bearer ${authTok}` } },
+      });
+      const { data: u } = await userClient.auth.getUser();
+      if (!u?.user) return json({ error: "unauthorized" }, 401);
+      const { data: isMgr } = await userClient.rpc("has_role", { _user_id: u.user.id, _role: "gerente" });
+      if (!isMgr) return json({ error: "forbidden" }, 403);
+    }
+
     const body = await req.json().catch(() => ({}));
     const resellerId = String(body?.reseller_id ?? "").trim();
     if (!resellerId) return json({ error: "reseller_id required" }, 400);
