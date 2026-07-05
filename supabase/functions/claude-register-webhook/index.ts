@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify({ url: webhookUrl, events }),
+    body: JSON.stringify({ urlWebhook: webhookUrl, url: webhookUrl, events }),
   });
   const txt = await r.text();
   let body: any; try { body = JSON.parse(txt); } catch { body = { raw: txt }; }
