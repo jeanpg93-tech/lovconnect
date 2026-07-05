@@ -190,6 +190,7 @@ Deno.serve(async (req) => {
           kind: planCode,
           ...(customerEmail ? { email: customerEmail } : {}),
         }),
+        signal: AbortSignal.timeout(15000),
       });
       providerStatus = r.status;
       const txt = await r.text();
