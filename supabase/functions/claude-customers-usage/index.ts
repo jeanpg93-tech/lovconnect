@@ -47,6 +47,27 @@ Deno.serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(500);
 
+    // Portal existente por e-mail (claude_customers deste revendedor)
+    const emailsWithPortal = new Set<string>();
+    {
+      const emails = Array.from(new Set(
+        (orders ?? [])
+          .map((o) => String(o.customer_email ?? '').trim().toLowerCase())
+          .filter(Boolean),
+      ));
+      if (emails.length) {
+        const { data: portalRows } = await admin
+          .from('claude_customers')
+          .select('email')
+          .eq('reseller_id', reseller.id)
+          .in('email', emails);
+        for (const r of portalRows ?? []) {
+          const e = String((r as any).email ?? '').trim().toLowerCase();
+          if (e) emailsWithPortal.add(e);
+        }
+      }
+    }
+
     // Busca usuários no fornecedor (uso de tokens)
     let providerUsers: any[] = [];
     let providerError: string | null = null;
@@ -136,6 +157,7 @@ Deno.serve(async (req) => {
         provider_status: providerStatus,
         refund_deadline_at: new Date(refundDeadlineMs).toISOString(),
         within_refund_window: withinRefundWindow,
+        portal_active: email ? emailsWithPortal.has(email) : false,
         usage: match ? {
           email: match.email,
           kind: match.kind,
