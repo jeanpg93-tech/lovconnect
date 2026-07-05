@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
       customer_whatsapp: whatsapp,
       customer_identifier: email,
       code_revealed_at: new Date().toISOString(),
-      origin: 'storefront',
+      error_message: 'trial_storefront',
     } as any);
 
     try {
