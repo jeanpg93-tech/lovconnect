@@ -203,6 +203,20 @@ export default function GerenteAcoesEspeciais() {
     setCreateOpen(true);
   }
 
+  function reactivatePromo(p: Promotion) {
+    // Reabre a mesma promoção para edição rápida: mantém id e valores,
+    // zera datas/estados para o usuário revisar e ativar em poucos cliques.
+    setEditing({
+      ...p,
+      status: "scheduled",
+      activated_at: null,
+      deactivated_at: null,
+      starts_at: null,
+      ends_at: null,
+    });
+    setCreateOpen(true);
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
