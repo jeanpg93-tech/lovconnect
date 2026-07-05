@@ -301,7 +301,11 @@ Deno.serve(async (req) => {
         .eq("id", subId)
         .maybeSingle();
       if (!order) return json({ success: false, error: "Pedido não encontrado" }, 404);
-      if (order.status !== "issued") return json({ success: false, error: "invalid_status", status: order.status }, 409);
+      // Permite cancelar chaves emitidas (issued), já resgatadas (redeemed)
+      // e com pedido de cancelamento pendente (cancel_requested).
+      if (!["issued", "redeemed", "cancel_requested"].includes(order.status)) {
+        return json({ success: false, error: "invalid_status", status: order.status }, 409);
+      }
 
       const providerKeyRef = String(order.provider_key_id ?? order.code ?? "").trim();
       if (!providerKeyRef) return json({ success: false, error: "missing_provider_key_id" }, 422);

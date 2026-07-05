@@ -54,7 +54,11 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (oErr) throw oErr;
     if (!order) return json({ error: 'order_not_found' }, 404);
-    if (!['issued', 'cancel_requested'].includes(order.status)) {
+    // Aceitamos cancelamento de chaves ainda não resgatadas (issued),
+    // já ativadas pelo cliente (redeemed) e as que estão com pedido de
+    // cancelamento pendente do cliente (cancel_requested). Estados finais
+    // (cancelled/expired/failed/refunded) permanecem bloqueados.
+    if (!['issued', 'redeemed', 'cancel_requested'].includes(order.status)) {
       return json({ error: 'invalid_status', status: order.status }, 409);
     }
     // Fallback: se o fornecedor não devolveu um ID separado, o próprio "code" é o identificador.
