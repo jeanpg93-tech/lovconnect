@@ -595,6 +595,21 @@ Qualquer dúvida, é só chamar!`;
           <p className="mt-2 text-[11px] text-muted-foreground">
             Uso interno — sem débito de carteira. O custo do provedor é apenas informativo.
           </p>
+          <div className="mt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setTrialOpen(true)}
+              className="w-full border-dashed border-primary/40 hover:bg-primary/5"
+            >
+              <Sparkles className="mr-2 h-3.5 w-3.5 text-primary" />
+              Emitir teste grátis — 15 min ou 50 mensagens
+            </Button>
+            <p className="mt-1.5 text-[10px] text-muted-foreground text-center">
+              Não debita saldo. Não conta como venda.
+            </p>
+          </div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card/60 p-4 sm:p-6 backdrop-blur-sm">
