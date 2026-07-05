@@ -311,9 +311,26 @@ export default function RevendedorMeusClientesClaude() {
                   {(() => {
                     const meta = STATUS_META[o.status] ?? { label: o.status, className: "border-border bg-muted/40 text-foreground" };
                     return (
-                      <Badge variant="outline" className={cn("text-[10px] font-bold uppercase shrink-0", meta.className)}>
-                        {meta.label}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <Badge variant="outline" className={cn("text-[10px] font-bold uppercase", meta.className)}>
+                          {meta.label}
+                        </Badge>
+                        {o.customer_email ? (
+                          o.portal_active ? (
+                            <Badge variant="outline" className="text-[9px] font-bold uppercase border-emerald-500/40 bg-emerald-500/10 text-emerald-500">
+                              <CheckCircle2 className="mr-0.5 h-2.5 w-2.5" /> Portal ativo
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] font-bold uppercase border-border bg-muted/40 text-muted-foreground">
+                              Sem portal
+                            </Badge>
+                          )
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] font-bold uppercase border-rose-500/40 bg-rose-500/10 text-rose-500">
+                            Sem e-mail
+                          </Badge>
+                        )}
+                      </div>
                     );
                   })()}
                 </div>
