@@ -385,11 +385,12 @@ Deno.serve(async (req) => {
     const __TEST_BYPASS = !!bypassToken && bypassToken === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     const payload = await req.json().catch(() => ({}));
-    console.log("misticpay-webhook payload", JSON.stringify(payload));
-
     const txId = String(payload?.transactionId ?? "");
     const status = String(payload?.status ?? "").toUpperCase();
     const type = String(payload?.transactionType ?? "").toUpperCase();
+    // Log apenas metadados não sensíveis. Payload completo pode conter dados
+    // financeiros/PII — nunca escrever no console.
+    console.log("misticpay-webhook received", JSON.stringify({ txId, status, type }));
     const paidAt = new Date().toISOString();
     // A MisticPay envia a taxa REAL da transação em reais (ex.: 0.50 ou 0.55).
     // Convertemos para centavos com arredondamento para evitar erros de float.
