@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import { useClaudePromoForReseller } from "@/hooks/useClaudePromoForReseller";
+import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import { ArrowRight, ShieldCheck, Zap, Cpu } from "lucide-react";
 
 const STORAGE_KEY = "lovconnect:claude_launch_modal:v1";
@@ -14,11 +15,12 @@ const STORAGE_KEY = "lovconnect:claude_launch_modal:v1";
  */
 export default function ClaudeLaunchModal() {
   const { info, loading } = useClaudePromoForReseller();
+  const { claude: claudeEnabled, loading: methodsLoading } = useResellerEnabledMethods();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (loading || !info) return;
+    if (loading || methodsLoading || !info || !claudeEnabled) return;
     try {
       if (localStorage.getItem(STORAGE_KEY)) return;
     } catch {
@@ -26,7 +28,7 @@ export default function ClaudeLaunchModal() {
     }
     const t = setTimeout(() => setOpen(true), 600);
     return () => clearTimeout(t);
-  }, [loading, info]);
+  }, [loading, methodsLoading, info, claudeEnabled]);
 
   const dismiss = () => {
     try {
@@ -40,7 +42,7 @@ export default function ClaudeLaunchModal() {
     navigate(path);
   };
 
-  if (!info) return null;
+  if (!info || !claudeEnabled) return null;
 
   return (
     <Dialog
