@@ -810,7 +810,6 @@ Qualquer dúvida, é só chamar!`
         open={trialOpen}
         onOpenChange={setTrialOpen}
         mode="reseller"
-        onIssued={() => loadHistory?.()}
       />
     </PageContainer>
   );
