@@ -495,18 +495,19 @@ export default function GerenteAcoesEspeciais() {
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <History className="h-4 w-4" /> Histórico
         </h2>
-        <Card>
+        <Card className="relative overflow-hidden border-border/60 bg-gradient-to-br from-card via-card to-muted/20">
+          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-muted-foreground/40 via-muted-foreground/20 to-transparent" />
           <CardContent className="pt-6">
             {logs.length === 0 ? (
               <p className="text-sm text-muted-foreground italic text-center py-4">
                 Nenhum evento registrado ainda.
               </p>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y divide-border/60">
                 {logs.map((l) => {
                   const promo = promotions.find((p) => p.id === l.promotion_id);
                   return (
-                    <div key={l.id} className="py-2 text-sm flex items-center justify-between gap-3">
+                    <div key={l.id} className="py-2.5 text-sm flex items-center justify-between gap-3 first:pt-0 last:pb-0">
                       <div className="min-w-0">
                         <span className="font-medium">{EVENT_LABEL[l.event] || l.event}</span>
                         {promo && <span className="text-muted-foreground"> — {promo.name}</span>}
