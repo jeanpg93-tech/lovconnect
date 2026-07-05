@@ -112,9 +112,65 @@ Deno.serve(async (req) => {
     };
 
     if (providerStatus < 200 || providerStatus >= 300) {
-      // 409 = chave já resgatada/cancelada/expirada — não estorna.
+      // 409 = já cancelada/reembolsada/resgatada no provedor.
       if (providerStatus === 409) {
         const provStatus = String(providerResp?.status ?? '').toLowerCase();
+        const errMsg = String(providerResp?.error ?? providerResp?.message ?? '').toLowerCase();
+        const alreadyCancelled =
+          provStatus === 'cancelled' ||
+          provStatus === 'refunded' ||
+          /cancel|reembols|refund/.test(errMsg);
+
+        if (alreadyCancelled) {
+          // Sincroniza o estado local: a chave está morta no provedor.
+          // Se ainda não estornamos (dentro do prazo), estorna agora.
+          const { data: existingRefund } = await admin
+            .from('balance_transactions')
+            .select('id')
+            .eq('reseller_id', reseller.id)
+            .eq('reference_id', order.id)
+            .eq('kind', 'claude_key_refund')
+            .maybeSingle();
+
+          let refundCents = 0;
+          if (!existingRefund && withinWindow) {
+            const { data: issueTx } = await admin
+              .from('balance_transactions')
+              .select('amount_cents')
+              .eq('reseller_id', reseller.id)
+              .eq('reference_id', order.id)
+              .eq('kind', 'claude_key_issue')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            const debited = issueTx ? Math.abs(Number((issueTx as any).amount_cents) || 0) : 0;
+            refundCents = debited > 0 ? debited : (Number(order.cost_cents) || 0);
+            if (refundCents > 0) {
+              await admin.rpc('credit_reseller_balance', {
+                _reseller_id: reseller.id,
+                _amount_cents: refundCents,
+                _kind: 'claude_key_refund',
+                _description: `Cancelamento chave Claude ${order.plan_code} (sync provedor)`,
+                _reference_id: order.id,
+              });
+            }
+          }
+          await admin.from('claude_orders').update({
+            status: 'cancelled',
+            cancelled_at: now,
+            refund_waived: !withinWindow && !existingRefund,
+            cancel_attempts: [...prevAttempts, attempt],
+          }).eq('id', order.id);
+          return json({
+            ok: true,
+            synced: true,
+            order_id: order.id,
+            refund_cents: refundCents,
+            message: 'Chave já estava cancelada no provedor — status sincronizado.',
+          });
+        }
+
+        // Ainda resgatada (não cancelada) — mantém como estava.
         await admin.from('claude_orders').update({
           status: provStatus === 'redeemed' ? 'cancel_rejected' : (order.status),
           cancel_attempts: [...prevAttempts, attempt],
