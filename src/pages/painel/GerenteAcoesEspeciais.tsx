@@ -47,6 +47,7 @@ type Promotion = {
   activated_at: string | null;
   deactivated_at: string | null;
   created_at: string;
+  claude_discount_by_tier: Record<string, number> | null;
 };
 
 const fmtBRL = (cents: number) =>
