@@ -950,6 +950,11 @@ Qualquer dúvida, é só chamar!`;
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <IssueClaudeTrialDialog
+        open={trialOpen}
+        onOpenChange={setTrialOpen}
+        mode="manager"
+      />
     </PageContainer>
   );
 }
