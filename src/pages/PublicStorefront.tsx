@@ -1607,6 +1607,12 @@ export default function PublicStorefront() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <IssueClaudeTrialDialog
+        open={claudeTrialOpen}
+        onOpenChange={setClaudeTrialOpen}
+        mode="storefront"
+        storefrontSlug={slug}
+      />
     </div>
   );
 }
