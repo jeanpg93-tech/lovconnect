@@ -212,7 +212,9 @@ Deno.serve(async (req) => {
     if (action === "chaves" && req.method === "GET" && subId) {
       const { data } = await svc
         .from("claude_orders")
-        .select("id, plan_code, status, code, sale_price_cents, provider_key_id, customer_email, customer_name, customer_whatsapp, created_at, redeemed_at, expired_at, cancelled_at, tokens_exhausted_at, is_renewal, error_message")
+        // Doc: GET /chaves/{id} NÃO devolve o `code` (credencial secreta —
+        // exposto apenas na resposta do POST /chaves em uso único).
+        .select("id, plan_code, status, sale_price_cents, provider_key_id, customer_email, customer_name, customer_whatsapp, created_at, redeemed_at, expired_at, cancelled_at, tokens_exhausted_at, is_renewal, error_message")
         .eq("reseller_id", reseller.id)
         .eq("id", subId)
         .maybeSingle();
