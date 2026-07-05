@@ -551,10 +551,11 @@ function DefaultCard({ icon, title, description, value, max, saving, disabled, o
   onSave: () => void;
 }) {
   return (
-    <Card>
+    <Card className="relative overflow-hidden border-border/60 bg-gradient-to-br from-card via-card to-primary/5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5">
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary/30 to-transparent" />
       <CardHeader className="pb-3">
         <CardTitle className="text-sm flex items-start gap-2 leading-tight">
-          <span className="shrink-0 mt-0.5">{icon}</span>
+          <span className="shrink-0 mt-0.5 text-primary">{icon}</span>
           <span>{title}</span>
         </CardTitle>
         <CardDescription className="text-xs">{description}</CardDescription>
