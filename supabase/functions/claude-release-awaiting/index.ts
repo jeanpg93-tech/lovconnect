@@ -186,6 +186,7 @@ Deno.serve(async (req) => {
             kind: order.plan_code,
             ...(order.customer_email ? { email: String(order.customer_email).toLowerCase() } : {}),
           }),
+          signal: AbortSignal.timeout(15000),
         });
         providerStatus = r.status;
         const txt = await r.text();

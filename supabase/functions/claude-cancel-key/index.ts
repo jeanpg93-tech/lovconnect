@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
             Accept: 'application/json',
           },
+          signal: AbortSignal.timeout(15000),
         },
       );
       providerStatus = r.status;
