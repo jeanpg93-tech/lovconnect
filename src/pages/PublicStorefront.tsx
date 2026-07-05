@@ -15,6 +15,7 @@ import { StorefrontBackground } from "@/components/storefront/StorefrontBackgrou
 import { StorefrontVisualEffects, type VisualEffect } from "@/components/storefront/StorefrontVisualEffects";
 import { ReportStoreDialog } from "@/components/storefront/ReportStoreDialog";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
+import IssueClaudeTrialDialog from "@/components/painel/IssueClaudeTrialDialog";
 import {
   AlertDialog,
   AlertDialogAction,
