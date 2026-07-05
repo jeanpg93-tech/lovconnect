@@ -806,6 +806,12 @@ Qualquer dúvida, é só chamar!`
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <IssueClaudeTrialDialog
+        open={trialOpen}
+        onOpenChange={setTrialOpen}
+        mode="reseller"
+        onIssued={() => loadHistory?.()}
+      />
     </PageContainer>
   );
 }
