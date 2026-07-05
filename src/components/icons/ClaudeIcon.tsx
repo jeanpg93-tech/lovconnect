@@ -7,14 +7,12 @@ import claudeLogo from "@/assets/claude-logo.png.asset.json";
  * (segue o padrão dos ícones lucide do projeto).
  */
 export function ClaudeIcon({ className, size }: { className?: string; size?: number }) {
-  const px = size ?? "1em";
   return (
     <img
       src={claudeLogo.url}
       alt="Claude"
-      width={typeof px === "number" ? px : undefined}
-      height={typeof px === "number" ? px : undefined}
-      style={typeof px === "string" ? { width: px, height: px } : undefined}
+      width={size}
+      height={size}
       className={cn("inline-block shrink-0 object-contain select-none", className)}
       draggable={false}
     />
