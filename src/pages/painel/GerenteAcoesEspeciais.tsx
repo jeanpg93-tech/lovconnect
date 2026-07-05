@@ -701,7 +701,8 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
       claudePayload = Object.fromEntries(entries);
     }
 
-    const willActivate = activateNow || (startMode === "now" && !editing);
+    const willActivate =
+      activateNow || (startMode === "now" && (!editing || editing.status !== "active"));
     const payload: any = {
       name: name.trim(),
       description: description.trim() || null,
