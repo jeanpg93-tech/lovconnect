@@ -151,7 +151,6 @@ Detalhe completo de um pedido. Use para consultar o status atual sem baixar a li
   "id": "uuid",
   "plan_code": "5x_30d",
   "status": "issued",
-  "code": "CLAUDE-XXXXX-XXXXX",
   "sale_price_cents": 14900,
   "provider_key_id": "prv_...",
   "customer_email": "cliente@dominio.com",
@@ -166,6 +165,7 @@ Detalhe completo de um pedido. Use para consultar o status atual sem baixar a li
   "error_message": null
 } }
 \`\`\`
+> ⚠️ **O campo \`code\` (chave \`ACT-...\`) NÃO é devolvido no GET** — por segurança, ele só aparece na resposta do \`POST /chaves\` (emissão). Guarde no seu banco no momento da criação. Se perder, o cliente pode recuperar no Portal (\`/cliente-claude\`).
 > \`status\` possíveis: \`pending\` · \`awaiting_balance\` · \`issued\` (aguardando resgate) · \`redeemed\` (cliente ativou) · \`expired\` · \`cancelled\` · \`cancel_failed\` · \`refunded\` · \`failed\`.
 **Erros:** \`404\` pedido não encontrado.
 
