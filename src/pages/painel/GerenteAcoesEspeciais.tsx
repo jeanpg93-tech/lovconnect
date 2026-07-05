@@ -580,6 +580,9 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
   const [useReferralExtra, setUseReferralExtra] = useState(false);
   const [referralExtraPct, setReferralExtraPct] = useState<number>(5);
   const [tiers, setTiers] = useState<Array<{ id: string; name: string; slug: string; sort_order: number }>>([]);
+  // Desconto Claude por nível
+  const [useClaude, setUseClaude] = useState(false);
+  const [claudeByTier, setClaudeByTier] = useState<Record<string, number>>({});
   const [startMode, setStartMode] = useState<"now" | "schedule">("now");
   const [endMode, setEndMode] = useState<"none" | "schedule">("none");
   const [startsAt, setStartsAt] = useState("");
