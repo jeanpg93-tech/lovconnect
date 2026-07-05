@@ -688,13 +688,6 @@ export type Database = {
             referencedRelation: "claude_orders"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "claude_provider_webhook_events_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "claude_orders_admin"
-            referencedColumns: ["id"]
-          },
         ]
       }
       claude_reseller_price_overrides: {
@@ -4748,239 +4741,6 @@ export type Database = {
       }
     }
     Views: {
-      claude_orders_admin: {
-        Row: {
-          cancel_attempts: Json | null
-          cancel_request_note: string | null
-          cancel_requested_at: string | null
-          cancelled_at: string | null
-          code: string | null
-          code_revealed_at: string | null
-          copy_paste: string | null
-          cost_cents: number | null
-          created_at: string | null
-          customer_email: string | null
-          customer_id: string | null
-          customer_identifier: string | null
-          customer_name: string | null
-          customer_refund_full_name: string | null
-          customer_refund_note: string | null
-          customer_refund_pix_key: string | null
-          customer_refund_pix_key_type: string | null
-          customer_refunded_at: string | null
-          customer_refunded_by: string | null
-          customer_whatsapp: string | null
-          error_message: string | null
-          expired_at: string | null
-          id: string | null
-          is_manager_manual: boolean | null
-          is_renewal: boolean | null
-          is_trial: boolean | null
-          manager_user_id: string | null
-          paid_at: string | null
-          pix_expires_at: string | null
-          plan_code: string | null
-          profit_cents: number | null
-          provider_api_key: string | null
-          provider_key_id: string | null
-          provider_response: Json | null
-          provider_transaction_id: string | null
-          provider_user_id: string | null
-          qr_code_base64: string | null
-          redeemed_at: string | null
-          refund_waived: boolean | null
-          renewal_note: string | null
-          request_id: string | null
-          reseller_id: string | null
-          sale_price_cents: number | null
-          status: Database["public"]["Enums"]["claude_order_status"] | null
-          tokens_exhausted_at: string | null
-          trial_duration_minutes: number | null
-          trial_messages_limit: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          cancel_attempts?: Json | null
-          cancel_request_note?: string | null
-          cancel_requested_at?: string | null
-          cancelled_at?: string | null
-          code?: string | null
-          code_revealed_at?: string | null
-          copy_paste?: string | null
-          cost_cents?: number | null
-          created_at?: string | null
-          customer_email?: string | null
-          customer_id?: string | null
-          customer_identifier?: string | null
-          customer_name?: string | null
-          customer_refund_full_name?: string | null
-          customer_refund_note?: string | null
-          customer_refund_pix_key?: string | null
-          customer_refund_pix_key_type?: string | null
-          customer_refunded_at?: string | null
-          customer_refunded_by?: string | null
-          customer_whatsapp?: string | null
-          error_message?: string | null
-          expired_at?: string | null
-          id?: string | null
-          is_manager_manual?: boolean | null
-          is_renewal?: boolean | null
-          is_trial?: boolean | null
-          manager_user_id?: string | null
-          paid_at?: string | null
-          pix_expires_at?: string | null
-          plan_code?: string | null
-          profit_cents?: number | null
-          provider_api_key?: string | null
-          provider_key_id?: string | null
-          provider_response?: Json | null
-          provider_transaction_id?: string | null
-          provider_user_id?: string | null
-          qr_code_base64?: string | null
-          redeemed_at?: string | null
-          refund_waived?: boolean | null
-          renewal_note?: string | null
-          request_id?: string | null
-          reseller_id?: string | null
-          sale_price_cents?: number | null
-          status?: Database["public"]["Enums"]["claude_order_status"] | null
-          tokens_exhausted_at?: string | null
-          trial_duration_minutes?: number | null
-          trial_messages_limit?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          cancel_attempts?: Json | null
-          cancel_request_note?: string | null
-          cancel_requested_at?: string | null
-          cancelled_at?: string | null
-          code?: string | null
-          code_revealed_at?: string | null
-          copy_paste?: string | null
-          cost_cents?: number | null
-          created_at?: string | null
-          customer_email?: string | null
-          customer_id?: string | null
-          customer_identifier?: string | null
-          customer_name?: string | null
-          customer_refund_full_name?: string | null
-          customer_refund_note?: string | null
-          customer_refund_pix_key?: string | null
-          customer_refund_pix_key_type?: string | null
-          customer_refunded_at?: string | null
-          customer_refunded_by?: string | null
-          customer_whatsapp?: string | null
-          error_message?: string | null
-          expired_at?: string | null
-          id?: string | null
-          is_manager_manual?: boolean | null
-          is_renewal?: boolean | null
-          is_trial?: boolean | null
-          manager_user_id?: string | null
-          paid_at?: string | null
-          pix_expires_at?: string | null
-          plan_code?: string | null
-          profit_cents?: number | null
-          provider_api_key?: string | null
-          provider_key_id?: string | null
-          provider_response?: Json | null
-          provider_transaction_id?: string | null
-          provider_user_id?: string | null
-          qr_code_base64?: string | null
-          redeemed_at?: string | null
-          refund_waived?: boolean | null
-          renewal_note?: string | null
-          request_id?: string | null
-          reseller_id?: string | null
-          sale_price_cents?: number | null
-          status?: Database["public"]["Enums"]["claude_order_status"] | null
-          tokens_exhausted_at?: string | null
-          trial_duration_minutes?: number | null
-          trial_messages_limit?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "claude_orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "claude_customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "claude_orders_reseller_id_fkey"
-            columns: ["reseller_id"]
-            isOneToOne: false
-            referencedRelation: "resellers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      recharge_intents_admin: {
-        Row: {
-          amount_cents: number | null
-          bonus_cents: number | null
-          copy_paste: string | null
-          created_at: string | null
-          id: string | null
-          paid_at: string | null
-          payer_document: string | null
-          payer_name: string | null
-          promotion_id: string | null
-          provider: string | null
-          provider_transaction_id: string | null
-          qr_code_base64: string | null
-          raw_response: Json | null
-          reseller_id: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          amount_cents?: number | null
-          bonus_cents?: number | null
-          copy_paste?: string | null
-          created_at?: string | null
-          id?: string | null
-          paid_at?: string | null
-          payer_document?: string | null
-          payer_name?: string | null
-          promotion_id?: string | null
-          provider?: string | null
-          provider_transaction_id?: string | null
-          qr_code_base64?: string | null
-          raw_response?: Json | null
-          reseller_id?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          amount_cents?: number | null
-          bonus_cents?: number | null
-          copy_paste?: string | null
-          created_at?: string | null
-          id?: string | null
-          paid_at?: string | null
-          payer_document?: string | null
-          payer_name?: string | null
-          promotion_id?: string | null
-          provider?: string | null
-          provider_transaction_id?: string | null
-          qr_code_base64?: string | null
-          raw_response?: Json | null
-          reseller_id?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "recharge_intents_promotion_id_fkey"
-            columns: ["promotion_id"]
-            isOneToOne: false
-            referencedRelation: "promotions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       reseller_recharge_plan_subscriptions_admin: {
         Row: {
           awaiting_owner_expires_at: string | null
@@ -5126,6 +4886,21 @@ export type Database = {
         Args: { _amount_cents: number; _reseller_id: string }
         Returns: undefined
       }
+      admin_claude_orders_financial: {
+        Args: { _from?: string; _to?: string }
+        Returns: {
+          cost_cents: number
+          created_at: string
+          customer_name: string
+          id: string
+          paid_at: string
+          plan_code: string
+          profit_cents: number
+          reseller_id: string
+          sale_price_cents: number
+          status: string
+        }[]
+      }
       admin_claude_plan_prices_full: {
         Args: never
         Returns: {
@@ -5247,6 +5022,19 @@ export type Database = {
         Returns: {
           cost_cents: number
           credits: number
+        }[]
+      }
+      admin_recharge_intents_recent: {
+        Args: { _limit?: number }
+        Returns: {
+          amount_cents: number
+          bonus_cents: number
+          created_at: string
+          id: string
+          paid_at: string
+          payer_name: string
+          reseller_id: string
+          status: string
         }[]
       }
       admin_reseller_credit_purchases_costs: {
