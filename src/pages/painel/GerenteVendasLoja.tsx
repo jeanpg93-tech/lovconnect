@@ -67,6 +67,13 @@ export default function GerenteVendasLoja() {
   const [originF, setOriginF] = useState<"all" | OrderOrigin>("all");
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [rawResponses, setRawResponses] = useState<Record<string, any>>({});
+
+  const loadRawResponse = async (id: string) => {
+    if (rawResponses[id] !== undefined) return;
+    const { data, error } = await supabase.rpc("admin_storefront_order_raw_response" as any, { _id: id });
+    if (!error) setRawResponses((prev) => ({ ...prev, [id]: data ?? null }));
+  };
 
   const load = async () => {
     setLoading(true);
@@ -256,7 +263,11 @@ export default function GerenteVendasLoja() {
               return (
                 <div key={r.id} className="rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-sm transition-all overflow-hidden">
                   <button
-                    onClick={() => setOpenId(isOpen ? null : r.id)}
+                    onClick={() => {
+                      const next = isOpen ? null : r.id;
+                      setOpenId(next);
+                      if (next) loadRawResponse(next);
+                    }}
                     className="w-full text-left p-4 flex items-start justify-between gap-4"
                   >
                     <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -305,11 +316,11 @@ export default function GerenteVendasLoja() {
                         <KV label="Licença gerada" value={r.license_key ?? "—"} mono onCopy={() => copy(r.license_key)} />
                         {r.error_message && <KV label="Erro" value={r.error_message} className="text-destructive md:col-span-2" />}
                       </div>
-                      {r.raw_response && (
+                      {rawResponses[r.id] && (
                         <div>
                           <div className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-1">Webhook payload</div>
                           <pre className="text-[10px] font-mono bg-black/40 border border-white/5 rounded-lg p-3 overflow-auto max-h-64">
-{JSON.stringify(r.raw_response, null, 2)}
+{JSON.stringify(rawResponses[r.id], null, 2)}
                           </pre>
                         </div>
                       )}
