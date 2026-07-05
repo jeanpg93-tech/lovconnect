@@ -122,7 +122,7 @@ export default function GerenteAcoesEspeciais() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Promotion | null>(null);
 
-  const activePromo = promotions.find((p) => p.status === "active") || null;
+  const activePromos = promotions.filter((p) => p.status === "active");
   const scheduledPromos = promotions.filter((p) => p.status === "scheduled");
   const endedPromos = promotions.filter((p) => p.status === "ended" || p.status === "paused").slice(0, 10);
 
@@ -168,12 +168,6 @@ export default function GerenteAcoesEspeciais() {
   }
 
   async function activateNow(p: Promotion) {
-    // Encerra qualquer outra ativa
-    if (activePromo && activePromo.id !== p.id) {
-      await supabase.from("promotions")
-        .update({ status: "ended", deactivated_at: new Date().toISOString() })
-        .eq("id", activePromo.id);
-    }
     const { error } = await supabase.from("promotions")
       .update({ status: "active", activated_at: new Date().toISOString(), starts_at: p.starts_at ?? new Date().toISOString() })
       .eq("id", p.id);
