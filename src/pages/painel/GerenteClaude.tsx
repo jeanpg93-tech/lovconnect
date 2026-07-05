@@ -23,6 +23,10 @@ const PLAN_LABELS: Record<PlanCode, string> = {
   "5x_30d": "5x · 30 dias",
   "20x_30d": "20x · 30 dias",
 };
+const planLabel = (code: string) =>
+  code === "trial_15m_50msg"
+    ? "Teste grátis · 15 min / 50 msgs"
+    : (PLAN_LABELS[code as PlanCode] ?? code);
 const PLAN_LIMITS: Record<PlanCode, string> = {
   pro_30d: "500 mil tokens / 12h",
   "5x_30d": "2,5 Milhões de tokens / 12h",
@@ -65,6 +69,9 @@ type Issued = {
   customer_name?: string;
   customer_whatsapp?: string;
   customer_email?: string;
+  is_trial?: boolean;
+  origin?: string;
+  reseller_display_name?: string;
 };
 
 const HISTORY_KEY = "gerente_claude_issued_v2";
@@ -180,6 +187,9 @@ export default function GerenteClaude() {
             customer_name: r.customer_name ?? undefined,
             customer_whatsapp: r.customer_whatsapp ?? undefined,
             customer_email: r.customer_email ?? undefined,
+            is_trial: !!r.is_trial,
+            origin: r.origin ?? undefined,
+            reseller_display_name: r.reseller_display_name ?? undefined,
           });
         }
         for (const r of prev) if (!byCode.has(r.code)) byCode.set(r.code, r);
