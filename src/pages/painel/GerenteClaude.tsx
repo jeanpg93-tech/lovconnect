@@ -731,8 +731,23 @@ Qualquer dúvida, é só chamar!`;
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="font-display text-sm font-semibold truncate">
-                        {PLAN_LABELS[h.plan]}
+                        {planLabel(h.plan as string)}
                       </div>
+                      {(h.is_trial || h.origin) && (
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                          {h.is_trial && (
+                            <span className="rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-primary">
+                              Teste
+                            </span>
+                          )}
+                          {h.origin && h.origin !== "gerente" && (
+                            <span className="rounded-full border border-border bg-muted/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
+                              {h.origin}
+                              {h.reseller_display_name ? ` · ${h.reseller_display_name}` : ""}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {h.customer_name && (
                         <div className="mt-0.5 text-[11px] text-foreground/80 truncate flex items-center gap-1">
                           <User className="h-3 w-3 text-muted-foreground" />
