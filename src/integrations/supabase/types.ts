@@ -5351,8 +5351,12 @@ export type Database = {
           customer_name: string
           customer_whatsapp: string
           id: string
+          is_trial: boolean
+          origin: string
           plan_code: string
           provider_api_key: string
+          reseller_display_name: string
+          reseller_id: string
           status: string
         }[]
       }

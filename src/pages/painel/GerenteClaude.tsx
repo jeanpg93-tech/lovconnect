@@ -23,6 +23,10 @@ const PLAN_LABELS: Record<PlanCode, string> = {
   "5x_30d": "5x · 30 dias",
   "20x_30d": "20x · 30 dias",
 };
+const planLabel = (code: string) =>
+  code === "trial_15m_50msg"
+    ? "Teste grátis · 15 min / 50 msgs"
+    : (PLAN_LABELS[code as PlanCode] ?? code);
 const PLAN_LIMITS: Record<PlanCode, string> = {
   pro_30d: "500 mil tokens / 12h",
   "5x_30d": "2,5 Milhões de tokens / 12h",
@@ -65,6 +69,9 @@ type Issued = {
   customer_name?: string;
   customer_whatsapp?: string;
   customer_email?: string;
+  is_trial?: boolean;
+  origin?: string;
+  reseller_display_name?: string;
 };
 
 const HISTORY_KEY = "gerente_claude_issued_v2";
@@ -180,6 +187,9 @@ export default function GerenteClaude() {
             customer_name: r.customer_name ?? undefined,
             customer_whatsapp: r.customer_whatsapp ?? undefined,
             customer_email: r.customer_email ?? undefined,
+            is_trial: !!r.is_trial,
+            origin: r.origin ?? undefined,
+            reseller_display_name: r.reseller_display_name ?? undefined,
           });
         }
         for (const r of prev) if (!byCode.has(r.code)) byCode.set(r.code, r);
@@ -721,8 +731,23 @@ Qualquer dúvida, é só chamar!`;
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="font-display text-sm font-semibold truncate">
-                        {PLAN_LABELS[h.plan]}
+                        {planLabel(h.plan as string)}
                       </div>
+                      {(h.is_trial || h.origin) && (
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                          {h.is_trial && (
+                            <span className="rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-primary">
+                              Teste
+                            </span>
+                          )}
+                          {h.origin && h.origin !== "gerente" && (
+                            <span className="rounded-full border border-border bg-muted/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
+                              {h.origin}
+                              {h.reseller_display_name ? ` · ${h.reseller_display_name}` : ""}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {h.customer_name && (
                         <div className="mt-0.5 text-[11px] text-foreground/80 truncate flex items-center gap-1">
                           <User className="h-3 w-3 text-muted-foreground" />

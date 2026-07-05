@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
 
   const { data: reseller } = await svc
     .from("resellers")
-    .select("id, is_active, claude_enabled, activation_status")
+    .select("id, is_active, claude_enabled, activation_status, display_name")
     .eq("id", keyRow.reseller_id)
     .maybeSingle();
   if (!reseller || !reseller.is_active) return json({ success: false, error: "Revendedor inativo" }, 403);
@@ -666,6 +666,17 @@ Deno.serve(async (req) => {
         code_revealed_at: new Date().toISOString(),
         error_message: "trial_15m_50msg",
       });
+
+      // Notificação Telegram para o gerente
+      try {
+        const txt =
+          `🧪 <b>Teste Claude (API do revendedor)</b>\n` +
+          `🏪 Revendedor: ${reseller.display_name ?? reseller.id}\n` +
+          `👤 Cliente: ${customerName ?? '—'}${customerWhatsapp ? ` (${customerWhatsapp})` : ''}\n` +
+          `📧 ${email}\n` +
+          `👥 User ID: <code>${providerUserId ?? '—'}</code>`;
+        await svc.rpc('telegram_enqueue', { _text: txt });
+      } catch (_) { /* noop */ }
 
       return json({
         success: true,
