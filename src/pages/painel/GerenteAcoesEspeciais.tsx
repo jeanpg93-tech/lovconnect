@@ -667,7 +667,7 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
 
   async function handleSave(activateNow: boolean) {
     if (!name.trim()) { toast.error("Dê um nome para a promoção"); return; }
-    if (!useExt && !useCred && !useBonus && !useActivation && !useActivationBonus && !usePromoteTier && !useReferralExtra) {
+    if (!useExt && !useCred && !useBonus && !useActivation && !useActivationBonus && !usePromoteTier && !useReferralExtra && !useClaude) {
       toast.error("Selecione pelo menos um desconto/bônus"); return;
     }
     if (usePromoteTier && !promoteTierId) {
@@ -686,6 +686,21 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
       toast.error("Data de fim deve ser depois do início"); return;
     }
 
+    // Monta desconto Claude por nível (apenas tiers com valor > 0)
+    let claudePayload: Record<string, number> | null = null;
+    if (useClaude) {
+      const entries = Object.entries(claudeByTier)
+        .map(([slug, v]) => [slug, Number(v)] as const)
+        .filter(([, v]) => Number.isFinite(v) && v > 0);
+      if (entries.length === 0) {
+        toast.error("Informe pelo menos um % de desconto Claude para algum nível"); return;
+      }
+      if (entries.some(([, v]) => v < 0 || v > 100)) {
+        toast.error("Descontos Claude devem estar entre 0 e 100%"); return;
+      }
+      claudePayload = Object.fromEntries(entries);
+    }
+
     const willActivate = activateNow || (startMode === "now" && !editing);
     const payload: any = {
       name: name.trim(),
@@ -699,6 +714,7 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
       activation_bonus_cents:       useActivationBonus                            ? Math.round(activationBonusReais * 100)           : null,
       activation_promote_to_tier_id: usePromoteTier ? promoteTierId : null,
       activation_referral_extra_pct: useReferralExtra ? referralExtraPct : null,
+      claude_discount_by_tier: claudePayload,
       starts_at,
       ends_at,
       status: willActivate ? "active" : "scheduled",
