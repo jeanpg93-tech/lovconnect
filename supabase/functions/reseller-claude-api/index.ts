@@ -667,6 +667,17 @@ Deno.serve(async (req) => {
         error_message: "trial_15m_50msg",
       });
 
+      // Notificação Telegram para o gerente
+      try {
+        const txt =
+          `🧪 <b>Teste Claude (API do revendedor)</b>\n` +
+          `🏪 Revendedor: ${reseller.display_name ?? reseller.id}\n` +
+          `👤 Cliente: ${customerName ?? '—'}${customerWhatsapp ? ` (${customerWhatsapp})` : ''}\n` +
+          `📧 ${email}\n` +
+          `👥 User ID: <code>${providerUserId ?? '—'}</code>`;
+        await svc.rpc('telegram_enqueue', { _text: txt });
+      } catch (_) { /* noop */ }
+
       return json({
         success: true,
         codigo: code,
