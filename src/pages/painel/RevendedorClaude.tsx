@@ -20,9 +20,6 @@ import IssueClaudeTrialDialog from "@/components/painel/IssueClaudeTrialDialog";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
-// Conta de testes Jean Gomes — únicos com botão "Cancelar venda" no momento.
-const TEST_USER_ID = "beae9f73-5c2c-4878-bfc5-41e9e2faf15e";
-
 type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d";
 type MarkupMode = "percent" | "fixed_add" | "final";
 
@@ -74,7 +71,8 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
 
 export default function RevendedorClaude() {
   const { user } = useAuth();
-  const canCancel = user?.id === TEST_USER_ID;
+  // Todos os revendedores podem cancelar chaves emitidas (com reembolso automático).
+  const canCancel = !!user?.id;
   const [loading, setLoading] = useState(true);
   const [prices, setPrices] = useState<PriceRow[]>([]);
   const [issuing, setIssuing] = useState<PlanCode | null>(null);
