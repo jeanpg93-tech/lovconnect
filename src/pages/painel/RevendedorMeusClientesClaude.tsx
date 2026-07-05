@@ -4,7 +4,7 @@ import { PageContainer } from "@/components/painel/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity, Copy, KeyRound, Ban, ShieldAlert, Store, Code2, Phone, Hash } from "lucide-react";
+import { Loader2, Search, RefreshCw, Mail, User, AlertCircle, Activity, Copy, KeyRound, Ban, ShieldAlert, Store, Code2, Phone, Hash, UserPlus, RotateCw, MessageCircle, CheckCircle2 } from "lucide-react";
 import ClaudeIcon from "@/components/icons/ClaudeIcon";
 import ApiKeyReveal from "@/components/painel/ApiKeyReveal";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 
 type Order = {
   id: string;
@@ -31,6 +34,7 @@ type Order = {
   provider_status?: string | null;
   refund_deadline_at?: string | null;
   within_refund_window?: boolean;
+  portal_active?: boolean;
   cancel_requested_at?: string | null;
   cancel_request_note?: string | null;
   refund_waived?: boolean;
