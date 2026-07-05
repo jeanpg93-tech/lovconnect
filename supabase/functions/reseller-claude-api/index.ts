@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
 
   const { data: reseller } = await svc
     .from("resellers")
-    .select("id, is_active, claude_enabled, activation_status")
+    .select("id, is_active, claude_enabled, activation_status, display_name")
     .eq("id", keyRow.reseller_id)
     .maybeSingle();
   if (!reseller || !reseller.is_active) return json({ success: false, error: "Revendedor inativo" }, 403);
