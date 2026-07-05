@@ -202,6 +202,36 @@ function mapLicenseTypeToDuration(type: string): string {
   return t || "—";
 }
 
+function providerEmailAlreadyExists(resp: any): boolean {
+  const msg = String(
+    resp?.error ??
+    resp?.message ??
+    resp?.detail ??
+    resp?.raw ??
+    resp?.data?.error ??
+    resp?.data?.message ??
+    "",
+  ).toLowerCase();
+  return (
+    msg.includes("e-mail já cadastrado") ||
+    msg.includes("email já cadastrado") ||
+    msg.includes("e-mail ja cadastrado") ||
+    msg.includes("email ja cadastrado") ||
+    msg.includes("already registered") ||
+    msg.includes("already exists") ||
+    msg.includes("already has")
+  );
+}
+
+function extractClaudeProviderFields(resp: any) {
+  return {
+    code: resp?.code ?? resp?.key ?? resp?.data?.code ?? resp?.data?.key,
+    providerKeyId: resp?.id ?? resp?.key_id ?? resp?.data?.id,
+    providerApiKey: resp?.apiKey ?? resp?.api_key ?? resp?.data?.apiKey ?? resp?.data?.api_key,
+    providerUserId: resp?.userId ?? resp?.user_id ?? resp?.data?.userId ?? resp?.data?.user_id,
+  };
+}
+
 async function triggerReleasePending(orderIds: string[]) {
   for (const id of orderIds) {
     try {
@@ -895,7 +925,9 @@ Deno.serve(async (req) => {
           _amount_cents: resellerCostCents,
         });
 
-        // Chama o provedor Claude para emitir a chave
+        // Chama o provedor Claude. Renovações usam /renew (não /keys), e uma
+        // venda nova com e-mail já existente no provedor cai para /renew para
+        // não falhar depois que o PIX já foi confirmado.
         const CLAUDE_API_KEY = Deno.env.get("CLAUDE_RESELLER_API_KEY") ?? "";
         const CLAUDE_BASE_URL = (Deno.env.get("CLAUDE_RESELLER_API_BASE_URL") ?? "").replace(/\/$/, "");
         let providerResp: any = null;
@@ -904,21 +936,33 @@ Deno.serve(async (req) => {
           providerResp = { error: "provider_not_configured" };
         } else {
           try {
-            const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/keys`, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${CLAUDE_API_KEY}`,
-                "Content-Type": "application/json",
-                Accept: "application/json",
-              },
-              body: JSON.stringify({
-                kind: planCode,
-                ...((claudeOrder as any).customer_email ? { email: (claudeOrder as any).customer_email } : {}),
-              }),
-            });
-            providerStatus = r.status;
-            const txt = await r.text();
-            try { providerResp = JSON.parse(txt); } catch { providerResp = { raw: txt }; }
+            const customerEmail = String((claudeOrder as any).customer_email ?? "").trim().toLowerCase();
+            const callProvider = async (path: string) => {
+              const r = await fetch(`${CLAUDE_BASE_URL}${path}`, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${CLAUDE_API_KEY}`,
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                },
+                body: JSON.stringify({
+                  kind: planCode,
+                  ...(customerEmail ? { email: customerEmail } : {}),
+                }),
+              });
+              const txt = await r.text();
+              let body: any = null;
+              try { body = JSON.parse(txt); } catch { body = { raw: txt }; }
+              return { status: r.status, body };
+            };
+
+            const firstPath = (claudeOrder as any).is_renewal ? "/api/rsl/renew" : "/api/rsl/keys";
+            let result = await callProvider(firstPath);
+            if (firstPath === "/api/rsl/keys" && result.status === 409 && customerEmail && providerEmailAlreadyExists(result.body)) {
+              result = await callProvider("/api/rsl/renew");
+            }
+            providerStatus = result.status;
+            providerResp = result.body;
           } catch (e) {
             providerResp = { error: `network_error: ${(e as Error)?.message ?? e}` };
           }
@@ -941,14 +985,23 @@ Deno.serve(async (req) => {
           return json({ ok: false, kind: "claude_provider_failed" }, 502);
         }
 
-        const code: string | undefined =
-          providerResp?.code ?? providerResp?.key ?? providerResp?.data?.code ?? providerResp?.data?.key;
-        const providerKeyId: string | undefined =
-          providerResp?.id ?? providerResp?.key_id ?? providerResp?.data?.id;
-        const providerApiKey: string | undefined =
-          providerResp?.apiKey ?? providerResp?.api_key ?? providerResp?.data?.apiKey ?? providerResp?.data?.api_key;
-        const providerUserId: string | undefined =
-          providerResp?.userId ?? providerResp?.user_id ?? providerResp?.data?.userId ?? providerResp?.data?.user_id;
+        let { code, providerKeyId, providerApiKey, providerUserId } = extractClaudeProviderFields(providerResp);
+        if ((!code || !providerKeyId || !providerApiKey || !providerUserId) && (claudeOrder as any).customer_email) {
+          const { data: prior } = await admin
+            .from("claude_orders")
+            .select("code, provider_key_id, provider_api_key, provider_user_id")
+            .eq("reseller_id", resellerId)
+            .ilike("customer_email", String((claudeOrder as any).customer_email).toLowerCase())
+            .neq("id", (claudeOrder as any).id)
+            .not("code", "is", null)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          code = code ?? prior?.code;
+          providerKeyId = providerKeyId ?? prior?.provider_key_id;
+          providerApiKey = providerApiKey ?? prior?.provider_api_key;
+          providerUserId = providerUserId ?? prior?.provider_user_id;
+        }
 
         await admin.from("claude_orders").update({
           status: "issued",
@@ -958,6 +1011,7 @@ Deno.serve(async (req) => {
           provider_user_id: providerUserId ?? null,
           provider_response: providerResp,
           code_revealed_at: new Date().toISOString(),
+          error_message: null,
         }).eq("id", (claudeOrder as any).id);
 
         // Notifica revendedor
@@ -970,10 +1024,9 @@ Deno.serve(async (req) => {
             await admin.from("notifications").insert({
               user_id: (r as any).user_id,
               type: isRenewal ? "claude_renewal_paid" : "claude_sale_paid",
-              title: `${title}!`,
-              body: isRenewal
-                ? `Cliente renovou (${planCode}). Chave emitida automaticamente.`
-                : `Nova venda de plano ${planCode} paga via PIX. Chave emitida automaticamente.`,
+              title,
+              body: `Cliente ${((claudeOrder as any).customer_name ?? (claudeOrder as any).customer_email ?? "—")} pagou ${planCode}.`,
+              link: "/painel/revendedor/claude",
               metadata: { order_id: (claudeOrder as any).id, plan_code: planCode },
             });
           }
