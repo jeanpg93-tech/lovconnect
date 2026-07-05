@@ -296,15 +296,10 @@ Deno.serve(async (req) => {
     }
   }
 
-  await admin.from('claude_provider_webhook_events').upsert({
-    provider_event_id: providerEventId,
-    event,
-    provider_key_id: providerKeyId,
+  await admin.from('claude_provider_webhook_events').update({
     order_id: orderId,
-    payload,
-    signature_ok: true,
     processed_at: new Date().toISOString(),
-  }, { onConflict: 'provider_event_id' });
+  }).eq('provider_event_id', providerEventId);
 
   return json({ ok: true, event, order_id: orderId });
 });
