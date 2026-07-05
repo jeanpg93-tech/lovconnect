@@ -144,13 +144,20 @@ Deno.serve(async (req) => {
   const providerKeyId = String(data?.keyId ?? data?.key_id ?? data?.id ?? '').trim() || null;
   const providerEventId = String(payload?.id ?? payload?.eventId ?? `${event}:${providerKeyId}:${data?.occurredAt ?? data?.timestamp ?? Date.now()}`);
 
-  // Dedupe via provider_event_id
-  const { data: existing } = await admin
+  // Dedupe atômico: tenta CLAIM da linha via INSERT com ON CONFLICT DO NOTHING.
+  // Se outra execução concorrente já inseriu, esta retorna sem linhas e sai.
+  const { data: claim } = await admin
     .from('claude_provider_webhook_events')
-    .select('id, processed_at')
-    .eq('provider_event_id', providerEventId)
+    .insert({
+      provider_event_id: providerEventId,
+      event,
+      provider_key_id: providerKeyId,
+      payload,
+      signature_ok: true,
+    })
+    .select('id')
     .maybeSingle();
-  if (existing?.processed_at) return json({ ok: true, deduped: true });
+  if (!claim?.id) return json({ ok: true, deduped: true });
 
   // Match order
   let orderId: string | null = null;
@@ -289,15 +296,10 @@ Deno.serve(async (req) => {
     }
   }
 
-  await admin.from('claude_provider_webhook_events').upsert({
-    provider_event_id: providerEventId,
-    event,
-    provider_key_id: providerKeyId,
+  await admin.from('claude_provider_webhook_events').update({
     order_id: orderId,
-    payload,
-    signature_ok: true,
     processed_at: new Date().toISOString(),
-  }, { onConflict: 'provider_event_id' });
+  }).eq('provider_event_id', providerEventId);
 
   return json({ ok: true, event, order_id: orderId });
 });

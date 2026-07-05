@@ -26,7 +26,25 @@ Deno.serve(async (req) => {
     const email = String(body?.email ?? "").trim().toLowerCase();
     const resellerSlug = String(body?.reseller_slug ?? "").trim().toLowerCase();
     const resellerIdIn = String(body?.reseller_id ?? "").trim();
-    const redirect_to = String(body?.redirect_to ?? "").trim() || undefined;
+    const redirectRaw = String(body?.redirect_to ?? "").trim();
+    // Allowlist: só aceita URLs dos domínios oficiais (evita open-redirect/phishing).
+    const ALLOWED_HOSTS = new Set([
+      "lovconnect.store",
+      "www.lovconnect.store",
+      "lovconnect.lovable.app",
+    ]);
+    let redirect_to: string | undefined;
+    if (redirectRaw) {
+      try {
+        const u = new URL(redirectRaw);
+        if (
+          u.protocol === "https:" &&
+          (ALLOWED_HOSTS.has(u.hostname) || u.hostname.endsWith(".lovable.app"))
+        ) {
+          redirect_to = u.toString();
+        }
+      } catch { /* ignore, treat as unset */ }
+    }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "invalid_email" }, 400);
 
