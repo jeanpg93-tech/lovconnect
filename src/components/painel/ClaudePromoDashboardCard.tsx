@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import { useClaudePromoForReseller } from "@/hooks/useClaudePromoForReseller";
+import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
 import { ArrowRight, Timer } from "lucide-react";
 
 function useCountdown(endsAt: string | null) {
@@ -26,8 +27,9 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 export default function ClaudePromoDashboardCard() {
   const { info } = useClaudePromoForReseller();
+  const { claude: claudeEnabled, loading } = useResellerEnabledMethods();
   const countdown = useCountdown(info?.endsAt ?? null);
-  if (!info) return null;
+  if (loading || !claudeEnabled || !info) return null;
 
   return (
     <div className="relative w-full group">
