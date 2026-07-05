@@ -87,7 +87,7 @@ export default function ClaudeLaunchModal() {
           <div className="group relative mb-4 h-56 w-56">
             <div className="absolute inset-0 animate-pulse rounded-full bg-[#ff3b2f] opacity-30 blur-3xl transition-opacity duration-500 group-hover:opacity-60" />
             <div className="absolute inset-4 animate-pulse rounded-full bg-[#ff8a5c] opacity-20 blur-2xl [animation-delay:400ms]" />
-            <ClaudeIcon className="relative h-56 w-56 transition-transform duration-500 group-hover:scale-105" />
+            <ClaudeIcon className="relative h-40 w-40 text-[#ff3b2f] drop-shadow-[0_0_20px_rgba(255,59,47,0.6)] transition-transform duration-500 group-hover:scale-105" />
           </div>
 
           {/* Headline */}
