@@ -47,6 +47,7 @@ type Promotion = {
   activated_at: string | null;
   deactivated_at: string | null;
   created_at: string;
+  claude_discount_by_tier: Record<string, number> | null;
 };
 
 const fmtBRL = (cents: number) =>
@@ -497,6 +498,13 @@ function PromoValues({ p, compact, big }: { p: Promotion; compact?: boolean; big
   if (p.activation_discount_cents != null) items.push({ icon: <Rocket className={sz} />, label: "Adesão", value: `-${fmtBRL(p.activation_discount_cents)}` });
   if (p.activation_fixed_price_cents != null) items.push({ icon: <Rocket className={sz} />, label: "Adesão por", value: fmtBRL(p.activation_fixed_price_cents) });
   if (p.activation_bonus_cents != null && p.activation_bonus_cents > 0) items.push({ icon: <Gift className={sz} />, label: "Bônus na adesão", value: `+${fmtBRL(p.activation_bonus_cents)}` });
+  if (p.claude_discount_by_tier && Object.keys(p.claude_discount_by_tier).length > 0) {
+    const parts = Object.entries(p.claude_discount_by_tier)
+      .filter(([, v]) => Number(v) > 0)
+      .map(([slug, v]) => `${slug} -${v}%`)
+      .join(" / ");
+    if (parts) items.push({ icon: <Sparkles className={sz} />, label: "Claude por nível", value: parts });
+  }
   if (items.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2">
@@ -572,6 +580,9 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
   const [useReferralExtra, setUseReferralExtra] = useState(false);
   const [referralExtraPct, setReferralExtraPct] = useState<number>(5);
   const [tiers, setTiers] = useState<Array<{ id: string; name: string; slug: string; sort_order: number }>>([]);
+  // Desconto Claude por nível
+  const [useClaude, setUseClaude] = useState(false);
+  const [claudeByTier, setClaudeByTier] = useState<Record<string, number>>({});
   const [startMode, setStartMode] = useState<"now" | "schedule">("now");
   const [endMode, setEndMode] = useState<"none" | "schedule">("none");
   const [startsAt, setStartsAt] = useState("");
@@ -624,6 +635,9 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
         if (editing.activation_referral_extra_pct != null) {
           setReferralExtraPct(Number(editing.activation_referral_extra_pct));
         }
+        const cbt = editing.claude_discount_by_tier;
+        setUseClaude(!!cbt && Object.keys(cbt).length > 0);
+        setClaudeByTier(cbt ? Object.fromEntries(Object.entries(cbt).map(([k, v]) => [k, Number(v)])) : {});
         setStartMode(editing.starts_at ? "schedule" : "now");
         setEndMode(editing.ends_at ? "schedule" : "none");
         setStartsAt(toLocalInputValue(editing.starts_at));
@@ -643,6 +657,8 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
         setPromoteTierId("");
         setUseReferralExtra(false);
         setReferralExtraPct(5);
+        setUseClaude(false);
+        setClaudeByTier({});
         setStartMode("now"); setEndMode("none");
         setStartsAt(""); setEndsAt("");
       }
@@ -651,7 +667,7 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
 
   async function handleSave(activateNow: boolean) {
     if (!name.trim()) { toast.error("Dê um nome para a promoção"); return; }
-    if (!useExt && !useCred && !useBonus && !useActivation && !useActivationBonus && !usePromoteTier && !useReferralExtra) {
+    if (!useExt && !useCred && !useBonus && !useActivation && !useActivationBonus && !usePromoteTier && !useReferralExtra && !useClaude) {
       toast.error("Selecione pelo menos um desconto/bônus"); return;
     }
     if (usePromoteTier && !promoteTierId) {
@@ -670,6 +686,21 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
       toast.error("Data de fim deve ser depois do início"); return;
     }
 
+    // Monta desconto Claude por nível (apenas tiers com valor > 0)
+    let claudePayload: Record<string, number> | null = null;
+    if (useClaude) {
+      const entries = Object.entries(claudeByTier)
+        .map(([slug, v]) => [slug, Number(v)] as const)
+        .filter(([, v]) => Number.isFinite(v) && v > 0);
+      if (entries.length === 0) {
+        toast.error("Informe pelo menos um % de desconto Claude para algum nível"); return;
+      }
+      if (entries.some(([, v]) => v < 0 || v > 100)) {
+        toast.error("Descontos Claude devem estar entre 0 e 100%"); return;
+      }
+      claudePayload = Object.fromEntries(entries);
+    }
+
     const willActivate = activateNow || (startMode === "now" && !editing);
     const payload: any = {
       name: name.trim(),
@@ -683,6 +714,7 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
       activation_bonus_cents:       useActivationBonus                            ? Math.round(activationBonusReais * 100)           : null,
       activation_promote_to_tier_id: usePromoteTier ? promoteTierId : null,
       activation_referral_extra_pct: useReferralExtra ? referralExtraPct : null,
+      claude_discount_by_tier: claudePayload,
       starts_at,
       ends_at,
       status: willActivate ? "active" : "scheduled",
@@ -745,6 +777,47 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
             <PctRow enabled={useExt} setEnabled={setUseExt} label="Desconto em extensões" value={extPct} setValue={setExtPct} max={100} suffix="%" />
             <PctRow enabled={useCred} setEnabled={setUseCred} label="Desconto em recargas de créditos" value={credPct} setValue={setCredPct} max={100} suffix="%" />
             <PctRow enabled={useBonus} setEnabled={setUseBonus} label="Bônus de recargas de saldo no painel" value={bonusPct} setValue={setBonusPct} max={500} suffix="%" />
+          </div>
+
+          <Separator />
+          <div className="space-y-3">
+            <div>
+              <Label className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-violet-500" /> Desconto Claude por nível
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Aplicado automaticamente no <span className="font-medium text-foreground">custo debitado da carteira</span> do revendedor a cada emissão/renovação de chave Claude. O preço de venda ao cliente final <span className="font-medium text-foreground">não muda</span>.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={useClaude} onCheckedChange={setUseClaude} />
+              <Label className="flex-1 text-sm leading-tight">Aplicar desconto no custo Claude por nível</Label>
+            </div>
+            {useClaude && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                {tiers.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Carregando níveis…</p>
+                )}
+                {tiers.map((t) => (
+                  <div key={t.id} className="flex items-center gap-2">
+                    <Label className="flex-1 text-sm">{t.name}</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.5"
+                      value={claudeByTier[t.slug] ?? 0}
+                      onChange={(e) => setClaudeByTier({ ...claudeByTier, [t.slug]: Number(e.target.value) })}
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                ))}
+                <p className="text-[11px] text-muted-foreground pt-1 border-t border-border/50">
+                  Deixe 0% para não aplicar desconto naquele nível.
+                </p>
+              </div>
+            )}
           </div>
 
           <Separator />
@@ -892,6 +965,8 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
             tiers={tiers}
             useReferralExtra={useReferralExtra}
             referralExtraPct={referralExtraPct}
+            useClaude={useClaude}
+            claudeByTier={claudeByTier}
             startMode={startMode}
             startsAt={startsAt}
             endMode={endMode}
@@ -1013,6 +1088,8 @@ function PromotionSummary(props: {
   tiers: Array<{ id: string; name: string; slug: string; sort_order: number }>;
   useReferralExtra: boolean;
   referralExtraPct: number;
+  useClaude: boolean;
+  claudeByTier: Record<string, number>;
   startMode: "now" | "schedule";
   startsAt: string;
   endMode: "none" | "schedule";
@@ -1071,6 +1148,21 @@ function PromotionSummary(props: {
     title: `+${props.referralExtraPct}% extras para o indicador`,
     desc: "Quem indicou ganha a comissão do nível dele + esses % sobre o valor da adesão.",
   });
+  if (props.useClaude) {
+    const parts = Object.entries(props.claudeByTier)
+      .filter(([, v]) => Number(v) > 0)
+      .map(([slug, v]) => {
+        const t = props.tiers.find((x) => x.slug === slug);
+        return `${t?.name ?? slug}: -${v}%`;
+      });
+    if (parts.length > 0) {
+      items.push({
+        icon: <Sparkles className="h-4 w-4 text-violet-500" />,
+        title: `Desconto Claude por nível`,
+        desc: parts.join(" · ") + ". Aplicado no custo debitado da carteira do revendedor.",
+      });
+    }
+  }
 
   const startLabel =
     props.startMode === "now" ? "Inicia: agora ao salvar" :
