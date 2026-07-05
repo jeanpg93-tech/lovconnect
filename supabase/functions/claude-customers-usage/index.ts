@@ -93,49 +93,28 @@ Deno.serve(async (req) => {
       if (email) byEmail.set(email, u);
     }
 
-    // Reconcilia status no fornecedor (best-effort) para pedidos ainda "issued".
-    // Alguns provedores expõem GET /api/rsl/keys/:id retornando status: active|redeemed|cancelled|expired.
-    async function fetchProviderKey(ref: string) {
-      try {
-        const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/keys/${encodeURIComponent(ref)}`, {
-          headers: { Authorization: `Bearer ${CLAUDE_API_KEY}`, Accept: 'application/json' },
-        });
-        if (!r.ok) return null;
-        return await r.json().catch(() => null);
-      } catch { return null; }
-    }
-
-    const providerKeyByOrder = new Map<string, any>();
-    const targets = (orders ?? []).filter((o) => o.status === 'issued' && (o.provider_key_id || o.code));
-    const CONCURRENCY = 6;
-    for (let i = 0; i < targets.length; i += CONCURRENCY) {
-      const slice = targets.slice(i, i + CONCURRENCY);
-      await Promise.all(slice.map(async (o) => {
-        const ref = String(o.provider_key_id ?? o.code ?? '').trim();
-        if (!ref) return;
-        const data = await fetchProviderKey(ref);
-        if (data) providerKeyByOrder.set(o.id, data);
-      }));
-    }
-
-    // Espelha status terminais recebidos do provedor no banco (sem esperar webhook).
+    // Reconcilia status usando o snapshot de /api/rsl/users (fonte oficial e única chamada).
+    // O endpoint GET /api/rsl/keys/:id NÃO existe na API do fornecedor — não faça polling individual.
     const patches: Array<{ id: string; patch: Record<string, unknown> }> = [];
-    for (const [orderId, pk] of providerKeyByOrder.entries()) {
-      // Provider may wrap the payload as {key:{...}} or {data:{...}}; be tolerant.
-      const keyObj = (pk && typeof pk === 'object') ? (pk.key ?? pk.data ?? pk) : pk;
-      const provStatus = String(keyObj?.status ?? keyObj?.state ?? '').toLowerCase();
+    for (const o of orders ?? []) {
+      if (o.status !== 'issued') continue;
+      const email = String(o.customer_email ?? '').trim().toLowerCase();
+      if (!email) continue;
+      const u = byEmail.get(email);
+      if (!u) continue;
+      const provStatus = String(u?.status ?? u?.state ?? '').toLowerCase();
       const patch: Record<string, unknown> = {};
-      if (provStatus === 'redeemed' || provStatus === 'used' || provStatus === 'activated') {
+      if (provStatus === 'active' || provStatus === 'redeemed' || provStatus === 'used' || provStatus === 'activated') {
         patch.status = 'redeemed';
-        patch.redeemed_at = keyObj?.redeemedAt ?? keyObj?.redeemed_at ?? new Date().toISOString();
+        patch.redeemed_at = u?.redeemedAt ?? u?.redeemed_at ?? new Date().toISOString();
       } else if (provStatus === 'cancelled' || provStatus === 'canceled' || provStatus === 'revoked') {
         patch.status = 'cancelled';
-        patch.cancelled_at = keyObj?.cancelledAt ?? keyObj?.cancelled_at ?? new Date().toISOString();
-      } else if (provStatus === 'expired') {
+        patch.cancelled_at = u?.cancelledAt ?? u?.cancelled_at ?? new Date().toISOString();
+      } else if (provStatus === 'expired' || provStatus === 'suspended') {
         patch.status = 'expired';
-        patch.expired_at = keyObj?.expiredAt ?? keyObj?.expired_at ?? new Date().toISOString();
+        patch.expired_at = u?.accountExpiresAt ?? u?.expiredAt ?? u?.expired_at ?? new Date().toISOString();
       }
-      if (Object.keys(patch).length) patches.push({ id: orderId, patch });
+      if (Object.keys(patch).length) patches.push({ id: o.id, patch });
     }
     if (patches.length) {
       console.log('[claude-customers-usage] reconciling', patches.length, 'orders', patches.map((p) => ({ id: p.id, ...p.patch })));
@@ -149,11 +128,9 @@ Deno.serve(async (req) => {
     const enriched = (orders ?? []).map((o) => {
       const email = String(o.customer_email ?? '').trim().toLowerCase();
       const match = email ? byEmail.get(email) : null;
-      const pkRaw = providerKeyByOrder.get(o.id);
-      const pk = (pkRaw && typeof pkRaw === 'object') ? (pkRaw.key ?? pkRaw.data ?? pkRaw) : pkRaw;
       const patched = patches.find((p) => p.id === o.id)?.patch as { status?: string } | undefined;
       const effectiveStatus = (patched?.status as string) ?? o.status;
-      const providerStatus = String(pk?.status ?? pk?.state ?? '').toLowerCase() || null;
+      const providerStatus = String(match?.status ?? match?.state ?? '').toLowerCase() || null;
       const createdMs = new Date(o.created_at).getTime();
       const refundDeadlineMs = createdMs + REFUND_WINDOW_DAYS * 86_400_000;
       const withinRefundWindow = Date.now() <= refundDeadlineMs;
