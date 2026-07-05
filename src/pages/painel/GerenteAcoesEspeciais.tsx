@@ -783,6 +783,47 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
           <div className="space-y-3">
             <div>
               <Label className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-violet-500" /> Desconto Claude por nível
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Aplicado automaticamente no <span className="font-medium text-foreground">custo debitado da carteira</span> do revendedor a cada emissão/renovação de chave Claude. O preço de venda ao cliente final <span className="font-medium text-foreground">não muda</span>.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={useClaude} onCheckedChange={setUseClaude} />
+              <Label className="flex-1 text-sm leading-tight">Aplicar desconto no custo Claude por nível</Label>
+            </div>
+            {useClaude && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                {tiers.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Carregando níveis…</p>
+                )}
+                {tiers.map((t) => (
+                  <div key={t.id} className="flex items-center gap-2">
+                    <Label className="flex-1 text-sm">{t.name}</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.5"
+                      value={claudeByTier[t.slug] ?? 0}
+                      onChange={(e) => setClaudeByTier({ ...claudeByTier, [t.slug]: Number(e.target.value) })}
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                ))}
+                <p className="text-[11px] text-muted-foreground pt-1 border-t border-border/50">
+                  Deixe 0% para não aplicar desconto naquele nível.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+          <div className="space-y-3">
+            <div>
+              <Label className="flex items-center gap-2">
                 <Rocket className="h-4 w-4 text-primary" /> Promoção de adesão (novos revendedores)
               </Label>
               <p className="text-xs text-muted-foreground mt-1">
