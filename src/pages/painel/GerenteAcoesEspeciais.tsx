@@ -1088,6 +1088,8 @@ function PromotionSummary(props: {
   tiers: Array<{ id: string; name: string; slug: string; sort_order: number }>;
   useReferralExtra: boolean;
   referralExtraPct: number;
+  useClaude: boolean;
+  claudeByTier: Record<string, number>;
   startMode: "now" | "schedule";
   startsAt: string;
   endMode: "none" | "schedule";
