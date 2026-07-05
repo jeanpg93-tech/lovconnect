@@ -67,6 +67,13 @@ export default function GerenteVendasLoja() {
   const [originF, setOriginF] = useState<"all" | OrderOrigin>("all");
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [rawResponses, setRawResponses] = useState<Record<string, any>>({});
+
+  const loadRawResponse = async (id: string) => {
+    if (rawResponses[id] !== undefined) return;
+    const { data, error } = await supabase.rpc("admin_storefront_order_raw_response" as any, { _id: id });
+    if (!error) setRawResponses((prev) => ({ ...prev, [id]: data ?? null }));
+  };
 
   const load = async () => {
     setLoading(true);
