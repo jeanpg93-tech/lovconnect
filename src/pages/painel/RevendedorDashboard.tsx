@@ -1183,6 +1183,7 @@ export default function RevendedorDashboard() {
 
     </div>
     <WhatsAppFloatingButtons bottomOffset={96} showGroup={activationStatus === "active"} />
+    <ClaudeLaunchModal />
     </>
   );
 }
