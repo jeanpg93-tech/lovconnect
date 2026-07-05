@@ -335,6 +335,7 @@ Deno.serve(async (req) => {
             Accept: "application/json",
           },
           body: JSON.stringify({}),
+          signal: AbortSignal.timeout(15000),
         });
         providerStatus = r.status;
         const txt = await r.text();
