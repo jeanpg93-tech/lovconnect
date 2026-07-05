@@ -118,6 +118,7 @@ export default function GerenteClaude() {
     customerEmail?: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [trialOpen, setTrialOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
