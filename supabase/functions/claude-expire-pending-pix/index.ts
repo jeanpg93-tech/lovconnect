@@ -11,6 +11,29 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Autenticação: só chamadas internas (cron/service-role) ou gerentes.
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const authTok = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (authTok !== SERVICE_ROLE_KEY) {
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const userClient = createClient(SUPABASE_URL, anonKey, {
+      global: { headers: { Authorization: `Bearer ${authTok}` } },
+    });
+    const { data: u } = await userClient.auth.getUser();
+    if (!u?.user) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: isMgr } = await userClient.rpc("has_role", { _user_id: u.user.id, _role: "gerente" });
+    if (!isMgr) {
+      return new Response(JSON.stringify({ error: "forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   const svc = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
