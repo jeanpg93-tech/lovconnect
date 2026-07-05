@@ -340,6 +340,27 @@ Qualquer dúvida, é só chamar!`
           </div>
 
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+            {/* Card de teste grátis — sempre primeiro */}
+            <button
+              type="button"
+              onClick={() => setTrialOpen(true)}
+              className="group relative overflow-hidden rounded-xl border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              <div className="absolute top-2 right-2 rounded-full border border-primary/30 bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                Grátis
+              </div>
+              <div className="relative flex items-start justify-between">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/20 text-primary">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+              </div>
+              <div className="relative mt-3">
+                <div className="font-display text-sm font-semibold">Teste grátis</div>
+                <div className="text-[11px] text-muted-foreground">15 min ou 50 mensagens</div>
+                <div className="mt-2 font-display text-base font-bold">R$ 0,00</div>
+                <div className="text-[10px] text-primary font-semibold uppercase tracking-widest">Não debita saldo →</div>
+              </div>
+            </button>
             {prices.map((p) => {
               const active = selectedPlan === p.plan_code;
               const badge = PLAN_BADGES[p.plan_code];
@@ -463,21 +484,6 @@ Qualquer dúvida, é só chamar!`
               Saldo insuficiente. Recarregue sua carteira para emitir este plano.
             </p>
           )}
-          <div className="mt-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setTrialOpen(true)}
-              className="w-full border-dashed border-primary/40 hover:bg-primary/5"
-            >
-              <Sparkles className="mr-2 h-3.5 w-3.5 text-primary" />
-              Emitir teste grátis — 15 min ou 50 mensagens
-            </Button>
-            <p className="mt-1.5 text-[10px] text-muted-foreground text-center">
-              Não debita saldo. Ideal para o cliente experimentar antes de comprar.
-            </p>
-          </div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card/60 p-4 sm:p-6 backdrop-blur-sm">
