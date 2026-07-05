@@ -116,6 +116,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Carteira", url: "/painel/revendedor/carteira", icon: Wallet, tour: "menu-carteira" },
       { title: "Indique e ganhe", url: "/painel/revendedor/indicacoes", icon: Gift, tour: "menu-indicacoes" },
       { title: "Ranking", url: "/painel/revendedor/ranking", icon: Trophy },
+      { title: "Transações", url: "/painel/revendedor/transacoes", icon: HistoryIcon },
     ]},
     { label: "Vendas - Packs", items: [
       { title: "Gerar Chave", url: "/painel/revendedor/gerar-chave", icon: Sparkles, tour: "menu-gerar-chave" },
