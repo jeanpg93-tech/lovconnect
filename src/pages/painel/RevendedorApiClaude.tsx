@@ -488,17 +488,24 @@ function TabEndpoints() {
 #        404 pedido não encontrado | 502 provider_error`}
       />
       <CodeBlock
-        title="POST /teste — Chave de teste (15 min, sem custo)"
+        title="POST /teste — Conta de teste GRÁTIS (15 min OU 50 mensagens)"
         body={`curl -X POST "${BASE_URL}/teste" \\
   -H "X-API-Key: SUA_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{ "email": "lead@email.com" }'
+  -d '{ "email": "lead@email.com", "nome": "opcional", "whatsapp": "opcional" }'
 
-# OPCIONAL — este endpoint é uma cortesia. Você (revendedor) decide se
-# quer oferecer "Testar grátis" aos seus clientes. Se não quiser, basta
-# não expor o botão/formulário no seu sistema — nada é debitado quando
-# a chave de teste é emitida.
-# Limite: 5 chamadas por hora por API Key (429 rate_limited).
+# Cria uma conta de TESTE GRATUITA vinculada ao e-mail informado.
+# A conta expira em 15 MINUTOS *ou* após 50 MENSAGENS — o que vier primeiro.
+# NÃO debita saldo da sua carteira.
+#
+# A "api_key" retornada é a chave que o CLIENTE FINAL usa direto na API
+# (header Authorization: Bearer). Ela aparece só uma vez — guarde/entregue
+# imediatamente. É opcional — você (revendedor) decide se quer oferecer
+# "Testar grátis" no seu sistema.
+#
+# Limite do provedor: 20 testes por dia por conta de revenda. Se estourar,
+# retornamos 429 "provider_daily_limit_reached" — fale com o admin para
+# liberar mais.
 
 # Resposta
 {
@@ -507,8 +514,16 @@ function TabEndpoints() {
   "api_key": "kp_user_...",
   "user_id": "u_...",
   "provider_base_url": "https://claude-ss.ia.br/",
-  "duracao_minutos": 15
-}`}
+  "email": "lead@email.com",
+  "trial": { "duracao_minutos": 15, "mensagens_limite": 50 },
+  "duracao_minutos": 15,
+  "mensagens_limite": 50,
+  "aviso": "Teste grátis — expira em 15 minutos OU 50 mensagens (o que vier primeiro). Não debita saldo."
+}
+
+# Erros: 400 email_obrigatorio | 403 trial_disabled_by_admin |
+#        409 email_already_has_account | 429 provider_daily_limit_reached |
+#        502 provider_error`}
       />
     </div>
   );
