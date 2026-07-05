@@ -3,7 +3,9 @@ import { Link } from "react-router-dom";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import { useClaudePromoForReseller } from "@/hooks/useClaudePromoForReseller";
 import { useResellerEnabledMethods } from "@/hooks/useResellerEnabledMethods";
-import { ArrowRight, Timer } from "lucide-react";
+import { ArrowRight, Timer, Tag } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 function useCountdown(endsAt: string | null) {
   const [now, setNow] = useState(() => Date.now());
@@ -28,6 +30,21 @@ const pad = (n: number) => String(n).padStart(2, "0");
 export default function ClaudePromoDashboardCard() {
   const { info } = useClaudePromoForReseller();
   const { claude: claudeEnabled, loading } = useResellerEnabledMethods();
+  const { user } = useAuth();
+  const [hasPrices, setHasPrices] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data: r } = await supabase.from("resellers").select("id").eq("user_id", user.id).maybeSingle();
+      if (!r?.id) { setHasPrices(false); return; }
+      const { count } = await supabase
+        .from("claude_reseller_price_overrides")
+        .select("plan_code", { count: "exact", head: true })
+        .eq("reseller_id", r.id)
+        .eq("is_active", true);
+      setHasPrices((count ?? 0) > 0);
+    })();
+  }, [user]);
   const countdown = useCountdown(info?.endsAt ?? null);
   if (loading || !claudeEnabled || !info) return null;
 
@@ -88,14 +105,25 @@ export default function ClaudePromoDashboardCard() {
             )}
           </div>
 
-          <Link
-            to="/painel/revendedor/claude"
-            className="group/btn inline-flex h-fit shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3.5 font-mono text-xs font-bold uppercase tracking-widest text-primary-foreground shadow-red-glow-sm transition-all hover:bg-primary/90 active:scale-95"
-          >
-            <ClaudeIcon className="h-4 w-4" />
-            gerar chave claude
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-0.5" />
-          </Link>
+          {hasPrices === false ? (
+            <Link
+              to="/painel/revendedor/precos?tab=claude"
+              className="group/btn inline-flex h-fit shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3.5 font-mono text-xs font-bold uppercase tracking-widest text-primary-foreground shadow-red-glow-sm transition-all hover:bg-primary/90 active:scale-95"
+            >
+              <Tag className="h-4 w-4" />
+              cadastrar preços de venda
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-0.5" />
+            </Link>
+          ) : (
+            <Link
+              to="/painel/revendedor/claude"
+              className="group/btn inline-flex h-fit shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3.5 font-mono text-xs font-bold uppercase tracking-widest text-primary-foreground shadow-red-glow-sm transition-all hover:bg-primary/90 active:scale-95"
+            >
+              <ClaudeIcon className="h-4 w-4" />
+              gerar chave claude
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-0.5" />
+            </Link>
+          )}
         </div>
       </div>
     </div>
