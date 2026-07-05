@@ -97,6 +97,7 @@ export default function RevendedorClaude() {
   const [customerWhatsapp, setCustomerWhatsapp] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [trialOpen, setTrialOpen] = useState(false);
   const [confirmChecks, setConfirmChecks] = useState({ data: false, debit: false, once: false });
   const [cancelTarget, setCancelTarget] = useState<any | null>(null);
   const [cancelling, setCancelling] = useState(false);
