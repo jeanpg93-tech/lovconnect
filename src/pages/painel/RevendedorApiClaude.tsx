@@ -547,6 +547,9 @@ function TabErros() {
     ["409", "refund_window_expired", "Cancelamento após 7 dias — reenvie com force=true para revogar sem estorno"],
     ["409", "invalid_status", "Pedido não está em estado cancelável (ex.: já cancelado)"],
     ["422", "missing_provider_key_id", "Pedido sem identificação da chave no fornecedor"],
+    ["403", "trial_disabled_by_admin", "Testes gratuitos não liberados pelo admin do provedor"],
+    ["409", "email_already_has_account", "E-mail informado no /teste já possui uma conta"],
+    ["429", "provider_daily_limit_reached", "Limite diário de 20 testes/dia atingido — fale com o admin"],
   ];
 
   return (
