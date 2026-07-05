@@ -238,6 +238,7 @@ Deno.serve(async (req) => {
         try {
           const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/users`, {
             headers: { Authorization: `Bearer ${CLAUDE_API_KEY}`, Accept: "application/json" },
+            signal: AbortSignal.timeout(10000),
           });
           const txt = await r.text();
           let parsed: any = null;
