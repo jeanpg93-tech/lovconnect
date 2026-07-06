@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { PricingIssue } from "@/hooks/usePricingIssues";
+import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 
 export type ResellerWithIssues = {
   reseller_id: string;
@@ -32,15 +33,14 @@ export function useAllPricingIssues(opts: { pollMs?: number; enabled?: boolean }
       return;
     }
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session?.access_token) {
-        setLoading(false);
-        return;
-      }
-      const { data: res, error } = await supabase.functions.invoke<AllPricingIssuesResponse>(
+      const { data: res, error, skipped } = await invokeAuthenticatedFunction<AllPricingIssuesResponse>(
         "pricing-issues",
         { method: "POST", body: { scan: "all" } },
       );
+      if (skipped) {
+        setLoading(false);
+        return;
+      }
       if (!error && res) setData(res);
     } catch {
       // silent
