@@ -720,7 +720,7 @@ export default function PublicStorefront() {
             className="relative flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full"
             style={{ background: color }}
           >
-            <ClaudeIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+            <ClaudeIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" style={{ color: accentText }} />
             <span
               className="absolute inset-0 rounded-full animate-ping opacity-40"
               style={{ background: color }}
@@ -798,7 +798,7 @@ export default function PublicStorefront() {
                     "p-2 rounded-xl transition-colors",
                     activeTab === "extension" ? "" : "group-hover:bg-opacity-30"
                   )}
-                  style={activeTab === "extension" ? { background: color, color: '#fff' } : { background: `${color}1a`, color }}
+                  style={activeTab === "extension" ? { background: color, color: accentText } : { background: `${color}1a`, color }}
                 >
                   <KeyRound className="h-4 w-4" />
                 </div>
@@ -827,7 +827,7 @@ export default function PublicStorefront() {
                     "p-2 rounded-xl transition-colors",
                     activeTab === "claude" ? "" : "group-hover:bg-opacity-30"
                   )}
-                  style={activeTab === "claude" ? { background: color, color: '#fff' } : { background: `${color}1a`, color }}
+                  style={activeTab === "claude" ? { background: color, color: accentText } : { background: `${color}1a`, color }}
                 >
                   <ClaudeIcon className="h-4 w-4" />
                 </div>
@@ -902,8 +902,8 @@ export default function PublicStorefront() {
                         href={inviteLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white shadow"
-                        style={{ backgroundColor: color }}
+                        className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold shadow"
+                        style={{ backgroundColor: color, color: accentText }}
                       >
                         {order.product_type === "recharge_plan" ? "Acessar meu plano" : "Acessar minhas recargas"}
                       </a>
@@ -1186,8 +1186,8 @@ export default function PublicStorefront() {
                         <Button
                           onClick={handleAccessExtension}
                           disabled={downloadingExt}
-                          className="relative z-10 mt-4 w-full h-11 font-bold text-white shadow-lg transition-all hover:scale-[1.01]"
-                          style={{ background: `linear-gradient(135deg, ${color}, ${color}CC)` }}
+                          className="relative z-10 mt-4 w-full h-11 font-bold shadow-lg transition-all hover:scale-[1.01]"
+                          style={{ background: `linear-gradient(135deg, ${color}, ${color}CC)`, color: accentText }}
                         >
                           {downloadingExt ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1553,8 +1553,8 @@ export default function PublicStorefront() {
                               </p>
                               <div className="flex items-center gap-3">
                                 <div
-                                  className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm text-white border border-white/10"
-                                  style={{ background: `linear-gradient(135deg, ${color}, ${color}99)` }}
+                                  className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm border border-white/10"
+                                  style={{ background: `linear-gradient(135deg, ${color}, ${color}99)`, color: accentText }}
                                 >
                                   {t.customer_name.charAt(0).toUpperCase()}
                                 </div>
