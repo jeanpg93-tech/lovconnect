@@ -1320,7 +1320,7 @@ export default function PublicStorefront() {
                         <ClaudeIcon className="h-3 w-3" /> Claude AI · Chaves API
                       </div>
                       <h2 className="text-2xl font-black uppercase tracking-tight">Planos Claude</h2>
-                      <p className="text-xs font-medium text-foreground/80">Chave API oficial da Anthropic · Ativação instantânea via PIX</p>
+                      <p className="text-xs font-medium text-white/90">Chave API oficial da Anthropic · Ativação instantânea via PIX</p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {/* Card de teste grátis — sempre primeiro */}
@@ -1580,12 +1580,12 @@ export default function PublicStorefront() {
           )}
         </main>
 
-        <footer className="mt-16 text-center text-xs text-muted-foreground space-y-1">
+        <footer className="mt-16 text-center text-xs text-white/80 space-y-1">
           <div>Loja oficial de {reseller.display_name}</div>
           <button
             type="button"
             onClick={() => setReportOpen(true)}
-            className="underline underline-offset-2 hover:text-destructive transition-colors"
+            className="underline underline-offset-2 text-white/90 hover:text-white transition-colors"
           >
             Denunciar loja
           </button>
