@@ -1336,7 +1336,7 @@ export default function PublicStorefront() {
                         ? Array.from({ length: 3 }).map((_, i) => (
                             <div
                               key={`sk-${i}`}
-                              className="rounded-2xl border border-white/5 bg-card/30 backdrop-blur-xl p-5 animate-pulse h-[148px]"
+                             className="rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xl p-5 animate-pulse h-[148px]"
                             />
                           ))
                         : claudePlans.map((p) => {
@@ -1345,10 +1345,10 @@ export default function PublicStorefront() {
                         <Link
                           key={p.code}
                           to={`/checkout/claude/${slug}?plan=${p.code}`}
-                          className={`group relative overflow-hidden rounded-2xl border p-5 transition-all backdrop-blur-xl ${
+                         className={`group relative overflow-hidden rounded-2xl border p-5 transition-all backdrop-blur-xl shadow-md ${
                             isFeatured
-                              ? "border-primary/60 bg-primary/10 hover:bg-primary/15 shadow-lg shadow-primary/10"
-                              : "border-white/5 bg-card/30 hover:bg-card/50 hover:border-primary/40"
+                              ? "border-primary/70 bg-card/95 ring-1 ring-primary/40 hover:bg-card shadow-lg shadow-primary/20"
+                              : "border-border/60 bg-card/90 hover:bg-card hover:border-primary/50"
                           }`}
                         >
                           {isFeatured && (
