@@ -691,9 +691,10 @@ export default function PublicStorefront() {
     ...storefrontThemeVars(color),
     ...(bgColor ? { backgroundColor: bgColor } : {}),
   };
-  const claudeSurface = `linear-gradient(145deg, ${alphaHex(color, 0.18)} 0%, color-mix(in srgb, ${bgColor ?? color} 18%, hsl(var(--card)) 82%) 52%, hsl(var(--card)) 100%)`;
-  const claudeSurfaceStrong = `linear-gradient(145deg, ${alphaHex(color, 0.26)} 0%, color-mix(in srgb, ${bgColor ?? color} 24%, hsl(var(--card)) 76%) 56%, hsl(var(--card)) 100%)`;
-  const claudeSupportSurface = `linear-gradient(145deg, color-mix(in srgb, ${bgColor ?? color} 14%, hsl(var(--card)) 86%), hsl(var(--card)))`;
+  const claudeCardBase = bgColor ? normalizeHexColor(bgColor, color) : color;
+  const claudeSurface = `linear-gradient(145deg, ${alphaHex(color, 0.22)} 0%, ${alphaHex(claudeCardBase, 0.62)} 48%, hsl(var(--card) / 0.92) 100%)`;
+  const claudeSurfaceStrong = `linear-gradient(145deg, ${alphaHex(color, 0.34)} 0%, ${alphaHex(claudeCardBase, 0.72)} 50%, hsl(var(--card) / 0.94) 100%)`;
+  const claudeSupportSurface = `linear-gradient(145deg, ${alphaHex(claudeCardBase, 0.5)}, hsl(var(--card) / 0.9))`;
 
   return (
     <div className="relative min-h-screen bg-background overflow-x-hidden" style={rootStyle}>
