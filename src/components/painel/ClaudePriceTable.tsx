@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ClaudePromoBanner from "@/components/painel/ClaudePromoBanner";
+import { useClaudePromoForReseller } from "@/hooks/useClaudePromoForReseller";
 
 type PlanCode = string;
 const PLAN_LABELS: Record<string, string> = {
@@ -28,6 +29,7 @@ type PlanRow = {
 
 export default function ClaudePriceTable() {
   const { user } = useAuth();
+  const { info: promo } = useClaudePromoForReseller();
   const [loading, setLoading] = useState(true);
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [rows, setRows] = useState<PlanRow[]>([]);
@@ -208,7 +210,20 @@ export default function ClaudePriceTable() {
                 <div className="md:col-span-2">
                   <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground md:hidden">Custo</div>
                   {cost > 0 ? (
-                    <div className="font-display text-base font-bold tabular-nums">{fmtBRL(cost)}</div>
+                    promo && promo.pct > 0 ? (
+                      (() => {
+                        const baseCost = cost / (1 - promo.pct / 100);
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-xs tabular-nums text-muted-foreground line-through">{fmtBRL(baseCost)}</span>
+                            <span className="font-display text-base font-bold tabular-nums text-emerald-500">{fmtBRL(cost)}</span>
+                            <span className="text-[10px] font-mono text-emerald-500">-{promo.pct}% promo</span>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div className="font-display text-base font-bold tabular-nums">{fmtBRL(cost)}</div>
+                    )
                   ) : (
                     <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-0.5 text-[11px] text-muted-foreground">
                       Não definido
