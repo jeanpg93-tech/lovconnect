@@ -257,7 +257,11 @@ Deno.serve(async (req) => {
 
     // Notifica gerente via Telegram
     try {
-      const amountBRL = 'R$ ' + (Number(saleCents || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const fmtBRL = (c: number) =>
+        'R$ ' + (Number(c || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const debitBRL = fmtBRL(resellerCostCents);
+      const saleBRL = fmtBRL(saleCents);
+      const profitBRL = (profitCents < 0 ? '−' : '') + fmtBRL(Math.abs(profitCents));
       const planLabel = PLAN_LABELS[planCode] ?? planCode;
       const txt =
         `🤖 <b>Venda Claude</b>\n` +
@@ -266,7 +270,9 @@ Deno.serve(async (req) => {
         (code ? `🔑 Chave: <code>${code}</code>\n` : '') +
         `👤 Cliente: ${customerName ?? '—'}` +
         (customerWhatsapp ? ` (${customerWhatsapp})` : '') +
-        `\n💵 Valor: ${amountBRL}\n` +
+        `\n💰 Preço ao cliente: ${saleBRL}\n` +
+        `💵 Debitado da carteira: ${debitBRL}\n` +
+        `📈 Lucro: ${profitBRL}\n` +
         `💳 Pagamento: Saldo da carteira`;
       await admin.rpc('telegram_enqueue', { _text: txt });
     } catch (e) {
