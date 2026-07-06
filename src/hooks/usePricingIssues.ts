@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 
 export type PricingIssueReason = "cost_missing" | "sale_missing" | "sale_below_cost" | "margin_zero";
 export type PricingIssueSeverity = "warning" | "critical";
@@ -49,24 +50,17 @@ export function usePricingIssues(opts: { pollMs?: number; resellerId?: string | 
       return;
     }
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData.session;
-      if (!session?.access_token) {
-        setLoading(false);
-        return;
-      }
-      // Skip if the token already expired (or expires in <15s) — polling
-      // with a stale token causes the edge function to return 401.
-      if (session.expires_at && session.expires_at * 1000 <= Date.now() + 15_000) {
-        setLoading(false);
-        return;
-      }
-      const { data: res, error } = await supabase.functions.invoke<PricingIssuesResponse>(
+      const { data: res, error, skipped } = await invokeAuthenticatedFunction<PricingIssuesResponse>(
         "pricing-issues",
-        opts.resellerId
-          ? { method: "POST", body: { reseller_id: opts.resellerId } }
-          : { method: "POST", body: {} },
+        {
+          method: "POST",
+          body: opts.resellerId ? { reseller_id: opts.resellerId } : {},
+        },
       );
+      if (skipped) {
+        setLoading(false);
+        return;
+      }
       if (!error && res) setData(res);
     } catch {
       // silent
