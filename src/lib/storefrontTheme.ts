@@ -59,6 +59,16 @@ export const hexToHslTriplet = (value: string | null | undefined, fallback = "#7
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 };
 
+export const readableTextOnHex = (value: string | null | undefined, fallback = "#7c3aed") => {
+  const hex = normalizeHexColor(value, fallback).slice(1);
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  return luminance > 0.58 ? "#07111f" : "#ffffff";
+};
+
 export const storefrontThemeVars = (accent: string | null | undefined): StorefrontThemeStyle => {
   const hsl = hexToHslTriplet(accent);
 

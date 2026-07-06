@@ -16,7 +16,7 @@ import { StorefrontVisualEffects, type VisualEffect } from "@/components/storefr
 import { ReportStoreDialog } from "@/components/storefront/ReportStoreDialog";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import IssueClaudeTrialDialog from "@/components/painel/IssueClaudeTrialDialog";
-import { alphaHex, normalizeHexColor, storefrontThemeVars } from "@/lib/storefrontTheme";
+import { alphaHex, normalizeHexColor, readableTextOnHex, storefrontThemeVars } from "@/lib/storefrontTheme";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -691,10 +691,15 @@ export default function PublicStorefront() {
     ...storefrontThemeVars(color),
     ...(bgColor ? { backgroundColor: bgColor } : {}),
   };
-  const claudeCardBase = bgColor ? normalizeHexColor(bgColor, color) : color;
-  const claudeSurface = `linear-gradient(145deg, ${alphaHex(color, 0.22)} 0%, ${alphaHex(claudeCardBase, 0.62)} 48%, hsl(var(--card) / 0.92) 100%)`;
-  const claudeSurfaceStrong = `linear-gradient(145deg, ${alphaHex(color, 0.34)} 0%, ${alphaHex(claudeCardBase, 0.72)} 50%, hsl(var(--card) / 0.94) 100%)`;
-  const claudeSupportSurface = `linear-gradient(145deg, ${alphaHex(claudeCardBase, 0.5)}, hsl(var(--card) / 0.9))`;
+  const accentText = readableTextOnHex(color);
+  const storefrontCardStyle = {
+    borderColor: `${color}30`,
+    boxShadow: `0 18px 38px -24px ${alphaHex(color, 0.75)}`,
+  };
+  const storefrontCardFeaturedStyle = {
+    borderColor: `${color}85`,
+    boxShadow: `0 0 0 1px ${color}38, 0 18px 38px -20px ${alphaHex(color, 0.9)}`,
+  };
 
   return (
     <div className="relative min-h-screen bg-background overflow-x-hidden" style={rootStyle}>
@@ -1306,42 +1311,42 @@ export default function PublicStorefront() {
               ) : (
                 /* Catálogo Claude */
                 (claudeLoading || claudePlans.length > 0) ? (
-                  <div className="w-full max-w-3xl mx-auto">
+                    <div className="w-full max-w-3xl mx-auto">
                      <div className="flex flex-col items-center gap-2 mb-6 text-center">
                        <div
-                         className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
-                         style={{ color, borderColor: `${color}33`, background: `${color}14` }}
+                          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border bg-card/80 backdrop-blur"
+                          style={{ color, borderColor: `${color}40` }}
                        >
                         <ClaudeIcon className="h-3 w-3" /> Claude AI · Chaves API
                       </div>
                       <h2 className="text-2xl font-black uppercase tracking-tight">Planos Claude</h2>
-                      <p className="text-xs text-muted-foreground">Chave API oficial da Anthropic · Ativação instantânea via PIX</p>
+                      <p className="text-xs font-medium text-foreground/80">Chave API oficial da Anthropic · Ativação instantânea via PIX</p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {/* Card de teste grátis — sempre primeiro */}
                       <button
                         type="button"
                         onClick={() => setClaudeTrialOpen(true)}
-                          className="group relative overflow-hidden rounded-2xl border border-dashed p-5 transition-all backdrop-blur-xl text-left shadow-md"
-                          style={{ background: claudeSurfaceStrong, borderColor: `${color}70`, boxShadow: `0 16px 34px -20px ${alphaHex(color, 0.8)}` }}
+                          className="group relative overflow-hidden rounded-2xl border border-dashed bg-card/80 p-5 text-left shadow-md backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-card/90"
+                          style={{ ...storefrontCardFeaturedStyle, borderStyle: "dashed" }}
                       >
                          <div
-                           className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest"
-                           style={{ background: `${color}26`, color }}
+                            className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest"
+                            style={{ background: color, color: accentText }}
                          >
                           Grátis
                         </div>
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                             <div className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>Teste</div>
-                            <div className="text-sm font-bold mt-1">15 min ou 50 msgs</div>
+                              <div className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>Teste</div>
+                             <div className="text-sm font-bold mt-1 text-foreground">15 min ou 50 msgs</div>
                           </div>
                            <Sparkles className="h-4 w-4 shrink-0" style={{ color }} />
                         </div>
                         <div className="mt-4 flex items-end justify-between">
                           <div>
-                            <div className="text-[10px] text-muted-foreground uppercase tracking-widest">custo</div>
-                            <div className="text-2xl font-black tracking-tight">R$ 0,00</div>
+                             <div className="text-[10px] font-bold text-foreground/70 uppercase tracking-widest">custo</div>
+                             <div className="text-2xl font-black tracking-tight text-foreground">R$ 0,00</div>
                           </div>
                            <div className="text-[10px] font-bold uppercase tracking-widest group-hover:underline" style={{ color }}>
                             Testar →
@@ -1352,8 +1357,8 @@ export default function PublicStorefront() {
                         ? Array.from({ length: 3 }).map((_, i) => (
                             <div
                               key={`sk-${i}`}
-                              className="rounded-2xl border backdrop-blur-xl p-5 animate-pulse h-[148px]"
-                              style={{ background: claudeSurface, borderColor: `${color}30` }}
+                              className="h-[148px] animate-pulse rounded-2xl border bg-card/80 p-5 backdrop-blur"
+                              style={storefrontCardStyle}
                             />
                           ))
                         : claudePlans.map((p) => {
@@ -1362,17 +1367,17 @@ export default function PublicStorefront() {
                         <Link
                           key={p.code}
                           to={`/checkout/claude/${slug}?plan=${p.code}`}
-                           className="group relative overflow-hidden rounded-2xl border p-5 transition-all backdrop-blur-xl shadow-md hover:-translate-y-0.5"
+                            className="group relative overflow-hidden rounded-2xl border bg-card/80 p-5 shadow-md backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-card/90"
                            style={
                              isFeatured
-                                ? { background: claudeSurfaceStrong, borderColor: `${color}90`, boxShadow: `0 0 0 1px ${color}55, 0 16px 34px -16px ${color}99` }
-                                : { background: claudeSurface, borderColor: `${color}45`, boxShadow: `0 16px 34px -22px ${alphaHex(color, 0.72)}` }
+                                ? storefrontCardFeaturedStyle
+                                : storefrontCardStyle
                            }
                         >
                           {isFeatured && (
                              <div
-                               className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white"
-                               style={{ background: color }}
+                               className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest"
+                                style={{ background: color, color: accentText }}
                              >
                               Mais vendido
                             </div>
@@ -1380,14 +1385,14 @@ export default function PublicStorefront() {
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
                                <div className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>Claude</div>
-                              <div className="text-sm font-bold mt-1">{p.label}</div>
+                               <div className="text-sm font-bold mt-1 text-foreground">{p.label}</div>
                             </div>
                              <span style={{ color }} className="shrink-0"><ClaudeIcon className="h-4 w-4" /></span>
                           </div>
                           <div className="mt-4 flex items-end justify-between">
                             <div>
-                              <div className="text-[10px] text-muted-foreground uppercase tracking-widest">por</div>
-                              <div className="text-2xl font-black tracking-tight">
+                              <div className="text-[10px] font-bold text-foreground/70 uppercase tracking-widest">por</div>
+                              <div className="text-2xl font-black tracking-tight text-foreground">
                                 R$ {(p.price_cents / 100).toFixed(2).replace(".", ",")}
                               </div>
                             </div>
@@ -1402,8 +1407,8 @@ export default function PublicStorefront() {
                     <div className="mt-4 text-center">
                       <Link
                         to={`/checkout/claude/${slug}`}
-                          className="text-[11px] underline underline-offset-4 hover:opacity-80"
-                          style={{ color }}
+                          className="inline-flex rounded-full border bg-card/80 px-3 py-1.5 text-[11px] font-bold underline underline-offset-4 backdrop-blur hover:bg-card/90"
+                          style={{ color, borderColor: `${color}30` }}
                       >
                         Ver todos os planos e comprar →
                       </Link>
@@ -1412,9 +1417,9 @@ export default function PublicStorefront() {
                     {/* Onde usar / Compatibilidade */}
                     <div className="mt-8">
                       <div className="flex items-center gap-2 justify-center mb-3">
-                        <div className="h-px flex-1 bg-border/60 max-w-[80px]" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Onde usar · Compatibilidade</span>
-                        <div className="h-px flex-1 bg-border/60 max-w-[80px]" />
+                         <div className="h-px flex-1 max-w-[80px]" style={{ background: `${color}30` }} />
+                         <span className="text-[10px] font-black uppercase tracking-widest text-foreground/75">Onde usar · Compatibilidade</span>
+                         <div className="h-px flex-1 max-w-[80px]" style={{ background: `${color}30` }} />
                       </div>
                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
                         {[
@@ -1428,10 +1433,10 @@ export default function PublicStorefront() {
                         ].map((c) => (
                           <div
                             key={c.label}
-                              className="rounded-xl border backdrop-blur-xl p-2.5 text-center"
-                              style={{ background: claudeSupportSurface, borderColor: `${color}25` }}
+                              className="rounded-xl border bg-card/80 p-2.5 text-center backdrop-blur"
+                              style={{ borderColor: `${color}25` }}
                           >
-                            <div className="text-[10px] font-bold">{c.label}</div>
+                            <div className="text-[10px] font-bold text-foreground">{c.label}</div>
                           </div>
                         ))}
                       </div>
@@ -1440,9 +1445,9 @@ export default function PublicStorefront() {
                     {/* Modelos disponíveis */}
                     <div className="mt-6">
                       <div className="flex items-center gap-2 justify-center mb-3">
-                        <div className="h-px flex-1 bg-border/60 max-w-[80px]" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Modelos disponíveis</span>
-                        <div className="h-px flex-1 bg-border/60 max-w-[80px]" />
+                         <div className="h-px flex-1 max-w-[80px]" style={{ background: `${color}30` }} />
+                         <span className="text-[10px] font-black uppercase tracking-widest text-foreground/75">Modelos disponíveis</span>
+                         <div className="h-px flex-1 max-w-[80px]" style={{ background: `${color}30` }} />
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         {[
@@ -1452,14 +1457,14 @@ export default function PublicStorefront() {
                         ].map((m) => (
                           <div
                             key={m.name}
-                              className="rounded-xl border backdrop-blur-xl p-3 text-center"
-                              style={{ background: claudeSupportSurface, borderColor: `${color}30` }}
+                              className="rounded-xl border bg-card/80 p-3 text-center backdrop-blur"
+                              style={{ borderColor: `${color}30` }}
                           >
                             <div className="flex items-center justify-center gap-1.5">
                                <span style={{ color }}><ClaudeIcon className="h-3.5 w-3.5" /></span>
                               <span className="text-[11px] font-bold">{m.name}</span>
                             </div>
-                            <div className="text-[10px] text-muted-foreground mt-0.5">{m.version}</div>
+                             <div className="text-[10px] text-foreground/70 mt-0.5">{m.version}</div>
                           </div>
                         ))}
                       </div>
