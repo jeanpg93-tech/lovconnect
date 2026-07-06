@@ -40,7 +40,7 @@ export function useClaudePromoForReseller() {
           if (!cancelled) setInfo(null);
           return;
         }
-        const { data: tierData } = await supabase.rpc("get_reseller_tier", {
+        const { data: tierData } = await supabase.rpc("get_reseller_claude_tier", {
           _reseller_id: r.id,
         });
         const tier: any = Array.isArray(tierData) ? tierData[0] : tierData;
