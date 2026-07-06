@@ -3850,6 +3850,7 @@ export type Database = {
           billing_mode: string
           bonus_min_tier_id: string | null
           claude_enabled: boolean
+          claude_tier_override_id: string | null
           created_at: string
           delivery_source: string
           display_name: string
@@ -3876,6 +3877,7 @@ export type Database = {
           billing_mode?: string
           bonus_min_tier_id?: string | null
           claude_enabled?: boolean
+          claude_tier_override_id?: string | null
           created_at?: string
           delivery_source?: string
           display_name: string
@@ -3902,6 +3904,7 @@ export type Database = {
           billing_mode?: string
           bonus_min_tier_id?: string | null
           claude_enabled?: boolean
+          claude_tier_override_id?: string | null
           created_at?: string
           delivery_source?: string
           display_name?: string
@@ -3927,6 +3930,13 @@ export type Database = {
           {
             foreignKeyName: "resellers_bonus_min_tier_id_fkey"
             columns: ["bonus_min_tier_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resellers_claude_tier_override_id_fkey"
+            columns: ["claude_tier_override_id"]
             isOneToOne: false
             referencedRelation: "reseller_tiers"
             referencedColumns: ["id"]
@@ -5335,6 +5345,31 @@ export type Database = {
       get_reseller_claude_cost: {
         Args: { _plan_code: string; _reseller_id: string }
         Returns: number
+      }
+      get_reseller_claude_tier: {
+        Args: { _reseller_id: string }
+        Returns: {
+          color: string
+          created_at: string
+          discount_percent: number
+          id: string
+          is_active: boolean
+          is_hidden: boolean
+          min_spent_cents: number
+          name: string
+          recharge_bonus_percent: number
+          referral_commission_percent: number
+          slug: string
+          sort_order: number
+          test_keys_per_day: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "reseller_tiers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       get_reseller_ranking_v2: {
         Args: { start_date: string }
