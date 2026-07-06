@@ -196,6 +196,26 @@ Deno.serve(async (req) => {
       provider_response: providerData,
     }).eq("id", order.id);
 
+    // Notifica gerente no Telegram
+    try {
+      const { data: resellerInfo } = await svc
+        .from("resellers")
+        .select("display_name, slug")
+        .eq("id", reseller.id)
+        .maybeSingle();
+      const resellerLabel = resellerInfo?.display_name || resellerInfo?.slug || reseller_slug;
+      const txt =
+        `🧪 <b>Chave Teste (Loja)</b>\n` +
+        `🏪 Revendedor: ${resellerLabel}\n` +
+        `👤 Cliente: ${final_display_name}` +
+        (buyer_whatsapp ? ` (${buyer_whatsapp})` : '') +
+        (license_key ? `\n🔑 <code>${license_key}</code>` : '') +
+        `\n⏱ 15 min · 1 dispositivo`;
+      await svc.rpc('telegram_enqueue', { _text: txt });
+    } catch (e) {
+      console.warn('telegram_enqueue (storefront trial) failed', e);
+    }
+
     // registra para rate-limit por telefone/IP
     if (license_key) {
       await svc.from("trial_registrations").insert({
