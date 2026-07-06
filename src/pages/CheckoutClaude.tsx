@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Copy, CheckCircle2, QrCode, KeyRound, Sparkles, ArrowLeft, Zap } from "lucide-react";
 import { toast } from "sonner";
+import { alphaHex, normalizeHexColor, storefrontThemeVars } from "@/lib/storefrontTheme";
 
 type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d";
 
@@ -206,14 +207,18 @@ export default function CheckoutClaude() {
     );
   }
 
-  const accent = reseller.primary_color || "#ef4444";
+  const accent = normalizeHexColor(reseller.primary_color);
   const bg = reseller.background_color || "#050505";
   const title = reseller.store_name || reseller.display_name;
+  const rootStyle = {
+    ...storefrontThemeVars(accent),
+    background: bg,
+  };
 
   return (
     <div
       className="min-h-screen relative overflow-hidden py-10 px-4"
-      style={{ background: bg }}
+      style={rootStyle}
     >
       {/* Halos de fundo */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -283,7 +288,7 @@ export default function CheckoutClaude() {
             </CardHeader>
             <CardContent className="space-y-4">
               {pix?.generated_password && (
-                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
+                <div className="rounded-lg border p-4 space-y-2" style={{ borderColor: alphaHex(accent, 0.32), background: alphaHex(accent, 0.06) }}>
                   <p className="text-sm font-semibold flex items-center gap-2"><KeyRound className="h-4 w-4" /> Suas credenciais de acesso</p>
                   <div className="text-sm space-y-1">
                     <div><span className="text-muted-foreground">Email:</span> <strong>{email}</strong></div>
@@ -296,7 +301,7 @@ export default function CheckoutClaude() {
                   <p className="text-xs text-muted-foreground">Anote essa senha — ela não aparecerá novamente.</p>
                 </div>
               )}
-              <Button asChild className="w-full" size="lg">
+              <Button asChild className="w-full" size="lg" style={{ background: accent, color: "#fff" }}>
                 <Link to={`/cliente-claude/login?loja=${encodeURIComponent(slug)}${email ? `&email=${encodeURIComponent(email)}` : ""}`}>
                   Acessar portal do cliente
                 </Link>
@@ -306,7 +311,7 @@ export default function CheckoutClaude() {
         ) : pix ? (
           <Card>
             <CardHeader className="text-center">
-              <QrCode className="h-8 w-8 mx-auto text-primary" />
+              <QrCode className="h-8 w-8 mx-auto" style={{ color: accent }} />
               <CardTitle>Pague com PIX</CardTitle>
               <CardDescription>Valor: <strong>{brl(pix.sale_price_cents)}</strong></CardDescription>
             </CardHeader>
