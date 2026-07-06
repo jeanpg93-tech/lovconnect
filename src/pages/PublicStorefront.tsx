@@ -1298,8 +1298,11 @@ export default function PublicStorefront() {
                 /* Catálogo Claude */
                 (claudeLoading || claudePlans.length > 0) ? (
                   <div className="w-full max-w-3xl mx-auto">
-                    <div className="flex flex-col items-center gap-2 mb-6 text-center">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
+                     <div className="flex flex-col items-center gap-2 mb-6 text-center">
+                       <div
+                         className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
+                         style={{ color, borderColor: `${color}33`, background: `${color}14` }}
+                       >
                         <ClaudeIcon className="h-3 w-3" /> Claude AI · Chaves API
                       </div>
                       <h2 className="text-2xl font-black uppercase tracking-tight">Planos Claude</h2>
@@ -1310,24 +1313,28 @@ export default function PublicStorefront() {
                       <button
                         type="button"
                         onClick={() => setClaudeTrialOpen(true)}
-                        className="group relative overflow-hidden rounded-2xl border border-dashed border-primary/60 bg-card/90 hover:bg-card p-5 transition-all backdrop-blur-xl text-left shadow-md"
+                         className="group relative overflow-hidden rounded-2xl border border-dashed bg-card/80 hover:bg-card p-5 transition-all backdrop-blur-xl text-left shadow-md"
+                         style={{ borderColor: `${color}55` }}
                       >
-                        <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[9px] font-black uppercase tracking-widest">
+                         <div
+                           className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest"
+                           style={{ background: `${color}26`, color }}
+                         >
                           Grátis
                         </div>
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-black uppercase tracking-widest text-primary">Teste</div>
+                             <div className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>Teste</div>
                             <div className="text-sm font-bold mt-1">15 min ou 50 msgs</div>
                           </div>
-                          <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                           <Sparkles className="h-4 w-4 shrink-0" style={{ color }} />
                         </div>
                         <div className="mt-4 flex items-end justify-between">
                           <div>
                             <div className="text-[10px] text-muted-foreground uppercase tracking-widest">custo</div>
                             <div className="text-2xl font-black tracking-tight">R$ 0,00</div>
                           </div>
-                          <div className="text-[10px] font-bold uppercase tracking-widest text-primary group-hover:underline">
+                           <div className="text-[10px] font-bold uppercase tracking-widest group-hover:underline" style={{ color }}>
                             Testar →
                           </div>
                         </div>
@@ -1336,7 +1343,8 @@ export default function PublicStorefront() {
                         ? Array.from({ length: 3 }).map((_, i) => (
                             <div
                               key={`sk-${i}`}
-                             className="rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xl p-5 animate-pulse h-[148px]"
+                              className="rounded-2xl border bg-card/80 backdrop-blur-xl p-5 animate-pulse h-[148px]"
+                              style={{ borderColor: `${color}30` }}
                             />
                           ))
                         : claudePlans.map((p) => {
@@ -1345,23 +1353,27 @@ export default function PublicStorefront() {
                         <Link
                           key={p.code}
                           to={`/checkout/claude/${slug}?plan=${p.code}`}
-                         className={`group relative overflow-hidden rounded-2xl border p-5 transition-all backdrop-blur-xl shadow-md ${
-                            isFeatured
-                              ? "border-primary/70 bg-card/95 ring-1 ring-primary/40 hover:bg-card shadow-lg shadow-primary/20"
-                              : "border-border/60 bg-card/90 hover:bg-card hover:border-primary/50"
-                          }`}
+                           className="group relative overflow-hidden rounded-2xl border p-5 transition-all backdrop-blur-xl bg-card/80 hover:bg-card shadow-md hover:-translate-y-0.5"
+                           style={
+                             isFeatured
+                               ? { borderColor: `${color}80`, boxShadow: `0 0 0 1px ${color}55, 0 10px 30px -12px ${color}55` }
+                               : { borderColor: `${color}30` }
+                           }
                         >
                           {isFeatured && (
-                            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-black uppercase tracking-widest">
+                             <div
+                               className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white"
+                               style={{ background: color }}
+                             >
                               Mais vendido
                             </div>
                           )}
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <div className="text-[10px] font-black uppercase tracking-widest text-primary">Claude</div>
+                               <div className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>Claude</div>
                               <div className="text-sm font-bold mt-1">{p.label}</div>
                             </div>
-                            <ClaudeIcon className="h-4 w-4 text-primary shrink-0" />
+                             <ClaudeIcon className="h-4 w-4 shrink-0" style={{ color }} />
                           </div>
                           <div className="mt-4 flex items-end justify-between">
                             <div>
@@ -1370,7 +1382,7 @@ export default function PublicStorefront() {
                                 R$ {(p.price_cents / 100).toFixed(2).replace(".", ",")}
                               </div>
                             </div>
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-primary group-hover:underline">
+                             <div className="text-[10px] font-bold uppercase tracking-widest group-hover:underline" style={{ color }}>
                               Comprar →
                             </div>
                           </div>
@@ -1381,7 +1393,8 @@ export default function PublicStorefront() {
                     <div className="mt-4 text-center">
                       <Link
                         to={`/checkout/claude/${slug}`}
-                        className="text-[11px] text-muted-foreground hover:text-primary underline underline-offset-4"
+                         className="text-[11px] text-muted-foreground underline underline-offset-4 hover:opacity-80"
+                         style={{ color: undefined }}
                       >
                         Ver todos os planos e comprar →
                       </Link>
@@ -1406,7 +1419,8 @@ export default function PublicStorefront() {
                         ].map((c) => (
                           <div
                             key={c.label}
-                            className="rounded-xl border border-border/60 bg-card/85 backdrop-blur-xl p-2.5 text-center"
+                             className="rounded-xl border bg-card/80 backdrop-blur-xl p-2.5 text-center"
+                             style={{ borderColor: `${color}25` }}
                           >
                             <div className="text-[10px] font-bold">{c.label}</div>
                           </div>
@@ -1429,10 +1443,11 @@ export default function PublicStorefront() {
                         ].map((m) => (
                           <div
                             key={m.name}
-                            className="rounded-xl border border-primary/40 bg-card/90 backdrop-blur-xl p-3 text-center"
+                             className="rounded-xl border bg-card/80 backdrop-blur-xl p-3 text-center"
+                             style={{ borderColor: `${color}30` }}
                           >
                             <div className="flex items-center justify-center gap-1.5">
-                              <ClaudeIcon className="h-3.5 w-3.5 text-primary" />
+                               <ClaudeIcon className="h-3.5 w-3.5" style={{ color }} />
                               <span className="text-[11px] font-bold">{m.name}</span>
                             </div>
                             <div className="text-[10px] text-muted-foreground mt-0.5">{m.version}</div>
