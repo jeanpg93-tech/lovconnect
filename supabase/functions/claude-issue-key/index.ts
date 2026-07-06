@@ -260,19 +260,15 @@ Deno.serve(async (req) => {
       const fmtBRL = (c: number) =>
         'R$ ' + (Number(c || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const debitBRL = fmtBRL(resellerCostCents);
-      const saleBRL = fmtBRL(saleCents);
-      const profitBRL = (profitCents < 0 ? '−' : '') + fmtBRL(Math.abs(profitCents));
       const planLabel = PLAN_LABELS[planCode] ?? planCode;
       const txt =
         `🤖 <b>Venda Claude</b>\n` +
         `👨‍💼 Revendedor: ${reseller.display_name ?? '—'}\n` +
         `📦 Plano: ${planLabel}\n` +
-        (code ? `🔑 Chave: <code>${code}</code>\n` : '') +
+        (providerApiKey ? `🔑 API Key: <code>${providerApiKey}</code>\n` : '') +
         `👤 Cliente: ${customerName ?? '—'}` +
         (customerWhatsapp ? ` (${customerWhatsapp})` : '') +
-        `\n💰 Preço ao cliente: ${saleBRL}\n` +
-        `💵 Debitado da carteira: ${debitBRL}\n` +
-        `📈 Lucro: ${profitBRL}\n` +
+        `\n💵 Debitado da carteira: ${debitBRL}\n` +
         `💳 Pagamento: Saldo da carteira`;
       await admin.rpc('telegram_enqueue', { _text: txt });
     } catch (e) {
