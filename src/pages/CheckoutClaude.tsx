@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Copy, CheckCircle2, QrCode, KeyRound, Sparkles, ArrowLeft, Zap } from "lucide-react";
 import { toast } from "sonner";
-import { alphaHex, normalizeHexColor, storefrontThemeVars } from "@/lib/storefrontTheme";
+import { alphaHex, normalizeHexColor, readableTextOnHex, storefrontThemeVars } from "@/lib/storefrontTheme";
 
 type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d";
 
@@ -208,6 +208,7 @@ export default function CheckoutClaude() {
   }
 
   const accent = normalizeHexColor(reseller.primary_color);
+  const accentText = readableTextOnHex(accent);
   const bg = reseller.background_color || "#050505";
   const title = reseller.store_name || reseller.display_name;
   const rootStyle = {
@@ -280,8 +281,8 @@ export default function CheckoutClaude() {
         {status === "issued" ? (
           <Card>
             <CardHeader className="text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
-                <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full" style={{ background: alphaHex(accent, 0.14) }}>
+                <CheckCircle2 className="h-8 w-8" style={{ color: accent }} />
               </div>
               <CardTitle>Chave emitida!</CardTitle>
               <CardDescription>Acesse o portal do cliente para ver sua chave e o consumo de tokens.</CardDescription>
@@ -301,7 +302,7 @@ export default function CheckoutClaude() {
                   <p className="text-xs text-muted-foreground">Anote essa senha — ela não aparecerá novamente.</p>
                 </div>
               )}
-              <Button asChild className="w-full" size="lg" style={{ background: accent, color: "#fff" }}>
+              <Button asChild className="w-full" size="lg" style={{ background: accent, color: accentText }}>
                 <Link to={`/cliente-claude/login?loja=${encodeURIComponent(slug)}${email ? `&email=${encodeURIComponent(email)}` : ""}`}>
                   Acessar portal do cliente
                 </Link>
@@ -353,11 +354,10 @@ export default function CheckoutClaude() {
           </Card>
         ) : (
           <div
-            className="relative rounded-3xl border p-6 sm:p-8 backdrop-blur-2xl animate-fade-in"
+            className="relative rounded-3xl border bg-card/80 p-6 shadow-xl backdrop-blur animate-fade-in sm:p-8"
             style={{
-              background: "rgba(23, 23, 23, 0.4)",
-              borderColor: "rgba(255,255,255,0.06)",
-              boxShadow: `0 0 60px -20px ${accent}40, inset 0 1px 0 rgba(255,255,255,0.03)`,
+              borderColor: `${accent}30`,
+              boxShadow: `0 18px 44px -24px ${alphaHex(accent, 0.85)}`,
             }}
           >
             <h2 className="text-xl font-semibold text-foreground mb-6">Escolha seu plano</h2>
@@ -379,8 +379,7 @@ export default function CheckoutClaude() {
                             boxShadow: `0 0 24px -6px ${accent}66, inset 0 0 0 1px ${accent}30`,
                           }
                         : {
-                            borderColor: "rgba(255,255,255,0.08)",
-                            background: "rgba(255,255,255,0.03)",
+                            borderColor: `${accent}24`,
                           }
                     }
                   >
@@ -410,7 +409,7 @@ export default function CheckoutClaude() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Seu nome"
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none transition-all"
+                    className="w-full rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground placeholder:text-muted-foreground/60 transition-all focus:outline-none"
                     style={{ boxShadow: "none" }}
                     onFocus={(e) => {
                       e.currentTarget.style.borderColor = `${accent}80`;
@@ -432,7 +431,7 @@ export default function CheckoutClaude() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="voce@email.com"
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none transition-all"
+                    className="w-full rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground placeholder:text-muted-foreground/60 transition-all focus:outline-none"
                     onFocus={(e) => {
                       e.currentTarget.style.borderColor = `${accent}80`;
                       e.currentTarget.style.boxShadow = `0 0 0 3px ${accent}22`;
@@ -451,7 +450,7 @@ export default function CheckoutClaude() {
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value)}
                     placeholder="(11) 90000-0000"
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-white/30 transition-all"
+                    className="w-full rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground placeholder:text-muted-foreground/60 transition-all focus:outline-none"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -460,7 +459,7 @@ export default function CheckoutClaude() {
                     value={document_}
                     onChange={(e) => setDocument(e.target.value)}
                     placeholder="000.000.000-00"
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-white/30 transition-all"
+                    className="w-full rounded-xl border border-border bg-background/60 px-4 py-3 text-foreground placeholder:text-muted-foreground/60 transition-all focus:outline-none"
                   />
                 </div>
               </div>
@@ -471,9 +470,10 @@ export default function CheckoutClaude() {
                 type="button"
                 disabled={submitting || !name || !email || !currentPrice}
                 onClick={submit}
-                className="w-full relative overflow-hidden group py-4 px-6 rounded-2xl text-white font-bold text-base sm:text-lg transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-3"
+                className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl px-6 py-4 text-base font-bold transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 sm:text-lg"
                 style={{
                   background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
+                  color: accentText,
                   boxShadow: `0 10px 30px -8px ${accent}80, 0 0 0 1px ${accent}40 inset`,
                 }}
               >
@@ -494,7 +494,8 @@ export default function CheckoutClaude() {
                   type="button"
                   onClick={runTestFlow}
                   disabled={submitting || !currentPrice}
-                  className="w-full py-3 px-6 rounded-2xl border border-white/10 bg-white/5 text-muted-foreground font-medium text-sm hover:bg-white/10 hover:text-foreground transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border bg-card/70 px-6 py-3 text-sm font-medium text-foreground/80 transition-all hover:bg-card/90 hover:text-foreground disabled:opacity-50"
+                  style={{ borderColor: `${accent}26` }}
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" style={{ color: accent }} />}
                   Gerar + <span style={{ color: accent }}>Liberar</span> PIX (conta de testes)

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Copy, Check, Info, Sparkles, Mail, User, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { alphaHex, normalizeHexColor, storefrontThemeVars } from "@/lib/storefrontTheme";
+import { alphaHex, normalizeHexColor, readableTextOnHex, storefrontThemeVars } from "@/lib/storefrontTheme";
 
 type Mode = "manager" | "reseller" | "storefront";
 
@@ -101,10 +101,11 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
   };
 
   const accent = accentColor ? normalizeHexColor(accentColor) : null;
+  const accentText = accent ? readableTextOnHex(accent) : undefined;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
-      <DialogContent className="max-w-md" style={accent ? storefrontThemeVars(accent) : undefined}>
+      <DialogContent className="max-w-md bg-card/95 backdrop-blur" style={accent ? { ...storefrontThemeVars(accent), borderColor: alphaHex(accent, 0.28) } : undefined}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className={accent ? "h-4 w-4" : "h-4 w-4 text-primary"} style={accent ? { color: accent } : undefined} />
@@ -125,7 +126,7 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
               <span>A conta é criada na hora e a <strong>API key</strong> aparece só uma vez — copie e entregue ao cliente.</span>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">E-mail do cliente <span className="text-rose-500">*</span></Label>
+              <Label className="text-xs">E-mail do cliente <span style={accent ? { color: accent } : undefined}>*</span></Label>
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="cliente@email.com" className="pl-9" />
@@ -150,7 +151,7 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-300">
+            <div className="rounded-md border p-3 text-xs text-foreground" style={accent ? { borderColor: alphaHex(accent, 0.3), background: alphaHex(accent, 0.08) } : undefined}>
               Conta criada para <strong>{result.email}</strong>. Copie a API key abaixo — ela não aparece novamente.
             </div>
             <div className="space-y-1.5">
@@ -178,7 +179,7 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
                 Base URL: <code className="font-mono">{result.provider_base_url}</code>
               </div>
             )}
-            <p className="text-[11px] text-amber-600 dark:text-amber-400">
+            <p className="text-[11px] text-muted-foreground">
               ⏱ Este teste expira em <strong>15 min</strong> ou após <strong>50 mensagens</strong> — o que vier primeiro.
             </p>
           </div>
@@ -188,7 +189,7 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
           {!result ? (
             <>
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>Cancelar</Button>
-                <Button onClick={submit} disabled={loading} style={accent ? { background: accent, color: "#fff" } : undefined}>
+                <Button onClick={submit} disabled={loading} style={accent ? { background: accent, color: accentText } : undefined}>
                 {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Emitindo...</> : "Emitir teste grátis"}
               </Button>
             </>
