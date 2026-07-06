@@ -237,7 +237,7 @@ export default function CheckoutClaude() {
         <div>
           <Link
             to={`/loja/${slug}`}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+            className="inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors group"
           >
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             Voltar para a loja
@@ -271,9 +271,9 @@ export default function CheckoutClaude() {
           </div>
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">{title}</h1>
           {reseller.tagline ? (
-            <p className="text-sm text-muted-foreground">{reseller.tagline}</p>
+            <p className="text-sm text-white/85">{reseller.tagline}</p>
           ) : null}
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/85">
             Compre seu plano Claude e receba a chave na hora após o PIX.
           </p>
         </header>
