@@ -1373,7 +1373,7 @@ export default function PublicStorefront() {
                                <div className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>Claude</div>
                               <div className="text-sm font-bold mt-1">{p.label}</div>
                             </div>
-                             <ClaudeIcon className="h-4 w-4 shrink-0" style={{ color }} />
+                             <span style={{ color }} className="shrink-0"><ClaudeIcon className="h-4 w-4" /></span>
                           </div>
                           <div className="mt-4 flex items-end justify-between">
                             <div>
@@ -1447,7 +1447,7 @@ export default function PublicStorefront() {
                              style={{ borderColor: `${color}30` }}
                           >
                             <div className="flex items-center justify-center gap-1.5">
-                               <ClaudeIcon className="h-3.5 w-3.5" style={{ color }} />
+                               <span style={{ color }}><ClaudeIcon className="h-3.5 w-3.5" /></span>
                               <span className="text-[11px] font-bold">{m.name}</span>
                             </div>
                             <div className="text-[10px] text-muted-foreground mt-0.5">{m.version}</div>
