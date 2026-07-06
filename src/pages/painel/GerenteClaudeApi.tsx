@@ -772,15 +772,20 @@ function PriceCard({ row, onSaved }: { row: PlanPrice; onSaved: (r: PlanPrice) =
 }
 
 function ResellersTab() {
-  const [list, setList] = useState<Array<{ id: string; display_name: string; claude_enabled: boolean }>>([]);
+  const [list, setList] = useState<Array<{ id: string; display_name: string; claude_enabled: boolean; claude_tier_override_id: string | null }>>([]);
+  const [tiers, setTiers] = useState<Array<{ id: string; name: string; color: string | null }>>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("resellers").select("id,display_name,claude_enabled").order("display_name");
+      const [{ data }, { data: t }] = await Promise.all([
+        supabase.from("resellers").select("id,display_name,claude_enabled,claude_tier_override_id").order("display_name"),
+        supabase.from("reseller_tiers").select("id,name,color,sort_order,is_active").eq("is_active", true).order("sort_order"),
+      ]);
       setList((data ?? []) as any);
+      setTiers(((t ?? []) as any[]).map((x) => ({ id: x.id, name: x.name, color: x.color })));
       setLoading(false);
     })();
   }, []);
@@ -817,6 +822,18 @@ function ResellersTab() {
     }
   };
 
+  const setOverride = async (id: string, tierId: string | null) => {
+    const prev = list;
+    setList((p) => p.map((r) => r.id === id ? { ...r, claude_tier_override_id: tierId } : r));
+    const { error } = await supabase.from("resellers").update({ claude_tier_override_id: tierId }).eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      setList(prev);
+    } else {
+      toast.success(tierId ? "Nível de Claude alterado para esse revendedor" : "Nível de Claude voltou ao padrão");
+    }
+  };
+
   if (loading) return <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
 
   return (
@@ -834,12 +851,35 @@ function ResellersTab() {
       <Input placeholder="Buscar revendedor..." value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
       <div className="rounded-xl border border-border bg-card/60 divide-y divide-border">
         {filtered.map((r) => (
-          <div key={r.id} className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
-              <span className="font-medium">{r.display_name}</span>
+          <div key={r.id} className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="font-medium truncate">{r.display_name}</span>
               {r.claude_enabled && <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-500">Habilitado</Badge>}
+              {r.claude_tier_override_id && (
+                <Badge variant="secondary" className="bg-amber-500/15 text-amber-500 gap-1">
+                  <Crown className="h-3 w-3" /> Nível customizado
+                </Badge>
+              )}
             </div>
-            <Switch checked={r.claude_enabled} onCheckedChange={(v) => toggle(r.id, v)} />
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Nível Claude</Label>
+                <Select
+                  value={r.claude_tier_override_id ?? "__default__"}
+                  onValueChange={(v) => setOverride(r.id, v === "__default__" ? null : v)}
+                  disabled={!r.claude_enabled}
+                >
+                  <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__default__">Usar nível padrão</SelectItem>
+                    {tiers.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Switch checked={r.claude_enabled} onCheckedChange={(v) => toggle(r.id, v)} />
+            </div>
           </div>
         ))}
         {filtered.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">Nenhum revendedor encontrado.</div>}
