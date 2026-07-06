@@ -163,13 +163,13 @@ export default function ClaudePriceTable() {
             <div className="font-display font-semibold text-amber-500">Condição especial ativa</div>
             <div className="text-xs text-muted-foreground">
               Sua precificação de Claude está usando o nível{" "}
-              <span className="font-medium text-foreground">{tier?.name}</span> por definição do gerente.
+              <span className="font-semibold" style={{ color: tier?.color }}>{tier?.name}</span> por definição do gerente.
               Os demais produtos seguem o seu nível normal.
             </div>
           </div>
         </div>
       )}
-      {tier?.name && (
+      {tier?.name && !isOverridden && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3">
           <Crown className="h-4 w-4 text-primary" />
           <div className="text-sm">
