@@ -1,11 +1,12 @@
 import { cn } from "@/lib/utils";
+import type { CSSProperties } from "react";
 
 /**
  * Logo "asterisco/sparkle" do Claude (Anthropic).
  * Renderiza como SVG simples usando currentColor para herdar o tema
  * (segue o padrão dos ícones lucide do projeto).
  */
-export function ClaudeIcon({ className, size }: { className?: string; size?: number }) {
+export function ClaudeIcon({ className, size, style }: { className?: string; size?: number; style?: CSSProperties }) {
   const s = size ?? 24;
   return (
     <svg
@@ -20,6 +21,7 @@ export function ClaudeIcon({ className, size }: { className?: string; size?: num
       strokeLinejoin="round"
       aria-label="Claude"
       className={cn("inline-block shrink-0", className)}
+      style={style}
     >
       {/* Sparkle/asterisco do Claude — 12 raios saindo do centro */}
       {Array.from({ length: 12 }).map((_, i) => {
