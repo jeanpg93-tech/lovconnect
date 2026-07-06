@@ -156,6 +156,19 @@ export default function ClaudePriceTable() {
   return (
     <div>
       <ClaudePromoBanner className="mb-3" />
+      {isOverridden && (
+        <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent p-3">
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <div className="text-sm">
+            <div className="font-display font-semibold text-amber-500">Condição especial ativa</div>
+            <div className="text-xs text-muted-foreground">
+              Sua precificação de Claude está usando o nível{" "}
+              <span className="font-medium text-foreground">{tier?.name}</span> por definição do gerente.
+              Os demais produtos seguem o seu nível normal.
+            </div>
+          </div>
+        </div>
+      )}
       {tier?.name && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3">
           <Crown className="h-4 w-4 text-primary" />
