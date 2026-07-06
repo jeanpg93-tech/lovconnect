@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Copy, Check, Info, Sparkles, Mail, User, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import { alphaHex, normalizeHexColor, storefrontThemeVars } from "@/lib/storefrontTheme";
 
 type Mode = "manager" | "reseller" | "storefront";
 
@@ -24,10 +25,11 @@ interface Props {
   mode: Mode;
   /** required for storefront mode */
   storefrontSlug?: string;
+  accentColor?: string;
   onIssued?: (r: TrialResult) => void;
 }
 
-export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, storefrontSlug, onIssued }: Props) {
+export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, storefrontSlug, accentColor, onIssued }: Props) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -98,12 +100,14 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
     setTimeout(() => setCopied(null), 1500);
   };
 
+  const accent = normalizeHexColor(accentColor);
+
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" style={storefrontThemeVars(accent)}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <Sparkles className="h-4 w-4" style={{ color: accent }} />
             Teste grátis do Claude
           </DialogTitle>
           <DialogDescription>
@@ -113,8 +117,8 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
 
         {!result ? (
           <div className="space-y-3">
-            <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5 text-[11px] text-muted-foreground flex gap-2">
-              <Info className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+            <div className="rounded-md border p-2.5 text-[11px] text-muted-foreground flex gap-2" style={{ borderColor: alphaHex(accent, 0.22), background: alphaHex(accent, 0.06) }}>
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: accent }} />
               <span>A conta é criada na hora e a <strong>API key</strong> aparece só uma vez — copie e entregue ao cliente.</span>
             </div>
             <div className="space-y-1.5">
@@ -181,7 +185,7 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
           {!result ? (
             <>
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>Cancelar</Button>
-              <Button onClick={submit} disabled={loading}>
+                <Button onClick={submit} disabled={loading} style={{ background: accent, color: "#fff" }}>
                 {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Emitindo...</> : "Emitir teste grátis"}
               </Button>
             </>
