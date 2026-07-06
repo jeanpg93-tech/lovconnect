@@ -16,6 +16,7 @@ import { StorefrontVisualEffects, type VisualEffect } from "@/components/storefr
 import { ReportStoreDialog } from "@/components/storefront/ReportStoreDialog";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import IssueClaudeTrialDialog from "@/components/painel/IssueClaudeTrialDialog";
+import { alphaHex, normalizeHexColor, storefrontThemeVars } from "@/lib/storefrontTheme";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -681,14 +682,22 @@ export default function PublicStorefront() {
     );
   }
 
-  const color = store.primary_color || "#7c3aed";
+  const color = normalizeHexColor(store.primary_color);
   const bgColor = store.background_color || undefined;
   const bgEffect = (store.background_effect ?? "none") as BgEffect;
   const layoutMode = (store.layout_mode ?? "grid") as LayoutMode;
   const showClaudePortal = claudeAvailable && (store as any)?.show_claude !== false;
+  const rootStyle = {
+    ...storefrontThemeVars(color),
+    ...(bgColor ? { backgroundColor: bgColor } : {}),
+  };
+  const claudeCardBase = bgColor ? normalizeHexColor(bgColor, color) : color;
+  const claudeSurface = `linear-gradient(145deg, ${alphaHex(color, 0.22)} 0%, ${alphaHex(claudeCardBase, 0.62)} 48%, hsl(var(--card) / 0.92) 100%)`;
+  const claudeSurfaceStrong = `linear-gradient(145deg, ${alphaHex(color, 0.34)} 0%, ${alphaHex(claudeCardBase, 0.72)} 50%, hsl(var(--card) / 0.94) 100%)`;
+  const claudeSupportSurface = `linear-gradient(145deg, ${alphaHex(claudeCardBase, 0.5)}, hsl(var(--card) / 0.9))`;
 
   return (
-    <div className="relative min-h-screen bg-background overflow-x-hidden" style={bgColor ? { backgroundColor: bgColor } : undefined}>
+    <div className="relative min-h-screen bg-background overflow-x-hidden" style={rootStyle}>
       <StorefrontBackground effect={bgEffect} color={color} />
       <StorefrontVisualEffects effect={(store.visual_effect ?? "none") as VisualEffect} color={color} />
 
@@ -1313,8 +1322,8 @@ export default function PublicStorefront() {
                       <button
                         type="button"
                         onClick={() => setClaudeTrialOpen(true)}
-                         className="group relative overflow-hidden rounded-2xl border border-dashed bg-card/80 hover:bg-card p-5 transition-all backdrop-blur-xl text-left shadow-md"
-                         style={{ borderColor: `${color}55` }}
+                          className="group relative overflow-hidden rounded-2xl border border-dashed p-5 transition-all backdrop-blur-xl text-left shadow-md"
+                          style={{ background: claudeSurfaceStrong, borderColor: `${color}70`, boxShadow: `0 16px 34px -20px ${alphaHex(color, 0.8)}` }}
                       >
                          <div
                            className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest"
@@ -1343,8 +1352,8 @@ export default function PublicStorefront() {
                         ? Array.from({ length: 3 }).map((_, i) => (
                             <div
                               key={`sk-${i}`}
-                              className="rounded-2xl border bg-card/80 backdrop-blur-xl p-5 animate-pulse h-[148px]"
-                              style={{ borderColor: `${color}30` }}
+                              className="rounded-2xl border backdrop-blur-xl p-5 animate-pulse h-[148px]"
+                              style={{ background: claudeSurface, borderColor: `${color}30` }}
                             />
                           ))
                         : claudePlans.map((p) => {
@@ -1353,11 +1362,11 @@ export default function PublicStorefront() {
                         <Link
                           key={p.code}
                           to={`/checkout/claude/${slug}?plan=${p.code}`}
-                           className="group relative overflow-hidden rounded-2xl border p-5 transition-all backdrop-blur-xl bg-card/80 hover:bg-card shadow-md hover:-translate-y-0.5"
+                           className="group relative overflow-hidden rounded-2xl border p-5 transition-all backdrop-blur-xl shadow-md hover:-translate-y-0.5"
                            style={
                              isFeatured
-                               ? { borderColor: `${color}80`, boxShadow: `0 0 0 1px ${color}55, 0 10px 30px -12px ${color}55` }
-                               : { borderColor: `${color}30` }
+                                ? { background: claudeSurfaceStrong, borderColor: `${color}90`, boxShadow: `0 0 0 1px ${color}55, 0 16px 34px -16px ${color}99` }
+                                : { background: claudeSurface, borderColor: `${color}45`, boxShadow: `0 16px 34px -22px ${alphaHex(color, 0.72)}` }
                            }
                         >
                           {isFeatured && (
@@ -1393,8 +1402,8 @@ export default function PublicStorefront() {
                     <div className="mt-4 text-center">
                       <Link
                         to={`/checkout/claude/${slug}`}
-                         className="text-[11px] text-muted-foreground underline underline-offset-4 hover:opacity-80"
-                         style={{ color: undefined }}
+                          className="text-[11px] underline underline-offset-4 hover:opacity-80"
+                          style={{ color }}
                       >
                         Ver todos os planos e comprar →
                       </Link>
@@ -1419,8 +1428,8 @@ export default function PublicStorefront() {
                         ].map((c) => (
                           <div
                             key={c.label}
-                             className="rounded-xl border bg-card/80 backdrop-blur-xl p-2.5 text-center"
-                             style={{ borderColor: `${color}25` }}
+                              className="rounded-xl border backdrop-blur-xl p-2.5 text-center"
+                              style={{ background: claudeSupportSurface, borderColor: `${color}25` }}
                           >
                             <div className="text-[10px] font-bold">{c.label}</div>
                           </div>
@@ -1443,8 +1452,8 @@ export default function PublicStorefront() {
                         ].map((m) => (
                           <div
                             key={m.name}
-                             className="rounded-xl border bg-card/80 backdrop-blur-xl p-3 text-center"
-                             style={{ borderColor: `${color}30` }}
+                              className="rounded-xl border backdrop-blur-xl p-3 text-center"
+                              style={{ background: claudeSupportSurface, borderColor: `${color}30` }}
                           >
                             <div className="flex items-center justify-center gap-1.5">
                                <span style={{ color }}><ClaudeIcon className="h-3.5 w-3.5" /></span>
@@ -1585,7 +1594,7 @@ export default function PublicStorefront() {
         resellerName={reseller.display_name}
       />
       <AlertDialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
-        <AlertDialogContent className="bg-black/95 border-white/10 text-white backdrop-blur-2xl">
+        <AlertDialogContent className="bg-black/95 border-white/10 text-white backdrop-blur-2xl" style={storefrontThemeVars(color)}>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 font-display text-xl font-black uppercase tracking-tight text-primary">
               <AlertTriangle className="h-6 w-6" /> Confirmação de Reset
@@ -1640,6 +1649,7 @@ export default function PublicStorefront() {
         onOpenChange={setClaudeTrialOpen}
         mode="storefront"
         storefrontSlug={slug}
+        accentColor={color}
       />
     </div>
   );
