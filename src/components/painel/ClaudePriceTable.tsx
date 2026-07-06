@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Save, Pencil, Check, X, TrendingUp, Crown } from "lucide-react";
+import { Loader2, Save, Pencil, Check, X, TrendingUp, Crown, Sparkles } from "lucide-react";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ export default function ClaudePriceTable() {
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [rows, setRows] = useState<PlanRow[]>([]);
   const [tier, setTier] = useState<{ name?: string; color?: string } | null>(null);
+  const [isOverridden, setIsOverridden] = useState(false);
   const [editing, setEditing] = useState<PlanCode | null>(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -46,9 +47,14 @@ export default function ClaudePriceTable() {
       const rid = r?.id ?? null;
       setResellerId(rid);
       if (rid) {
-        const { data: tierData } = await supabase.rpc("get_reseller_tier", { _reseller_id: rid });
-        const t = Array.isArray(tierData) ? tierData[0] : tierData;
-        if (t) setTier(t as any);
+        const [{ data: claudeTierData }, { data: baseTierData }] = await Promise.all([
+          supabase.rpc("get_reseller_claude_tier", { _reseller_id: rid }),
+          supabase.rpc("get_reseller_tier", { _reseller_id: rid }),
+        ]);
+        const ct: any = Array.isArray(claudeTierData) ? claudeTierData[0] : claudeTierData;
+        const bt: any = Array.isArray(baseTierData) ? baseTierData[0] : baseTierData;
+        if (ct) setTier(ct as any);
+        if (ct?.id && bt?.id && ct.id !== bt.id) setIsOverridden(true);
       }
       const [{ data: base }, { data: ov }] = await Promise.all([
         supabase
