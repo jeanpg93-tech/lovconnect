@@ -100,14 +100,14 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
     setTimeout(() => setCopied(null), 1500);
   };
 
-  const accent = normalizeHexColor(accentColor);
+  const accent = accentColor ? normalizeHexColor(accentColor) : null;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
-      <DialogContent className="max-w-md" style={storefrontThemeVars(accent)}>
+      <DialogContent className="max-w-md" style={accent ? storefrontThemeVars(accent) : undefined}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4" style={{ color: accent }} />
+            <Sparkles className={accent ? "h-4 w-4" : "h-4 w-4 text-primary"} style={accent ? { color: accent } : undefined} />
             Teste grátis do Claude
           </DialogTitle>
           <DialogDescription>
@@ -117,8 +117,11 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
 
         {!result ? (
           <div className="space-y-3">
-            <div className="rounded-md border p-2.5 text-[11px] text-muted-foreground flex gap-2" style={{ borderColor: alphaHex(accent, 0.22), background: alphaHex(accent, 0.06) }}>
-              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: accent }} />
+            <div
+              className={accent ? "rounded-md border p-2.5 text-[11px] text-muted-foreground flex gap-2" : "rounded-md border border-primary/20 bg-primary/5 p-2.5 text-[11px] text-muted-foreground flex gap-2"}
+              style={accent ? { borderColor: alphaHex(accent, 0.22), background: alphaHex(accent, 0.06) } : undefined}
+            >
+              <Info className={accent ? "h-3.5 w-3.5 mt-0.5 shrink-0" : "h-3.5 w-3.5 text-primary mt-0.5 shrink-0"} style={accent ? { color: accent } : undefined} />
               <span>A conta é criada na hora e a <strong>API key</strong> aparece só uma vez — copie e entregue ao cliente.</span>
             </div>
             <div className="space-y-1.5">
@@ -185,7 +188,7 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
           {!result ? (
             <>
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>Cancelar</Button>
-                <Button onClick={submit} disabled={loading} style={{ background: accent, color: "#fff" }}>
+                <Button onClick={submit} disabled={loading} style={accent ? { background: accent, color: "#fff" } : undefined}>
                 {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Emitindo...</> : "Emitir teste grátis"}
               </Button>
             </>
