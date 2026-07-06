@@ -8,7 +8,7 @@ import { ArrowRight, ShieldCheck, Zap, Cpu, Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-const STORAGE_KEY = "lovconnect:claude_launch_modal:v15";
+const STORAGE_KEY = "lovconnect:claude_launch_modal:v16";
 
 /**
  * Modal de lançamento do Claude — dispara UMA vez, geral, para revendedores
