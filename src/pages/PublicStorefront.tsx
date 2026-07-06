@@ -1310,7 +1310,7 @@ export default function PublicStorefront() {
                       <button
                         type="button"
                         onClick={() => setClaudeTrialOpen(true)}
-                        className="group relative overflow-hidden rounded-2xl border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 p-5 transition-all backdrop-blur-xl text-left"
+                        className="group relative overflow-hidden rounded-2xl border border-dashed border-primary/60 bg-card/90 hover:bg-card p-5 transition-all backdrop-blur-xl text-left shadow-md"
                       >
                         <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[9px] font-black uppercase tracking-widest">
                           Grátis
@@ -1336,7 +1336,7 @@ export default function PublicStorefront() {
                         ? Array.from({ length: 3 }).map((_, i) => (
                             <div
                               key={`sk-${i}`}
-                              className="rounded-2xl border border-white/5 bg-card/30 backdrop-blur-xl p-5 animate-pulse h-[148px]"
+                             className="rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xl p-5 animate-pulse h-[148px]"
                             />
                           ))
                         : claudePlans.map((p) => {
@@ -1345,10 +1345,10 @@ export default function PublicStorefront() {
                         <Link
                           key={p.code}
                           to={`/checkout/claude/${slug}?plan=${p.code}`}
-                          className={`group relative overflow-hidden rounded-2xl border p-5 transition-all backdrop-blur-xl ${
+                         className={`group relative overflow-hidden rounded-2xl border p-5 transition-all backdrop-blur-xl shadow-md ${
                             isFeatured
-                              ? "border-primary/60 bg-primary/10 hover:bg-primary/15 shadow-lg shadow-primary/10"
-                              : "border-white/5 bg-card/30 hover:bg-card/50 hover:border-primary/40"
+                              ? "border-primary/70 bg-card/95 ring-1 ring-primary/40 hover:bg-card shadow-lg shadow-primary/20"
+                              : "border-border/60 bg-card/90 hover:bg-card hover:border-primary/50"
                           }`}
                         >
                           {isFeatured && (
@@ -1406,7 +1406,7 @@ export default function PublicStorefront() {
                         ].map((c) => (
                           <div
                             key={c.label}
-                            className="rounded-xl border border-white/5 bg-card/30 backdrop-blur-xl p-2.5 text-center"
+                            className="rounded-xl border border-border/60 bg-card/85 backdrop-blur-xl p-2.5 text-center"
                           >
                             <div className="text-[10px] font-bold">{c.label}</div>
                           </div>
@@ -1429,7 +1429,7 @@ export default function PublicStorefront() {
                         ].map((m) => (
                           <div
                             key={m.name}
-                            className="rounded-xl border border-primary/20 bg-primary/5 backdrop-blur-xl p-3 text-center"
+                            className="rounded-xl border border-primary/40 bg-card/90 backdrop-blur-xl p-3 text-center"
                           >
                             <div className="flex items-center justify-center gap-1.5">
                               <ClaudeIcon className="h-3.5 w-3.5 text-primary" />
