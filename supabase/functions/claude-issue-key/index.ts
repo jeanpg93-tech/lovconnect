@@ -212,6 +212,34 @@ Deno.serve(async (req) => {
         provider_response: providerResp,
         error_message: `provider_${providerStatus}`,
       }).eq('id', order.id);
+      // 409 = e-mail já tem conta no provedor. Nenhum débito foi feito
+      // (debit acontece só depois deste bloco), então basta retornar
+      // uma mensagem amigável e o revendedor tenta outro e-mail.
+      const providerMsg = String(providerResp?.error ?? providerResp?.message ?? '').toLowerCase();
+      if (providerStatus === 409 || providerMsg.includes('já cadastr') || providerMsg.includes('ja cadastr') || providerMsg.includes('already')) {
+        return jsonResponse({
+          error: 'email_already_registered',
+          status: 409,
+          message: 'Este e-mail já possui uma conta no provedor. Use outro e-mail (ex.: adicione +teste antes do @) ou deixe o campo vazio para gerar apenas o código de resgate.',
+          body: providerResp,
+        }, 409);
+      }
+      if (providerStatus === 402) {
+        return jsonResponse({
+          error: 'insufficient_provider_balance',
+          status: 402,
+          message: 'Saldo insuficiente no provedor. Aguarde alguns minutos e tente novamente ou fale com o gerente.',
+          body: providerResp,
+        }, 402);
+      }
+      if (providerStatus === 429) {
+        return jsonResponse({
+          error: 'provider_rate_limited',
+          status: 429,
+          message: 'Muitas emissões seguidas. Aguarde alguns segundos e tente novamente.',
+          body: providerResp,
+        }, 429);
+      }
       return jsonResponse({ error: 'provider_error', status: providerStatus, body: providerResp }, 502);
     }
 
