@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
         return json({
           error: 'email_already_registered',
           status: 409,
-          message: 'Este e-mail já está cadastrado no provedor. Use outro e-mail (ex.: adicione +teste antes do @) ou deixe o campo vazio.',
+          message: 'Este e-mail já está cadastrado no provedor. Use outro e-mail (ex.: adicione +teste antes do @).',
           body: parsed,
         }, 409);
       }

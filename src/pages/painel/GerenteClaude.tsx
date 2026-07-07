@@ -279,7 +279,7 @@ export default function GerenteClaude() {
       let friendly = "Erro ao emitir chave. Tente novamente em instantes.";
       const msg = (data as any)?.message;
       if (raw === "email_already_registered") {
-        friendly = msg ?? "Este e-mail já está cadastrado no provedor. Use outro e-mail ou deixe o campo vazio.";
+        friendly = msg ?? "Este e-mail já está cadastrado no provedor. Use outro e-mail para emitir.";
       } else if (raw === "insufficient_provider_balance") {
         friendly = msg ?? "Saldo insuficiente no provedor.";
       } else if (raw === "provider_rate_limited") {
@@ -287,7 +287,7 @@ export default function GerenteClaude() {
       } else if (raw === "provider_error" || String(raw).includes("provider_error")) {
         friendly =
           status && status >= 500
-            ? "O provedor está instável no momento (erro 502). Aguarde alguns segundos e tente novamente. Se persistir, tente sem preencher o e-mail — o e-mail pode já estar vinculado a outra chave ativa."
+            ? "O provedor está instável no momento (erro 502). Aguarde alguns segundos e tente novamente. Se persistir, confirme se o e-mail já está vinculado a outra chave ativa."
             : `O provedor recusou a solicitação${status ? ` (HTTP ${status})` : ""}. Verifique os dados e tente novamente.`;
       } else if (raw === "provider_not_configured") {
         friendly = "Integração com o provedor não configurada.";
@@ -606,7 +606,7 @@ Qualquer dúvida, é só chamar!`;
 
           <div className="mt-3">
             <Label className="text-xs">
-             E-mail do cliente <span className="text-primary">*</span>
+             E-mail do cliente <span className="text-primary">*</span> <span className="text-muted-foreground">(obrigatório para entrega direta)</span>
             </Label>
             <div className="relative mt-1.5">
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -620,6 +620,9 @@ Qualquer dúvida, é só chamar!`;
                 className="pl-9"
               />
             </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Com e-mail, o fornecedor retorna API Key/Base URL e permite telemetria; registros antigos só com código ficam sem vínculo completo de consumo.
+            </p>
           </div>
 
           <div className="mt-6 mb-3 flex items-center gap-2">

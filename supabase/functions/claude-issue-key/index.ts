@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
         return jsonResponse({
           error: 'email_already_registered',
           status: 409,
-          message: 'Este e-mail já possui uma conta no provedor. Use outro e-mail (ex.: adicione +teste antes do @) ou deixe o campo vazio para gerar apenas o código de resgate.',
+          message: 'Este e-mail já possui uma conta no provedor. Use outro e-mail (ex.: adicione +teste antes do @).',
           body: providerResp,
         }, 409);
       }

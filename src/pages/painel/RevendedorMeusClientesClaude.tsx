@@ -216,8 +216,6 @@ export default function RevendedorMeusClientesClaude() {
 
   useEffect(() => {
     load();
-    const i = setInterval(() => load(true), 60_000);
-    return () => clearInterval(i);
   }, []);
 
   const filtered = orders.filter((o) => {
@@ -240,7 +238,7 @@ export default function RevendedorMeusClientesClaude() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-black tracking-tight">Meus Clientes Claude</h1>
-          <p className="text-xs text-muted-foreground mt-1">Consumo de tokens em tempo real do fornecedor (atualiza a cada 60s).</p>
+          <p className="text-xs text-muted-foreground mt-1">Consumo de tokens do fornecedor — use Atualizar para consultar sem gerar polling excessivo.</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => load(true)} disabled={refreshing}>
           {refreshing ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1 h-3.5 w-3.5" />}
@@ -403,7 +401,7 @@ export default function RevendedorMeusClientesClaude() {
 
                 {noEmail ? (
                   <div className="mt-3 rounded-lg border border-dashed border-border bg-background/40 p-3 text-[11px] text-muted-foreground">
-                    Sem e-mail cadastrado — não é possível ligar ao consumo do fornecedor. Cadastre o e-mail nas próximas emissões.
+                    Venda antiga sem e-mail — fica como “só código” e não permite ligar portal/telemetria ao consumo do fornecedor. Nas próximas emissões, cadastre o e-mail do cliente.
                   </div>
                 ) : o.usage ? (
                   <div className="mt-3 space-y-2">
