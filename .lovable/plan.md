@@ -11,72 +11,28 @@ Plano completo de mudanças mapeadas a partir da doc oficial (`https://claude-ss
 
 ---
 
-## FASE 1 — Novos planos API-only (rápido, sem risco)
+## FASE 1 — Novos planos API-only ✅
 
 Cadastrar 3 novos planos `api_*` que não existiam antes.
 
-**1.1 Migration em `claude_plan_prices`**
-Inserir custo do fornecedor:
-- `api_500k_30d` → R$ 20,00
-- `api_25m_30d` → R$ 70,90
-- `api_10m_30d` → R$ 109,00
-
-**1.2 Migration em `tier_claude_prices`**
-Inserir 12 linhas (3 planos × 4 níveis) espelhando os valores dos planos equivalentes (pro/5x/20x). A promoção "Inauguração Claude" pega automaticamente.
-
-**1.3 Atualizar constantes nas edge functions**
-Adicionar os 3 novos códigos em `PLAN_CODES` e `PLAN_LABELS`:
-- `claude-issue-key/index.ts`
-- `manager-claude-issue-key/index.ts`
-- `claude-storefront-issue-trial/index.ts` (se aplicável)
-- `reseller-claude-api/index.ts`
-
-**1.4 Atualizar catálogos e UI**
-- `RevendedorClaude.tsx` (opções do select)
-- `ClaudePriceTable.tsx`
-- `useSalesCatalog.ts`
+- ✅ Migration em `claude_plan_prices` e `tier_claude_prices` (custos + 12 linhas por tier)
+- ✅ `PLAN_CODES` / `PLAN_LABELS` atualizados em 17 arquivos (edge functions + UI)
+- ✅ Type `PlanCode` estendido, `PLAN_ORDER` estendido, `API_KEY_MAP` completo
 
 ---
 
-## FASE 2 — Bugs críticos (dinheiro em risco) 🔴
+## FASE 2 — Bugs críticos ✅
 
-**2.1 Tratar 409 na emissão com email → estornar saldo local**
-Quando o cliente já tem conta, o provedor retorna 409 e **estorna no lado dele**, mas nosso código já debitou o saldo do revendedor. Corrigir em:
-- `claude-issue-key/index.ts`
-- `claude-issue-trial/index.ts`
-- `manager-claude-issue-key/index.ts`
-- `claude-storefront-issue-trial/index.ts`
-
-Detectar `providerStatus === 409` → chamar RPC `credit_reseller_balance` para reverter o débito → registrar `error_message: 'email_already_exists'`.
-
-**2.2 Cancelamento — bloqueio de conta + validação de 7 dias**
-- `CancelSaleDialog.tsx`: aviso vermelho — *"Atenção: se a chave já foi RESGATADA, a conta do cliente será BLOQUEADA permanentemente pelo provedor. Só cancele se tiver certeza."*
-- Desabilitar botão de cancelar quando `now() - created_at > 7 dias` (evita 403 na UI)
-- `manager-claude-cancel-key/index.ts`: persistir campo `accountBlocked` retornado no `claude_orders.provider_response` para auditoria
+- ✅ **2.1** Débito nas issue functions já acontece DEPOIS do provider call (verificado). Nenhum estorno necessário. Adicionadas mensagens 409 amigáveis em `claude-issue-key` (`email_already_registered`), 402 e 429. `claude-issue-trial`, `claude-storefront-issue-trial` e `manager-claude-issue-key` já tratavam.
+- ✅ **2.2** `claude-cancel-key` já validava 7 dias (`REFUND_WINDOW_DAYS`). Agora retorna `account_blocked` no response quando o provedor bloqueou a conta. Dialog de cancelamento em `RevendedorMeusClientesClaude` mostra aviso vermelho para chaves `redeemed` e toast atualizado.
 
 ---
 
-## FASE 3 — Webhooks (elimina polling) 🟡
+## FASE 3 — Webhooks ✅ (já estava implementado)
 
-Substituir sincronização manual por eventos push do provedor.
-
-**3.1 Nova edge function pública `claude-provider-webhook`**
-- `verify_jwt = false`
-- Valida HMAC-SHA256 do header `X-Signature` usando `CLAUDE_WEBHOOK_SECRET`
-- Roteia eventos:
-  - `key.created` → auditoria
-  - `key.redeemed` → marca `claude_orders.redeemed_at` + `status='redeemed'` + Telegram pro revendedor + Evolution WhatsApp
-  - `key.cancelled` → sync do status caso venha de fora
-  - `key.expired` → notificação pro revendedor (oportunidade de renovação)
-  - `tokens.limit_reached` → notificação pro cliente/revendedor
-
-**3.2 Nova tabela `claude_provider_webhook_events`**
-Já existe (vi na listagem). Verificar schema e reutilizar.
-
-**3.3 Registrar URL no provedor**
-- Nova edge function `claude-webhook-register` (gerente only) que chama `POST /api/rsl/webhooks` com a URL da nossa function pública
-- Guardar `webhookKey` retornado em secret via `set_secret`
-- UI de gerente pra registrar/atualizar/remover a URL
+- ✅ `claude-provider-webhook` já existe: HMAC-SHA256, dedupe atômico, todos os 5 eventos roteados, notificações Telegram/WhatsApp, encaminhamento para webhook do revendedor.
+- ✅ Tabela `claude_provider_webhook_events` já ativa.
+- ⏳ **Pendente:** função `claude-webhook-register` (gerente registra URL no provedor) + UI. Só falta esse passo administrativo para o provedor começar a enviar os eventos.
 
 ---
 
