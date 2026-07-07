@@ -9,7 +9,7 @@ import { Loader2, Copy, CheckCircle2, QrCode, KeyRound, Sparkles, ArrowLeft, Zap
 import { toast } from "sonner";
 import { alphaHex, normalizeHexColor, readableTextOnHex, storefrontThemeVars } from "@/lib/storefrontTheme";
 
-type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d";
+type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d" | "api_500k_30d" | "api_25m_30d" | "api_10m_30d";
 
 // ID da conta de testes (revendedor Jean Gomes / jeanpg.93).
 // Só nesse revendedor o botão "Liberar PIX (teste)" aparece.

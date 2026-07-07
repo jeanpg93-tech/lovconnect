@@ -411,6 +411,9 @@ export default function PublicStorefront() {
               pro_30d: "Pro 30 dias — 500K tokens",
               "5x_30d": "5x 30 dias — 2,5M tokens",
               "20x_30d": "20x 30 dias — 10M tokens",
+              "api_500k_30d": "API 500K · 30 dias",
+              "api_25m_30d": "API 2,5M · 30 dias",
+              "api_10m_30d": "API 10M · 30 dias",
             };
             const list = ordered
               .filter((o) => Number(o.price_cents) > 0)
@@ -427,6 +430,9 @@ export default function PublicStorefront() {
               pro_30d: "Pro 30 dias — 500K tokens",
               "5x_30d": "5x 30 dias — 2,5M tokens",
               "20x_30d": "20x 30 dias — 10M tokens",
+              "api_500k_30d": "API 500K · 30 dias",
+              "api_25m_30d": "API 2,5M · 30 dias",
+              "api_10m_30d": "API 10M · 30 dias",
             };
             const list = Object.entries(priceMap)
               .filter(([, v]) => Number(v) > 0)
