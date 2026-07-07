@@ -541,8 +541,7 @@ export default function PublicStorefront() {
     if (buyerName.trim().length < 2) return toast.error("Informe seu nome");
     const wa = buyerWa.replace(/\D+/g, "");
     const isTrial = selLic === "trial";
-    if (!isTrial && wa.length < 10) return toast.error("Informe um WhatsApp válido");
-    if (isTrial && wa && wa.length < 10) return toast.error("WhatsApp inválido (deixe em branco ou informe DDD + número)");
+    if (wa.length < 10) return toast.error("Informe um WhatsApp válido");
 
     setSubmitting(true);
     try {

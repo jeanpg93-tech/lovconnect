@@ -28,8 +28,11 @@ Deno.serve(async (req) => {
 
     if (!reseller_slug) return json({ error: "Loja inválida" }, 400);
     if (buyer_name.length < 2) return json({ error: "Informe seu nome" }, 400);
-    if (buyer_whatsapp && (buyer_whatsapp.length < 10 || buyer_whatsapp.length > 13)) {
-      return json({ error: "WhatsApp inválido (deixe em branco ou informe DDD + número)" }, 400);
+    if (!buyer_whatsapp) {
+      return json({ error: "Informe seu WhatsApp (DDD + número)" }, 400);
+    }
+    if (buyer_whatsapp.length < 10 || buyer_whatsapp.length > 13) {
+      return json({ error: "WhatsApp inválido (informe DDD + número)" }, 400);
     }
 
     const svc = createClient(
