@@ -312,6 +312,9 @@ function PricesTab() {
         "5x_7d":   ["api_1_25m_7d", "api_1.25m_7d", "api_1_25m", "api_1.25m", "5x_7d"],
         "5x_30d":  ["api_1_25m_30d", "api_1.25m_30d", "5x_30d"],
         "20x_30d": ["api_5m_30d", "api_5m", "20x_30d"],
+        "api_500k_30d": ["api_500k_30d"],
+        "api_25m_30d":  ["api_25m_30d", "api_2_5m_30d", "api_2.5m_30d"],
+        "api_10m_30d":  ["api_10m_30d"],
       };
       const pickApi = (pc: PlanCode): number | null => {
         for (const k of API_KEY_MAP[pc]) {
