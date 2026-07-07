@@ -181,7 +181,7 @@ POST para a URL configurada na chave:
   "preco_centavos": 5200,
   "codigo": "QL-CLAUDE-...",
   "api_key": "sk-ant-...",
-  "base_url": "https://claude-ss.ia.br/",
+  "base_url": "https://claude-ss.shardweb.app/",
   "provider_key_id": "abc123",
   "id_cliente": "uuid"
 }

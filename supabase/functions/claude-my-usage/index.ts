@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
         provider_key_id: o.provider_key_id,
         code,
         api_key: apiKey,
-        provider_base_url: "https://claude-ss.ia.br/",
+        provider_base_url: "https://claude-ss.shardweb.app/",
         created_at: o.created_at,
         sale_price_cents: o.sale_price_cents,
         customer_email: o.customer_email,

@@ -241,7 +241,7 @@ export default function RevendedorClaude() {
   const copy = async () => {
     if (!revealed) return;
     const text = revealed.apiKey
-      ? `ANTHROPIC_AUTH_TOKEN=${revealed.apiKey}\nANTHROPIC_BASE_URL=${revealed.providerBaseUrl ?? "https://claude-ss.ia.br/"}`
+      ? `ANTHROPIC_AUTH_TOKEN=${revealed.apiKey}\nANTHROPIC_BASE_URL=${revealed.providerBaseUrl ?? "https://claude-ss.shardweb.app/"}`
       : revealed.code;
     await navigator.clipboard.writeText(text);
     setCopied(true);
@@ -260,7 +260,7 @@ export default function RevendedorClaude() {
     if (!revealed) return "";
     const nome = revealed.customerName ? `Olá, ${revealed.customerName}!` : "Olá!";
     const plano = PLAN_LABELS[revealed.plan];
-    const baseUrl = revealed.providerBaseUrl ?? "https://claude-ss.ia.br/";
+    const baseUrl = revealed.providerBaseUrl ?? "https://claude-ss.shardweb.app/";
     if (revealed.apiKey) {
       return (
 `${nome} Aqui estão suas credenciais do plano *${plano}*:
@@ -723,8 +723,8 @@ Qualquer dúvida, é só chamar!`
               <div className="space-y-1">
                 <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Base URL (ANTHROPIC_BASE_URL)</div>
                 <div className="flex items-center gap-2 rounded-lg border border-border bg-background/60 p-2">
-                  <div className="flex-1 font-mono text-xs break-all select-all px-1">{revealed.providerBaseUrl ?? "https://claude-ss.ia.br/"}</div>
-                  <Button size="sm" variant="outline" onClick={() => copyField("baseUrl", revealed.providerBaseUrl ?? "https://claude-ss.ia.br/")}>
+                  <div className="flex-1 font-mono text-xs break-all select-all px-1">{revealed.providerBaseUrl ?? "https://claude-ss.shardweb.app/"}</div>
+                  <Button size="sm" variant="outline" onClick={() => copyField("baseUrl", revealed.providerBaseUrl ?? "https://claude-ss.shardweb.app/")}>
                     {copiedField === "baseUrl" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>

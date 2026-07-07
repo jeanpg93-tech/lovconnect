@@ -344,7 +344,7 @@ export default function GerenteClaude() {
     if (!revealed) return "";
     const nome = revealed.customerName ? `Olá, ${revealed.customerName}!` : "Olá!";
     const plano = PLAN_LABELS[revealed.plan];
-    const baseUrl = revealed.providerBaseUrl ?? "https://claude-ss.ia.br/";
+    const baseUrl = revealed.providerBaseUrl ?? "https://claude-ss.shardweb.app/";
     if (revealed.apiKey) {
       return `${nome} Aqui estão suas credenciais do plano *${plano}*:
 
@@ -934,7 +934,7 @@ Qualquer dúvida, é só chamar!`;
               <div className="space-y-1">
                 <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Base URL (ANTHROPIC_BASE_URL)</div>
                 <div className="rounded-lg border border-border bg-background/60 p-3 font-mono text-xs break-all select-all">
-                  {revealed.providerBaseUrl ?? "https://claude-ss.ia.br/"}
+                  {revealed.providerBaseUrl ?? "https://claude-ss.shardweb.app/"}
                 </div>
               </div>
             </div>

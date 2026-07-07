@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
       provider_key_id: providerKeyId,
       api_key: providerApiKey ?? null,
       user_id: providerUserId ?? null,
-      provider_base_url: providerApiKey ? 'https://claude-ss.ia.br/' : null,
+      provider_base_url: providerApiKey ? 'https://claude-ss.shardweb.app/' : null,
       plan_code: planCode,
       customer: { name: customerName, whatsapp: customerWhatsapp, email: customerEmail || null },
     });
