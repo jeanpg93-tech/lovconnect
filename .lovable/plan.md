@@ -59,7 +59,7 @@ Cadastrar 3 novos planos `api_*` que não existiam antes.
 
 ## FASE 7 — Robustez e observabilidade 🟡 (opcional)
 
-**7.1 Sync automático de preços via `/api/rsl/me`** — ainda não implementado. Cron diário que compara `prices[kind]` do provedor com `claude_plan_prices.cost_cents` e alerta o gerente no Telegram se divergir.
+**7.1 Sync automático de preços via `/api/rsl/me`** ✅ — edge function `claude-price-sync` compara `prices[kind]` do provedor com `claude_plan_prices.cost_cents`, envia alerta no Telegram (`telegram_outbox`) com cooldown de 12h e hash de divergência (evita spam). Falta agendar cron (diário) apontando para `claude-price-sync`.
 
 **7.2 Auditoria de UI** — reforço textual "com email (recomendado)" vs "só código" na emissão manual.
 
