@@ -168,8 +168,12 @@ export default function RevendedorClaude() {
       if (raw === "provider_error" || String(raw).includes("provider_error")) {
         friendly =
           status && status >= 500
-            ? "O provedor está instável no momento. Aguarde alguns segundos e tente novamente. Se persistir, tente sem preencher o e-mail — ele pode já estar vinculado a outra chave ativa."
+            ? "O provedor está instável no momento. Aguarde alguns segundos e tente novamente. Se persistir, confirme se o e-mail já está vinculado a outra chave ativa."
             : `O provedor recusou a solicitação${status ? ` (HTTP ${status})` : ""}. Verifique os dados e tente novamente.`;
+      } else if (raw === "email_already_registered") {
+        friendly = (data as any)?.message ?? "Este e-mail já possui uma conta Claude ativa no provedor. Use outro e-mail para emitir.";
+      } else if (raw === "provider_rate_limited") {
+        friendly = (data as any)?.message ?? "Limite do provedor atingido. Aguarde alguns segundos e tente novamente.";
       } else if (raw === "insufficient_balance") {
         friendly = "Saldo insuficiente para emitir esta chave.";
       } else if (raw === "customer_name_required") {
@@ -459,7 +463,7 @@ Qualquer dúvida, é só chamar!`
 
           <div className="mt-3">
             <Label className="text-xs">
-              E-mail do cliente <span className="text-primary">*</span> <span className="text-muted-foreground">(permite acompanhar o consumo de tokens)</span>
+              E-mail do cliente <span className="text-primary">*</span> <span className="text-muted-foreground">(obrigatório para entrega direta)</span>
             </Label>
             <div className="relative mt-1.5">
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -472,6 +476,9 @@ Qualquer dúvida, é só chamar!`
                 className="pl-9"
               />
             </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Com e-mail, o fornecedor entrega API Key/Base URL e vincula consumo; vendas antigas só com código não exibem telemetria completa.
+            </p>
           </div>
 
           <div className="mt-6 mb-3 flex items-center gap-2">
@@ -658,13 +665,14 @@ Qualquer dúvida, é só chamar!`
             {customerWhatsapp && (
               <div className="flex justify-between gap-2"><span className="text-muted-foreground">WhatsApp</span><span className="font-semibold">{customerWhatsapp}</span></div>
             )}
+            <div className="flex justify-between gap-2"><span className="text-muted-foreground">E-mail</span><span className="font-semibold truncate">{customerEmail || "—"}</span></div>
             <div className="flex justify-between gap-2 border-t border-border pt-2"><span className="text-muted-foreground">Valor a debitar</span><span className="font-bold text-primary">{selected && fmtBRL(selected.sale_price_cents)}</span></div>
           </div>
 
           <div className="space-y-2.5">
             <label className="flex items-start gap-2 cursor-pointer">
               <Checkbox checked={confirmChecks.data} onCheckedChange={(v) => setConfirmChecks((c) => ({ ...c, data: !!v }))} className="mt-0.5" />
-              <span className="text-xs leading-relaxed">Confirmo que os dados do cliente estão corretos.</span>
+              <span className="text-xs leading-relaxed">Confirmo que nome e e-mail do cliente estão corretos para a entrega no fornecedor.</span>
             </label>
             <label className="flex items-start gap-2 cursor-pointer">
               <Checkbox checked={confirmChecks.debit} onCheckedChange={(v) => setConfirmChecks((c) => ({ ...c, debit: !!v }))} className="mt-0.5" />

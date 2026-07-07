@@ -599,7 +599,7 @@ function TabExemplos() {
       <section className="space-y-3">
         <h3 className="font-display text-lg font-bold">Fluxo completo: emitir e entregar chave Claude</h3>
         <p className="text-xs text-muted-foreground">
-          Verifique saldo, emita uma chave e entregue o <code>codigo</code> ao cliente.
+          Verifique saldo, emita uma chave com e-mail e entregue somente <code>api_key</code> + <code>provider_base_url</code> ao cliente.
         </p>
 
         <CodeBlock
@@ -622,7 +622,7 @@ curl -X POST "${BASE_URL}/chaves" \\
           body={`const BASE = "${BASE_URL}";
 const API_KEY = process.env.CLAUDE_RESELLER_KEY;
 
-async function emitirChave(plano, idCliente, pedidoId) {
+async function emitirChave(plano, cliente, pedidoId) {
   const r = await fetch(\`\${BASE}/chaves\`, {
     method: "POST",
     headers: {
@@ -630,15 +630,15 @@ async function emitirChave(plano, idCliente, pedidoId) {
       "Content-Type": "application/json",
       "Idempotency-Key": "pedido-" + pedidoId,
     },
-    body: JSON.stringify({ plano, id_cliente: idCliente }),
+    body: JSON.stringify({ plano, id_cliente: cliente.email, email: cliente.email, nome: cliente.nome }),
   });
   const data = await r.json();
   if (!data.success) throw new Error(data.error);
   return data;
 }
 
-const res = await emitirChave("5x_30d", "cliente@email.com", "42");
-console.log("Chave:", res.codigo);`}
+const res = await emitirChave("5x_30d", { email: "cliente@email.com", nome: "João" }, "42");
+console.log("Entregar ao cliente:", res.api_key, res.provider_base_url);`}
         />
       </section>
 
@@ -650,7 +650,7 @@ console.log("Chave:", res.codigo);`}
 BASE = "${BASE_URL}"
 API_KEY = os.environ["CLAUDE_RESELLER_KEY"]
 
-def emitir_chave(plano, id_cliente, pedido_id):
+def emitir_chave(plano, cliente, pedido_id):
     r = requests.post(
         f"{BASE}/chaves",
         headers={
@@ -658,15 +658,15 @@ def emitir_chave(plano, id_cliente, pedido_id):
             "Content-Type": "application/json",
             "Idempotency-Key": f"pedido-{pedido_id}",
         },
-        json={"plano": plano, "id_cliente": id_cliente},
+        json={"plano": plano, "id_cliente": cliente["email"], "email": cliente["email"], "nome": cliente["nome"]},
         timeout=30,
     )
     data = r.json()
     assert data["success"], data
     return data
 
-res = emitir_chave("5x_30d", "cliente@email.com", "42")
-print("Chave:", res["codigo"])`}
+res = emitir_chave("5x_30d", {"email": "cliente@email.com", "nome": "João"}, "42")
+print("Entregar ao cliente:", res["api_key"], res["provider_base_url"])`}
         />
       </section>
 
@@ -690,10 +690,12 @@ curl_setopt_array($ch, [
   CURLOPT_POSTFIELDS => json_encode([
     "plano" => "5x_30d",
     "id_cliente" => "cliente@email.com",
+    "email" => "cliente@email.com",
+    "nome" => "João",
   ]),
 ]);
 $res = json_decode(curl_exec($ch), true);
-echo $res["codigo"];`}
+echo $res["api_key"] . "\n" . $res["provider_base_url"];`}
         />
       </section>
     </div>

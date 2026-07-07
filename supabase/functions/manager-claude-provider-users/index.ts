@@ -13,6 +13,29 @@ const json = (data: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchWithBackoff(url: string, init: RequestInit, tries = 3): Promise<Response> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < tries; attempt++) {
+    try {
+      const response = await fetch(url, init);
+      if (response.status !== 429 && response.status < 500) return response;
+      if (attempt === tries - 1) return response;
+      const retryAfter = Number(response.headers.get('retry-after') ?? '');
+      const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+        ? Math.min(retryAfter * 1000, 5000)
+        : 500 * Math.pow(2, attempt);
+      await wait(waitMs);
+    } catch (error) {
+      lastError = error;
+      if (attempt === tries - 1) throw error;
+      await wait(500 * Math.pow(2, attempt));
+    }
+  }
+  throw lastError;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
@@ -43,8 +66,9 @@ Deno.serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(300);
 
-    const r = await fetch(`${CLAUDE_BASE_URL}/api/rsl/users`, {
+    const r = await fetchWithBackoff(`${CLAUDE_BASE_URL}/api/rsl/users`, {
       headers: { Authorization: `Bearer ${CLAUDE_API_KEY}`, Accept: 'application/json' },
+      signal: AbortSignal.timeout(10000),
     });
     const txt = await r.text();
     let parsed: any;

@@ -36,7 +36,14 @@ async function fetchWithRetry(url: string, init: RequestInit, tries = 3): Promis
     try {
       const r = await fetch(url, init);
       if (r.status !== 429 && r.status < 500) return r;
+      if (i === tries - 1) return r;
+      const retryAfter = Number(r.headers.get("retry-after") ?? "");
+      const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+        ? Math.min(retryAfter * 1000, 5000)
+        : 500 * Math.pow(2, i);
       last = r;
+      await new Promise((res) => setTimeout(res, waitMs));
+      continue;
     } catch (e) {
       last = e;
     }

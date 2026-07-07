@@ -1,8 +1,5 @@
 project_id = "qoemkofkeleuhjifvauh"
 
-[functions.claude-price-sync]
-verify_jwt = false
-
 [functions.generate-testimonials-ai]
 verify_jwt = false
 

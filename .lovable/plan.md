@@ -57,13 +57,13 @@ Cadastrar 3 novos planos `api_*` que não existiam antes.
 
 ---
 
-## FASE 7 — Robustez e observabilidade 🟡 (opcional)
+## FASE 7 — Robustez e observabilidade ✅
 
 **7.1 Sync automático de preços via `/api/rsl/me`** ✅ — edge function `claude-price-sync` compara `prices[kind]` do provedor com `claude_plan_prices.cost_cents`, envia alerta no Telegram (`telegram_outbox`) com cooldown de 12h e hash de divergência (evita spam). Falta agendar cron (diário) apontando para `claude-price-sync`.
 
-**7.2 Auditoria de UI** — reforço textual "com email (recomendado)" vs "só código" na emissão manual.
+**7.2 Auditoria de UI** ✅ — emissão manual reforça e-mail obrigatório/entrega direta e identifica vendas antigas “só código” como sem telemetria completa.
 
-**7.3 Rate limit awareness** — retry com backoff em chamadas ao `/me` e evitar polling.
+**7.3 Rate limit awareness** ✅ — retry com backoff em `/me` e `/users`, respeito a `retry-after` e remoção do polling automático de 60s na tela de clientes Claude.
 
 ---
 
