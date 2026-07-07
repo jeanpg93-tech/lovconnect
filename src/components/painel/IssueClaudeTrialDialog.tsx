@@ -82,7 +82,7 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
         email: data.email ?? email.trim(),
         api_key: data.api_key,
         user_id: data.user_id ?? null,
-        provider_base_url: data.provider_base_url ?? "https://claude-ss.ia.br/",
+        provider_base_url: data.provider_base_url ?? "https://claude-ss.shardweb.app/",
       });
       onIssued?.(data);
       toast.success("Conta de teste criada!");

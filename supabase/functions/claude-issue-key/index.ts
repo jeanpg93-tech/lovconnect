@@ -300,7 +300,7 @@ Deno.serve(async (req) => {
                 codigo: code ?? '',
                 chave: code ?? '',
                 api_key: providerApiKey ?? '',
-                base_url: providerApiKey ? 'https://claude-ss.ia.br/' : '',
+                base_url: providerApiKey ? 'https://claude-ss.shardweb.app/' : '',
                 valor_cents: String(saleCents ?? 0),
               },
             }),
@@ -319,7 +319,7 @@ Deno.serve(async (req) => {
       provider_key_id: providerKeyId,
       api_key: providerApiKey ?? null,
       user_id: providerUserId ?? null,
-      provider_base_url: providerApiKey ? 'https://claude-ss.ia.br/' : null,
+      provider_base_url: providerApiKey ? 'https://claude-ss.shardweb.app/' : null,
       order: updated,
     });
   } catch (e) {

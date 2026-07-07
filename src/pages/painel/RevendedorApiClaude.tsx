@@ -235,7 +235,7 @@ function TabInicio() {
             Use somente no seu <strong>backend</strong> com o header <code className="font-mono">X-API-Key</code>. <strong>Nunca</strong> exiba para o cliente final.
           </li>
           <li>
-            <code className="font-mono bg-black/30 px-1 rounded">https://claude-ss.ia.br/</code> — é a <strong>URL do fornecedor Claude</strong>.
+            <code className="font-mono bg-black/30 px-1 rounded">https://claude-ss.shardweb.app/</code> — é a <strong>URL do fornecedor Claude</strong>.
             Essa sim é a URL que o <strong>cliente final</strong> coloca no Cursor / Cline / Claude Code, junto com a <code className="font-mono">api_key</code> que o <code className="font-mono">POST /chaves</code> devolveu. O <code className="font-mono">codigo</code> (ACT-...) é <strong>interno</strong> — nunca exiba para o cliente.
           </li>
         </ul>
@@ -348,7 +348,7 @@ function TabEndpoints() {
   "provider_key_id": "prov_abc123",    // INTERNO
   "api_key": "kp_user_...",            // ✅ EXIBIR AO CLIENTE (X-API-Key / token no Cursor/Cline)
   "user_id": "u_...",                  // informativo
-  "provider_base_url": "https://claude-ss.ia.br/"  // ✅ EXIBIR AO CLIENTE (URL base)
+  "provider_base_url": "https://claude-ss.shardweb.app/"  // ✅ EXIBIR AO CLIENTE (URL base)
 }
 
 # Resposta 202 (saldo insuficiente — pedido fica em espera)
@@ -367,7 +367,7 @@ function TabEndpoints() {
         <strong className="text-red-200 text-sm">🚨 REGRA CRÍTICA — o que exibir (e o que NÃO exibir) ao cliente final:</strong>
         <ul className="mt-2 list-disc space-y-1.5 pl-4">
           <li>
-            <strong className="text-red-100">✅ EXIBA</strong> ao cliente somente: <code className="font-mono bg-black/40 px-1 rounded">api_key</code> + <code className="font-mono bg-black/40 px-1 rounded">provider_base_url</code> (<code className="font-mono bg-black/40 px-1 rounded">https://claude-ss.ia.br/</code>).
+            <strong className="text-red-100">✅ EXIBA</strong> ao cliente somente: <code className="font-mono bg-black/40 px-1 rounded">api_key</code> + <code className="font-mono bg-black/40 px-1 rounded">provider_base_url</code> (<code className="font-mono bg-black/40 px-1 rounded">https://claude-ss.shardweb.app/</code>).
             É isso — e SÓ isso — que ele configura no Cursor / Cline / Claude Code (header <code className="font-mono bg-black/40 px-1 rounded">x-api-key</code>).
           </li>
           <li>
@@ -513,7 +513,7 @@ function TabEndpoints() {
   "codigo": "sk-ant-...",
   "api_key": "kp_user_...",
   "user_id": "u_...",
-  "provider_base_url": "https://claude-ss.ia.br/",
+  "provider_base_url": "https://claude-ss.shardweb.app/",
   "email": "lead@email.com",
   "trial": { "duracao_minutos": 15, "mensagens_limite": 50 },
   "duracao_minutos": 15,

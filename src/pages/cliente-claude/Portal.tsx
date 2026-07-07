@@ -207,7 +207,7 @@ export default function ClienteClaudePortal() {
   const [cancelPixKey, setCancelPixKey] = useState("");
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
   const [baseUrlCopied, setBaseUrlCopied] = useState(false);
-  const CLAUDE_BASE_URL = "https://claude-ss.ia.br/";
+  const CLAUDE_BASE_URL = "https://claude-ss.shardweb.app/";
   const copyBaseUrl = async () => {
     try {
       await navigator.clipboard.writeText(CLAUDE_BASE_URL);
@@ -644,14 +644,14 @@ export default function ClienteClaudePortal() {
                                 className="flex-1 break-all font-mono text-sm sm:text-base font-semibold"
                                 style={{ color: `hsl(var(--brand))` }}
                               >
-                                {o.provider_base_url ?? "https://claude-ss.ia.br/"}
+                                {o.provider_base_url ?? "https://claude-ss.shardweb.app/"}
                               </code>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="border-white/15 bg-white/5 hover:bg-white/10 hover-scale"
                                 onClick={() => {
-                                  navigator.clipboard.writeText(o.provider_base_url ?? "https://claude-ss.ia.br/");
+                                  navigator.clipboard.writeText(o.provider_base_url ?? "https://claude-ss.shardweb.app/");
                                   toast.success("URL copiada!");
                                 }}
                               >

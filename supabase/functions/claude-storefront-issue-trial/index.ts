@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
       email,
       api_key: providerApiKey,
       user_id: providerUserId,
-      provider_base_url: providerApiKey ? 'https://claude-ss.ia.br/' : null,
+      provider_base_url: providerApiKey ? 'https://claude-ss.shardweb.app/' : null,
       trial: { duration_minutes: 15, messages_limit: 50 },
       note: 'Teste grátis — expira em 15 minutos OU 50 mensagens (o que vier primeiro).',
     });

@@ -59,7 +59,7 @@ Integrar a API Claude do meu provedor para que meu painel possa:
 ## 🔑 Credenciais
 - **Base URL (backend do revendedor → nossa API de revenda):** \`${baseUrl}\`
   Use **somente no seu backend** (edge function \`claude-proxy\`) para consultar saldo, planos, emitir e listar chaves. **NÃO** exiba esta URL para o cliente final.
-- **Base URL do FORNECEDOR (para o cliente final plugar no Cursor / Claude Code / Cline):** \`https://claude-ss.ia.br/\`
+- **Base URL do FORNECEDOR (para o cliente final plugar no Cursor / Claude Code / Cline):** \`https://claude-ss.shardweb.app/\`
   Essa é a URL que aparece no painel do cliente ao lado da chave \`ACT-...\`. O cliente configura o cliente Anthropic com essa base URL + a chave recebida. **Nunca** mostre a URL do \`reseller-claude-api\` para o cliente — ele não deve chamá-la diretamente.
 - **Autenticação (backend → API de revenda):** header \`x-api-key: <MINHA_CHAVE>\` em **todas** as requisições ao \`${baseUrl}\`.
 - A chave deve ser armazenada como **segredo do backend** (nunca exposta no frontend). Crie **dois** secrets e peça ao usuário para preenchê-los:
@@ -118,7 +118,7 @@ Emite uma chave Claude e debita do saldo.
   "provider_key_id": "prov_abc123",
   "api_key": "kp_user_...",
   "user_id": "u_...",
-  "provider_base_url": "https://claude-ss.ia.br/" }
+  "provider_base_url": "https://claude-ss.shardweb.app/" }
 \`\`\`
 > ⚠️ O \`codigo\` (e o \`api_key\` de entrega direta) só voltam nesta resposta e no webhook \`claude.key.issued\` — armazene com segurança e exiba **uma única vez** para o cliente.
 > Quando \`api_key\` vier preenchido, o cliente já pode plugar direto no Cursor/Cline/Claude Code com \`provider_base_url\`. Senão, ele resgata o \`codigo\` no portal.
@@ -234,7 +234,7 @@ Emite uma **conta de teste GRATUITA** que expira em **15 MINUTOS** *ou* após **
 \`\`\`json
 { "success": true, "codigo": "CLAUDE-XXXXX-XXXXX", "api_key": "kp_user_...",
   "user_id": "u_...", "email": "lead@dominio.com",
-  "provider_base_url": "https://claude-ss.ia.br/",
+  "provider_base_url": "https://claude-ss.shardweb.app/",
   "trial": { "duracao_minutos": 15, "mensagens_limite": 50 },
   "duracao_minutos": 15, "mensagens_limite": 50,
   "aviso": "Teste grátis — expira em 15 minutos OU 50 mensagens (o que vier primeiro). Não debita saldo." }
@@ -284,7 +284,7 @@ Crie \`src/integrations/claude/client.ts\` com funções tipadas: \`getStatus()\
 
 > **No painel/portal do cliente final**, sempre exiba **dois blocos** na seção da chave:
 > 1. **CHAVE (X-API-KEY)** — o valor \`ACT-...\` retornado no \`POST /chaves\`.
-> 2. **URL BASE DO FORNECEDOR** — o valor fixo \`https://claude-ss.ia.br/\` (nunca a URL do \`reseller-claude-api\`). Esta é a URL que ele configura no Cursor/Cline/Claude Code.
+> 2. **URL BASE DO FORNECEDOR** — o valor fixo \`https://claude-ss.shardweb.app/\` (nunca a URL do \`reseller-claude-api\`). Esta é a URL que ele configura no Cursor/Cline/Claude Code.
 >
 > Também exiba o card **"Consumo de tokens"** usando \`GET /chaves/{id}/consumo\`.
 
