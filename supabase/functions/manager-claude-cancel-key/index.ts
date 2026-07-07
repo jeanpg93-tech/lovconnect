@@ -105,6 +105,25 @@ Deno.serve(async (req) => {
     };
 
     if (providerStatus < 200 || providerStatus >= 300) {
+      // 404 = provedor não reconhece esta chave (ex.: chave manual/teste que
+      // nunca entrou nas "compras" do provedor). Marcamos como cancelada
+      // localmente para o gerente conseguir limpar o registro.
+      if (providerStatus === 404) {
+        if (order) {
+          await admin.from('claude_orders').update({
+            status: 'cancelled',
+            cancelled_at: now,
+            cancel_attempts: [...prevAttempts, attempt],
+          }).eq('id', order.id);
+        }
+        return json({
+          ok: true,
+          order_id: order?.id ?? null,
+          refund_cents: 0,
+          not_in_provider: true,
+          message: 'Chave não encontrada no provedor — marcada como cancelada apenas no sistema.',
+        });
+      }
       if (order) {
         await admin.from('claude_orders').update({
           status: providerStatus === 409 ? 'cancel_rejected' : 'cancel_failed',
