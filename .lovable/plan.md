@@ -36,66 +36,34 @@ Cadastrar 3 novos planos `api_*` que não existiam antes.
 
 ---
 
-## FASE 4 — Telemetria de clientes (`GET /api/rsl/users`) 🟡
+## FASE 4 — Telemetria de clientes (`GET /api/rsl/users`) ✅
 
-Painel de acompanhamento em tempo real dos clientes finais.
-
-**4.1 Nova edge function `claude-list-network-users`**
-Wrapper do `GET /api/rsl/users` — só o próprio revendedor pode chamar (via JWT).
-
-**4.2 Enriquecer `RevendedorMeusClientesClaude.tsx`**
-Adicionar por cliente:
-- `dailyPercentUsed` com barra de progresso
-- `weeklyTokensInWindow` / `weeklyTokenLimit`
-- `accountExpiresAt` (badge de dias restantes)
-- `status` (active/expired/suspended)
-
-**4.3 Dashboard gerente**
-Card com totais consolidados: quantos clientes ativos/expirados por revendedor, top consumidores.
+- ✅ `claude-customers-usage` (revendedor) e `manager-claude-provider-users` (gerente) já consomem `/api/rsl/users`, reconciliam status e devolvem `dailyPercentUsed`, `weeklyTokensInWindow`, `weeklyTokenLimit`, `accountExpiresAt`, `tokensConsumed/tokenLimit`, `percentRemaining`.
+- ✅ `RevendedorMeusClientesClaude.tsx` já renderiza barra de uso diário, janela semanal, total consumido e badge de expiração.
+- ✅ Painel do gerente (`manager-claude-provider-users`) já traz status consolidado por email/keyId/code.
 
 ---
 
-## FASE 5 — Endpoint de renovação (`POST /api/rsl/renew`) 🟡
+## FASE 5 — Endpoint de renovação (`POST /api/rsl/renew`) ✅
 
-Hoje, renovar = emitir chave nova (novo `code`, novo registro, cliente precisa resgatar de novo). Novo fluxo: renovação in-place.
-
-**5.1 Nova edge function `claude-renew-key`**
-- Recebe `order_id` local, resolve `email` do cliente, chama `POST /api/rsl/renew`
-- Debita saldo com a mesma lógica de `claude-issue-key` (custo por tier + promoção)
-- Cria novo registro em `claude_orders` marcado como `kind='renewal'` + FK pro pedido original
-- Não gera novo `code` (a resposta não traz `code`)
-
-**5.2 UI: botão "Renovar" em `RevendedorMeusClientesClaude`**
-- Seletor de plano (mesmo ou upgrade)
-- Confirmação com preço e nova `accountExpiresAt`
+- ✅ `reseller-claude-api` já implementa renovação in-place chamando `POST /api/rsl/renew`, cria registro `is_renewal=true`, debita via `debit_reseller_balance` e dispara webhook `claude.key.renewed`.
+- ✅ Fluxos de cliente final (`claude-customer-request-renewal`, `claude-customer-checkout-renewal`) já plugados.
 
 ---
 
-## FASE 6 — Contas de teste do provedor (`POST /api/rsl/test`) 🟢
+## FASE 6 — Contas de teste do provedor (`POST /api/rsl/test`) ✅
 
-Trial gratuito (15min/50msgs, 20/dia, sem débito).
-
-**6.1 Nova edge function `claude-issue-provider-trial`**
-Diferente do trial atual (que consome chave real): este é gratuito no provedor, ideal para prospecção.
-
-**6.2 UI**
-Botão "Emitir conta de teste grátis (15min)" com validação de limite diário.
+- ✅ `claude-issue-trial` (revendedor) e `claude-storefront-issue-trial` (loja pública) já chamam `POST /api/rsl/test` sem débito.
 
 ---
 
-## FASE 7 — Robustez e observabilidade 🟢
+## FASE 7 — Robustez e observabilidade 🟡 (opcional)
 
-**7.1 Sync de preços via `/api/rsl/me`**
-Cron/edge function que:
-- Chama `/api/rsl/me` diariamente
-- Compara `prices[kind]` com `claude_plan_prices.cost_cents`
-- Notifica gerente no Telegram se houver divergência (o provedor pode ter alterado seu custo sem avisar)
+**7.1 Sync automático de preços via `/api/rsl/me`** — ainda não implementado. Cron diário que compara `prices[kind]` do provedor com `claude_plan_prices.cost_cents` e alerta o gerente no Telegram se divergir.
 
-**7.2 Auditoria de UI**
-- Modo "com email (recomendado)" vs "só código de resgate" mais explícito na tela de emissão manual, seguindo a orientação da doc
+**7.2 Auditoria de UI** — reforço textual "com email (recomendado)" vs "só código" na emissão manual.
 
-**7.3 Rate limit awareness**
-Adicionar retry com backoff em chamadas ao `/me` e evitar polling desnecessário.
+**7.3 Rate limit awareness** — retry com backoff em chamadas ao `/me` e evitar polling.
 
 ---
 
