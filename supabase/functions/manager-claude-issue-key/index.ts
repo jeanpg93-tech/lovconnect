@@ -74,6 +74,31 @@ Deno.serve(async (req) => {
 
     if (r.status < 200 || r.status >= 300) {
       console.error('[manager-claude-issue-key] provider_error', { status: r.status, body: parsed, planCode });
+      const providerMsg = String(parsed?.error ?? parsed?.message ?? '').toLowerCase();
+      if (r.status === 409 || providerMsg.includes('já cadastr') || providerMsg.includes('ja cadastr') || providerMsg.includes('already')) {
+        return json({
+          error: 'email_already_registered',
+          status: 409,
+          message: 'Este e-mail já está cadastrado no provedor. Use outro e-mail (ex.: adicione +teste antes do @) ou deixe o campo vazio.',
+          body: parsed,
+        }, 409);
+      }
+      if (r.status === 402 || providerMsg.includes('saldo') || providerMsg.includes('insufficient')) {
+        return json({
+          error: 'insufficient_provider_balance',
+          status: r.status,
+          message: 'Saldo insuficiente no provedor para emitir esta chave.',
+          body: parsed,
+        }, 402);
+      }
+      if (r.status === 429) {
+        return json({
+          error: 'provider_rate_limited',
+          status: 429,
+          message: 'Limite do provedor atingido. Aguarde alguns segundos e tente novamente.',
+          body: parsed,
+        }, 429);
+      }
       return json({ error: 'provider_error', status: r.status, body: parsed }, 502);
     }
 
