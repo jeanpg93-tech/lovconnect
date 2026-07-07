@@ -16,12 +16,15 @@ import ApiKeyReveal from "@/components/painel/ApiKeyReveal";
 import IssueClaudeTrialDialog from "@/components/painel/IssueClaudeTrialDialog";
 import { toast } from "sonner";
 
-type PlanCode = "pro_30d" | "5x_30d" | "20x_30d";
+type PlanCode = "pro_30d" | "5x_30d" | "20x_30d" | "api_500k_30d" | "api_25m_30d" | "api_10m_30d";
 
 const PLAN_LABELS: Record<PlanCode, string> = {
   pro_30d: "Pro · 30 dias",
   "5x_30d": "5x · 30 dias",
   "20x_30d": "20x · 30 dias",
+  "api_500k_30d": "API 500K · 30 dias",
+  "api_25m_30d": "API 2,5M · 30 dias",
+  "api_10m_30d": "API 10M · 30 dias",
 };
 const planLabel = (code: string) =>
   code === "trial_15m_50msg"
@@ -31,8 +34,11 @@ const PLAN_LIMITS: Record<PlanCode, string> = {
   pro_30d: "500 mil tokens / 12h",
   "5x_30d": "2,5 Milhões de tokens / 12h",
   "20x_30d": "10 Milhões de tokens / 12h",
+  "api_500k_30d": "API 500K · 30 dias",
+  "api_25m_30d": "API 2,5M · 30 dias",
+  "api_10m_30d": "API 10M · 30 dias",
 };
-const PLAN_ORDER: PlanCode[] = ["pro_30d", "5x_30d", "20x_30d"];
+const PLAN_ORDER: PlanCode[] = ["pro_30d", "5x_30d", "20x_30d", "api_500k_30d", "api_25m_30d", "api_10m_30d"];
 
 const STATUS_LABELS: Record<string, string> = {
   issued: "Emitida",
@@ -51,6 +57,9 @@ const PLAN_GRADIENTS: Record<PlanCode, string> = {
   pro_30d: "from-emerald-500/20 via-emerald-500/5 to-transparent",
   "5x_30d": "from-blue-500/20 via-blue-500/5 to-transparent",
   "20x_30d": "from-primary/25 via-primary/5 to-transparent",
+  "api_500k_30d": "API 500K · 30 dias",
+  "api_25m_30d": "API 2,5M · 30 dias",
+  "api_10m_30d": "API 10M · 30 dias",
 };
 const PLAN_BADGES: Partial<Record<PlanCode, { label: string; cls: string }>> = {
   "20x_30d": { label: "Popular", cls: "bg-primary/15 text-primary border-primary/30" },

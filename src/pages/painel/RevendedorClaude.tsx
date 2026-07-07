@@ -20,7 +20,7 @@ import IssueClaudeTrialDialog from "@/components/painel/IssueClaudeTrialDialog";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
-type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d";
+type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d" | "api_500k_30d" | "api_25m_30d" | "api_10m_30d";
 type MarkupMode = "percent" | "fixed_add" | "final";
 
 const PLAN_LABELS: Record<PlanCode, string> = {
@@ -28,14 +28,20 @@ const PLAN_LABELS: Record<PlanCode, string> = {
   "5x_7d": "5x · 7 dias",
   "5x_30d": "5x · 30 dias",
   "20x_30d": "20x · 30 dias",
+  "api_500k_30d": "API 500K · 30 dias",
+  "api_25m_30d": "API 2,5M · 30 dias",
+  "api_10m_30d": "API 10M · 30 dias",
 };
-const PLAN_ORDER: PlanCode[] = ["pro_30d", "5x_7d", "5x_30d", "20x_30d"];
+const PLAN_ORDER: PlanCode[] = ["pro_30d", "5x_7d", "5x_30d", "20x_30d", "api_500k_30d", "api_25m_30d", "api_10m_30d"];
 
 const PLAN_LIMITS: Record<PlanCode, string> = {
   "pro_30d": "500 mil tokens / 12h",
   "5x_7d": "1,25 Milhões de tokens / 12h",
   "5x_30d": "2,5 Milhões de tokens / 12h",
   "20x_30d": "10 Milhões de tokens / 12h",
+  "api_500k_30d": "API 500K · 30 dias",
+  "api_25m_30d": "API 2,5M · 30 dias",
+  "api_10m_30d": "API 10M · 30 dias",
 };
 
 const fmtBRL = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -53,6 +59,9 @@ const PLAN_GRADIENTS: Record<PlanCode, string> = {
   "5x_7d": "from-sky-500/20 via-sky-500/5 to-transparent",
   "5x_30d": "from-blue-500/20 via-blue-500/5 to-transparent",
   "20x_30d": "from-primary/25 via-primary/5 to-transparent",
+  "api_500k_30d": "API 500K · 30 dias",
+  "api_25m_30d": "API 2,5M · 30 dias",
+  "api_10m_30d": "API 10M · 30 dias",
 };
 const PLAN_BADGES: Partial<Record<PlanCode, { label: string; cls: string }>> = {
   "20x_30d": { label: "Popular", cls: "bg-primary/15 text-primary border-primary/30" },

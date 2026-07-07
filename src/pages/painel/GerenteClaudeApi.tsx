@@ -13,7 +13,7 @@ import { BarChart3, Tag, Users, Loader2, RefreshCw, Save, Wallet, Layers, Medal,
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d";
+type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d" | "api_500k_30d" | "api_25m_30d" | "api_10m_30d";
 type MarkupMode = "percent" | "fixed_add" | "final";
 
 const PLAN_LABELS: Record<PlanCode, string> = {
@@ -21,8 +21,11 @@ const PLAN_LABELS: Record<PlanCode, string> = {
   "5x_7d": "5x · 7 dias",
   "5x_30d": "5x · 30 dias",
   "20x_30d": "20x · 30 dias",
+  "api_500k_30d": "API 500K · 30 dias",
+  "api_25m_30d": "API 2,5M · 30 dias",
+  "api_10m_30d": "API 10M · 30 dias",
 };
-const PLAN_ORDER: PlanCode[] = ["pro_30d", "5x_7d", "5x_30d", "20x_30d"];
+const PLAN_ORDER: PlanCode[] = ["pro_30d", "5x_7d", "5x_30d", "20x_30d", "api_500k_30d", "api_25m_30d", "api_10m_30d"];
 
 type PlanPrice = {
   id: string;
@@ -309,6 +312,9 @@ function PricesTab() {
         "5x_7d":   ["api_1_25m_7d", "api_1.25m_7d", "api_1_25m", "api_1.25m", "5x_7d"],
         "5x_30d":  ["api_1_25m_30d", "api_1.25m_30d", "5x_30d"],
         "20x_30d": ["api_5m_30d", "api_5m", "20x_30d"],
+        "api_500k_30d": ["api_500k_30d"],
+        "api_25m_30d":  ["api_25m_30d", "api_2_5m_30d", "api_2.5m_30d"],
+        "api_10m_30d":  ["api_10m_30d"],
       };
       const pickApi = (pc: PlanCode): number | null => {
         for (const k of API_KEY_MAP[pc]) {

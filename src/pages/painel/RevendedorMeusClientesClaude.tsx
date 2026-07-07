@@ -64,6 +64,9 @@ const PLAN_LABELS: Record<string, string> = {
   "5x_7d": "5x · 7 dias",
   "5x_30d": "5x · 30 dias",
   "20x_30d": "20x · 30 dias",
+  "api_500k_30d": "API 500K · 30 dias",
+  "api_25m_30d": "API 2,5M · 30 dias",
+  "api_10m_30d": "API 10M · 30 dias",
 };
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
@@ -173,11 +176,16 @@ export default function RevendedorMeusClientesClaude() {
       if (error || (data as any)?.error) {
         toast.error((data as any)?.message ?? (data as any)?.error ?? "Falha ao cancelar");
       } else {
-        toast.success(
-          data?.refund_waived
-            ? "Chave cancelada — sem estorno (fora dos 7 dias)."
-            : `Chave cancelada e estorno de R$ ${((data?.refund_cents ?? 0) / 100).toFixed(2)} devolvido à carteira.`,
-        );
+        const parts: string[] = [];
+        if (data?.refund_waived) {
+          parts.push("Chave cancelada — sem estorno (fora dos 7 dias).");
+        } else {
+          parts.push(`Chave cancelada e estorno de R$ ${((data?.refund_cents ?? 0) / 100).toFixed(2)} devolvido à carteira.`);
+        }
+        if (data?.account_blocked) {
+          parts.push("A conta do cliente foi BLOQUEADA pelo provedor (chave já havia sido resgatada).");
+        }
+        toast.success(parts.join(" "));
         setCancelTarget(null);
         load(true);
       }
@@ -541,6 +549,11 @@ export default function RevendedorMeusClientesClaude() {
                   Cliente: <b>{cancelTarget?.customer_name ?? "—"}</b> ({cancelTarget?.customer_email ?? "—"})
                 </div>
                 <div>Plano: <b>{PLAN_LABELS[cancelTarget?.plan_code ?? ""] ?? cancelTarget?.plan_code}</b></div>
+                {cancelTarget?.status === "redeemed" && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-amber-600">
+                    ⚠️ Esta chave <b>já foi resgatada</b> pelo cliente. Ao cancelar, a <b>conta do cliente será BLOQUEADA permanentemente</b> pelo provedor. Só cancele se tiver certeza (ex.: fraude, cliente golpista).
+                  </div>
+                )}
                 {cancelTarget?.within_refund_window ? (
                   <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2 text-emerald-600">
                     ✅ Dentro dos 7 dias — o valor debitado será <b>estornado automaticamente</b> na carteira.

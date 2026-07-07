@@ -17,6 +17,9 @@ const CLAUDE_PLAN_LABELS: Record<string, string> = {
   pro_30d: "Claude Pro — 30 dias",
   "5x_30d": "Claude 5x — 30 dias",
   "20x_30d": "Claude 20x — 30 dias",
+  "api_500k_30d": "API 500K · 30 dias",
+  "api_25m_30d": "API 2,5M · 30 dias",
+  "api_10m_30d": "API 10M · 30 dias",
 };
 
 type ClaudePlanOption = {

@@ -7,12 +7,15 @@ const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const CLAUDE_API_KEY = Deno.env.get('CLAUDE_RESELLER_API_KEY')!;
 const CLAUDE_BASE_URL = (Deno.env.get('CLAUDE_RESELLER_API_BASE_URL') ?? '').replace(/\/$/, '');
 
-const PLAN_CODES = new Set(['pro_30d', '5x_7d', '5x_30d', '20x_30d']);
+const PLAN_CODES = new Set(['pro_30d', '5x_7d', '5x_30d', '20x_30d', 'api_500k_30d', 'api_25m_30d', 'api_10m_30d']);
 const PLAN_LABELS: Record<string, string> = {
   'pro_30d':  'Pro · 30 dias',
   '5x_7d':    '5x · 7 dias',
   '5x_30d':   '5x · 30 dias',
   '20x_30d':  '20x · 30 dias',
+  'api_500k_30d': 'API 500K · 30 dias',
+  'api_25m_30d': 'API 2,5M · 30 dias',
+  'api_10m_30d': 'API 10M · 30 dias',
 };
 
 const jsonResponse = (data: unknown, status = 200) =>
@@ -209,6 +212,34 @@ Deno.serve(async (req) => {
         provider_response: providerResp,
         error_message: `provider_${providerStatus}`,
       }).eq('id', order.id);
+      // 409 = e-mail já tem conta no provedor. Nenhum débito foi feito
+      // (debit acontece só depois deste bloco), então basta retornar
+      // uma mensagem amigável e o revendedor tenta outro e-mail.
+      const providerMsg = String(providerResp?.error ?? providerResp?.message ?? '').toLowerCase();
+      if (providerStatus === 409 || providerMsg.includes('já cadastr') || providerMsg.includes('ja cadastr') || providerMsg.includes('already')) {
+        return jsonResponse({
+          error: 'email_already_registered',
+          status: 409,
+          message: 'Este e-mail já possui uma conta no provedor. Use outro e-mail (ex.: adicione +teste antes do @) ou deixe o campo vazio para gerar apenas o código de resgate.',
+          body: providerResp,
+        }, 409);
+      }
+      if (providerStatus === 402) {
+        return jsonResponse({
+          error: 'insufficient_provider_balance',
+          status: 402,
+          message: 'Saldo insuficiente no provedor. Aguarde alguns minutos e tente novamente ou fale com o gerente.',
+          body: providerResp,
+        }, 402);
+      }
+      if (providerStatus === 429) {
+        return jsonResponse({
+          error: 'provider_rate_limited',
+          status: 429,
+          message: 'Muitas emissões seguidas. Aguarde alguns segundos e tente novamente.',
+          body: providerResp,
+        }, 429);
+      }
       return jsonResponse({ error: 'provider_error', status: providerStatus, body: providerResp }, 502);
     }
 

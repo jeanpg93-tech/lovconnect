@@ -236,12 +236,17 @@ Deno.serve(async (req) => {
       cancel_attempts: [...prevAttempts, attempt],
     }).eq('id', order.id);
 
+    // Sinaliza se a conta do cliente foi bloqueada no provedor
+    // (acontece quando a chave já havia sido resgatada dentro dos 7 dias).
+    const accountBlocked = Boolean(providerResp?.accountBlocked);
+
     return json({
       ok: true,
       order_id: order.id,
       refund_cents: refundCents,
       refund_waived: !withinWindow,
       age_days: Math.floor(ageDays),
+      account_blocked: accountBlocked,
       provider_response: providerResp,
     });
   } catch (e) {
