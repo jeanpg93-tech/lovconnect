@@ -268,7 +268,14 @@ export default function GerenteClaude() {
       const raw = (data as any)?.error ?? (error as any)?.message ?? "";
       const status = (data as any)?.status;
       let friendly = "Erro ao emitir chave. Tente novamente em instantes.";
-      if (raw === "provider_error" || String(raw).includes("provider_error")) {
+      const msg = (data as any)?.message;
+      if (raw === "email_already_registered") {
+        friendly = msg ?? "Este e-mail já está cadastrado no provedor. Use outro e-mail ou deixe o campo vazio.";
+      } else if (raw === "insufficient_provider_balance") {
+        friendly = msg ?? "Saldo insuficiente no provedor.";
+      } else if (raw === "provider_rate_limited") {
+        friendly = msg ?? "Limite do provedor atingido. Aguarde alguns segundos.";
+      } else if (raw === "provider_error" || String(raw).includes("provider_error")) {
         friendly =
           status && status >= 500
             ? "O provedor está instável no momento (erro 502). Aguarde alguns segundos e tente novamente. Se persistir, tente sem preencher o e-mail — o e-mail pode já estar vinculado a outra chave ativa."
