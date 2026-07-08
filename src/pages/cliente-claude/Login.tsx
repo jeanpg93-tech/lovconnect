@@ -67,7 +67,7 @@ export default function ClienteClaudeLogin() {
     let cancelled = false;
     (async () => {
       const { data: reseller } = await supabase
-        .from("resellers")
+        .from("resellers_public" as any)
         .select("id, display_name, slug, is_active")
         .ilike("slug", storeSlug)
         .maybeSingle();

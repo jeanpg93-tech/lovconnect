@@ -61,7 +61,7 @@ export default function ClaudePriceTable() {
       }
       const [{ data: base }, { data: ov }] = await Promise.all([
         supabase
-          .from("claude_plan_prices")
+          .from("claude_plan_prices_public" as any)
           .select("plan_code, sale_price_cents, is_active, sort_order")
           .eq("is_active", true)
           .order("sort_order", { ascending: true }),
