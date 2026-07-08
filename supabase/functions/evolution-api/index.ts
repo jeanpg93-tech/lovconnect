@@ -12,6 +12,34 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUB
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const EVO_BASE = (Deno.env.get("EVOLUTION_BASE_URL") ?? "").replace(/\/+$/, "");
 const EVO_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") ?? "";
+const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY") ?? "";
+const TELEGRAM_ADMIN_CHAT_ID = "970755762";
+
+async function notifyTelegram(text: string) {
+  if (!LOVABLE_API_KEY || !TELEGRAM_API_KEY) {
+    console.warn("telegram notify skipped: missing keys");
+    return;
+  }
+  try {
+    const r = await fetch("https://connector-gateway.lovable.dev/telegram/sendMessage", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "X-Connection-Api-Key": TELEGRAM_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_ADMIN_CHAT_ID,
+        text,
+        parse_mode: "HTML",
+      }),
+    });
+    if (!r.ok) console.warn("telegram notify failed", r.status, await r.text());
+  } catch (e) {
+    console.warn("telegram notify error", e);
+  }
+}
 
 function json(b: unknown, status = 200) {
   return new Response(JSON.stringify(b), {
@@ -361,6 +389,13 @@ Deno.serve(async (req) => {
 
       const update: Record<string, unknown> = { connection_status: mapped };
 
+      const { data: prevIntegration } = await svc
+        .from("reseller_integrations")
+        .select("connection_status")
+        .eq("reseller_id", reseller.id)
+        .maybeSingle();
+      const prevStatus = prevIntegration?.connection_status ?? null;
+
       if (mapped === "connected") {
         update.last_connected_at = new Date().toISOString();
         // Busca perfil
@@ -378,6 +413,12 @@ Deno.serve(async (req) => {
       }
 
       await svc.from("reseller_integrations").update(update).eq("reseller_id", reseller.id);
+
+      if (mapped === "connected" && prevStatus !== "connected") {
+        const name = reseller.display_name ?? reseller.id;
+        const numberStr = update.profile_number ? ` (${update.profile_number})` : "";
+        await notifyTelegram(`✅ <b>WhatsApp conectado</b>\nRevendedor: <b>${name}</b>${numberStr}`);
+      }
 
       return json({ ok: true, state: mapped, zombie: isZombie, raw: { connectionState: connState.data, fetched: fetched.data, goAll: goAll.data, legacyStatus: legacyStatus.data } });
     }
