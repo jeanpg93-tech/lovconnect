@@ -1,6 +1,30 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
+// Blocks SSRF: only https, and rejects loopback / link-local / private ranges.
+function isSafeBaseUrl(raw: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== "https:") return false;
+  const host = u.hostname.toLowerCase();
+  if (!host || host === "localhost" || host.endsWith(".localhost")) return false;
+  // IPv6 literal
+  if (host.startsWith("[")) return false;
+  // IPv4 numeric checks
+  const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const [a, b] = [parseInt(m[1]), parseInt(m[2])];
+    if (a === 10) return false;
+    if (a === 127) return false;
+    if (a === 0) return false;
+    if (a === 169 && b === 254) return false; // link-local / metadata
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a >= 224) return false; // multicast / reserved
+  }
+  return true;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -19,12 +43,29 @@ Deno.serve(async (req) => {
     );
     if (cErr || !claims?.claims) return json({ error: "Unauthorized" }, 401);
 
+    // Only gerente (admin) or an active reseller may probe an Evolution API URL.
+    const userId = claims.claims.sub as string;
+    const svc = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const [{ data: isGerente }, { data: reseller }] = await Promise.all([
+      svc.rpc("has_role", { _user_id: userId, _role: "gerente" }),
+      svc.from("resellers").select("id, is_active").eq("user_id", userId).maybeSingle(),
+    ]);
+    if (!isGerente && !(reseller && reseller.is_active)) {
+      return json({ error: "Forbidden" }, 403);
+    }
+
     const body = await req.json().catch(() => ({}));
     const baseUrl = String(body.base_url ?? "").trim().replace(/\/+$/, "");
     const apiKey = String(body.api_key ?? "").trim();
     const instance = String(body.instance ?? "").trim();
     if (!baseUrl || !apiKey || !instance) {
       return json({ error: "Informe base_url, api_key e instance" }, 400);
+    }
+    if (!isSafeBaseUrl(baseUrl)) {
+      return json({ error: "base_url inválida: use HTTPS e host público" }, 400);
     }
 
     // Endpoint padrão Evolution API: /instance/connectionState/{instance}
