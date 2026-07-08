@@ -243,6 +243,45 @@ Deno.serve(async (req) => {
 
   const ip = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? null;
 
+  // 🚨 Alerta "novo IP visto em chave conhecida"
+  // Se a chave já foi usada antes (>= 24h de idade) e este IP nunca apareceu
+  // no histórico dela, avisa no Telegram uma única vez por (chave, IP).
+  if (ip) {
+    try {
+      const { data: sameIp } = await svc.from("reseller_api_usage")
+        .select("id")
+        .eq("api_key_id", keyRow.id)
+        .eq("ip_address", ip)
+        .limit(1)
+        .maybeSingle();
+      if (!sameIp) {
+        // Confirma que a chave tem histórico anterior (evita alertar na 1ª chamada da chave nova)
+        const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: priorUse } = await svc.from("reseller_api_usage")
+          .select("ip_address, created_at")
+          .eq("api_key_id", keyRow.id)
+          .lt("created_at", cutoff)
+          .not("ip_address", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (priorUse) {
+          const ua = req.headers.get("user-agent") ?? "—";
+          const txt =
+            `🚨 <b>Novo IP em chave API</b>\n` +
+            `🏪 Revendedor: ${reseller.display_name ?? reseller.slug}\n` +
+            `🔑 Key ID: <code>${keyRow.id}</code>\n` +
+            `🆕 IP novo: <code>${ip}</code>\n` +
+            `📡 IP anterior: <code>${priorUse.ip_address}</code>\n` +
+            `🧭 Endpoint: ${req.method} /${action}\n` +
+            `🖥 UA: ${String(ua).slice(0, 120)}\n` +
+            `⚠️ Se não reconhece este IP, pode ser vazamento da chave — revogue e gere outra.`;
+          await svc.rpc("telegram_enqueue", { _text: txt }).catch(() => {});
+        }
+      }
+    } catch (_) { /* noop — nunca bloqueia a request */ }
+  }
+
   const logUsage = async (status_code: number, opts: {
     cost_cents?: number; license_type?: string; license_key?: string; error_message?: string;
   } = {}) => {
