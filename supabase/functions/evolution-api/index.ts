@@ -169,14 +169,17 @@ Deno.serve(async (req) => {
         // Limpa a instância antiga por completo. Só logout não resolve quando o Evolution
         // fica com sessão fantasma: ele responde "no QR code available" indefinidamente.
         const cleanup = await Promise.all([
+          // Evolution GO usa POST para logout/restart; a API v2 usa DELETE. Tentamos os dois.
+          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "POST" }, instanceToken, 5_000),
+          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "POST" }, EVO_KEY, 5_000),
           evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" }, instanceToken, 5_000),
-          evo("/instance/logout", { method: "DELETE" }, instanceToken, 5_000),
+          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY, 5_000),
           evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY, 5_000),
           evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }, instanceToken, 5_000),
-          evo("/instance/delete", { method: "DELETE", body: JSON.stringify({ name: instance, instanceName: instance }) }, EVO_KEY, 5_000),
         ]);
         console.log("evo pre-connect cleanup", cleanup.map((r) => ({ ok: r.ok, status: r.status })));
-        await delay(700);
+        // Aguarda o servidor liberar o socket antes de recriar
+        await delay(1500);
       }
 
       // Tenta criar instância (ignora se já existir)
@@ -193,6 +196,17 @@ Deno.serve(async (req) => {
         console.warn("evo create returned", created.status, created.data);
       }
 
+      // Se a instância já existia (500 "instance already exists"), força restart
+      // para invalidar qualquer sessão fantasma antes do connect.
+      if (created.status === 500 || created.status === 403 || created.status === 409) {
+        const restarted = await Promise.all([
+          evo(`/instance/restart/${encodeURIComponent(instance)}`, { method: "POST" }, instanceToken, 5_000),
+          evo(`/instance/restart/${encodeURIComponent(instance)}`, { method: "PUT" }, EVO_KEY, 5_000),
+        ]);
+        console.log("evo restart", restarted.map((r) => ({ ok: r.ok, status: r.status })));
+        await delay(1200);
+      }
+
       // Evolution GO: conecta por POST /instance/connect e lê o QR em GET /instance/qr usando o token da instância.
       const conn = await evo("/instance/connect", {
         method: "POST",
@@ -203,12 +217,31 @@ Deno.serve(async (req) => {
       }, instanceToken);
       if (!conn.ok) console.warn("evo connect returned", conn.status, conn.data);
 
-      let qr = extractQr(conn.data);
-      let pairingCode = extractPairingCode(conn.data);
-      let qrResp = { ok: conn.ok, status: conn.status, data: conn.data };
+      // Se o connect trouxe um jid mas não há QR (sessão fantasma), força logout via
+      // POST e reconecta uma vez. Sem isso o Evolution nunca gera QR novo.
+      const connJid = conn.data?.data?.jid ?? conn.data?.jid ?? null;
+      const connEvent = String(conn.data?.data?.eventString ?? "");
+      let effectiveConn = conn;
+      if (connJid && !extractQr(conn.data) && !extractPairingCode(conn.data)) {
+        console.warn("evo ghost session detected — forcing logout", { jid: connJid, event: connEvent });
+        await Promise.all([
+          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "POST" }, instanceToken, 5_000),
+          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "POST" }, EVO_KEY, 5_000),
+          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY, 5_000),
+        ]);
+        await delay(1200);
+        effectiveConn = await evo("/instance/connect", {
+          method: "POST",
+          body: JSON.stringify({ immediate: true, subscribe: ["QRCODE", "CONNECTION"] }),
+        }, instanceToken);
+      }
+
+      let qr = extractQr(effectiveConn.data);
+      let pairingCode = extractPairingCode(effectiveConn.data);
+      let qrResp = { ok: effectiveConn.ok, status: effectiveConn.status, data: effectiveConn.data };
       // O Evolution costuma levar 1-3s para efetivamente gerar o QR após o connect.
       // Faz polling curto em vez de uma única retentativa.
-      for (let i = 0; i < 10 && !qr && !pairingCode; i++) {
+      for (let i = 0; i < 12 && !qr && !pairingCode; i++) {
         await delay(800);
         qrResp = await evo("/instance/qr", { method: "GET" }, instanceToken);
         qr = extractQr(qrResp.data);
