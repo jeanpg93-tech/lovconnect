@@ -389,6 +389,13 @@ Deno.serve(async (req) => {
 
       const update: Record<string, unknown> = { connection_status: mapped };
 
+      const { data: prevIntegration } = await svc
+        .from("reseller_integrations")
+        .select("connection_status")
+        .eq("reseller_id", reseller.id)
+        .maybeSingle();
+      const prevStatus = prevIntegration?.connection_status ?? null;
+
       if (mapped === "connected") {
         update.last_connected_at = new Date().toISOString();
         // Busca perfil
@@ -406,6 +413,12 @@ Deno.serve(async (req) => {
       }
 
       await svc.from("reseller_integrations").update(update).eq("reseller_id", reseller.id);
+
+      if (mapped === "connected" && prevStatus !== "connected") {
+        const name = reseller.display_name ?? reseller.id;
+        const numberStr = update.profile_number ? ` (${update.profile_number})` : "";
+        await notifyTelegram(`✅ <b>WhatsApp conectado</b>\nRevendedor: <b>${name}</b>${numberStr}`);
+      }
 
       return json({ ok: true, state: mapped, zombie: isZombie, raw: { connectionState: connState.data, fetched: fetched.data, goAll: goAll.data, legacyStatus: legacyStatus.data } });
     }
