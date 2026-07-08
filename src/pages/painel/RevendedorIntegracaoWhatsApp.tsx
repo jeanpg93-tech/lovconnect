@@ -61,6 +61,7 @@ export default function RevendedorIntegracaoWhatsApp() {
   const [qrLoading, setQrLoading] = useState(false);
   const pollRef = useRef<number | null>(null);
   const refreshRef = useRef<number | null>(null);
+  const statusSyncRef = useRef<number | null>(null);
 
   const [testNumber, setTestNumber] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
@@ -117,7 +118,27 @@ export default function RevendedorIntegracaoWhatsApp() {
   useEffect(() => () => {
     if (pollRef.current) clearInterval(pollRef.current);
     if (refreshRef.current) clearInterval(refreshRef.current);
+    if (statusSyncRef.current) clearInterval(statusSyncRef.current);
   }, []);
+
+  // Sincroniza status com Evolution ao entrar na página e a cada 20s,
+  // para refletir desconexões feitas fora do painel.
+  useEffect(() => {
+    if (!resellerId) return;
+    const sync = async () => {
+      try {
+        const st = await callApi("status");
+        const mapped = st.state === "connected" ? "connected" : "disconnected";
+        setInteg((prev) => prev ? { ...prev, connection_status: mapped } : prev);
+      } catch (_) { /* ignore */ }
+    };
+    sync();
+    if (statusSyncRef.current) clearInterval(statusSyncRef.current);
+    statusSyncRef.current = window.setInterval(sync, 20000);
+    return () => {
+      if (statusSyncRef.current) clearInterval(statusSyncRef.current);
+    };
+  }, [resellerId]);
 
   const save = async () => {
     if (!resellerId) return;
