@@ -126,13 +126,13 @@ Deno.serve(async (req) => {
     // Telegram
     try {
       const txt =
-        `🧪 <b>Teste Claude (15 min / 50 msgs)</b>\n` +
-        `👤 Cliente: ${customerName ?? '—'}${customerWhatsapp ? ` (${customerWhatsapp})` : ''}\n` +
+        `🤖 <b>Teste Claude (${managerManual ? 'Gerente' : 'Revendedor'} · Painel)</b>\n` +
+        `👤 Cliente: ${customerName ?? '—'}${customerWhatsapp ? ` · 📱 ${customerWhatsapp}` : ''}\n` +
         `📧 ${email}\n` +
         `👥 User ID: <code>${providerUserId ?? '—'}</code>\n` +
         (code ? `🎟 ACT: <code>${code}</code>\n` : '') +
         (providerApiKey ? `🔑 Key: <code>${providerApiKey}</code>\n` : '') +
-        `🎯 Origem: ${managerManual ? 'Gerente (manual)' : 'Revendedor (painel)'}`;
+        `⏱ 15 min · 50 msgs · 📦 Claude API`;
       await admin.rpc('telegram_enqueue', { _text: txt });
     } catch (_) { /* noop */ }
 
