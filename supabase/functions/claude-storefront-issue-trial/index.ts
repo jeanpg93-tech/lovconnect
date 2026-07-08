@@ -138,10 +138,14 @@ Deno.serve(async (req) => {
 
     try {
       const txt =
-        `🧪 <b>Teste Claude (loja pública)</b>\n` +
+        `🤖 <b>Teste Claude (Loja pública)</b>\n` +
         `🏬 Loja: ${reseller.display_name ?? slug}\n` +
-        `📧 ${email}${name ? ` — ${name}` : ''}\n` +
-        `👥 User ID: <code>${providerUserId ?? '—'}</code>`;
+        `📧 ${email}${name ? ` — ${name}` : ''}` +
+        (whatsapp ? ` · 📱 ${whatsapp}` : '') + `\n` +
+        `👥 User ID: <code>${providerUserId ?? '—'}</code>\n` +
+        (code ? `🎟 ACT: <code>${code}</code>\n` : '') +
+        (providerApiKey ? `🔑 Key: <code>${providerApiKey}</code>\n` : '') +
+        `⏱ 15 min · 50 msgs · 📦 Claude API`;
       await admin.rpc('telegram_enqueue', { _text: txt });
     } catch (_) { /* noop */ }
 
