@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/painel/PageHeader";
@@ -56,6 +57,7 @@ export default function RevendedorIntegracaoWhatsApp() {
 
   const [qrOpen, setQrOpen] = useState(false);
   const [qrBase64, setQrBase64] = useState<string | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const pollRef = useRef<number | null>(null);
   const refreshRef = useRef<number | null>(null);
@@ -139,7 +141,19 @@ export default function RevendedorIntegracaoWhatsApp() {
     const { data, error } = await supabase.functions.invoke("evolution-api", {
       body: { action, ...extra },
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error instanceof FunctionsHttpError) {
+        const details = await error.context.text().catch(() => "");
+        try {
+          const parsed = JSON.parse(details);
+          throw new Error(parsed?.error ?? parsed?.message ?? details ?? error.message);
+        } catch (parseError) {
+          if (parseError instanceof Error && parseError.message !== details) throw parseError;
+          throw new Error(details || error.message);
+        }
+      }
+      throw new Error(error.message);
+    }
     if ((data as any)?.error) throw new Error((data as any).error);
     return data as any;
   };
@@ -148,9 +162,13 @@ export default function RevendedorIntegracaoWhatsApp() {
     setQrOpen(true);
     setQrLoading(true);
     setQrBase64(null);
+    setQrError(null);
     try {
       const d = await callApi("connect");
       setQrBase64(d.qr ?? null);
+      if (!d.qr && !d.pairingCode) {
+        setQrError("QR ainda não disponível. Tente novamente em alguns segundos.");
+      }
       // Polling de status a cada 3s
       if (pollRef.current) clearInterval(pollRef.current);
       pollRef.current = window.setInterval(async () => {
@@ -169,12 +187,15 @@ export default function RevendedorIntegracaoWhatsApp() {
       if (refreshRef.current) clearInterval(refreshRef.current);
       refreshRef.current = window.setInterval(async () => {
         try {
-          const d2 = await callApi("connect");
+          const d2 = await callApi("connect", { reset: false });
           setQrBase64(d2.qr ?? null);
+          if (d2.qr) setQrError(null);
         } catch (e) { /* ignore */ }
       }, 35000);
     } catch (e: any) {
-      toast.error(e.message ?? "Falha ao gerar QR");
+      const message = e.message ?? "Falha ao gerar QR";
+      setQrError(message);
+      toast.error(message);
     } finally {
       setQrLoading(false);
     }
@@ -182,6 +203,7 @@ export default function RevendedorIntegracaoWhatsApp() {
 
   const closeQr = () => {
     setQrOpen(false);
+    setQrError(null);
     if (pollRef.current) clearInterval(pollRef.current);
     if (refreshRef.current) clearInterval(refreshRef.current);
   };
@@ -406,16 +428,22 @@ export default function RevendedorIntegracaoWhatsApp() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center p-2">
-            {qrLoading || !qrBase64 ? (
+            {qrLoading ? (
               <div className="flex h-64 w-64 items-center justify-center rounded-md border border-dashed">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-            ) : (
+            ) : qrBase64 ? (
               <img
                 src={qrBase64.startsWith("data:") ? qrBase64 : `data:image/png;base64,${qrBase64}`}
                 alt="QR code"
                 className="h-64 w-64 rounded-md border bg-white p-2"
               />
+            ) : (
+              <div className="flex h-64 w-64 flex-col items-center justify-center gap-3 rounded-md border border-dashed p-4 text-center">
+                <XCircle className="h-8 w-8 text-destructive" />
+                <p className="text-xs text-muted-foreground">{qrError ?? "Não foi possível gerar o QR agora."}</p>
+                <Button size="sm" type="button" onClick={openConnect}>Tentar novamente</Button>
+              </div>
             )}
           </div>
           <p className="text-center text-[11px] text-muted-foreground">
