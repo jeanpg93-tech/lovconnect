@@ -746,6 +746,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 1b) Rate limit por IP: no máx 3 trials/hora e 20/dia por IP (qualquer revendedor)
+    if (ip && ip !== "0.0.0.0") {
+      const oneHourAgo = new Date(Date.now() - 3600_000).toISOString();
+      const oneDayAgo = new Date(Date.now() - 86400_000).toISOString();
+      const [{ count: hourCount }, { count: dayCount }] = await Promise.all([
+        svc.from("orders").select("id", { count: "exact", head: true })
+          .eq("is_test", true).eq("client_ip", ip).gte("created_at", oneHourAgo),
+        svc.from("orders").select("id", { count: "exact", head: true })
+          .eq("is_test", true).eq("client_ip", ip).gte("created_at", oneDayAgo),
+      ]);
+      if ((hourCount ?? 0) >= 3 || (dayCount ?? 0) >= 20) {
+        await logUsage(429, { error_message: `Trial IP rate limit (h=${hourCount} d=${dayCount})` });
+        return json({ error: "Limite de trials por IP atingido. Tente novamente mais tarde." }, 429);
+      }
+    }
+
     // 2) Limite diário de trial (override do revendedor > tier)
     {
       const { data: resellerRow } = await svc.from("resellers")
