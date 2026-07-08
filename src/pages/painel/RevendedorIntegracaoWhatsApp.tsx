@@ -144,13 +144,12 @@ export default function RevendedorIntegracaoWhatsApp() {
     if (error) {
       if (error instanceof FunctionsHttpError) {
         const details = await error.context.text().catch(() => "");
+        let message = details || error.message;
         try {
           const parsed = JSON.parse(details);
-          throw new Error(parsed?.error ?? parsed?.message ?? details ?? error.message);
-        } catch (parseError) {
-          if (parseError instanceof Error && parseError.message !== details) throw parseError;
-          throw new Error(details || error.message);
-        }
+          message = parsed?.error ?? parsed?.message ?? message;
+        } catch (_) { /* details is plain text */ }
+        throw new Error(message);
       }
       throw new Error(error.message);
     }
