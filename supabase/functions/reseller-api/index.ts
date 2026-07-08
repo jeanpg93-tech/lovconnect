@@ -732,6 +732,47 @@ Deno.serve(async (req) => {
     const display_name = typeof body.display_name === "string" ? body.display_name.trim().slice(0, 100) : "Cliente Teste";
     const webhook_url = typeof body.webhook_url === "string" ? body.webhook_url.trim() : null;
 
+    // ---- Anti-abuso (evita ataques em massa via API) ----
+    // 1) Throttle curto: no máx 1 trial a cada 10s por revendedor
+    {
+      const tenSecAgo = new Date(Date.now() - 10_000).toISOString();
+      const { count: recentCount } = await svc.from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("reseller_id", reseller.id).eq("is_test", true)
+        .gte("created_at", tenSecAgo);
+      if ((recentCount ?? 0) >= 1) {
+        await logUsage(429, { error_message: "Trial rate limited (10s)" });
+        return json({ error: "Muitas requisições. Aguarde alguns segundos antes de gerar outro trial." }, 429);
+      }
+    }
+
+    // 2) Limite diário de trial (override do revendedor > tier)
+    {
+      const { data: resellerRow } = await svc.from("resellers")
+        .select("test_keys_per_day_override").eq("id", reseller.id).maybeSingle();
+      let dailyLimit: number;
+      if (resellerRow?.test_keys_per_day_override != null) {
+        dailyLimit = Number(resellerRow.test_keys_per_day_override);
+      } else {
+        const { data: tierRows } = await svc.rpc("get_reseller_tier", { _reseller_id: reseller.id });
+        const tierObj: any = Array.isArray(tierRows) ? tierRows[0] : tierRows;
+        dailyLimit = Number(tierObj?.test_keys_per_day ?? 10);
+      }
+      if (dailyLimit <= 0) {
+        await logUsage(403, { error_message: "Trial bloqueado pelo nível" });
+        return json({ error: "Seu nível não permite trials. Faça upgrade." }, 403);
+      }
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const { count } = await svc.from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("reseller_id", reseller.id).eq("is_test", true)
+        .gte("created_at", today.toISOString());
+      if ((count ?? 0) >= dailyLimit) {
+        await logUsage(429, { error_message: "Limite diário atingido" });
+        return json({ error: `Limite de ${dailyLimit} trial(s)/dia atingido` }, 429);
+      }
+    }
+
     // Respeita método ativo + manutenção definidos pelo gerente
     const guard = await getDeliveryGuard(svc);
     if (guard.maintenance) {
