@@ -224,12 +224,26 @@ Deno.serve(async (req) => {
       let effectiveConn = conn;
       if (connJid && !extractQr(conn.data) && !extractPairingCode(conn.data)) {
         console.warn("evo ghost session detected — forcing logout", { jid: connJid, event: connEvent });
-        await Promise.all([
+        // Evolution GO usa body { name } (mesmo padrão do /instance/create).
+        // Sem esse fallback, quando o JID já está vinculado o Evolution nunca gera QR novo.
+        const ghostCleanup = await Promise.all([
+          evo(`/instance/logout`, { method: "POST", body: JSON.stringify({ name: instance }) }, instanceToken, 5_000),
+          evo(`/instance/logout`, { method: "POST", body: JSON.stringify({ name: instance }) }, EVO_KEY, 5_000),
           evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "POST" }, instanceToken, 5_000),
-          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "POST" }, EVO_KEY, 5_000),
           evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY, 5_000),
+          evo(`/instance/restart`, { method: "POST", body: JSON.stringify({ name: instance }) }, instanceToken, 5_000),
+          evo(`/instance/restart/${encodeURIComponent(instance)}`, { method: "POST" }, instanceToken, 5_000),
+          evo(`/instance/delete`, { method: "POST", body: JSON.stringify({ name: instance }) }, EVO_KEY, 5_000),
+          evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY, 5_000),
         ]);
-        await delay(1200);
+        console.log("evo ghost cleanup", ghostCleanup.map((r) => ({ ok: r.ok, status: r.status })));
+        await delay(1500);
+        // Recria instância caso tenha sido deletada
+        await evo("/instance/create", {
+          method: "POST",
+          body: JSON.stringify({ name: instance, token: instanceToken }),
+        });
+        await delay(500);
         effectiveConn = await evo("/instance/connect", {
           method: "POST",
           body: JSON.stringify({ immediate: true, subscribe: ["QRCODE", "CONNECTION"] }),
