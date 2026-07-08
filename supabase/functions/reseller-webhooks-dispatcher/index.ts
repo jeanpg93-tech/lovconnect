@@ -36,11 +36,10 @@ Deno.serve(async (req) => {
   }
 
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  const PROJECT_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvZW1rb2ZrZWxldWhqaWZ2YXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMTkwMDMsImV4cCI6MjA5NDg5NTAwM30.aQFQh9lizvdslW9eqJM_e8ikv2MPPnCWp8jjVnTUp2w";
   const auth = req.headers.get("Authorization") ?? "";
-  const apikey = req.headers.get("apikey") ?? "";
-  const authorized = auth === `Bearer ${SERVICE_ROLE}` || auth === `Bearer ${ANON_KEY}` || auth === `Bearer ${PROJECT_ANON_KEY}` || apikey === ANON_KEY || apikey === PROJECT_ANON_KEY;
+  // Only the service role can trigger the dispatcher (cron/internal).
+  // Anon/publishable key is public and MUST NOT authorize this endpoint.
+  const authorized = auth === `Bearer ${SERVICE_ROLE}`;
   if (!authorized) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
