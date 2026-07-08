@@ -131,6 +131,16 @@ Deno.serve(async (req) => {
         console.warn("evo create returned", created.status, created.data);
       }
 
+      // Se a instância já existe, o Evolution pode ainda ter uma sessão "viva"
+      // (jid presente) do pareamento anterior — nesse caso ele NUNCA emite QR novo
+      // e devolve "no QR code available". Força logout para descartar a sessão
+      // morta antes de pedir o QR. Ignora erro (instância pode já estar deslogada).
+      const logoutBefore = await evo("/instance/logout", { method: "DELETE" }, instanceToken);
+      if (!logoutBefore.ok) {
+        console.log("evo pre-connect logout:", logoutBefore.status, logoutBefore.data);
+      }
+      await delay(500);
+
       // Evolution GO: conecta por POST /instance/connect e lê o QR em GET /instance/qr usando o token da instância.
       const conn = await evo("/instance/connect", {
         method: "POST",
@@ -142,7 +152,9 @@ Deno.serve(async (req) => {
       if (!conn.ok) console.warn("evo connect returned", conn.status, conn.data);
 
       let qrResp = await evo("/instance/qr", { method: "GET" }, instanceToken);
-      if (!extractQr(qrResp.data)) {
+      // O Evolution costuma levar 1-3s para efetivamente gerar o QR após o connect.
+      // Faz polling curto em vez de uma única retentativa.
+      for (let i = 0; i < 5 && !extractQr(qrResp.data); i++) {
         await delay(800);
         qrResp = await evo("/instance/qr", { method: "GET" }, instanceToken);
       }
