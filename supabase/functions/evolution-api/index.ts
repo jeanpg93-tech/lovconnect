@@ -95,7 +95,7 @@ function instanceRecord(data: any, instance: string) {
   return rows.find((row: any) => {
     const rec = row?.instance ?? row;
     const name = rec?.instanceName ?? rec?.name ?? rec?.instance?.instanceName ?? rec?.instance?.name;
-    return !name || name === instance;
+    return name === instance;
   }) ?? null;
 }
 
