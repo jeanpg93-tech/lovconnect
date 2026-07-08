@@ -130,6 +130,8 @@ Deno.serve(async (req) => {
         `👤 Cliente: ${customerName ?? '—'}${customerWhatsapp ? ` (${customerWhatsapp})` : ''}\n` +
         `📧 ${email}\n` +
         `👥 User ID: <code>${providerUserId ?? '—'}</code>\n` +
+        (code ? `🎟 ACT: <code>${code}</code>\n` : '') +
+        (providerApiKey ? `🔑 Key: <code>${providerApiKey}</code>\n` : '') +
         `🎯 Origem: ${managerManual ? 'Gerente (manual)' : 'Revendedor (painel)'}`;
       await admin.rpc('telegram_enqueue', { _text: txt });
     } catch (_) { /* noop */ }
