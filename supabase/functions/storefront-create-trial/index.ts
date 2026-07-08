@@ -208,12 +208,13 @@ Deno.serve(async (req) => {
         .maybeSingle();
       const resellerLabel = resellerInfo?.display_name || resellerInfo?.slug || reseller_slug;
       const txt =
-        `🧪 <b>Chave Teste (Loja)</b>\n` +
+        `🧩 <b>Teste de Extensão (Loja pública)</b>\n` +
         `🏪 Revendedor: ${resellerLabel}\n` +
         `👤 Cliente: ${final_display_name}` +
         (buyer_whatsapp ? ` (${buyer_whatsapp})` : '') +
-        (license_key ? `\n🔑 <code>${license_key}</code>` : '') +
-        `\n⏱ 15 min · 1 dispositivo`;
+        (license_key ? `\n🔑 Chave: <code>${license_key}</code>` : '') +
+        `\n⏱ 15 min · 1 dispositivo\n` +
+        `📦 Produto: Extensão (chave de licença)`;
       await svc.rpc('telegram_enqueue', { _text: txt });
     } catch (e) {
       console.warn('telegram_enqueue (storefront trial) failed', e);
