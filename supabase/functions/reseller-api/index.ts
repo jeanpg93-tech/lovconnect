@@ -926,14 +926,14 @@ Deno.serve(async (req) => {
     try {
       const resellerLabel = reseller.display_name || reseller.slug || reseller.id.slice(0, 8);
       const txt =
-        `🧪 <b>Chave Teste Extensão</b>\n` +
-        `📡 Origem: API Revendedor\n` +
+        `🧩 <b>Teste de Extensão (API Revendedor)</b>\n` +
         `🏪 Revendedor: ${resellerLabel}\n` +
-        `👤 Nome informado: ${display_name}\n` +
-        `🔑 API key: <code>${keyRow.id.slice(0, 8)}…</code>\n` +
-        `🌐 IP: ${ip ?? "—"}` +
-        (license_key ? `\n🔐 <code>${license_key}</code>` : '') +
-        `\n⏱ 15 min · 1 dispositivo`;
+        `👤 Cliente: ${display_name}\n` +
+        (license_key ? `🔑 Chave: <code>${license_key}</code>\n` : '') +
+        `🔐 API key: <code>${keyRow.id.slice(0, 8)}…</code>\n` +
+        `🌐 IP: ${ip ?? "—"}\n` +
+        `⏱ 15 min · 1 dispositivo\n` +
+        `📦 Produto: Extensão (chave de licença)`;
       await svc.rpc('telegram_enqueue', { _text: txt });
     } catch (e) { console.warn('telegram_enqueue (api generate-trial) failed', e); }
 
@@ -1448,15 +1448,15 @@ Deno.serve(async (req) => {
     try {
       const resellerLabel = reseller.display_name || reseller.slug || reseller.id.slice(0, 8);
       const txt =
-        `🧪 <b>Chave Teste Extensão</b>\n` +
-        `📡 Origem: API Revendedor (unified)\n` +
+        `🧩 <b>Teste de Extensão (API Revendedor)</b>\n` +
         `🏪 Revendedor: ${resellerLabel}\n` +
-        `👤 Nome informado: ${display_name}\n` +
+        `👤 Cliente: ${display_name}\n` +
+        (license_key ? `🔑 Chave: <code>${license_key}</code>\n` : '') +
+        `🔐 API key: <code>${keyRow.id.slice(0, 8)}…</code>\n` +
         `🧩 Método: ${metodo}\n` +
-        `🔑 API key: <code>${keyRow.id.slice(0, 8)}…</code>\n` +
-        `🌐 IP: ${ip ?? "—"}` +
-        (license_key ? `\n🔐 <code>${license_key}</code>` : '') +
-        `\n⏱ 15 min · 1 dispositivo`;
+        `🌐 IP: ${ip ?? "—"}\n` +
+        `⏱ 15 min · 1 dispositivo\n` +
+        `📦 Produto: Extensão (chave de licença)`;
       await svc.rpc('telegram_enqueue', { _text: txt });
     } catch (e) { console.warn('telegram_enqueue (api licencas-trial) failed', e); }
 
