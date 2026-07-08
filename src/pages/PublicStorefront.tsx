@@ -256,7 +256,7 @@ export default function PublicStorefront() {
       let rErr: any = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         const res = await supabase
-          .from("resellers")
+          .from("resellers_public" as any)
           .select("id, display_name, slug, is_active")
           .ilike("slug", slug)
           .maybeSingle();

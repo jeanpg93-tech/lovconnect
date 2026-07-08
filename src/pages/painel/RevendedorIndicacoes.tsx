@@ -50,7 +50,7 @@ export default function RevendedorIndicacoes() {
 
       const ids = (refs ?? []).map((x: any) => x.referred_reseller_id);
       if (ids.length) {
-        const { data: rs } = await supabase.from("resellers").select("id,display_name").in("id", ids);
+        const { data: rs } = await supabase.from("resellers_public" as any).select("id,display_name").in("id", ids);
         const map: Record<string, string> = {};
         (rs ?? []).forEach((x: any) => { map[x.id] = x.display_name; });
         setReferredNames(map);
