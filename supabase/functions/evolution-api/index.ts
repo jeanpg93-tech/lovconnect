@@ -12,6 +12,34 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUB
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const EVO_BASE = (Deno.env.get("EVOLUTION_BASE_URL") ?? "").replace(/\/+$/, "");
 const EVO_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") ?? "";
+const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY") ?? "";
+const TELEGRAM_ADMIN_CHAT_ID = "970755762";
+
+async function notifyTelegram(text: string) {
+  if (!LOVABLE_API_KEY || !TELEGRAM_API_KEY) {
+    console.warn("telegram notify skipped: missing keys");
+    return;
+  }
+  try {
+    const r = await fetch("https://connector-gateway.lovable.dev/telegram/sendMessage", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "X-Connection-Api-Key": TELEGRAM_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_ADMIN_CHAT_ID,
+        text,
+        parse_mode: "HTML",
+      }),
+    });
+    if (!r.ok) console.warn("telegram notify failed", r.status, await r.text());
+  } catch (e) {
+    console.warn("telegram notify error", e);
+  }
+}
 
 function json(b: unknown, status = 200) {
   return new Response(JSON.stringify(b), {
