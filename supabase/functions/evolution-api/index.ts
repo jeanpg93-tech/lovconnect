@@ -90,18 +90,25 @@ function rawString(data: any) {
 }
 
 function instanceRecord(data: any, instance: string) {
-  const rows = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [data?.data ?? data].filter(Boolean);
+  const root = data?.instances ?? data?.data?.instances ?? data?.data ?? data;
+  const rows = Array.isArray(root) ? root : Array.isArray(root?.data) ? root.data : [root].filter(Boolean);
   return rows.find((row: any) => {
     const rec = row?.instance ?? row;
-    const name = rec?.instanceName ?? rec?.name ?? rec?.instance?.instanceName;
+    const name = rec?.instanceName ?? rec?.name ?? rec?.instance?.instanceName ?? rec?.instance?.name;
     return !name || name === instance;
   }) ?? null;
 }
 
+function instanceIdentifier(data: any) {
+  const rec = data?.instance ?? data?.data?.instance ?? data?.data ?? data;
+  const value = rec?.id ?? rec?.instanceId ?? rec?.instance_id ?? rec?.instance?.id ?? null;
+  return typeof value === "string" && value ? value : null;
+}
+
 function instanceNumber(data: any) {
   const rec = data?.instance ?? data?.data?.instance ?? data?.data ?? data;
-  const value = rec?.ownerJid ?? rec?.owner ?? rec?.wuid ?? rec?.number ?? rec?.profileNumber ?? rec?.profile_number ?? null;
-  return typeof value === "string" && value ? value.split("@")[0] : null;
+  const value = rec?.ownerJid ?? rec?.jid ?? rec?.owner ?? rec?.wuid ?? rec?.number ?? rec?.profileNumber ?? rec?.profile_number ?? null;
+  return typeof value === "string" && value ? value.split("@")[0].split(":")[0] : null;
 }
 
 function instanceState(data: any) {
@@ -109,6 +116,8 @@ function instanceState(data: any) {
   const raw = rec?.connectionStatus ?? rec?.state ?? rec?.status ?? data?.state ?? "";
   if (rec?.Connected === true || rec?.LoggedIn === true) return "open";
   if (rec?.Connected === false || rec?.LoggedIn === false) return "close";
+  if (rec?.connected === true) return "open";
+  if (rec?.connected === false) return "close";
   return String(raw).toLowerCase();
 }
 
@@ -124,6 +133,66 @@ function legacyDisconnected(data: any) {
 
 function onlyDigits(s: string) {
   return (s ?? "").replace(/\D+/g, "");
+}
+
+async function resolveEvolutionGoInstance(instance: string, instanceToken: string) {
+  const globalAll = await evo("/instance/all", { method: "GET" }, EVO_KEY, 8_000);
+  let record = instanceRecord(globalAll.data, instance);
+  let source = "global";
+
+  if (!record) {
+    const tokenAll = await evo("/instance/all", { method: "GET" }, instanceToken, 8_000);
+    record = instanceRecord(tokenAll.data, instance);
+    source = "instance-token";
+    return { record, id: instanceIdentifier(record), source, raw: { globalAll, tokenAll } };
+  }
+
+  return { record, id: instanceIdentifier(record), source, raw: { globalAll } };
+}
+
+async function hardResetEvolutionGoInstance(instance: string, instanceToken: string) {
+  const resolved = await resolveEvolutionGoInstance(instance, instanceToken);
+  const deleteTargets = Array.from(new Set([
+    resolved.id,
+    // Mantém o nome como fallback para Evolution API clássica. No Evolution GO o correto é o ID.
+    instance,
+  ].filter((v): v is string => typeof v === "string" && v.length > 0)));
+
+  const results: Array<{ step: string; ok: boolean; status: number; data?: any }> = [];
+
+  // Evolution GO: logout é DELETE /instance/logout usando o token da instância, sem nome no path.
+  const logoutGo = await evo("/instance/logout", { method: "DELETE" }, instanceToken, 6_000);
+  results.push({ step: "go.logout.by-token", ok: logoutGo.ok, status: logoutGo.status, data: logoutGo.data });
+
+  for (const target of deleteTargets) {
+    const delGlobal = await evo(`/instance/delete/${encodeURIComponent(target)}`, { method: "DELETE" }, EVO_KEY, 8_000);
+    results.push({ step: `delete.global.${target === instance ? "name" : "id"}`, ok: delGlobal.ok, status: delGlobal.status, data: delGlobal.data });
+    if (delGlobal.ok && target !== instance) break;
+
+    const delToken = await evo(`/instance/delete/${encodeURIComponent(target)}`, { method: "DELETE" }, instanceToken, 8_000);
+    results.push({ step: `delete.token.${target === instance ? "name" : "id"}`, ok: delToken.ok, status: delToken.status, data: delToken.data });
+    if (delToken.ok && target !== instance) break;
+  }
+
+  // Fallbacks para variações antigas/instalações mistas.
+  const legacy = await Promise.all([
+    evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" }, instanceToken, 5_000),
+    evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY, 5_000),
+    evo("/instance/delete", { method: "DELETE", body: JSON.stringify({ name: instance, instanceName: instance }) }, EVO_KEY, 5_000),
+  ]);
+  legacy.forEach((r, index) => results.push({ step: `legacy.${index}`, ok: r.ok, status: r.status, data: r.data }));
+
+  // Confirma remoção para evitar recriar enquanto o socket antigo ainda existe.
+  let stillExists = true;
+  for (let i = 0; i < 5; i++) {
+    await delay(700);
+    const check = await resolveEvolutionGoInstance(instance, instanceToken);
+    stillExists = !!check.record;
+    if (!stillExists) break;
+  }
+
+  console.log("evo hard reset", results.map((r) => ({ step: r.step, ok: r.ok, status: r.status })), { resolvedId: resolved.id, resolvedSource: resolved.source, stillExists });
+  return { resolved, results, stillExists };
 }
 
 Deno.serve(async (req) => {
@@ -144,15 +213,30 @@ Deno.serve(async (req) => {
     if (uerr || !user) return json({ error: "Unauthorized" }, 401);
 
     const svc = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    const { data: reseller } = await svc
+    const body = await req.json().catch(() => ({}));
+    const action = String(body.action ?? "");
+    const targetResellerId = typeof body.resellerId === "string" ? body.resellerId : null;
+
+    const { data: ownReseller } = await svc
       .from("resellers")
       .select("id, is_active, display_name")
       .eq("user_id", user.id)
       .maybeSingle();
+
+    let reseller = ownReseller;
+    if (targetResellerId && targetResellerId !== ownReseller?.id) {
+      const { data: isGerente } = await svc.rpc("has_role", { _user_id: user.id, _role: "gerente" });
+      if (!isGerente) return json({ error: "Apenas gerentes podem diagnosticar outro revendedor" }, 403);
+      const { data: target } = await svc
+        .from("resellers")
+        .select("id, is_active, display_name")
+        .eq("id", targetResellerId)
+        .maybeSingle();
+      reseller = target;
+    }
+
     if (!reseller || !reseller.is_active) return json({ error: "Apenas revendedores ativos" }, 403);
 
-    const body = await req.json().catch(() => ({}));
-    const action = String(body.action ?? "");
     const instance = instanceNameFor(reseller.id);
     const instanceToken = await instanceTokenFor(reseller.id);
 
@@ -166,20 +250,9 @@ Deno.serve(async (req) => {
       const shouldReset = body.reset !== false;
 
       if (shouldReset) {
-        // Limpa a instância antiga por completo. Só logout não resolve quando o Evolution
-        // fica com sessão fantasma: ele responde "no QR code available" indefinidamente.
-        const cleanup = await Promise.all([
-          // Evolution GO usa POST para logout/restart; a API v2 usa DELETE. Tentamos os dois.
-          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "POST" }, instanceToken, 5_000),
-          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "POST" }, EVO_KEY, 5_000),
-          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" }, instanceToken, 5_000),
-          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY, 5_000),
-          evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY, 5_000),
-          evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }, instanceToken, 5_000),
-        ]);
-        console.log("evo pre-connect cleanup", cleanup.map((r) => ({ ok: r.ok, status: r.status })));
-        // Aguarda o servidor liberar o socket antes de recriar
-        await delay(1500);
+        // Limpa a instância antiga por completo. No Evolution GO o delete recebe o ID interno,
+        // não o nome. Buscar /instance/all e deletar por ID é o que resolve a sessão fantasma.
+        await hardResetEvolutionGoInstance(instance, instanceToken);
       }
 
       // Tenta criar instância (ignora se já existir)
@@ -200,7 +273,7 @@ Deno.serve(async (req) => {
       // para invalidar qualquer sessão fantasma antes do connect.
       if (created.status === 500 || created.status === 403 || created.status === 409) {
         const restarted = await Promise.all([
-          evo(`/instance/restart/${encodeURIComponent(instance)}`, { method: "POST" }, instanceToken, 5_000),
+          evo("/instance/logout", { method: "DELETE" }, instanceToken, 5_000),
           evo(`/instance/restart/${encodeURIComponent(instance)}`, { method: "PUT" }, EVO_KEY, 5_000),
         ]);
         console.log("evo restart", restarted.map((r) => ({ ok: r.ok, status: r.status })));
@@ -224,20 +297,7 @@ Deno.serve(async (req) => {
       let effectiveConn = conn;
       if (connJid && !extractQr(conn.data) && !extractPairingCode(conn.data)) {
         console.warn("evo ghost session detected — forcing logout", { jid: connJid, event: connEvent });
-        // Evolution GO usa body { name } (mesmo padrão do /instance/create).
-        // Sem esse fallback, quando o JID já está vinculado o Evolution nunca gera QR novo.
-        const ghostCleanup = await Promise.all([
-          evo(`/instance/logout`, { method: "POST", body: JSON.stringify({ name: instance }) }, instanceToken, 5_000),
-          evo(`/instance/logout`, { method: "POST", body: JSON.stringify({ name: instance }) }, EVO_KEY, 5_000),
-          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "POST" }, instanceToken, 5_000),
-          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY, 5_000),
-          evo(`/instance/restart`, { method: "POST", body: JSON.stringify({ name: instance }) }, instanceToken, 5_000),
-          evo(`/instance/restart/${encodeURIComponent(instance)}`, { method: "POST" }, instanceToken, 5_000),
-          evo(`/instance/delete`, { method: "POST", body: JSON.stringify({ name: instance }) }, EVO_KEY, 5_000),
-          evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY, 5_000),
-        ]);
-        console.log("evo ghost cleanup", ghostCleanup.map((r) => ({ ok: r.ok, status: r.status })));
-        await delay(1500);
+        await hardResetEvolutionGoInstance(instance, instanceToken);
         // Recria instância caso tenha sido deletada
         await evo("/instance/create", {
           method: "POST",
@@ -280,17 +340,18 @@ Deno.serve(async (req) => {
     }
 
     if (action === "status") {
-      const [connState, fetched, legacyStatus] = await Promise.all([
+      const [connState, fetched, goAll, legacyStatus] = await Promise.all([
         evo(`/instance/connectionState/${encodeURIComponent(instance)}`, { method: "GET" }, instanceToken),
         evo(`/instance/fetchInstances?instanceName=${encodeURIComponent(instance)}`, { method: "GET" }, EVO_KEY),
+        evo("/instance/all", { method: "GET" }, EVO_KEY),
         evo("/instance/status", { method: "GET" }, instanceToken),
       ]);
-      const fetchedRec = instanceRecord(fetched.data, instance);
-      const hardErrors = `${rawString(connState.data)} ${rawString(fetched.data)} ${rawString(legacyStatus.data)}`;
+      const fetchedRec = instanceRecord(goAll.data, instance) ?? instanceRecord(fetched.data, instance);
+      const hardErrors = `${rawString(connState.data)} ${rawString(fetched.data)} ${rawString(goAll.data)} ${rawString(legacyStatus.data)}`;
       const legacyIsConnected = legacyConnected(legacyStatus.data);
       const isZombie = !legacyIsConnected && /device jid|client is nil|not exist|inexistente|instance not found/i.test(hardErrors);
       const state: string = legacyIsConnected ? "open" :
-        isZombie || legacyDisconnected(legacyStatus.data) || (!fetchedRec && fetched.ok) ? "close" :
+        isZombie || legacyDisconnected(legacyStatus.data) || (!fetchedRec && (fetched.ok || goAll.ok)) ? "close" :
         instanceState(connState.data) || instanceState(fetchedRec) || instanceState(legacyStatus.data) || "unknown";
 
       const mapped =
@@ -318,7 +379,24 @@ Deno.serve(async (req) => {
 
       await svc.from("reseller_integrations").update(update).eq("reseller_id", reseller.id);
 
-      return json({ ok: true, state: mapped, zombie: isZombie, raw: { connectionState: connState.data, fetched: fetched.data, legacyStatus: legacyStatus.data } });
+      return json({ ok: true, state: mapped, zombie: isZombie, raw: { connectionState: connState.data, fetched: fetched.data, goAll: goAll.data, legacyStatus: legacyStatus.data } });
+    }
+
+    if (action === "cleanup") {
+      const reset = await hardResetEvolutionGoInstance(instance, instanceToken);
+      await svc.from("reseller_integrations").update({
+        connection_status: "disconnected",
+        profile_name: null,
+        profile_picture_url: null,
+        profile_number: null,
+      }).eq("reseller_id", reseller.id);
+      return json({
+        ok: true,
+        instance,
+        removed: !reset.stillExists,
+        resolvedId: reset.resolved.id,
+        results: reset.results.map((r) => ({ step: r.step, ok: r.ok, status: r.status })),
+      });
     }
 
     if (action === "disconnect") {
@@ -329,14 +407,7 @@ Deno.serve(async (req) => {
         profile_number: null,
       }).eq("reseller_id", reseller.id);
       const cleanupTask = (async () => {
-        const results = await Promise.all([
-          evo(`/instance/logout/${encodeURIComponent(instance)}`, { method: "DELETE" }, instanceToken, 5_000),
-          evo("/instance/logout", { method: "DELETE" }, instanceToken, 5_000),
-          evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }, EVO_KEY, 5_000),
-          evo(`/instance/delete/${encodeURIComponent(instance)}`, { method: "DELETE" }, instanceToken, 5_000),
-          evo("/instance/delete", { method: "DELETE", body: JSON.stringify({ name: instance, instanceName: instance }) }, EVO_KEY, 5_000),
-        ]);
-        console.log("[reseller disconnect cleanup]", results.map((r) => ({ ok: r.ok, status: r.status })));
+        await hardResetEvolutionGoInstance(instance, instanceToken);
       })();
       (globalThis as any).EdgeRuntime?.waitUntil?.(cleanupTask);
       return json({ ok: true, queued: true });
