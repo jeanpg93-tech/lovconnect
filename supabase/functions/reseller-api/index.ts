@@ -867,6 +867,21 @@ Deno.serve(async (req) => {
     // Log trial creation (no cost)
     await logUsage(200, { license_type: "trial", license_key: license_key ?? undefined });
 
+    // Notifica gerente no Telegram
+    try {
+      const resellerLabel = reseller.display_name || reseller.slug || reseller.id.slice(0, 8);
+      const txt =
+        `🧪 <b>Chave Teste Extensão</b>\n` +
+        `📡 Origem: API Revendedor\n` +
+        `🏪 Revendedor: ${resellerLabel}\n` +
+        `👤 Nome informado: ${display_name}\n` +
+        `🔑 API key: <code>${keyRow.id.slice(0, 8)}…</code>\n` +
+        `🌐 IP: ${ip ?? "—"}` +
+        (license_key ? `\n🔐 <code>${license_key}</code>` : '') +
+        `\n⏱ 15 min · 1 dispositivo`;
+      await svc.rpc('telegram_enqueue', { _text: txt });
+    } catch (e) { console.warn('telegram_enqueue (api generate-trial) failed', e); }
+
     return json({
       success: true,
       license_key,
@@ -1373,6 +1388,23 @@ Deno.serve(async (req) => {
     });
 
     await logUsage(200, { license_type, license_key: license_key ?? undefined });
+
+    // Notifica gerente no Telegram
+    try {
+      const resellerLabel = reseller.display_name || reseller.slug || reseller.id.slice(0, 8);
+      const txt =
+        `🧪 <b>Chave Teste Extensão</b>\n` +
+        `📡 Origem: API Revendedor (unified)\n` +
+        `🏪 Revendedor: ${resellerLabel}\n` +
+        `👤 Nome informado: ${display_name}\n` +
+        `🧩 Método: ${metodo}\n` +
+        `🔑 API key: <code>${keyRow.id.slice(0, 8)}…</code>\n` +
+        `🌐 IP: ${ip ?? "—"}` +
+        (license_key ? `\n🔐 <code>${license_key}</code>` : '') +
+        `\n⏱ 15 min · 1 dispositivo`;
+      await svc.rpc('telegram_enqueue', { _text: txt });
+    } catch (e) { console.warn('telegram_enqueue (api licencas-trial) failed', e); }
+
     return json({
       ok: true,
       license_key,
