@@ -46,20 +46,23 @@ Deno.serve(async (req) => {
     // Descobre se é gerente
     const { data: isManager } = await admin.rpc('has_role', { _user_id: userId, _role: 'gerente' });
 
-    // Se não é gerente, precisa ser revendedor com Claude habilitado
+    // Sempre tenta vincular ao registro de revendedor do usuário (se existir),
+    // para que o teste apareça no histórico "Minhas chaves Claude" do painel do revendedor.
+    const { data: reseller } = await admin
+      .from('resellers')
+      .select('id, claude_enabled')
+      .eq('user_id', userId)
+      .maybeSingle();
+
     let resellerId: string | null = null;
     let managerManual = false;
-    if (!isManager) {
-      const { data: reseller } = await admin
-        .from('resellers')
-        .select('id, claude_enabled')
-        .eq('user_id', userId)
-        .maybeSingle();
+    if (isManager) {
+      managerManual = true;
+      resellerId = reseller?.id ?? null;
+    } else {
       if (!reseller) return json({ error: 'reseller_not_found' }, 404);
       if (!reseller.claude_enabled) return json({ error: 'claude_not_enabled' }, 403);
       resellerId = reseller.id;
-    } else {
-      managerManual = true;
     }
 
     // Chama provedor
