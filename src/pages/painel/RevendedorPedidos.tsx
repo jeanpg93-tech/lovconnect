@@ -532,7 +532,20 @@ export default function RevendedorPedidos() {
         });
     setSubmitting(false);
     if (error || (data as any)?.error) {
-      toast.error((data as any)?.error ?? error?.message ?? "Falha no pedido");
+      // supabase-js não expõe o body em respostas não-2xx; tenta ler do error.context
+      let msg: string | null = (data as any)?.error ?? null;
+      if (!msg && (error as any)?.context && typeof (error as any).context?.json === "function") {
+        try {
+          const body = await (error as any).context.json();
+          msg = body?.error ?? body?.message ?? null;
+        } catch {
+          try {
+            const txt = await (error as any).context.text?.();
+            if (txt) msg = txt;
+          } catch { /* noop */ }
+        }
+      }
+      toast.error(msg ?? error?.message ?? "Falha no pedido");
       return;
     }
     const res = data as any;
