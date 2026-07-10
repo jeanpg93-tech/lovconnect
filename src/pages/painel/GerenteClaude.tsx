@@ -117,6 +117,22 @@ const formatWhatsapp = (v: string) => {
 const fmtBRL = (c: number) =>
   (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const normalizeSearch = (value: unknown) =>
+  String(value ?? "")
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const searchMatches = (query: string, values: unknown[]) => {
+  const q = normalizeSearch(query).trim();
+  if (!q) return true;
+  const qDigits = q.replace(/\D+/g, "");
+  return values.some((value) => {
+    const text = normalizeSearch(value);
+    return text.includes(q) || (!!qDigits && text.replace(/\D+/g, "").includes(qDigits));
+  });
+};
+
 export default function GerenteClaude() {
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<Row[]>([]);
@@ -449,18 +465,21 @@ Qualquer dúvida, é só chamar!`;
     const effective = isCancelled ? "cancelled" : (h.status ?? "issued");
     if (statusFilter !== "all" && effective !== statusFilter) return false;
     if (!search) return true;
-    const q = search.toLowerCase();
     const label = STATUS_LABELS[effective] ?? effective;
-    return (
-      (PLAN_LABELS[h.plan] ?? "").toLowerCase().includes(q) ||
-      h.code.toLowerCase().includes(q) ||
-      h.id.toLowerCase().includes(q) ||
-      label.toLowerCase().includes(q) ||
-      (h.status ?? "").toLowerCase().includes(q) ||
-      (h.customer_name ?? "").toLowerCase().includes(q) ||
-      (h.customer_whatsapp ?? "").toLowerCase().includes(q) ||
-      (h.customer_email ?? "").toLowerCase().includes(q)
-    );
+    return searchMatches(search, [
+      h.plan,
+      PLAN_LABELS[h.plan],
+      planLabel(h.plan as string),
+      h.code,
+      h.id,
+      label,
+      h.status,
+      h.customer_name,
+      h.customer_whatsapp,
+      h.customer_email,
+      h.reseller_display_name,
+      h.origin,
+    ]);
   });
 
   const countBy = (s: string) => history.filter((h) => {
@@ -686,7 +705,8 @@ Qualquer dúvida, é só chamar!`;
               <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 ref={searchInputRef}
-                defaultValue={search}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -699,7 +719,7 @@ Qualquer dúvida, é só chamar!`;
                 autoCapitalize="off"
                 spellCheck={false}
                 name="claude-search"
-                placeholder="Buscar por plano ou chave…"
+                placeholder="Buscar por cliente, e-mail, WhatsApp, plano ou chave…"
                 className="h-9 pl-8 text-xs"
               />
             </div>
