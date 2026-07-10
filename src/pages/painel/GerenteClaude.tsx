@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import { PageContainer } from "@/components/painel/PageHeader";
@@ -140,6 +140,7 @@ export default function GerenteClaude() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [history, setHistory] = useState<Issued[]>([]);
   const [search, setSearch] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "redeemed" | "expired" | "cancelled">("all");
   const [customerName, setCustomerName] = useState("");
   const [customerWhatsapp, setCustomerWhatsapp] = useState("");
@@ -250,6 +251,15 @@ export default function GerenteClaude() {
   const persist = (list: Issued[]) => {
     setHistory(list);
     try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 50))); } catch { /* noop */ }
+  };
+
+  const applySearch = () => {
+    setSearch(searchInputRef.current?.value.trim() ?? "");
+  };
+
+  const clearSearch = () => {
+    if (searchInputRef.current) searchInputRef.current.value = "";
+    setSearch("");
   };
 
   const issue = async () => {
@@ -671,21 +681,36 @@ Qualquer dúvida, é só chamar!`;
             </div>
           </div>
 
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
-              type="search"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              name="claude-search"
-              placeholder="Buscar por plano ou chave…"
-              className="pl-8 h-9 text-xs"
-            />
+          <div className="mb-3 flex gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                defaultValue={search}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applySearch();
+                  }
+                }}
+                type="search"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                name="claude-search"
+                placeholder="Buscar por plano ou chave…"
+                className="h-9 pl-8 text-xs"
+              />
+            </div>
+            <Button type="button" size="sm" variant="outline" className="h-9 px-3 text-xs" onClick={applySearch}>
+              Buscar
+            </Button>
+            {search && (
+              <Button type="button" size="sm" variant="ghost" className="h-9 px-2 text-xs" onClick={clearSearch}>
+                Limpar
+              </Button>
+            )}
           </div>
 
           <div className="mb-3 flex flex-wrap gap-1.5">
