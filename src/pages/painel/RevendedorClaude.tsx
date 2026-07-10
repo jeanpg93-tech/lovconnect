@@ -519,6 +519,13 @@ Qualquer dúvida, é só chamar!`
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+              type="search"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              name="claude-search"
               placeholder="Buscar por plano ou ID…"
               className="pl-8 h-9 text-xs"
             />
