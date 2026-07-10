@@ -84,6 +84,22 @@ const STATUS_META: Record<string, { label: string; className: string }> = {
   refunded: { label: "Reembolsado", className: "border-muted-foreground/40 bg-muted/40 text-muted-foreground" },
 };
 
+const normalizeSearch = (value: unknown) =>
+  String(value ?? "")
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const searchMatches = (query: string, values: unknown[]) => {
+  const q = normalizeSearch(query).trim();
+  if (!q) return true;
+  const qDigits = q.replace(/\D+/g, "");
+  return values.some((value) => {
+    const text = normalizeSearch(value);
+    return text.includes(q) || (!!qDigits && text.replace(/\D+/g, "").includes(qDigits));
+  });
+};
+
 const fmtTokens = (n?: number | null) => {
   if (n == null) return "—";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2).replace(".", ",")} Mi`;
@@ -220,13 +236,19 @@ export default function RevendedorMeusClientesClaude() {
 
   const filtered = orders.filter((o) => {
     if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      (o.customer_name ?? "").toLowerCase().includes(q) ||
-      (o.customer_email ?? "").toLowerCase().includes(q) ||
-      (o.customer_whatsapp ?? "").toLowerCase().includes(q) ||
-      (PLAN_LABELS[o.plan_code] ?? o.plan_code).toLowerCase().includes(q)
-    );
+    return searchMatches(search, [
+      o.customer_name,
+      o.customer_email,
+      o.customer_whatsapp,
+      o.customer_identifier,
+      o.code,
+      o.id,
+      o.plan_code,
+      PLAN_LABELS[o.plan_code],
+      o.status,
+      STATUS_META[o.status]?.label,
+      o.origin,
+    ]);
   });
 
   if (loading) {
@@ -258,7 +280,7 @@ export default function RevendedorMeusClientesClaude() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nome, e-mail, WhatsApp ou plano…"
+            placeholder="Buscar por nome, e-mail, WhatsApp, identificador, plano ou chave…"
           className="pl-9"
         />
       </div>
