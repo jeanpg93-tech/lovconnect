@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
 import { PageContainer } from "@/components/painel/PageHeader";
@@ -100,6 +100,7 @@ export default function RevendedorClaude() {
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [search, setSearch] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "redeemed" | "expired" | "cancelled" | "failed">("all");
   const [customerName, setCustomerName] = useState("");
   const [customerWhatsapp, setCustomerWhatsapp] = useState("");
@@ -269,6 +270,15 @@ export default function RevendedorClaude() {
     setTimeout(() => setCopiedField((k) => (k === key ? null : k)), 1800);
   };
 
+  const applySearch = () => {
+    setSearch(searchInputRef.current?.value.trim() ?? "");
+  };
+
+  const clearSearch = () => {
+    if (searchInputRef.current) searchInputRef.current.value = "";
+    setSearch("");
+  };
+
   const buildClientMessage = () => {
     if (!revealed) return "";
     const nome = revealed.customerName ? `Olá, ${revealed.customerName}!` : "Olá!";
@@ -309,6 +319,8 @@ Qualquer dúvida, é só chamar!`
     return (
       (h.plan_code ?? "").toLowerCase().includes(q) ||
       (PLAN_LABELS[h.plan_code as PlanCode] ?? "").toLowerCase().includes(q) ||
+      (h.code ?? "").toLowerCase().includes(q) ||
+      (h.provider_key_id ?? "").toLowerCase().includes(q) ||
       (h.customer_name ?? "").toLowerCase().includes(q) ||
       (h.customer_whatsapp ?? "").toLowerCase().includes(q) ||
       (h.id ?? "").toLowerCase().includes(q)
@@ -514,21 +526,36 @@ Qualquer dúvida, é só chamar!`
             <Badge variant="outline" className="text-[10px] font-bold uppercase">{history.length}</Badge>
           </div>
 
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
-              type="search"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              name="claude-search"
-              placeholder="Buscar por plano ou ID…"
-              className="pl-8 h-9 text-xs"
-            />
+          <div className="mb-3 flex gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                defaultValue={search}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applySearch();
+                  }
+                }}
+                type="search"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                name="claude-search"
+                placeholder="Buscar por plano, chave ou ID…"
+                className="h-9 pl-8 text-xs"
+              />
+            </div>
+            <Button type="button" size="sm" variant="outline" className="h-9 px-3 text-xs" onClick={applySearch}>
+              Buscar
+            </Button>
+            {search && (
+              <Button type="button" size="sm" variant="ghost" className="h-9 px-2 text-xs" onClick={clearSearch}>
+                Limpar
+              </Button>
+            )}
           </div>
 
           <div className="mb-3 flex flex-wrap gap-1.5">
