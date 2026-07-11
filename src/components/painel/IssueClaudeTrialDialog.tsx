@@ -35,7 +35,7 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
   const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrialResult | null>(null);
-  const [copied, setCopied] = useState<"key" | "user" | null>(null);
+  const [copied, setCopied] = useState<"key" | "user" | "msg" | null>(null);
 
   const reset = () => {
     setEmail(""); setName(""); setWhatsapp("");
@@ -93,11 +93,31 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
     }
   };
 
-  const copy = async (text: string, which: "key" | "user") => {
+  const copy = async (text: string, which: "key" | "user" | "msg") => {
     await navigator.clipboard.writeText(text);
     setCopied(which);
     toast.success("Copiado!");
     setTimeout(() => setCopied(null), 1500);
+  };
+
+  const buildClientMessage = () => {
+    if (!result) return "";
+    const nome = name.trim() ? `Olá, ${name.trim()}!` : "Olá!";
+    const baseUrl = result.provider_base_url ?? "https://claude-ss.shardweb.app/";
+    return (
+`${nome} Aqui está seu *teste grátis do Claude* (válido por 15 minutos ou 50 mensagens — o que vier primeiro):
+
+📧 *E-mail:*
+${result.email}
+
+🔑 *API Key (ANTHROPIC_AUTH_TOKEN):*
+${result.api_key}
+
+🌐 *Base URL (ANTHROPIC_BASE_URL):*
+${baseUrl}
+
+Use no Cursor, Cline ou Claude Code definindo essas duas variáveis. Após o teste, é só chamar pra ativar um plano completo!`
+    );
   };
 
   const accent = accentColor ? normalizeHexColor(accentColor) : null;
@@ -182,6 +202,32 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
             <p className="text-[11px] text-muted-foreground">
               ⏱ Este teste expira em <strong>15 min</strong> ou após <strong>50 mensagens</strong> — o que vier primeiro.
             </p>
+
+            <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[11px] uppercase tracking-wide text-primary font-semibold">Mensagem pronta para o cliente</div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => copy(buildClientMessage(), "msg")}>
+                    {copied === "msg" ? <><Check className="h-3.5 w-3.5 mr-1" /> Copiado</> : <><Copy className="h-3.5 w-3.5 mr-1" /> Copiar</>}
+                  </Button>
+                  {whatsapp.replace(/\D+/g, "").length >= 10 && (
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => {
+                        const digits = whatsapp.replace(/\D+/g, "");
+                        const num = digits.startsWith("55") ? digits : `55${digits}`;
+                        const url = `https://wa.me/${num}?text=${encodeURIComponent(buildClientMessage())}`;
+                        window.open(url, "_blank", "noopener,noreferrer");
+                      }}
+                    >
+                      <MessageCircle className="h-3.5 w-3.5 mr-1" /> Enviar WhatsApp
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <pre className="whitespace-pre-wrap text-[11px] font-sans bg-background/60 rounded-md border border-border p-2 max-h-48 overflow-auto">{buildClientMessage()}</pre>
+            </div>
           </div>
         )}
 
