@@ -145,7 +145,7 @@ export default function RevendedorPedidos() {
       { data: pl }, { data: cs }, { data: os }, { data: t }, { data: tiers }, { data: ts }, { count: testCount },
       { data: tlpRows }, { data: salePrices }, { data: deliverySetting },
     ] = await Promise.all([
-      supabase.from("pricing_plans_public" as any).select("license_type,label,price_cents,min_price_cents,is_active").eq("is_active", true),
+      (supabase as any).from("pricing_plans_public").select("license_type,label,price_cents,min_price_cents,is_active").eq("is_active", true),
       supabase.from("profiles").select("id,email,display_name").eq("reseller_id", r.id),
       supabase.from("orders").select("id,license_type,price_cents,status,license_key,created_at,is_test,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at,notes, customer:reseller_customers!orders_customer_id_fkey(display_name,whatsapp)").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(20),
       supabase.rpc("get_reseller_tier", { _reseller_id: r.id }),
