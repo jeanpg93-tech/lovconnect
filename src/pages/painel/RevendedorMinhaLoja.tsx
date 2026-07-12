@@ -508,7 +508,7 @@ export default function RevendedorMinhaLoja() {
     }
     if (cleaned === resellerSlug) return;
     setSavingSlug(true);
-    const { data: existing } = await supabase
+    const { data: existing } = await (supabase as any)
       .from("resellers_public" as any).select("id").eq("slug", cleaned).maybeSingle();
     if (existing && existing.id !== resellerId) {
       setSavingSlug(false);
