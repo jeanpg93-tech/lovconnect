@@ -61,6 +61,38 @@ async function recordMisticPayFee(
   }
 }
 
+function isPaidStatus(status: string): boolean {
+  return status === "COMPLETO" || status === "PAID" || status === "SUCCESS";
+}
+
+function isProviderFailureStatus(status: string): boolean {
+  return status === "FALHA" || status === "CANCELADO" || status === "FAILED";
+}
+
+function isClosedLocalStatus(status: unknown): boolean {
+  const s = String(status ?? "").toLowerCase();
+  return [
+    "expired",
+    "expirado",
+    "cancelled",
+    "canceled",
+    "cancelado",
+    "failed",
+    "falha",
+    "refunded",
+    "estornado",
+  ].includes(s);
+}
+
+function isPastDue(iso: unknown, nowIso: string): boolean {
+  return !!iso && new Date(String(iso)).getTime() < new Date(nowIso).getTime();
+}
+
+function isOlderThanMinutes(iso: unknown, nowIso: string, minutes: number): boolean {
+  if (!iso) return false;
+  return new Date(String(iso)).getTime() + minutes * 60_000 < new Date(nowIso).getTime();
+}
+
 /**
  * Lança automaticamente a RECEITA de uma venda feita na "Loja do Gerente" (LovaStore).
  * A conta considerada como loja própria fica em app_settings.manager_reseller_id.
@@ -429,7 +461,18 @@ Deno.serve(async (req) => {
         if (actPay.status === "approved" || actPay.status === "paid") {
           return json({ ok: true, already: true });
         }
-        if (status === "COMPLETO") {
+        if (isClosedLocalStatus(actPay.status)) {
+          return json({ ok: true, ignored: "local_payment_closed", kind: "activation" });
+        }
+        if (isPaidStatus(status)) {
+          if (isPastDue((actPay as any).expires_at, paidAt)) {
+            await admin.from("activation_payments").update({
+              status: "expired",
+              updated_at: paidAt,
+              raw_response: payload,
+            }).eq("id", actPay.id).eq("status", "pending");
+            return json({ ok: true, ignored: "pix_expired", kind: "activation" });
+          }
           // Verifica diretamente com a MisticPay antes de ativar o painel
           const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
           const ok = await verifyTx(mci, mcs, txId, actPay.reseller_id);
@@ -527,8 +570,19 @@ Deno.serve(async (req) => {
 
     if (intent) {
       if (intent.status === "paid") return json({ ok: true, already: true });
+      if (isClosedLocalStatus(intent.status)) {
+        return json({ ok: true, ignored: "local_payment_closed", kind: "recharge" });
+      }
 
-      if (status === "COMPLETO") {
+      if (isPaidStatus(status)) {
+        if (isOlderThanMinutes((intent as any).created_at, paidAt, 30)) {
+          await admin.from("recharge_intents").update({
+            status: "expired",
+            updated_at: paidAt,
+            raw_response: payload,
+          }).eq("id", intent.id).eq("status", "pending");
+          return json({ ok: true, ignored: "pix_expired", kind: "recharge" });
+        }
         // Verifica direto com a MisticPay antes de creditar a recarga
         const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
         const ok = await verifyTx(mci, mcs, txId, intent.reseller_id);
@@ -713,11 +767,22 @@ Deno.serve(async (req) => {
 
       if (directSale) {
         if (directSale.status === "paid") return json({ ok: true, already: true });
+        if (isClosedLocalStatus(directSale.status)) {
+          return json({ ok: true, ignored: "local_payment_closed", kind: "direct_sale" });
+        }
         
         // MisticPay status check - common values are "COMPLETO", "PAID", or "SUCCESS"
-        const isPaid = status === "COMPLETO" || status === "PAID" || status === "SUCCESS";
+        const isPaid = isPaidStatus(status);
         
         if (isPaid) {
+          if (isOlderThanMinutes((directSale as any).created_at, paidAt, 30)) {
+            await admin.from("direct_sales").update({
+              status: "expired",
+              updated_at: paidAt,
+              raw_response: payload,
+            }).eq("id", directSale.id).eq("status", "pending");
+            return json({ ok: true, ignored: "pix_expired", kind: "direct_sale" });
+          }
           // Confirma com a API da MisticPay
           const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
           const ok = await verifyTx(mci, mcs, txId, null);
@@ -736,7 +801,7 @@ Deno.serve(async (req) => {
           return json({ ok: true, kind: "direct_sale" });
         }
 
-        if (status === "FALHA" || status === "CANCELADO" || status === "FAILED") {
+        if (isProviderFailureStatus(status)) {
           await admin.from("direct_sales").update({ status: "failed" }).eq("id", directSale.id);
           return json({ ok: true });
         }
@@ -752,8 +817,11 @@ Deno.serve(async (req) => {
 
       if (subCharge) {
         if (subCharge.status === "paid") return json({ ok: true, already: true });
+        if (isClosedLocalStatus(subCharge.status)) {
+          return json({ ok: true, ignored: "local_payment_closed", kind: "subscription_charge" });
+        }
 
-        if (status === "COMPLETO" || status === "PAID" || status === "SUCCESS") {
+        if (isPaidStatus(status)) {
           const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
           const ok = await verifyTx(mci, mcs, txId, subCharge.reseller_id);
           if (!ok) {
@@ -834,8 +902,11 @@ Deno.serve(async (req) => {
 
       if (claudeOrder) {
         if ((claudeOrder as any).status === "issued") return json({ ok: true, already: true });
+        if (isClosedLocalStatus((claudeOrder as any).status)) {
+          return json({ ok: true, ignored: "local_payment_closed", kind: "claude_order" });
+        }
 
-        if (status === "FALHA" || status === "CANCELADO") {
+        if (isProviderFailureStatus(status)) {
           await admin.from("claude_orders").update({
             status: "failed",
             error_message: `pix_${status.toLowerCase()}`,
@@ -844,8 +915,19 @@ Deno.serve(async (req) => {
           return json({ ok: true, kind: "claude_order_failed" });
         }
 
-        if (status !== "COMPLETO" && status !== "PAID" && status !== "SUCCESS") {
+        if (!isPaidStatus(status)) {
           return json({ ok: true, status });
+        }
+
+        if (isPastDue((claudeOrder as any).pix_expires_at, paidAt)) {
+          await admin.from("claude_orders").update({
+            status: "expired",
+            expired_at: paidAt,
+            updated_at: paidAt,
+            error_message: "pix_expired",
+            provider_response: payload,
+          }).eq("id", (claudeOrder as any).id).in("status", ["pending", "awaiting_payment"]);
+          return json({ ok: true, ignored: "pix_expired", kind: "claude_order" });
         }
 
         // Verifica pagamento com as creds MisticPay do PRÓPRIO revendedor
@@ -1057,8 +1139,18 @@ Deno.serve(async (req) => {
 
       if (packPurchase) {
         if ((packPurchase as any).status === "paid") return json({ ok: true, already: true });
+        if (isClosedLocalStatus((packPurchase as any).status)) {
+          return json({ ok: true, ignored: "local_payment_closed", kind: "pack_purchase" });
+        }
 
-        if (status === "COMPLETO" || status === "PAID" || status === "SUCCESS") {
+        if (isPaidStatus(status)) {
+          if (isPastDue((packPurchase as any).expires_at, paidAt)) {
+            await admin.from("reseller_pack_purchases").update({
+              status: "expired",
+              updated_at: paidAt,
+            }).eq("id", (packPurchase as any).id).eq("status", "pending");
+            return json({ ok: true, ignored: "pix_expired", kind: "pack_purchase" });
+          }
           const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
           const ok = await verifyTx(mci, mcs, txId, (packPurchase as any).reseller_id);
           if (!ok) {
@@ -1139,7 +1231,7 @@ Deno.serve(async (req) => {
           return json({ ok: true, kind: "pack_purchase" });
         }
 
-        if (status === "FALHA" || status === "CANCELADO" || status === "FAILED") {
+        if (isProviderFailureStatus(status)) {
           await admin.from("reseller_pack_purchases").update({ status: "failed" }).eq("id", (packPurchase as any).id);
           return json({ ok: true });
         }
@@ -1153,8 +1245,11 @@ Deno.serve(async (req) => {
     if (storeOrder.status === "completed" || storeOrder.status === "paid") {
       return json({ ok: true, already: true });
     }
+    if (isClosedLocalStatus(storeOrder.status)) {
+      return json({ ok: true, ignored: "local_payment_closed", kind: "storefront_order" });
+    }
 
-    if (status === "FALHA" || status === "CANCELADO") {
+    if (isProviderFailureStatus(status)) {
       await admin.from("storefront_orders").update({
         status: "failed",
         raw_response: payload,
@@ -1162,8 +1257,18 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
-    if (status !== "COMPLETO") {
+    if (!isPaidStatus(status)) {
       return json({ ok: true, status });
+    }
+
+    if (isPastDue((storeOrder as any).expires_at, paidAt)) {
+      await admin.from("storefront_orders").update({
+        status: "expirado",
+        error_message: "PIX não pago dentro do prazo",
+        raw_response: payload,
+        updated_at: paidAt,
+      }).eq("id", storeOrder.id).eq("status", "pending");
+      return json({ ok: true, ignored: "pix_expired", kind: "storefront_order" });
     }
 
     // Antes de qualquer débito/entrega da venda de loja pública, confirma com a MisticPay
