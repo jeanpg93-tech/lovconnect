@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const MISTIC_BASE = "https://api.misticpay.com/api";
-const ACTIVATION_BASE_CENTS = 20000;
+const ACTIVATION_BASE_CENTS = 30000;
 const PIX_TTL_MINUTES = 30;
 
 function json(body: unknown, status = 200) {

@@ -11,7 +11,7 @@ export type ActivationPricing = {
   hasBonus: boolean;
 };
 
-const BASE_CENTS = 20000;
+const BASE_CENTS = 30000;
 
 /**
  * Calcula o preço da adesão considerando a promoção ativa.
