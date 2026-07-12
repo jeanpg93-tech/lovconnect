@@ -25,6 +25,13 @@ function json(b: unknown, status = 200) {
 type SaleType = "storefront" | "manual";
 type RefundMethod = "auto" | "manual";
 
+function parseNotes(raw: unknown): any | null {
+  if (!raw) return null;
+  if (typeof raw === "object") return raw;
+  if (typeof raw !== "string") return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -89,6 +96,25 @@ Deno.serve(async (req) => {
   const { data: sale, error: sErr } = await saleQuery.maybeSingle();
   if (sErr) return json({ error: sErr.message }, 500);
   if (!sale) return json({ error: "sale_not_found" }, 404);
+
+  // Vendas feitas pela Loja também são espelhadas em `orders` para histórico.
+  // Nunca permita cancelar pelo espelho Manual/API: ele não é a fonte do débito
+  // do Pack e pode gerar estorno em saldo. O cancelamento deve usar o pedido
+  // original em `storefront_orders`, onde fica o ledger do Pack.
+  if (sale_type === "manual") {
+    const notesObj = parseNotes(sale.notes);
+    const storefrontOrderId = typeof notesObj?.storefront_order_id === "string"
+      ? notesObj.storefront_order_id
+      : null;
+    if (notesObj?.source === "storefront" && storefrontOrderId) {
+      return json({
+        error: "storefront_mirror_order",
+        message: "Esta licença veio da Loja Pública. Cancele pelo pedido da Loja para devolver saldo/Pack corretamente.",
+        storefront_order_id: storefrontOrderId,
+        storefront_short_code: notesObj?.storefront_short_code ?? null,
+      }, 409);
+    }
+  }
 
   if (sale.is_legacy) {
     return json({ error: "legacy_sale", message: "Venda legado não pode ser cancelada." }, 409);
