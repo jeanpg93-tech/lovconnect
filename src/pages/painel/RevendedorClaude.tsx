@@ -705,19 +705,29 @@ Qualquer dúvida, é só chamar!`
                     {h.status === "failed" && h.error_message && (
                       <div className="mt-2 text-[10px] text-rose-500/90 line-clamp-2">{h.error_message}</div>
                     )}
-                    {canCancel && h.status === "issued" && h.provider_key_id && (
-                      <div className="mt-2 flex justify-end">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 px-2 text-[11px] text-rose-500 hover:bg-rose-500/10 hover:text-rose-400"
-                          onClick={() => setCancelTarget(h)}
-                        >
-                          <Ban className="mr-1 h-3 w-3" /> Cancelar venda
-                        </Button>
-                      </div>
-                    )}
+                    {(() => {
+                      if (!canCancel || !h.provider_key_id) return null;
+                      if (!["issued", "redeemed"].includes(h.status)) return null;
+                      const ageMs = Date.now() - new Date(h.created_at).getTime();
+                      const daysLeft = Math.max(0, 7 - Math.floor(ageMs / 86_400_000));
+                      if (daysLeft <= 0) return null;
+                      return (
+                        <div className="mt-2 flex items-center justify-end gap-2">
+                          <span className="text-[10px] text-muted-foreground">
+                            {daysLeft === 1 ? "Último dia p/ cancelar" : `${daysLeft} dias p/ cancelar`}
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-[11px] text-rose-500 hover:bg-rose-500/10 hover:text-rose-400"
+                            onClick={() => setCancelTarget(h)}
+                          >
+                            <Ban className="mr-1 h-3 w-3" /> Cancelar venda
+                          </Button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
