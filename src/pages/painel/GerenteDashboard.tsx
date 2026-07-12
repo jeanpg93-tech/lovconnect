@@ -1278,7 +1278,14 @@ export default function GerenteDashboard() {
                                             {isPlanSale ? <CalendarClock className="h-2.5 w-2.5" /> : <StoreIcon className="h-2.5 w-2.5" />} {isPlanSale ? (desc.replace(/^venda\s*loja:\s*(plano\s+)?/i, "").trim() || "Plano") : isMensalista ? "Licença" : isPack ? "Licença" : isCreditPurchase ? "Recargas" : "Extensão"}
                                           </span>
                                            <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isPlanSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : isMensalista ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isPack ? "bg-indigo-500/15 text-indigo-500 border-indigo-500/30" : isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isStoreSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"}`}>
-                                             {isPlanSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : isMensalista ? <>♻ Mensalista</> : isPack ? <>📦 Pack</> : isApiOrder ? <><Zap className="h-2.5 w-2.5" /> API</> : isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}
+                                              {isPlanSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : isMensalista || isPack ? (
+                                                (() => {
+                                                  const org = (m as any).origin as ("loja" | "api" | "manual" | undefined);
+                                                  const prefix = isPack ? "📦 Pacote" : "♻ Mensalista";
+                                                  const originLbl = org === "loja" ? "Loja" : org === "api" ? "API" : "Manual";
+                                                  return <>{prefix} • {originLbl}</>;
+                                                })()
+                                              ) : isApiOrder ? <><Zap className="h-2.5 w-2.5" /> API</> : isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}
                                            </span>
                                         </>
                                       ) : (
