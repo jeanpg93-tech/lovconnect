@@ -61,7 +61,8 @@ Deno.serve(async (req) => {
       resellerId = reseller?.id ?? null;
     } else {
       if (!reseller) return json({ error: 'reseller_not_found' }, 404);
-      if (!reseller.claude_enabled) return json({ error: 'claude_not_enabled' }, 403);
+      // Teste grátis é liberado para todos os revendedores (não debita saldo).
+      // A flag claude_enabled controla apenas a venda paga.
       resellerId = reseller.id;
     }
 
