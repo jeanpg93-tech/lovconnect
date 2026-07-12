@@ -115,6 +115,42 @@ export default function GerenteAcoesEspeciais() {
     recharge_bonus_pct: 0,
   });
 
+  // Preço base de adesão (novos revendedores)
+  const [activationBaseReais, setActivationBaseReais] = useState<string>("300,00");
+  const [activationBaseLoading, setActivationBaseLoading] = useState(true);
+  const [activationBaseSaving, setActivationBaseSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      setActivationBaseLoading(true);
+      const { data } = await supabase
+        .from("app_settings").select("value").eq("key", "activation_base_cents").maybeSingle();
+      const raw: any = (data as any)?.value;
+      const cents = Number(typeof raw === "number" ? raw : Number(raw));
+      const c = Number.isFinite(cents) && cents >= 100 ? cents : 30000;
+      setActivationBaseReais((c / 100).toFixed(2).replace(".", ","));
+      setActivationBaseLoading(false);
+    })();
+  }, []);
+
+  const saveActivationBase = async () => {
+    const normalized = activationBaseReais.replace(/\./g, "").replace(",", ".");
+    const reais = Number(normalized);
+    if (!Number.isFinite(reais) || reais < 1) {
+      toast.error("Valor inválido. Mínimo R$ 1,00");
+      return;
+    }
+    const cents = Math.round(reais * 100);
+    setActivationBaseSaving(true);
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ key: "activation_base_cents", value: cents as any, is_public: true }, { onConflict: "key" });
+    setActivationBaseSaving(false);
+    if (error) { toast.error("Erro ao salvar: " + error.message); return; }
+    toast.success(`Preço base atualizado para R$ ${(cents / 100).toFixed(2).replace(".", ",")}`);
+    setActivationBaseReais((cents / 100).toFixed(2).replace(".", ","));
+  };
+
   // Promoções
   const [loadingPromos, setLoadingPromos] = useState(true);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -230,6 +266,40 @@ export default function GerenteAcoesEspeciais() {
           <Plus className="h-4 w-4" /> Nova promoção
         </Button>
       </div>
+
+      {/* === PREÇO BASE DE ADESÃO === */}
+      <Card className="border-primary/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Tag className="h-4 w-4 text-primary" />
+            Preço base de adesão (novos revendedores)
+          </CardTitle>
+          <CardDescription>
+            Valor cobrado na ativação do painel. Promoções ativas são aplicadas sobre este valor.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="flex-1 max-w-xs">
+            <Label htmlFor="activation-base">Valor em R$</Label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
+              <Input
+                id="activation-base"
+                className="pl-10"
+                value={activationBaseReais}
+                onChange={(e) => setActivationBaseReais(e.target.value)}
+                disabled={activationBaseLoading || activationBaseSaving}
+                inputMode="decimal"
+                placeholder="300,00"
+              />
+            </div>
+          </div>
+          <Button onClick={saveActivationBase} disabled={activationBaseLoading || activationBaseSaving} className="gap-2">
+            {activationBaseSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Salvar preço base
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* === PROMOÇÕES ATIVAS === */}
       <section className="space-y-3">

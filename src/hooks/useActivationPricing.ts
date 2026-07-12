@@ -11,7 +11,22 @@ export type ActivationPricing = {
   hasBonus: boolean;
 };
 
-const BASE_CENTS = 30000;
+const DEFAULT_BASE_CENTS = 30000;
+
+export async function fetchActivationBaseCents(): Promise<number> {
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "activation_base_cents")
+      .maybeSingle();
+    const raw = (data as any)?.value;
+    const n = typeof raw === "number" ? raw : Number(raw);
+    return Number.isFinite(n) && n >= 100 ? Math.round(n) : DEFAULT_BASE_CENTS;
+  } catch {
+    return DEFAULT_BASE_CENTS;
+  }
+}
 
 /**
  * Calcula o preço da adesão considerando a promoção ativa.
@@ -21,35 +36,33 @@ export function useActivationPricing(): ActivationPricing | null {
   const [pricing, setPricing] = useState<ActivationPricing | null>(null);
   useEffect(() => {
     let alive = true;
-    // A promoção de adesão é decidida no servidor por compute_activation_pricing.
-    // Sempre consultamos a RPC para refletir o mesmo preço que o backend cobra,
-    // independentemente do billing_mode do revendedor.
     (async () => {
+      const baseCents = await fetchActivationBaseCents();
       try {
         const { data, error } = await supabase.rpc("compute_activation_pricing", {
-          _base_cents: BASE_CENTS,
+          _base_cents: baseCents,
         });
         if (!alive) return;
         const row: any = Array.isArray(data) ? data[0] : data;
-        const finalC = Number(row?.final_price_cents ?? BASE_CENTS);
+        const finalC = Number(row?.final_price_cents ?? baseCents);
         const bonusC = Number(row?.bonus_cents ?? 0);
         const promo = row?.promotion_id ?? null;
         setPricing({
-          basePriceCents: BASE_CENTS,
-          finalPriceCents: error ? BASE_CENTS : finalC,
+          basePriceCents: baseCents,
+          finalPriceCents: error ? baseCents : finalC,
           bonusCents: error ? 0 : bonusC,
-          balanceCreditCents: error ? BASE_CENTS : finalC + bonusC,
+          balanceCreditCents: error ? baseCents : finalC + bonusC,
           promotionId: error ? null : promo,
-          hasDiscount: !error && finalC < BASE_CENTS,
+          hasDiscount: !error && finalC < baseCents,
           hasBonus: !error && bonusC > 0,
         });
       } catch {
         if (!alive) return;
         setPricing({
-          basePriceCents: BASE_CENTS,
-          finalPriceCents: BASE_CENTS,
+          basePriceCents: baseCents,
+          finalPriceCents: baseCents,
           bonusCents: 0,
-          balanceCreditCents: BASE_CENTS,
+          balanceCreditCents: baseCents,
           promotionId: null,
           hasDiscount: false,
           hasBonus: false,
