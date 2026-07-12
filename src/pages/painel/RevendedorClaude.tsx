@@ -249,6 +249,11 @@ export default function RevendedorClaude() {
       const msg = (data as any)?.error ?? (error as any)?.message ?? "Falha ao cancelar";
       if (msg === "already_redeemed") {
         toast.error("Chave já foi resgatada pelo cliente — cancelamento não é mais possível pelo fornecedor.");
+      } else if (msg === "refund_window_expired") {
+        toast.error(
+          (data as any)?.message ?? "Prazo de 7 dias para cancelamento com estorno já expirou. Fale com o suporte.",
+          { duration: 8000 },
+        );
       } else {
         toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
       }
@@ -256,7 +261,12 @@ export default function RevendedorClaude() {
       loadAll();
       return;
     }
-    toast.success(`Chave cancelada. Estorno: ${fmtBRL(data?.refund_cents ?? 0)}`);
+    const blocked = (data as any)?.account_blocked;
+    toast.success(
+      `Chave cancelada. Estorno: ${fmtBRL(data?.refund_cents ?? 0)}` +
+      (blocked ? " • Conta do cliente foi bloqueada no provedor." : ""),
+      { duration: blocked ? 8000 : 4000 },
+    );
     setCancelTarget(null);
     loadAll();
   };
