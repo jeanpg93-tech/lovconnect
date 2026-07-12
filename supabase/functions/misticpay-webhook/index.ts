@@ -767,11 +767,22 @@ Deno.serve(async (req) => {
 
       if (directSale) {
         if (directSale.status === "paid") return json({ ok: true, already: true });
+        if (isClosedLocalStatus(directSale.status)) {
+          return json({ ok: true, ignored: "local_payment_closed", kind: "direct_sale" });
+        }
         
         // MisticPay status check - common values are "COMPLETO", "PAID", or "SUCCESS"
-        const isPaid = status === "COMPLETO" || status === "PAID" || status === "SUCCESS";
+        const isPaid = isPaidStatus(status);
         
         if (isPaid) {
+          if (isOlderThanMinutes((directSale as any).created_at, paidAt, 30)) {
+            await admin.from("direct_sales").update({
+              status: "expired",
+              updated_at: paidAt,
+              raw_response: payload,
+            }).eq("id", directSale.id).eq("status", "pending");
+            return json({ ok: true, ignored: "pix_expired", kind: "direct_sale" });
+          }
           // Confirma com a API da MisticPay
           const { ci: mci, cs: mcs } = await getManagerMisticCreds(admin);
           const ok = await verifyTx(mci, mcs, txId, null);
@@ -790,7 +801,7 @@ Deno.serve(async (req) => {
           return json({ ok: true, kind: "direct_sale" });
         }
 
-        if (status === "FALHA" || status === "CANCELADO" || status === "FAILED") {
+        if (isProviderFailureStatus(status)) {
           await admin.from("direct_sales").update({ status: "failed" }).eq("id", directSale.id);
           return json({ ok: true });
         }
