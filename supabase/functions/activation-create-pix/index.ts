@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const MISTIC_BASE = "https://api.misticpay.com/api";
-const ACTIVATION_BASE_CENTS = 30000;
+const DEFAULT_ACTIVATION_BASE_CENTS = 30000;
 const PIX_TTL_MINUTES = 30;
 
 function json(body: unknown, status = 200) {
@@ -34,6 +34,16 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Preço base configurável em app_settings (chave: activation_base_cents)
+    let ACTIVATION_BASE_CENTS = DEFAULT_ACTIVATION_BASE_CENTS;
+    try {
+      const { data: cfg } = await admin
+        .from("app_settings").select("value").eq("key", "activation_base_cents").maybeSingle();
+      const raw: any = (cfg as any)?.value;
+      const n = typeof raw === "number" ? raw : Number(raw);
+      if (Number.isFinite(n) && n >= 100) ACTIVATION_BASE_CENTS = Math.round(n);
+    } catch (_) { /* usa default */ }
 
     const { data: reseller } = await admin
       .from("resellers")
