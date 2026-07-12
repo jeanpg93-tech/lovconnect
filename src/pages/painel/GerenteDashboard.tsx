@@ -251,7 +251,7 @@ export default function GerenteDashboard() {
     // em balance_transactions. Buscamos separadamente para mesclar no feed.
     const { data: subOrdersData } = await supabase
       .from("orders")
-      .select("id, created_at, reseller_id, license_type, status, notes, license_key")
+      .select("id, created_at, reseller_id, license_type, status, notes, license_key, api_key_id")
       .in("status", ["completed", "revoked", "deleted"])
       .or(
         "notes.ilike.%\"billing_mode\":\"subscription\"%,notes.ilike.%\"billing_mode\":\"pack\"%"
