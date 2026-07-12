@@ -52,6 +52,12 @@ async function enqueuePlanWebhook(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // Only the internal scheduler (with the service-role key) may invoke this cron.
+  const auth = req.headers.get("Authorization") ?? "";
+  const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!svcKey || auth !== `Bearer ${svcKey}`) {
+    return json({ error: "unauthorized" }, 401);
+  }
   try {
     const db = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",

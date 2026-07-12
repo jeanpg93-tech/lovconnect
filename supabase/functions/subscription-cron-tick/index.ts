@@ -32,6 +32,14 @@ function nextOccurrence(fromIso: string, dom: number): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // Only the internal scheduler (with the service-role key) may invoke this cron.
+  const auth = req.headers.get("Authorization") ?? "";
+  if (!serviceKey || auth !== `Bearer ${serviceKey}`) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const admin = createClient(supabaseUrl, serviceKey);
   const today = todayBRT();
