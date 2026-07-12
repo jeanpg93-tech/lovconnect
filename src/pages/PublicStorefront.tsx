@@ -288,7 +288,7 @@ export default function PublicStorefront() {
       setStore(s as any);
 
       const { data: pl } = await supabase
-        .from("pricing_plans")
+        .from("pricing_plans_public" as any)
         .select("license_type, label, price_cents, customer_price_cents, is_active")
         .eq("is_active", true);
       const sortedPlans = ((pl ?? []) as Plan[]).slice().sort(

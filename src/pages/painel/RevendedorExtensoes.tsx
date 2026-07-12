@@ -94,7 +94,7 @@ export default function RevendedorExtensoes({ extensionId = null }: Props = {}) 
 
     const [{ data: pl }, { data: ov }, { data: tierData }, { data: tep }, { data: pov }] = await Promise.all([
       supabase
-        .from("pricing_plans")
+        .from("pricing_plans_public" as any)
         .select("license_type,label,price_cents,is_active")
         .eq("is_active", true),
       ovQuery,
