@@ -1183,6 +1183,20 @@ export default function GerenteDashboard() {
                        mensalista_license: "Mensalista — Licença",
                        pack_license: "Pack — Licença",
                        recharge_plan_storefront: "Plano de Recargas",
+                       pack_payment: "Pagamento de Pacote",
+                       subscription_payment: "Pagamento de Mensalidade",
+                       referral_commission: "Comissão de Indicação",
+                       affiliate_bonus: "Bônus de Indicação",
+                       activation_bonus: "Bônus de Ativação",
+                       manual_debit: "Débito Manual",
+                       adjustment_debit: "Ajuste Manual (Débito)",
+                       diagnostic_refund: "Estorno de Diagnóstico",
+                       claude_key_issue: "Venda Claude",
+                       claude_key_refund: "Estorno Claude",
+                       claude_key_issue_refund: "Estorno Claude",
+                       claude_refund: "Estorno Claude",
+                       recharge_plan_manual: "Plano de Recargas (Manual)",
+                       pack_refund_correction_wallet_debit: "Correção de Estorno de Pack",
                     };
                     return groups.map((g) => (
                       <div key={g.label} className="space-y-2">
