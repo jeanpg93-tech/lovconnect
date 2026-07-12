@@ -16,6 +16,7 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { PendingProfileGate } from "@/components/PendingProfileGate";
 import { ActivationBanner } from "@/components/activation/ActivationBanner";
 import { ActivationLockOverlay } from "@/components/activation/ActivationLockOverlay";
+import { ActivationCelebration } from "@/components/activation/ActivationCelebration";
 import { useActivation } from "@/hooks/useActivation";
 import { SubscriptionLockOverlay } from "@/components/subscription/SubscriptionLockOverlay";
 import { FirstAccessGate } from "@/components/FirstAccessGate";
@@ -189,6 +190,9 @@ export default function AppLayout() {
         <MobileNav />
           <NotificationCenter />
           {primaryRole === "revendedor" && <OnboardingTour />}
+          {primaryRole === "revendedor" && (
+            <ActivationCelebration userId={user.id} status={activationStatus} />
+          )}
       </div>
       </OnboardingTourProvider>
       </FirstAccessGate>
