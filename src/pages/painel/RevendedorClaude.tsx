@@ -878,7 +878,9 @@ Qualquer dúvida, é só chamar!`
               <Ban className="h-5 w-5 text-rose-500" /> Cancelar venda Claude
             </DialogTitle>
             <DialogDescription>
-              A chave será revogada no fornecedor e o valor debitado voltará ao seu saldo.
+              {cancelTarget?.status === "redeemed"
+                ? "A conta do cliente será BLOQUEADA no provedor e o valor debitado voltará ao seu saldo."
+                : "A chave será revogada no fornecedor e o valor debitado voltará ao seu saldo."}
             </DialogDescription>
           </DialogHeader>
 
@@ -902,8 +904,11 @@ Qualquer dúvida, é só chamar!`
           <div className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-600">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>
-              O cliente perderá o acesso imediatamente. Se o fornecedor recusar o cancelamento
-              (ex.: janela expirada), nada é debitado e a chave continua ativa.
+              {cancelTarget?.status === "redeemed" ? (
+                <>A conta do cliente será suspensa imediatamente no provedor e o estorno cai na sua carteira. Só é permitido dentro dos <strong>7 dias</strong> da compra.</>
+              ) : (
+                <>O cliente perderá o acesso imediatamente. Se o fornecedor recusar (ex.: janela de 7 dias expirada), nada é estornado e a chave continua ativa.</>
+              )}
             </span>
           </div>
 
