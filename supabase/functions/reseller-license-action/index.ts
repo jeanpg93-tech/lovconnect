@@ -54,14 +54,19 @@ Deno.serve(async (req) => {
     .select("id, is_active").eq("user_id", userId).maybeSingle();
   if (!reseller || !reseller.is_active) return json({ error: "Reseller inativo" }, 403);
 
+  // Nota: a tabela `orders` NÃO tem coluna `delivery_source` (só `resellers` e
+  // `storefront_orders` têm). Selecionar aqui quebra o PostgREST e faz a ação
+  // do painel falhar para TODOS os revendedores. `detectPackOrigin` já cai no
+  // fallback via `notes.delivery_source` quando o campo direto não existe.
+  const SELECT_COLS = "id, reseller_id, license_key, status, is_legacy, is_test, license_type, notes";
   let q = svc.from("orders")
-    .select("id, reseller_id, license_key, status, is_legacy, is_test, license_type, notes, delivery_source")
+    .select(SELECT_COLS)
     .eq("license_key", license_key)
     .eq("reseller_id", reseller.id)
     .order("created_at", { ascending: false })
     .limit(1);
   if (order_id) q = svc.from("orders")
-    .select("id, reseller_id, license_key, status, is_legacy, is_test, license_type, notes, delivery_source")
+    .select(SELECT_COLS)
     .eq("id", order_id)
     .eq("reseller_id", reseller.id)
     .limit(1);
