@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { usePendingStorefrontCharges } from "@/hooks/usePendingStorefrontCharges";
 import { CancelSaleDialog, type CancelSaleTarget } from "@/components/painel/CancelSaleDialog";
+import OriginBadge, { readOriginFromNotes, readOriginFromRow } from "@/components/painel/OriginBadge";
 
 type Plan = { license_type: string; label: string; price_cents: number; cost_cents: number; min_price_cents?: number; is_active: boolean };
 type MethodId = "flow" | "lovax";
@@ -57,6 +58,7 @@ type TierState = { total_spent_cents: number } | null;
 type Order = {
   id: string; license_type: string; price_cents: number; status: string;
   license_key: string | null; created_at: string; is_test: boolean;
+  notes?: string | null;
   customer?: { display_name: string | null; whatsapp: string | null } | null;
   cancellation_status?: string | null;
   key_revoked_at?: string | null;
@@ -253,6 +255,18 @@ export default function RevendedorPedidos() {
 
   const onlyDigits = (s: string) => s.replace(/\D+/g, "");
 
+  const parseOrderNotes = (notes?: string | null): any | null => {
+    if (!notes) return null;
+    try { return JSON.parse(notes); } catch { return null; }
+  };
+
+  const getStorefrontMirrorId = (o: Order): string | null => {
+    const n = parseOrderNotes(o.notes);
+    return n?.source === "storefront" && typeof n?.storefront_order_id === "string"
+      ? n.storefront_order_id
+      : null;
+  };
+
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Minhas Licenças — listagem completa (toggle "Ver todas")
@@ -284,6 +298,8 @@ export default function RevendedorPedidos() {
     client_refunded_at?: string | null;
     client_refund_method?: string | null;
     balance_refunded_at?: string | null;
+    delivery_source?: string | null;
+    fallback_from_pack?: boolean | null;
   };
   const [storefrontLicenses, setStorefrontLicenses] = useState<StorefrontLicRow[]>([]);
   const [licOriginFilter, setLicOriginFilter] = useState<"all" | "manual" | "loja">("all");
@@ -303,7 +319,7 @@ export default function RevendedorPedidos() {
   const loadStorefrontLicenses = async (rid: string) => {
     const { data } = await supabase
       .from("storefront_orders")
-      .select("id,short_code,status,license_key,license_type,price_cents,cost_cents,paid_at,created_at,buyer_name,buyer_whatsapp,error_message,product_type,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at")
+      .select("id,short_code,status,license_key,license_type,price_cents,cost_cents,paid_at,created_at,buyer_name,buyer_whatsapp,error_message,product_type,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at,delivery_source,fallback_from_pack")
       .eq("reseller_id", rid)
       .neq("product_type", "credits")
       .order("created_at", { ascending: false })
@@ -354,8 +370,12 @@ export default function RevendedorPedidos() {
   const refundSaleBalance = async (
     saleId: string,
     saleType: "storefront" | "manual",
+    refundTarget: "wallet" | "pack" = "wallet",
   ) => {
-    if (!confirm("Devolver o valor desta venda para o seu saldo do painel?")) return;
+    const confirmMsg = refundTarget === "pack"
+      ? "Devolver 1 licença desta venda para o seu Pack?"
+      : "Devolver o valor desta venda para o seu saldo do painel?";
+    if (!confirm(confirmMsg)) return;
     setRefundingBalanceId(saleId);
     try {
       const { data, error } = await supabase.functions.invoke("refund-sale-balance", {
@@ -363,7 +383,7 @@ export default function RevendedorPedidos() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).message ?? (data as any).error);
-      toast.success("Saldo devolvido ao painel.");
+      toast.success((data as any)?.refunded_pack_credits ? "Licença devolvida ao Pack." : "Saldo devolvido ao painel.");
       if (resellerId) {
         loadStorefrontLicenses(resellerId);
         if (allOrders) loadAllOrders(); else load();
@@ -1059,9 +1079,14 @@ export default function RevendedorPedidos() {
         type UnifiedItem =
           | { key: string; origin: "manual"; created_at: string; manual: Order }
           | { key: string; origin: "loja"; created_at: string; loja: StorefrontLicRow };
-        const manualSrc = exactSearchOrder && !(allOrders ?? orders).some((o) => o.id === exactSearchOrder.id)
+        const storefrontIds = new Set(storefrontLicenses.map((o) => o.id));
+        const manualBase = exactSearchOrder && !(allOrders ?? orders).some((o) => o.id === exactSearchOrder.id)
           ? [exactSearchOrder, ...(allOrders ?? orders)]
           : (allOrders ?? orders);
+        const manualSrc = manualBase.filter((o) => {
+          const storefrontMirrorId = getStorefrontMirrorId(o);
+          return !storefrontMirrorId || !storefrontIds.has(storefrontMirrorId);
+        });
         const items: UnifiedItem[] = [
           ...manualSrc.map<UnifiedItem>((o) => ({
             key: `m:${o.id}`, origin: "manual", created_at: o.created_at, manual: o,
@@ -1202,6 +1227,7 @@ export default function RevendedorPedidos() {
                     const licenseType = isManual ? o!.license_type : l!.license_type;
                     const status = isManual ? o!.status : l!.status;
                     const isLojaPending = !isManual && (l!.status === "pending" || l!.status === "awaiting_balance") && !l!.paid_at;
+                    const paymentOrigin = isManual ? readOriginFromNotes(o!.notes) : readOriginFromRow(l!);
                     const originBadge = isManual ? (
                       <Badge variant="outline" className="text-[9px] font-bold uppercase border-blue-500/30 bg-blue-500/10 text-blue-500">
                         Manual
@@ -1216,6 +1242,7 @@ export default function RevendedorPedidos() {
                         pending: { label: "Aguardando PIX", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
                         awaiting_balance: { label: "Aguardando saldo", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
                         paid: { label: "Pago", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
+                        completed: { label: "Entregue", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
                         delivered: { label: "Entregue", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
                         failed: { label: "Falhou", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
                         cancelado: { label: "Cancelado", cls: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
@@ -1229,6 +1256,7 @@ export default function RevendedorPedidos() {
                         <div className="flex-1 min-w-[200px] space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             {originBadge}
+                            {paymentOrigin !== "unknown" && <OriginBadge origin={paymentOrigin} size="xs" />}
                             <code className="font-mono text-[11px] font-bold text-foreground truncate max-w-[240px]">
                               {licenseKey ?? "—"}
                             </code>
@@ -1347,7 +1375,7 @@ export default function RevendedorPedidos() {
                           </Button>
                         )}
                         {/* Cancelamento pós-pagamento (Loja) */}
-                        {!isManual && (l!.status === "paid" || l!.status === "delivered") &&
+                        {!isManual && ["paid", "delivered", "completed"].includes(l!.status) &&
                           (!l!.cancellation_status || l!.cancellation_status === "none") && (
                           <Button
                             size="sm"
@@ -1359,7 +1387,7 @@ export default function RevendedorPedidos() {
                           </Button>
                         )}
                         {/* Cancelamento pós-entrega (Manual/API) */}
-                        {isManual && o!.status === "completed" && !o!.is_test &&
+                        {isManual && o!.status === "completed" && !o!.is_test && !getStorefrontMirrorId(o!) &&
                           (!o!.cancellation_status || o!.cancellation_status === "none") && (
                           <Button
                             size="sm"
@@ -1392,7 +1420,7 @@ export default function RevendedorPedidos() {
                             });
                           }
                           if (cs === "balance_refunded") {
-                            tags.push({ label: "Saldo estornado", cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500" });
+                            tags.push({ label: paymentOrigin === "pack" ? "Pack estornado" : "Saldo estornado", cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500" });
                           }
                           return (
                             <>
@@ -1409,17 +1437,18 @@ export default function RevendedorPedidos() {
                           const cs = (isManual ? o!.cancellation_status : l!.cancellation_status) ?? "none";
                           if (cs !== "client_refunded") return null;
                           const sid = isManual ? o!.id : l!.id;
+                          const refundTarget = paymentOrigin === "pack" ? "pack" : "wallet";
                           return (
                             <Button
                               size="sm"
                               className="h-7 px-2 text-[10px] font-bold bg-emerald-500 text-white hover:bg-emerald-600"
                               disabled={refundingBalanceId === sid}
-                              onClick={() => refundSaleBalance(sid, isManual ? "manual" : "storefront")}
+                              onClick={() => refundSaleBalance(sid, isManual ? "manual" : "storefront", refundTarget)}
                             >
                               {refundingBalanceId === sid ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
                               ) : (
-                                <><Wallet className="h-3 w-3 mr-1" /> Devolver ao saldo</>
+                                <><Wallet className="h-3 w-3 mr-1" /> {refundTarget === "pack" ? "Devolver ao Pack" : "Devolver ao saldo"}</>
                               )}
                             </Button>
                           );
