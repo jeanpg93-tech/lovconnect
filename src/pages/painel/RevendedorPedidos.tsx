@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { usePendingStorefrontCharges } from "@/hooks/usePendingStorefrontCharges";
 import { CancelSaleDialog, type CancelSaleTarget } from "@/components/painel/CancelSaleDialog";
+import OriginBadge, { readOriginFromNotes, readOriginFromRow } from "@/components/painel/OriginBadge";
 
 type Plan = { license_type: string; label: string; price_cents: number; cost_cents: number; min_price_cents?: number; is_active: boolean };
 type MethodId = "flow" | "lovax";
@@ -57,6 +58,7 @@ type TierState = { total_spent_cents: number } | null;
 type Order = {
   id: string; license_type: string; price_cents: number; status: string;
   license_key: string | null; created_at: string; is_test: boolean;
+  notes?: string | null;
   customer?: { display_name: string | null; whatsapp: string | null } | null;
   cancellation_status?: string | null;
   key_revoked_at?: string | null;
@@ -284,6 +286,8 @@ export default function RevendedorPedidos() {
     client_refunded_at?: string | null;
     client_refund_method?: string | null;
     balance_refunded_at?: string | null;
+    delivery_source?: string | null;
+    fallback_from_pack?: boolean | null;
   };
   const [storefrontLicenses, setStorefrontLicenses] = useState<StorefrontLicRow[]>([]);
   const [licOriginFilter, setLicOriginFilter] = useState<"all" | "manual" | "loja">("all");
@@ -303,7 +307,7 @@ export default function RevendedorPedidos() {
   const loadStorefrontLicenses = async (rid: string) => {
     const { data } = await supabase
       .from("storefront_orders")
-      .select("id,short_code,status,license_key,license_type,price_cents,cost_cents,paid_at,created_at,buyer_name,buyer_whatsapp,error_message,product_type,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at")
+      .select("id,short_code,status,license_key,license_type,price_cents,cost_cents,paid_at,created_at,buyer_name,buyer_whatsapp,error_message,product_type,cancellation_status,key_revoked_at,client_refunded_at,client_refund_method,balance_refunded_at,delivery_source,fallback_from_pack")
       .eq("reseller_id", rid)
       .neq("product_type", "credits")
       .order("created_at", { ascending: false })
@@ -354,8 +358,12 @@ export default function RevendedorPedidos() {
   const refundSaleBalance = async (
     saleId: string,
     saleType: "storefront" | "manual",
+    refundTarget: "wallet" | "pack" = "wallet",
   ) => {
-    if (!confirm("Devolver o valor desta venda para o seu saldo do painel?")) return;
+    const confirmMsg = refundTarget === "pack"
+      ? "Devolver 1 licença desta venda para o seu Pack?"
+      : "Devolver o valor desta venda para o seu saldo do painel?";
+    if (!confirm(confirmMsg)) return;
     setRefundingBalanceId(saleId);
     try {
       const { data, error } = await supabase.functions.invoke("refund-sale-balance", {
@@ -363,7 +371,7 @@ export default function RevendedorPedidos() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).message ?? (data as any).error);
-      toast.success("Saldo devolvido ao painel.");
+      toast.success((data as any)?.refunded_pack_credits ? "Licença devolvida ao Pack." : "Saldo devolvido ao painel.");
       if (resellerId) {
         loadStorefrontLicenses(resellerId);
         if (allOrders) loadAllOrders(); else load();
