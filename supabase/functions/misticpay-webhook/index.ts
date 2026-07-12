@@ -61,6 +61,38 @@ async function recordMisticPayFee(
   }
 }
 
+function isPaidStatus(status: string): boolean {
+  return status === "COMPLETO" || status === "PAID" || status === "SUCCESS";
+}
+
+function isProviderFailureStatus(status: string): boolean {
+  return status === "FALHA" || status === "CANCELADO" || status === "FAILED";
+}
+
+function isClosedLocalStatus(status: unknown): boolean {
+  const s = String(status ?? "").toLowerCase();
+  return [
+    "expired",
+    "expirado",
+    "cancelled",
+    "canceled",
+    "cancelado",
+    "failed",
+    "falha",
+    "refunded",
+    "estornado",
+  ].includes(s);
+}
+
+function isPastDue(iso: unknown, nowIso: string): boolean {
+  return !!iso && new Date(String(iso)).getTime() < new Date(nowIso).getTime();
+}
+
+function isOlderThanMinutes(iso: unknown, nowIso: string, minutes: number): boolean {
+  if (!iso) return false;
+  return new Date(String(iso)).getTime() + minutes * 60_000 < new Date(nowIso).getTime();
+}
+
 /**
  * Lança automaticamente a RECEITA de uma venda feita na "Loja do Gerente" (LovaStore).
  * A conta considerada como loja própria fica em app_settings.manager_reseller_id.
