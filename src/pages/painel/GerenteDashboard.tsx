@@ -669,6 +669,14 @@ export default function GerenteDashboard() {
         const statusLower = String(o.status ?? "").toLowerCase();
         const isRevoked = statusLower === "revoked" || statusLower === "deleted";
         const baseDetail = `Licença ${methodLbl}${packLbl ? " • " + packLbl : ""}`;
+        // Origem da venda: Loja (storefront) / API / Manual (gerada no painel)
+        const sourceStr = String(parsedNotes?.source ?? "").toLowerCase();
+        const origin: "loja" | "api" | "manual" =
+          sourceStr === "storefront" || parsedNotes?.storefront_order_id
+            ? "loja"
+            : o.api_key_id
+              ? "api"
+              : "manual";
         return {
           id: `${billingMode}:${o.id}`,
           created_at: o.created_at,
@@ -691,6 +699,7 @@ export default function GerenteDashboard() {
           promotion_discount_cents: null,
           recharge_base_cents: null,
           recharge_bonus_cents: null,
+          origin,
         };
       }),
       ].sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at))),
