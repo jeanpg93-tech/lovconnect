@@ -13,8 +13,8 @@ interface Props {
 export function ActivationBanner({ status }: Props) {
   const [open, setOpen] = useState(false);
   const pricing = useActivationPricing();
-  const finalLabel = pricing ? formatBRL(pricing.finalPriceCents) : "R$ 200";
-  const baseLabel = pricing ? formatBRL(pricing.basePriceCents) : "R$ 200";
+  const finalLabel = pricing ? formatBRL(pricing.finalPriceCents) : "R$ 300";
+  const baseLabel = pricing ? formatBRL(pricing.basePriceCents) : "R$ 300";
   const promoTitle = pricing?.hasDiscount
     ? `Promo: ative por ${finalLabel} (de ${baseLabel})`
     : `Ative seu painel de revendedor — ${finalLabel}`;

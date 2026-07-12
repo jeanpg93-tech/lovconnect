@@ -37,25 +37,25 @@ Deno.serve(async (req) => {
 
     if (!payment) {
       // Pricing dinâmico com promoção de adesão (se houver)
-      let finalCents = 20000;
+      let finalCents = 30000;
       let bonusCents = 0;
       let promotionId: string | null = null;
       const eligibleForPromo = (reseller as any).billing_mode === "normal" || !(reseller as any).billing_mode;
       if (eligibleForPromo) try {
-        const { data: pricing } = await admin.rpc("compute_activation_pricing", { _base_cents: 20000 });
+        const { data: pricing } = await admin.rpc("compute_activation_pricing", { _base_cents: 30000 });
         const row: any = Array.isArray(pricing) ? pricing[0] : pricing;
         if (row) {
-          finalCents = Number(row.final_price_cents ?? 20000);
+          finalCents = Number(row.final_price_cents ?? 30000);
           bonusCents = Number(row.bonus_cents ?? 0);
           promotionId = row.promotion_id ?? null;
         }
       } catch (e) { console.warn("compute_activation_pricing fallback:", e); }
-      if (!Number.isFinite(finalCents) || finalCents < 100) finalCents = 20000;
+      if (!Number.isFinite(finalCents) || finalCents < 100) finalCents = 30000;
 
       const { data: created } = await admin.from("activation_payments").insert({
         reseller_id: reseller.id,
         amount_cents: finalCents,
-        original_amount_cents: 20000,
+        original_amount_cents: 30000,
         bonus_cents: bonusCents,
         promotion_id: promotionId,
         status: "under_review",

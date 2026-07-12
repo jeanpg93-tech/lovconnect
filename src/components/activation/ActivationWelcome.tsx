@@ -93,10 +93,10 @@ export function ActivationWelcome({ embedded = false }: ActivationWelcomeProps =
     return <div className={`flex ${embedded ? "min-h-[300px]" : "min-h-screen"} items-center justify-center bg-background`}><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
 
-  const baseLabel = pricing ? formatBRL(pricing.basePriceCents) : "R$ 200,00";
-  const finalLabel = pricing ? formatBRL(pricing.finalPriceCents) : "R$ 200,00";
+  const baseLabel = pricing ? formatBRL(pricing.basePriceCents) : "R$ 300,00";
+  const finalLabel = pricing ? formatBRL(pricing.finalPriceCents) : "R$ 300,00";
   const bonusLabel = pricing && pricing.hasBonus ? formatBRL(pricing.bonusCents) : null;
-  const balanceLabel = pricing ? formatBRL(pricing.balanceCreditCents) : "R$ 200,00";
+  const balanceLabel = pricing ? formatBRL(pricing.balanceCreditCents) : "R$ 300,00";
   const isPromo = !!pricing?.hasDiscount || !!pricing?.hasBonus;
 
   return (

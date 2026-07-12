@@ -1026,8 +1026,8 @@ function PromotionDialog({ open, onOpenChange, editing, onSaved }: {
                       activationMode === "fixed"
                         ? Math.round(activationFixedReais * 100)
                         : activationMode === "pct"
-                          ? Math.max(0, 20000 - Math.round(20000 * activationPct / 100))
-                          : Math.max(0, 20000 - Math.round(activationDiscountReais * 100))
+                          ? Math.max(0, 30000 - Math.round(30000 * activationPct / 100))
+                          : Math.max(0, 30000 - Math.round(activationDiscountReais * 100))
                     )}
                   </span>
                 </div>
@@ -1274,8 +1274,8 @@ function PromotionSummary(props: {
       props.activationMode === "fixed"
         ? Math.round(props.activationFixedReais * 100)
         : props.activationMode === "pct"
-          ? Math.max(0, 20000 - Math.round(20000 * props.activationPct / 100))
-          : Math.max(0, 20000 - Math.round(props.activationDiscountReais * 100));
+          ? Math.max(0, 30000 - Math.round(30000 * props.activationPct / 100))
+          : Math.max(0, 30000 - Math.round(props.activationDiscountReais * 100));
     const modeLabel =
       props.activationMode === "pct" ? `${props.activationPct}% OFF` :
       props.activationMode === "amount" ? `R$ ${props.activationDiscountReais.toFixed(2)} OFF` :
