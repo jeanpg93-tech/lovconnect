@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
             user_id: m.user_id,
             type: "activation_proof",
             title: "Novo comprovante de ativação",
-            body: `${who} enviou um comprovante de pagamento R$ 200 para análise.`,
+            body: `${who} enviou um comprovante de pagamento para análise.`,
             link: "/painel/gerente/ativacoes",
           })),
         );
