@@ -68,7 +68,7 @@ function computeSale(cost: number, mode: MarkupMode, value: number) {
   return Math.max(0, value);
 }
 
-type PriceRow = { plan_code: PlanCode; sale_price_cents: number; is_active: boolean };
+type PriceRow = { plan_code: PlanCode; sale_price_cents: number; debit_cents: number; is_active: boolean };
 
 const PLAN_GRADIENTS: Record<PlanCode, string> = {
   "pro_30d": "from-emerald-500/20 via-emerald-500/5 to-transparent",
@@ -138,9 +138,23 @@ export default function RevendedorClaude() {
     const [{ data: def }, { data: ov }, { data: hist }, { data: bal }] = await Promise.all([
       supabase.from("claude_plan_prices_public" as any).select("plan_code, sale_price_cents, is_active"),
       supabase.from("claude_reseller_price_overrides").select("*").eq("reseller_id", r.id),
-      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, created_at, error_message, code, provider_key_id, customer_name, customer_whatsapp, customer_email").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(200),
+      supabase.from("claude_orders").select("id, plan_code, status, sale_price_cents, profit_cents, created_at, error_message, code, provider_key_id, customer_name, customer_whatsapp, customer_email").eq("reseller_id", r.id).order("created_at", { ascending: false }).limit(200),
       supabase.from("reseller_balances").select("balance_cents").eq("reseller_id", r.id).maybeSingle(),
     ]);
+
+    const activeCodes = ((def ?? []) as any[])
+      .filter((x: any) => x.is_active)
+      .map((x: any) => x.plan_code as PlanCode);
+    const tierCosts: Partial<Record<PlanCode, number>> = {};
+    await Promise.all(
+      activeCodes.map(async (pc) => {
+        const { data } = await supabase.rpc("get_reseller_claude_cost", {
+          _reseller_id: r.id,
+          _plan_code: pc,
+        });
+        if (typeof data === "number" && data > 0) tierCosts[pc] = data;
+      }),
+    );
 
     const merged: PriceRow[] = PLAN_ORDER
       .map((pc) => {
@@ -148,7 +162,7 @@ export default function RevendedorClaude() {
         if (!base || !base.is_active) return null;
         const override: any = (ov ?? []).find((x: any) => x.plan_code === pc && x.is_active);
         const sale = override ? override.sale_price_cents : base.sale_price_cents;
-        return { plan_code: pc, sale_price_cents: sale, is_active: true } as PriceRow;
+        return { plan_code: pc, sale_price_cents: sale, debit_cents: tierCosts[pc] ?? sale, is_active: true } as PriceRow;
       })
       .filter((x): x is PriceRow => x !== null);
     setPrices(merged);
@@ -261,7 +275,7 @@ export default function RevendedorClaude() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
       return toast.error("Informe um e-mail válido do cliente");
     }
-    if (balance < selected.sale_price_cents) return toast.error("Saldo insuficiente");
+    if (balance < selected.debit_cents) return toast.error("Saldo insuficiente");
     setConfirmChecks({ data: false, debit: false, once: false });
     setConfirmOpen(true);
   };
@@ -345,6 +359,7 @@ Qualquer dúvida, é só chamar!`
     ]);
   });
   const countBy = (s: string) => history.filter((h) => (h.status === "cancel_failed" ? "cancelled" : h.status) === s).length;
+  const orderDebitCents = (order: any) => Math.max(0, Number(order?.sale_price_cents ?? 0) - Number(order?.profit_cents ?? 0));
 
   return (
     <PageContainer>
@@ -447,7 +462,7 @@ Qualquer dúvida, é só chamar!`
                   <div className="relative mt-3">
                     <div className="font-display text-sm font-semibold">{PLAN_LABELS[p.plan_code]}</div>
                     <div className="text-[11px] text-muted-foreground">{PLAN_LIMITS[p.plan_code]}</div>
-                    <div className="mt-2 font-display text-base font-bold">{fmtBRL(p.sale_price_cents)}</div>
+                    <div className="mt-2 font-display text-base font-bold">{fmtBRL(p.debit_cents)}</div>
                   </div>
                   {active && (
                     <CheckCircle2 className="absolute bottom-2 right-2 h-4 w-4 text-primary animate-scale-in" />
@@ -528,7 +543,7 @@ Qualquer dúvida, é só chamar!`
               <><KeyRound className="mr-2 h-4 w-4" /> Gerar chave {selected && PLAN_LABELS[selected.plan_code]}</>
             )}
           </Button>
-          {selected && balance < selected.sale_price_cents && (
+          {selected && balance < selected.debit_cents && (
             <p className="mt-2 text-[11px] text-amber-500">
               Saldo insuficiente. Recarregue sua carteira para emitir este plano.
             </p>
@@ -670,7 +685,7 @@ Qualquer dúvida, é só chamar!`
                     </div>
                     <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
                       <span>{new Date(h.created_at).toLocaleString("pt-BR")}</span>
-                      <span className="font-semibold text-foreground">{fmtBRL(h.sale_price_cents)}</span>
+                      <span className="font-semibold text-foreground">{fmtBRL(orderDebitCents(h))}</span>
                     </div>
                     {h.provider_key_id && (
                       <div className="mt-2">
@@ -719,7 +734,7 @@ Qualquer dúvida, é só chamar!`
               <div className="flex justify-between gap-2"><span className="text-muted-foreground">WhatsApp</span><span className="font-semibold">{customerWhatsapp}</span></div>
             )}
             <div className="flex justify-between gap-2"><span className="text-muted-foreground">E-mail</span><span className="font-semibold truncate">{customerEmail || "—"}</span></div>
-            <div className="flex justify-between gap-2 border-t border-border pt-2"><span className="text-muted-foreground">Valor a debitar</span><span className="font-bold text-primary">{selected && fmtBRL(selected.sale_price_cents)}</span></div>
+            <div className="flex justify-between gap-2 border-t border-border pt-2"><span className="text-muted-foreground">Valor a debitar</span><span className="font-bold text-primary">{selected && fmtBRL(selected.debit_cents)}</span></div>
           </div>
 
           <div className="space-y-2.5">

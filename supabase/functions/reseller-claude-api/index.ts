@@ -135,6 +135,17 @@ function computeSale(cost: number, mode: string, value: number) {
   return Math.max(0, value);
 }
 
+async function resolveResellerClaudeCost(svc: any, resellerId: string, planCode: string, fallbackCents: number) {
+  try {
+    const { data } = await svc.rpc("get_reseller_claude_cost", {
+      _reseller_id: resellerId,
+      _plan_code: planCode,
+    });
+    if (typeof data === "number" && data > 0) return data;
+  } catch (_) { /* fallback below */ }
+  return fallbackCents;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -198,15 +209,18 @@ Deno.serve(async (req) => {
       svc.from("claude_plan_prices").select("*"),
       svc.from("claude_reseller_price_overrides").select("*").eq("reseller_id", reseller.id),
     ]);
-    return Array.from(PLAN_CODES).map((pc) => {
+    const rows = await Promise.all(Array.from(PLAN_CODES).map(async (pc) => {
       const base: any = (def ?? []).find((x: any) => x.plan_code === pc);
       if (!base || !base.is_active) return null;
       const override: any = (ov ?? []).find((x: any) => x.plan_code === pc && x.is_active);
       const sale = override
         ? computeSale(base.cost_cents, override.markup_mode, override.markup_value_cents)
         : base.sale_price_cents;
-      return { plano: pc, preco_centavos: sale, preco: (sale / 100).toFixed(2), disponivel: true };
-    }).filter(Boolean);
+      const fallbackCost = (base as any).reseller_cost_cents ?? base.sale_price_cents;
+      const resellerCost = await resolveResellerClaudeCost(svc, reseller.id, pc, fallbackCost);
+      return { plano: pc, preco_centavos: resellerCost, preco: (resellerCost / 100).toFixed(2), preco_venda_centavos: sale, disponivel: true };
+    }));
+    return rows.filter(Boolean);
   };
 
   try {
@@ -532,7 +546,12 @@ Deno.serve(async (req) => {
       if (!defaultPrice || !defaultPrice.is_active) return json({ success: false, error: "plano_indisponivel" }, 400);
 
       const costCents = defaultPrice.cost_cents;
-      const resellerCostCents = (defaultPrice as any).reseller_cost_cents ?? defaultPrice.sale_price_cents;
+      const resellerCostCents = await resolveResellerClaudeCost(
+        svc,
+        reseller.id,
+        planCode,
+        (defaultPrice as any).reseller_cost_cents ?? defaultPrice.sale_price_cents,
+      );
       const saleCents = override && override.is_active
         ? computeSale(costCents, override.markup_mode, override.markup_value_cents)
         : defaultPrice.sale_price_cents;
@@ -843,7 +862,12 @@ Deno.serve(async (req) => {
       if (!defaultPrice || !defaultPrice.is_active) return json({ success: false, error: "plano_indisponivel" }, 400);
 
       const costCents = defaultPrice.cost_cents;
-      const resellerCostCents = (defaultPrice as any).reseller_cost_cents ?? defaultPrice.sale_price_cents;
+      const resellerCostCents = await resolveResellerClaudeCost(
+        svc,
+        reseller.id,
+        planCode,
+        (defaultPrice as any).reseller_cost_cents ?? defaultPrice.sale_price_cents,
+      );
       const saleCents = override && override.is_active
         ? computeSale(costCents, override.markup_mode, override.markup_value_cents)
         : defaultPrice.sale_price_cents;
