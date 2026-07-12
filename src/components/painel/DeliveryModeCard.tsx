@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Package, Wallet, ArrowRight, Sparkles } from "lucide-react";
+import { Loader2, Package, Wallet, ArrowRight, Sparkles, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/hooks/useRole";
 import { refetchRole } from "@/hooks/useRole";
@@ -21,6 +21,12 @@ export default function DeliveryModeCard() {
   if (!isPack) return null;
 
   const isPackMode = deliverySource === "pack";
+
+  // Avisos de cobrança:
+  // - Modo Pack com 0 créditos: vendas vão debitar do saldo em R$ (fallback).
+  // - Modo Carteira com créditos parados: pack não está sendo consumido.
+  const showPackEmptyNotice = isPackMode && packCredits === 0;
+  const showWalletWithPackNotice = !isPackMode && packCredits > 0;
 
   const creditsTone =
     packCredits >= 10
@@ -137,6 +143,29 @@ export default function DeliveryModeCard() {
           </div>
         </div>
       </div>
+
+      {(showPackEmptyNotice || showWalletWithPackNotice) && (
+        <div className="relative mt-4 flex items-start gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <div className="min-w-0 text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+            {showPackEmptyNotice ? (
+              <>
+                <span className="font-semibold">Atenção — sua cobrança precisa ser alterada.</span>{" "}
+                Seu Pack está zerado. Enquanto estiver assim, cada venda Loja/API será{" "}
+                <span className="font-semibold">debitada do saldo em R$</span> da carteira.
+                Compre um novo pack para voltar a consumir licenças do pack.
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">Atenção — sua cobrança precisa ser alterada.</span>{" "}
+                Você ainda tem <span className="font-semibold">{packCredits} licenç{packCredits === 1 ? "a" : "as"}</span>{" "}
+                no Pack, mas o modo ativo é Carteira, então as vendas debitam do saldo em R$ e o Pack não é consumido.
+                Ative o modo Pack acima se quiser usar as licenças primeiro.
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
