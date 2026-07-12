@@ -146,6 +146,7 @@ Deno.serve(async (req) => {
         status: 'cancelled',
         cancelled_at: now,
         cancel_attempts: [...prevAttempts, attempt],
+        ...(providerResp?.accountBlocked ? { customer_account_blocked_at: now } : {}),
       }).eq('id', order.id);
     }
 
@@ -170,6 +171,7 @@ Deno.serve(async (req) => {
       ok: true,
       order_id: order?.id ?? null,
       refund_cents: refundCents,
+      account_blocked: Boolean(providerResp?.accountBlocked),
       provider_response: providerResp,
     });
   } catch (e) {

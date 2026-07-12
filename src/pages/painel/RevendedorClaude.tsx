@@ -249,6 +249,11 @@ export default function RevendedorClaude() {
       const msg = (data as any)?.error ?? (error as any)?.message ?? "Falha ao cancelar";
       if (msg === "already_redeemed") {
         toast.error("Chave já foi resgatada pelo cliente — cancelamento não é mais possível pelo fornecedor.");
+      } else if (msg === "refund_window_expired") {
+        toast.error(
+          (data as any)?.message ?? "Prazo de 7 dias para cancelamento com estorno já expirou. Fale com o suporte.",
+          { duration: 8000 },
+        );
       } else {
         toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
       }
@@ -256,7 +261,12 @@ export default function RevendedorClaude() {
       loadAll();
       return;
     }
-    toast.success(`Chave cancelada. Estorno: ${fmtBRL(data?.refund_cents ?? 0)}`);
+    const blocked = (data as any)?.account_blocked;
+    toast.success(
+      `Chave cancelada. Estorno: ${fmtBRL(data?.refund_cents ?? 0)}` +
+      (blocked ? " • Conta do cliente foi bloqueada no provedor." : ""),
+      { duration: blocked ? 8000 : 4000 },
+    );
     setCancelTarget(null);
     loadAll();
   };
@@ -695,19 +705,29 @@ Qualquer dúvida, é só chamar!`
                     {h.status === "failed" && h.error_message && (
                       <div className="mt-2 text-[10px] text-rose-500/90 line-clamp-2">{h.error_message}</div>
                     )}
-                    {canCancel && h.status === "issued" && h.provider_key_id && (
-                      <div className="mt-2 flex justify-end">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 px-2 text-[11px] text-rose-500 hover:bg-rose-500/10 hover:text-rose-400"
-                          onClick={() => setCancelTarget(h)}
-                        >
-                          <Ban className="mr-1 h-3 w-3" /> Cancelar venda
-                        </Button>
-                      </div>
-                    )}
+                    {(() => {
+                      if (!canCancel || !h.provider_key_id) return null;
+                      if (!["issued", "redeemed"].includes(h.status)) return null;
+                      const ageMs = Date.now() - new Date(h.created_at).getTime();
+                      const daysLeft = Math.max(0, 7 - Math.floor(ageMs / 86_400_000));
+                      if (daysLeft <= 0) return null;
+                      return (
+                        <div className="mt-2 flex items-center justify-end gap-2">
+                          <span className="text-[10px] text-muted-foreground">
+                            {daysLeft === 1 ? "Último dia p/ cancelar" : `${daysLeft} dias p/ cancelar`}
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-[11px] text-rose-500 hover:bg-rose-500/10 hover:text-rose-400"
+                            onClick={() => setCancelTarget(h)}
+                          >
+                            <Ban className="mr-1 h-3 w-3" /> Cancelar venda
+                          </Button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
@@ -858,7 +878,9 @@ Qualquer dúvida, é só chamar!`
               <Ban className="h-5 w-5 text-rose-500" /> Cancelar venda Claude
             </DialogTitle>
             <DialogDescription>
-              A chave será revogada no fornecedor e o valor debitado voltará ao seu saldo.
+              {cancelTarget?.status === "redeemed"
+                ? "A conta do cliente será BLOQUEADA no provedor e o valor debitado voltará ao seu saldo."
+                : "A chave será revogada no fornecedor e o valor debitado voltará ao seu saldo."}
             </DialogDescription>
           </DialogHeader>
 
@@ -882,8 +904,11 @@ Qualquer dúvida, é só chamar!`
           <div className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-600">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>
-              O cliente perderá o acesso imediatamente. Se o fornecedor recusar o cancelamento
-              (ex.: janela expirada), nada é debitado e a chave continua ativa.
+              {cancelTarget?.status === "redeemed" ? (
+                <>A conta do cliente será suspensa imediatamente no provedor e o estorno cai na sua carteira. Só é permitido dentro dos <strong>7 dias</strong> da compra.</>
+              ) : (
+                <>O cliente perderá o acesso imediatamente. Se o fornecedor recusar (ex.: janela de 7 dias expirada), nada é estornado e a chave continua ativa.</>
+              )}
             </span>
           </div>
 
