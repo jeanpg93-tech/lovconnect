@@ -1,0 +1,1 @@
+ALTER TABLE public.claude_orders ADD COLUMN IF NOT EXISTS customer_account_blocked_at timestamptz;
