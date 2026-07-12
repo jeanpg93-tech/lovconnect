@@ -134,6 +134,15 @@ Deno.serve(async (req) => {
     .limit(1)
     .maybeSingle();
 
+  if ((packConsume || paidWithPackByMetadata) && packRefundExisting) {
+    await svc.from(table).update({
+      cancellation_status: "balance_refunded",
+      balance_refunded_at: new Date().toISOString(),
+      status: "reembolsado",
+    }).eq("id", sale.id);
+    return json({ ok: true, refunded_pack_credits: 0, already_refunded_to_pack: true });
+  }
+
   if ((packConsume || paidWithPackByMetadata) && !packRefundExisting) {
     const descPack = sale_type === "storefront"
       ? `Estorno venda Loja #${sale.short_code ?? sale.id}`
