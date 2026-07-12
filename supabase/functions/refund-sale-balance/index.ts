@@ -1,4 +1,5 @@
-// Credita de volta no saldo do revendedor o valor que foi debitado da carteira na venda.
+// Devolve ao revendedor a mesma origem que foi usada na venda:
+// saldo da carteira volta para saldo; Pack volta como 1 licença no Pack.
 // Só permitido se:
 //   - cancellation_status IN ('client_refunded')
 //   - key_revoked_at IS NOT NULL (chave de fato revogada)
@@ -17,6 +18,13 @@ function json(b: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function parseNotes(raw: unknown): any | null {
+  if (!raw) return null;
+  if (typeof raw === "object") return raw;
+  if (typeof raw !== "string") return null;
+  try { return JSON.parse(raw); } catch { return null; }
 }
 
 Deno.serve(async (req) => {
@@ -61,6 +69,24 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (!sale) return json({ error: "sale_not_found" }, 404);
 
+  // `orders` recebe um espelho das vendas da Loja. Se a venda veio da Loja,
+  // a fonte real do débito é o registro em storefront_orders. Redireciona o
+  // estorno para ele para impedir crédito indevido em saldo quando a origem foi Pack.
+  if (sale_type === "manual") {
+    const notesObj = parseNotes(sale.notes);
+    const storefrontOrderId = typeof notesObj?.storefront_order_id === "string"
+      ? notesObj.storefront_order_id
+      : null;
+    if (notesObj?.source === "storefront" && storefrontOrderId) {
+      return json({
+        error: "storefront_mirror_order",
+        message: "Esta licença veio da Loja Pública. Use o pedido da Loja para devolver saldo/Pack corretamente.",
+        storefront_order_id: storefrontOrderId,
+        storefront_short_code: notesObj?.storefront_short_code ?? null,
+      }, 409);
+    }
+  }
+
   if (sale.cancellation_status !== "client_refunded") {
     return json({
       error: "wrong_status",
@@ -95,6 +121,11 @@ Deno.serve(async (req) => {
     .limit(1)
     .maybeSingle();
 
+  const notesObj = parseNotes(sale.notes);
+  const paidWithPackByMetadata = sale_type === "storefront"
+    ? sale.delivery_source === "pack"
+    : notesObj?.delivery_source === "pack";
+
   const { data: packRefundExisting } = await svc
     .from("reseller_pack_ledger")
     .select("id")
@@ -103,7 +134,7 @@ Deno.serve(async (req) => {
     .limit(1)
     .maybeSingle();
 
-  if (packConsume && !packRefundExisting) {
+  if ((packConsume || paidWithPackByMetadata) && !packRefundExisting) {
     const descPack = sale_type === "storefront"
       ? `Estorno venda Loja #${sale.short_code ?? sale.id}`
       : `Estorno licença ${sale.license_key ?? sale.id}`;
