@@ -21,6 +21,17 @@ Deno.serve(async (req) => {
     if (!proofPath) return json({ error: "proof_path obrigatório" }, 400);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Preço base configurável (app_settings.activation_base_cents)
+    let BASE_CENTS = 30000;
+    try {
+      const { data: cfg } = await admin
+        .from("app_settings").select("value").eq("key", "activation_base_cents").maybeSingle();
+      const raw: any = (cfg as any)?.value;
+      const n = typeof raw === "number" ? raw : Number(raw);
+      if (Number.isFinite(n) && n >= 100) BASE_CENTS = Math.round(n);
+    } catch (_) { /* default */ }
+
     const { data: reseller } = await admin.from("resellers").select("id, activation_status, billing_mode").eq("user_id", userId).maybeSingle();
     if (!reseller) return json({ error: "Revendedor não encontrado" }, 403);
     if (reseller.activation_status === "active") return json({ error: "Já ativo" }, 400);
@@ -37,25 +48,25 @@ Deno.serve(async (req) => {
 
     if (!payment) {
       // Pricing dinâmico com promoção de adesão (se houver)
-      let finalCents = 30000;
+      let finalCents = BASE_CENTS;
       let bonusCents = 0;
       let promotionId: string | null = null;
       const eligibleForPromo = (reseller as any).billing_mode === "normal" || !(reseller as any).billing_mode;
       if (eligibleForPromo) try {
-        const { data: pricing } = await admin.rpc("compute_activation_pricing", { _base_cents: 30000 });
+        const { data: pricing } = await admin.rpc("compute_activation_pricing", { _base_cents: BASE_CENTS });
         const row: any = Array.isArray(pricing) ? pricing[0] : pricing;
         if (row) {
-          finalCents = Number(row.final_price_cents ?? 30000);
+          finalCents = Number(row.final_price_cents ?? BASE_CENTS);
           bonusCents = Number(row.bonus_cents ?? 0);
           promotionId = row.promotion_id ?? null;
         }
       } catch (e) { console.warn("compute_activation_pricing fallback:", e); }
-      if (!Number.isFinite(finalCents) || finalCents < 100) finalCents = 30000;
+      if (!Number.isFinite(finalCents) || finalCents < 100) finalCents = BASE_CENTS;
 
       const { data: created } = await admin.from("activation_payments").insert({
         reseller_id: reseller.id,
         amount_cents: finalCents,
-        original_amount_cents: 30000,
+        original_amount_cents: BASE_CENTS,
         bonus_cents: bonusCents,
         promotion_id: promotionId,
         status: "under_review",
