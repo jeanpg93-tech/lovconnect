@@ -195,11 +195,51 @@ Deno.serve(async (req) => {
       case "order":
         path = `/pedidos/${orderId}`;
         break;
-      case "confirm_invite":
-        path = `/pedidos/${orderId}/confirmar-convite`;
+      case "confirm_invite": {
+        // SECURITY: only allow confirming the invite for orders that (a) exist
+        // locally and (b) are currently in a state where the customer step is
+        // pending — this prevents an anonymous caller who guesses/enumerates a
+        // provider_pedido_id from prematurely triggering delivery for orders
+        // outside their control or already completed.
+        const admin = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+        );
+        const { data: local } = await admin
+          .from("reseller_credit_purchases")
+          .select("id, provider_pedido_id, status")
+          .or(`provider_pedido_id.eq.${orderId},id.eq.${orderId}`)
+          .maybeSingle();
+        if (!local) {
+          return new Response(JSON.stringify({ error: "Pedido não encontrado" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const st = String(local.status ?? "");
+        // Terminal / advanced states must never accept a public confirm-invite call.
+        const blocked = new Set([
+          "sucesso",
+          "entregue",
+          "manual_entregue",
+          "manual_concluido",
+          "manual_confirmado",
+          "manual_processando",
+          "cancelado",
+          "falha",
+          "estornado",
+        ]);
+        if (blocked.has(st)) {
+          return new Response(JSON.stringify({ error: "Pedido não está aguardando confirmação de convite" }), {
+            status: 409,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        path = `/pedidos/${local.provider_pedido_id ?? orderId}/confirmar-convite`;
         method = "POST";
         body = "{}";
         break;
+      }
       case "action_status": {
         const acaoId = url.searchParams.get("acao_id");
         if (!acaoId) {
