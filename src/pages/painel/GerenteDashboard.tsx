@@ -251,7 +251,7 @@ export default function GerenteDashboard() {
     // em balance_transactions. Buscamos separadamente para mesclar no feed.
     const { data: subOrdersData } = await supabase
       .from("orders")
-      .select("id, created_at, reseller_id, license_type, status, notes, license_key")
+      .select("id, created_at, reseller_id, license_type, status, notes, license_key, api_key_id")
       .in("status", ["completed", "revoked", "deleted"])
       .or(
         "notes.ilike.%\"billing_mode\":\"subscription\"%,notes.ilike.%\"billing_mode\":\"pack\"%"
@@ -669,6 +669,14 @@ export default function GerenteDashboard() {
         const statusLower = String(o.status ?? "").toLowerCase();
         const isRevoked = statusLower === "revoked" || statusLower === "deleted";
         const baseDetail = `Licença ${methodLbl}${packLbl ? " • " + packLbl : ""}`;
+        // Origem da venda: Loja (storefront) / API / Manual (gerada no painel)
+        const sourceStr = String(parsedNotes?.source ?? "").toLowerCase();
+        const origin: "loja" | "api" | "manual" =
+          sourceStr === "storefront" || parsedNotes?.storefront_order_id
+            ? "loja"
+            : o.api_key_id
+              ? "api"
+              : "manual";
         return {
           id: `${billingMode}:${o.id}`,
           created_at: o.created_at,
@@ -691,6 +699,7 @@ export default function GerenteDashboard() {
           promotion_discount_cents: null,
           recharge_base_cents: null,
           recharge_bonus_cents: null,
+          origin,
         };
       }),
       ].sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at))),
@@ -1174,6 +1183,20 @@ export default function GerenteDashboard() {
                        mensalista_license: "Mensalista — Licença",
                        pack_license: "Pack — Licença",
                        recharge_plan_storefront: "Plano de Recargas",
+                       pack_payment: "Pagamento de Pacote",
+                       subscription_payment: "Pagamento de Mensalidade",
+                       referral_commission: "Comissão de Indicação",
+                       affiliate_bonus: "Bônus de Indicação",
+                       activation_bonus: "Bônus de Ativação",
+                       manual_debit: "Débito Manual",
+                       adjustment_debit: "Ajuste Manual (Débito)",
+                       diagnostic_refund: "Estorno de Diagnóstico",
+                       claude_key_issue: "Venda Claude",
+                       claude_key_refund: "Estorno Claude",
+                       claude_key_issue_refund: "Estorno Claude",
+                       claude_refund: "Estorno Claude",
+                       recharge_plan_manual: "Plano de Recargas (Manual)",
+                       pack_refund_correction_wallet_debit: "Correção de Estorno de Pack",
                     };
                     return groups.map((g) => (
                       <div key={g.label} className="space-y-2">
@@ -1255,7 +1278,14 @@ export default function GerenteDashboard() {
                                             {isPlanSale ? <CalendarClock className="h-2.5 w-2.5" /> : <StoreIcon className="h-2.5 w-2.5" />} {isPlanSale ? (desc.replace(/^venda\s*loja:\s*(plano\s+)?/i, "").trim() || "Plano") : isMensalista ? "Licença" : isPack ? "Licença" : isCreditPurchase ? "Recargas" : "Extensão"}
                                           </span>
                                            <span className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-md uppercase tracking-tighter shrink-0 font-mono border ${isPlanSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : isMensalista ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isPack ? "bg-indigo-500/15 text-indigo-500 border-indigo-500/30" : isApiOrder ? "bg-fuchsia-500/15 text-fuchsia-600 border-fuchsia-500/30" : isStoreSale ? "bg-violet-500/15 text-violet-600 border-violet-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"}`}>
-                                             {isPlanSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : isMensalista ? <>♻ Mensalista</> : isPack ? <>📦 Pack</> : isApiOrder ? <><Zap className="h-2.5 w-2.5" /> API</> : isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}
+                                              {isPlanSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : isMensalista || isPack ? (
+                                                (() => {
+                                                  const org = (m as any).origin as ("loja" | "api" | "manual" | undefined);
+                                                  const prefix = isPack ? "📦 Pacote" : "♻ Mensalista";
+                                                  const originLbl = org === "loja" ? "Loja" : org === "api" ? "API" : "Manual";
+                                                  return <>{prefix} • {originLbl}</>;
+                                                })()
+                                              ) : isApiOrder ? <><Zap className="h-2.5 w-2.5" /> API</> : isStoreSale ? <><StoreIcon className="h-2.5 w-2.5" /> Venda na Loja</> : <><Hand className="h-2.5 w-2.5" /> Manual</>}
                                            </span>
                                         </>
                                       ) : (
