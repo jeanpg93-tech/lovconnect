@@ -234,6 +234,7 @@ Deno.serve(async (req) => {
       cancelled_at: now,
       refund_waived: !withinWindow,
       cancel_attempts: [...prevAttempts, attempt],
+      ...(providerResp?.accountBlocked ? { customer_account_blocked_at: now } : {}),
     }).eq('id', order.id);
 
     // Sinaliza se a conta do cliente foi bloqueada no provedor
