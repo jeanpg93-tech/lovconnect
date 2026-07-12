@@ -68,7 +68,7 @@ export default function RevendedorNiveis() {
         supabase.from("reseller_tiers").select("*").eq("is_hidden", false).order("sort_order"),
         supabase.from("reseller_tier_state").select("total_spent_cents").eq("reseller_id", r.id).maybeSingle(),
         supabase.rpc("get_reseller_tier", { _reseller_id: r.id }),
-        supabase.from("pricing_plans").select("license_type,label,price_cents,min_price_cents,is_active").eq("is_active", true),
+        (supabase as any).from("pricing_plans_public").select("license_type,label,price_cents,min_price_cents,is_active").eq("is_active", true),
         supabase.from("extensions").select("id,name,is_active").eq("is_active", true),
         supabase.from("reseller_extension_price_overrides").select("extension_id,license_type,price_cents,is_active").eq("reseller_id", r.id),
         supabase.from("tier_extension_prices").select("tier_id,extension_id,license_type,price_cents,is_active").eq("is_active", true),

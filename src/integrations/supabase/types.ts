@@ -2706,7 +2706,6 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
-          key_full: string | null
           key_hash: string
           key_prefix: string
           label: string | null
@@ -2720,7 +2719,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
-          key_full?: string | null
           key_hash: string
           key_prefix: string
           label?: string | null
@@ -2734,7 +2732,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
-          key_full?: string | null
           key_hash?: string
           key_prefix?: string
           label?: string | null
@@ -5021,6 +5018,42 @@ export type Database = {
           plan_code?: string | null
           sale_price_cents?: number | null
           sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      pricing_plans_public: {
+        Row: {
+          created_at: string | null
+          customer_price_cents: number | null
+          id: string | null
+          is_active: boolean | null
+          label: string | null
+          license_type: string | null
+          min_price_cents: number | null
+          price_cents: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_price_cents?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          label?: string | null
+          license_type?: string | null
+          min_price_cents?: number | null
+          price_cents?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_price_cents?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          label?: string | null
+          license_type?: string | null
+          min_price_cents?: number | null
+          price_cents?: number | null
           updated_at?: string | null
         }
         Relationships: []

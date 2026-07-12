@@ -42,7 +42,6 @@ function genWebhookSecret() {
 
 type ApiKey = {
   id: string; label: string | null; key_prefix: string;
-  key_full: string | null;
   webhook_url: string | null; webhook_secret: string | null;
   is_active: boolean; last_used_at: string | null; created_at: string; revoked_at: string | null;
 };
@@ -154,16 +153,11 @@ function ApiKeysCard({
                             size="sm"
                             variant="ghost"
                             onClick={() => {
-                              if (k.key_full) {
-                                navigator.clipboard.writeText(k.key_full);
-                                toast.success("Chave completa copiada");
-                              } else {
-                                navigator.clipboard.writeText(k.key_prefix);
-                                toast.warning("Só o prefixo estava disponível (chave antiga)");
-                              }
+                              navigator.clipboard.writeText(k.key_prefix);
+                              toast.info("Só o prefixo pode ser copiado. Por segurança, a chave completa só é mostrada uma vez, no momento da criação.");
                             }}
                             className="h-6 w-6 p-0"
-                            title={k.key_full ? "Copiar chave completa" : "Copiar prefixo (chave antiga)"}
+                            title="Copiar prefixo da chave"
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
@@ -872,7 +866,7 @@ export default function RevendedorApiClaude() {
     setResellerId(r.id);
     let { data: ks } = await supabase
       .from("reseller_claude_api_keys")
-      .select("id, label, key_prefix, key_full, webhook_url, webhook_secret, is_active, last_used_at, created_at, revoked_at")
+      .select("id, label, key_prefix, webhook_url, webhook_secret, is_active, last_used_at, created_at, revoked_at")
       .eq("reseller_id", r.id)
       .order("created_at", { ascending: false });
     // Garante linha dedicada ao webhook (com HMAC auto-gerado), sem expor uma API key.
@@ -893,7 +887,7 @@ export default function RevendedorApiClaude() {
           is_active: false,
           revoked_at: new Date().toISOString(),
         })
-        .select("id, label, key_prefix, key_full, webhook_url, webhook_secret, is_active, last_used_at, created_at, revoked_at")
+        .select("id, label, key_prefix, webhook_url, webhook_secret, is_active, last_used_at, created_at, revoked_at")
         .maybeSingle();
       if (!error && inserted) {
         webhookRow = inserted;
@@ -926,7 +920,6 @@ export default function RevendedorApiClaude() {
         label,
         key_prefix: key.slice(0, 16),
         key_hash: hash,
-        key_full: key,
         webhook_secret: secret,
         is_active: true,
       });
