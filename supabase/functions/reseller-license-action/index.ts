@@ -1,6 +1,7 @@
 // Painel: gestão de licenças (reset HWID, revogar, excluir).
 // Usa o JWT do usuário logado (revendedor) para autenticar e repassa ao provedor.
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { detectPackOrigin } from "../_shared/refund-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,13 +55,13 @@ Deno.serve(async (req) => {
   if (!reseller || !reseller.is_active) return json({ error: "Reseller inativo" }, 403);
 
   let q = svc.from("orders")
-    .select("id, reseller_id, license_key, status, is_legacy, is_test, license_type")
+    .select("id, reseller_id, license_key, status, is_legacy, is_test, license_type, notes, delivery_source")
     .eq("license_key", license_key)
     .eq("reseller_id", reseller.id)
     .order("created_at", { ascending: false })
     .limit(1);
   if (order_id) q = svc.from("orders")
-    .select("id, reseller_id, license_key, status, is_legacy, is_test, license_type")
+    .select("id, reseller_id, license_key, status, is_legacy, is_test, license_type, notes, delivery_source")
     .eq("id", order_id)
     .eq("reseller_id", reseller.id)
     .limit(1);
@@ -154,17 +155,16 @@ Deno.serve(async (req) => {
   let packRefunded = false;
   let packCreditsAfter: number | null = null;
   try {
-    const { data: rInfoForRefund } = await svc
-      .from("resellers")
-      .select("billing_mode")
-      .eq("id", reseller.id)
-      .maybeSingle();
-    const isPack = (rInfoForRefund as any)?.billing_mode === "pack";
+    // Fonte da verdade = como a venda foi paga (ledger/delivery_source),
+    // não o billing_mode atual do revendedor (pode ter mudado depois).
+    const packInfo = await detectPackOrigin(svc, order as any, "manual");
+    const isPack = packInfo.isPack;
     if (
       isPack &&
       !isTrialOrder &&
       (action === "revoke-license" || action === "delete-license") &&
-      prevStatus === "completed"
+      prevStatus === "completed" &&
+      !packInfo.alreadyRefundedInPack
     ) {
       const { data: refundRes, error: refundErr } = await svc.rpc("pack_refund_credit", {
         _reseller_id: reseller.id,

@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { detectStorefrontMirror, detectPackOrigin } from "../_shared/refund-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,7 +90,7 @@ Deno.serve(async (req) => {
     let order: any = null;
     const tryOrder = await svc
       .from("orders")
-      .select("id, reseller_id, price_cents, status, license_key")
+      .select("id, reseller_id, price_cents, status, license_key, notes")
       .or(`license_key.eq.${refId},id.eq.${refId}`)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -100,6 +101,19 @@ Deno.serve(async (req) => {
     if (!order.price_cents || order.price_cents <= 0)
       return json({ error: "Pedido sem valor para estornar" }, 400);
 
+    // Bloqueia estorno pelo espelho da Loja — a fonte real é storefront_orders,
+    // que sabe se o débito foi Pack ou saldo. Estornar pelo espelho creditaria
+    // dinheiro indevidamente quando a venda foi paga com Pack.
+    const mirror = detectStorefrontMirror(order);
+    if (mirror) {
+      return json({
+        error: "storefront_mirror_order",
+        message: "Este pedido é um espelho de uma venda da Loja Pública. Estorne pelo pedido da Loja para devolver saldo/Pack corretamente.",
+        storefront_order_id: mirror.storefront_order_id,
+        storefront_short_code: mirror.storefront_short_code,
+      }, 409);
+    }
+
     const { data: existing } = await svc
       .from("balance_transactions")
       .select("id")
@@ -107,6 +121,29 @@ Deno.serve(async (req) => {
       .eq("reference_id", order.id)
       .limit(1);
     if (existing && existing.length > 0) return json({ error: "Licença já estornada" }, 409);
+
+    // Se a venda foi paga via Pack (consumiu 1 crédito do pack), devolve 1
+    // crédito ao pack em vez de creditar dinheiro no saldo.
+    const packInfo = await detectPackOrigin(svc, order, "manual");
+    if (packInfo.isPack) {
+      if (packInfo.alreadyRefundedInPack) {
+        await svc.from("orders").update({ status: "reembolsado" }).eq("id", order.id);
+        return json({ ok: true, refunded_pack_credits: 0, already_refunded_to_pack: true });
+      }
+      const { error: pErr } = await svc.rpc("pack_refund_credit", {
+        _reseller_id: order.reseller_id,
+        _order_id: order.id,
+        _description: `Estorno gerente licença ${order.license_key ?? order.id}${observacao ? ` - ${observacao}` : ""}`,
+      });
+      if (pErr) return json({ error: pErr.message }, 500);
+      await svc.from("orders").update({ status: "reembolsado" }).eq("id", order.id);
+      await svc.from("admin_audit_logs").insert({
+        user_id: userId,
+        action: "refund_sale",
+        details: { tipo, order_id: order.id, license_key: order.license_key, refunded_pack_credits: 1, reseller_id: order.reseller_id, observacao },
+      });
+      return json({ ok: true, refunded_pack_credits: 1 });
+    }
 
     const { error: cErr } = await svc.rpc("credit_reseller_balance", {
       _reseller_id: order.reseller_id,

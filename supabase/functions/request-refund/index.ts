@@ -1,5 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { detectStorefrontMirror, detectPackOrigin } from '../_shared/refund-guard.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -147,7 +148,7 @@ Deno.serve(async (req) => {
     } else if (kind === 'license') {
       const { data: o } = await admin
         .from('orders')
-        .select('id,reseller_id,price_cents,status,is_test')
+        .select('id,reseller_id,price_cents,status,is_test,license_key,notes')
         .eq('id', referenceId)
         .maybeSingle();
       if (!o || o.reseller_id !== resellerId) {
@@ -163,6 +164,43 @@ Deno.serve(async (req) => {
       if (!REFUNDABLE_ORDER_STATUS.has(o.status)) {
         return new Response(JSON.stringify({ error: `Status "${o.status}" não permite reembolso` }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      // Bloqueia estorno pelo espelho da Loja — use o pedido original em storefront_orders.
+      const mirror = detectStorefrontMirror(o as any);
+      if (mirror) {
+        return new Response(JSON.stringify({
+          error: 'storefront_mirror_order',
+          message: 'Esta licença veio da Loja Pública. Estorne pelo pedido da Loja para devolver saldo/Pack corretamente.',
+          storefront_order_id: mirror.storefront_order_id,
+          storefront_short_code: mirror.storefront_short_code,
+        }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      // Se foi paga via Pack, devolve ao pack em vez de creditar dinheiro.
+      const packInfo = await detectPackOrigin(admin, o as any, 'manual');
+      if (packInfo.isPack) {
+        if (!packInfo.alreadyRefundedInPack) {
+          const { error: pErr } = await admin.rpc('pack_refund_credit', {
+            _reseller_id: resellerId,
+            _order_id: (o as any).id,
+            _description: `Estorno licença ${(o as any).license_key ?? (o as any).id}`,
+          });
+          if (pErr) {
+            return new Response(JSON.stringify({ error: `Falha ao devolver ao pack: ${pErr.message}` }), {
+              status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+        await admin.from('refund_requests').insert({
+          reseller_id: resellerId,
+          kind,
+          reference_id: referenceId,
+          amount_cents: 0,
+          status: 'completed',
+        });
+        await admin.from('orders').update({ status: 'reembolsado' }).eq('id', (o as any).id);
+        return new Response(JSON.stringify({ ok: true, refunded_pack_credits: packInfo.alreadyRefundedInPack ? 0 : 1 }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       amountCents = Number(o.price_cents) || 0;
