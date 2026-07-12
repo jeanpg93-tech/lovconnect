@@ -5516,6 +5516,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      expire_stale_misticpay_pending_payments: {
+        Args: { _now?: string }
+        Returns: Json
+      }
       force_debit_reseller_balance: {
         Args: {
           _amount_cents: number
