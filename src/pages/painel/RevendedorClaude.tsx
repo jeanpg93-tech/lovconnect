@@ -115,6 +115,7 @@ export default function RevendedorClaude() {
   const [history, setHistory] = useState<any[]>([]);
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
+  const [portalUrl, setPortalUrl] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "redeemed" | "expired" | "cancelled" | "failed">("all");
@@ -131,9 +132,21 @@ export default function RevendedorClaude() {
     const { data: userRes } = await supabase.auth.getUser();
     const uid = userRes.user?.id;
     if (!uid) return;
-    const { data: r } = await supabase.from("resellers").select("id").eq("user_id", uid).maybeSingle();
+    const { data: r } = await supabase.from("resellers").select("id, slug").eq("user_id", uid).maybeSingle();
     if (!r) { setLoading(false); return; }
     setResellerId(r.id);
+
+    // Portal do cliente só é oferecido para revendedores com loja habilitada.
+    const { data: sf } = await supabase
+      .from("reseller_storefronts")
+      .select("is_enabled")
+      .eq("reseller_id", r.id)
+      .maybeSingle();
+    if (sf?.is_enabled && r.slug) {
+      setPortalUrl(`${window.location.origin}/cliente-claude/login?loja=${r.slug}`);
+    } else {
+      setPortalUrl(null);
+    }
 
     const [{ data: def }, { data: ov }, { data: hist }, { data: bal }] = await Promise.all([
       supabase.from("claude_plan_prices_public" as any).select("plan_code, sale_price_cents, is_active"),
@@ -324,6 +337,9 @@ export default function RevendedorClaude() {
     const nome = revealed.customerName ? `Olá, ${revealed.customerName}!` : "Olá!";
     const plano = PLAN_LABELS[revealed.plan];
     const baseUrl = revealed.providerBaseUrl ?? "https://claude-ss.shardweb.app/";
+    const portalBlock = portalUrl
+      ? `\n\n🧭 *Portal do cliente:* ${portalUrl}\nAcesse com seu e-mail. No primeiro acesso, clique em *"Esqueci minha senha / primeiro acesso"* para criar sua senha.`
+      : "";
     if (revealed.apiKey) {
       return (
 `${nome} Aqui estão suas credenciais do plano *${plano}*:
@@ -334,13 +350,16 @@ ${revealed.apiKey}
 🌐 *Base URL (ANTHROPIC_BASE_URL):*
 ${baseUrl}
 
-Use no Cursor, Cline ou Claude Code definindo essas duas variáveis. Qualquer dúvida, é só chamar!`
+Use no Cursor, Cline ou Claude Code definindo essas duas variáveis.${portalBlock}
+
+Qualquer dúvida, é só chamar!`
       );
     }
     return (
 `${nome} Aqui está sua chave do plano *${plano}*:
 
 🔑 ${revealed.code}
+${portalBlock}
 
 Qualquer dúvida, é só chamar!`
     );
