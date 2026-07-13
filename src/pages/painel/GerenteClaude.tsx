@@ -148,6 +148,9 @@ export default function GerenteClaude() {
     customerName?: string;
     customerWhatsapp?: string;
     customerEmail?: string;
+    portalEmail?: string | null;
+    portalTempPassword?: string | null;
+    portalAlreadyExisted?: boolean;
   } | null>(null);
   const [copied, setCopied] = useState(false);
   const [trialOpen, setTrialOpen] = useState(false);
@@ -155,6 +158,7 @@ export default function GerenteClaude() {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [history, setHistory] = useState<Issued[]>([]);
+  const [portalUrl, setPortalUrl] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "redeemed" | "expired" | "cancelled">("all");
@@ -181,6 +185,18 @@ export default function GerenteClaude() {
       if (rows.length && !rows.some((r) => r.plan_code === selected)) {
         setSelected(rows[0].plan_code);
       }
+      // Descobre a loja padrão do gerente para portal do cliente
+      try {
+        const { data: setting } = await supabase
+          .from("app_settings").select("value").eq("key", "manager_reseller_id").maybeSingle();
+        const rid = String((setting as any)?.value ?? "").trim();
+        if (rid) {
+          const { data: r } = await supabase
+            .from("resellers").select("slug").eq("id", rid).maybeSingle();
+          const slug = (r as any)?.slug;
+          if (slug) setPortalUrl(`${window.location.origin}/cliente-claude/login?loja=${slug}`);
+        }
+      } catch { /* noop */ }
       try {
         const raw = localStorage.getItem(HISTORY_KEY);
         if (raw) setHistory(JSON.parse(raw));
