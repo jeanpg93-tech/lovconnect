@@ -88,20 +88,19 @@ Retorna o saldo da carteira (em centavos BRL).
 Lista de planos ativos com **seu** preço efetivo (já com markup do nível/overrides).
 \`\`\`json
 { "success": true, "planos": [
-  { "plano": "pro_30d",  "preco_centavos": 8000,  "preco": "80.00",  "disponivel": true },
-  { "plano": "5x_7d",    "preco_centavos": 5900,  "preco": "59.00",  "disponivel": true },
-  { "plano": "5x_30d",   "preco_centavos": 14900, "preco": "149.00", "disponivel": true },
-  { "plano": "20x_30d",  "preco_centavos": 24900, "preco": "249.00", "disponivel": true }
+  { "plano": "api_500k_30d", "preco_centavos": 5200,  "preco": "52.00",  "disponivel": true },
+  { "plano": "api_25m_30d",  "preco_centavos": 9217,  "preco": "92.17",  "disponivel": true },
+  { "plano": "api_10m_30d",  "preco_centavos": 14170, "preco": "141.70", "disponivel": true }
 ] }
 \`\`\`
-> Códigos oficiais de \`plano\`: \`pro_30d\`, \`5x_7d\`, \`5x_30d\`, \`20x_30d\`. Nunca hardcode preços — leia daqui a cada emissão.
+> Códigos oficiais de \`plano\` (ativos hoje): \`api_500k_30d\`, \`api_25m_30d\`, \`api_10m_30d\`. Nunca hardcode preços — leia daqui a cada emissão.
 
 ### POST /chaves
 Emite uma chave Claude e debita do saldo.
 **Header:** \`Idempotency-Key: <uuid-v4>\` (evita cobrança duplicada em retries).
 **Body:**
 \`\`\`json
-{ "plano": "5x_30d",
+{ "plano": "api_25m_30d",
   "id_cliente": "cliente@dominio.com",
   "nome": "Cliente João",
   "email": "cliente@dominio.com",
@@ -112,8 +111,8 @@ Emite uma chave Claude e debita do saldo.
 \`\`\`json
 { "success": true,
   "pedido_id": "uuid",
-  "plano": "5x_30d",
-  "preco_centavos": 14900,
+  "plano": "api_25m_30d",
+  "preco_centavos": 9217,
   "codigo": "CLAUDE-XXXXX-XXXXX",
   "provider_key_id": "prov_abc123",
   "api_key": "kp_user_...",
@@ -126,7 +125,7 @@ Emite uma chave Claude e debita do saldo.
 **Resposta 202 (saldo insuficiente — pedido em espera):**
 \`\`\`json
 { "success": false, "error": "saldo_insuficiente", "status": "awaiting_balance",
-  "pedido_id": "uuid", "saldo_centavos": 5000, "preco_centavos": 14900 }
+  "pedido_id": "uuid", "saldo_centavos": 5000, "preco_centavos": 9217 }
 \`\`\`
 > Trate como "aguardando confirmação". Quando o revendedor recarregar o painel, o fornecedor emite a chave automaticamente e dispara o webhook \`claude.key.issued\`. **Não** reenvie \`POST /chaves\` — geraria pedido duplicado.
 
@@ -136,8 +135,8 @@ Emite uma chave Claude e debita do saldo.
 Últimos 50 pedidos do revendedor. **Não** devolve o \`codigo\`/\`api_key\` (por segurança).
 \`\`\`json
 { "success": true, "chaves": [
-  { "id": "uuid", "plan_code": "5x_30d", "status": "issued",
-    "sale_price_cents": 14900, "provider_key_id": "prov_...",
+  { "id": "uuid", "plan_code": "api_25m_30d", "status": "issued",
+    "sale_price_cents": 9217, "provider_key_id": "prov_...",
     "created_at": "2026-07-04T12:00:00Z", "error_message": null }
 ] }
 \`\`\`
@@ -149,9 +148,9 @@ Detalhe completo de um pedido. Use para consultar o status atual sem baixar a li
 \`\`\`json
 { "success": true, "chave": {
   "id": "uuid",
-  "plan_code": "5x_30d",
+  "plan_code": "api_25m_30d",
   "status": "issued",
-  "sale_price_cents": 14900,
+  "sale_price_cents": 9217,
   "provider_key_id": "prv_...",
   "customer_email": "cliente@dominio.com",
   "customer_name": "Nome do Cliente",
@@ -196,7 +195,7 @@ Cancela uma chave e devolve o valor ao saldo do revendedor **se estiver dentro d
 \`\`\`
 **Resposta 200:**
 \`\`\`json
-{ "success": true, "pedido_id": "uuid", "refund_cents": 14900, "refund_waived": false, "age_days": 2 }
+{ "success": true, "pedido_id": "uuid", "refund_cents": 9217, "refund_waived": false, "age_days": 2 }
 \`\`\`
 **Erros:** \`404\` pedido não encontrado · \`409 invalid_status\` · \`409 refund_window_expired\` (fora do prazo — reenvie com \`force: true\`) · \`422 missing_provider_key_id\` · \`502 provider_error\`.
 
@@ -215,7 +214,7 @@ Renova o plano de um cliente existente pelo mesmo e-mail — **não gera nova ch
 **Resposta 200:**
 \`\`\`json
 { "success": true, "pedido_id": "uuid", "pedido_original_id": "uuid",
-  "plano": "5x_30d", "preco_centavos": 14900, "email": "cliente@dominio.com" }
+  "plano": "api_25m_30d", "preco_centavos": 9217, "email": "cliente@dominio.com" }
 \`\`\`
 **Erros:** \`400 email_required\` (pedido sem e-mail e nenhum enviado) · \`400 email_obrigatorio\` (formato inválido) · \`402 saldo_insuficiente\` · \`404\` pedido não encontrado · \`502 provider_error\`.
 
@@ -248,8 +247,8 @@ Disparado sempre que um evento acontece. Header de assinatura: \`X-Signature: sh
 \`\`\`json
 { "event": "claude.key.issued",
   "pedido_id": "uuid",
-  "plano": "5x_30d",
-  "preco_centavos": 14900,
+  "plano": "api_25m_30d",
+  "preco_centavos": 9217,
   "codigo": "CLAUDE-XXXXX-XXXXX",
   "provider_key_id": "prov_abc123",
   "id_cliente": "cliente@dominio.com",
@@ -259,7 +258,7 @@ Disparado sempre que um evento acontece. Header de assinatura: \`X-Signature: sh
 \`\`\`json
 { "event": "claude.key.renewed",
   "pedido_id": "uuid-renov", "pedido_original_id": "uuid",
-  "plano": "5x_30d", "preco_centavos": 14900,
+  "plano": "api_25m_30d", "preco_centavos": 9217,
   "email": "cliente@dominio.com", "sent_at": "..." }
 \`\`\`
 > **Regra event-agnóstica:** responda 2xx a qualquer \`event\` desconhecido (apenas registre/ignore). Novos eventos (\`claude.key.expired\`, \`claude.tokens.limit_reached\` etc.) entrarão sem quebrar sua integração. Só rejeite com 401 quando a assinatura HMAC não bater.
