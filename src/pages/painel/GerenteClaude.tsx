@@ -343,6 +343,25 @@ export default function GerenteClaude() {
       return toast.error(friendly, { duration: 8000 });
     }
     if (data?.code) {
+      // Provisiona portal do cliente na loja padrão do gerente (se configurada e houver e-mail)
+      let portalEmail: string | null = null;
+      let portalTempPassword: string | null = null;
+      let portalAlreadyExisted = false;
+      const emailForPortal = customerEmail.trim();
+      if (portalUrl && emailForPortal && data.id) {
+        const { data: prov, error: provErr } = await invokeAuthenticatedFunction<any>(
+          "claude-manager-provision-portal",
+          { method: "POST", body: { order_id: data.id, action: "provision" } },
+        );
+        if (!provErr && prov?.ok) {
+          portalEmail = prov.email ?? emailForPortal;
+          portalTempPassword = prov.temp_password ?? null;
+          portalAlreadyExisted = !!prov.already_existed;
+        } else if ((prov as any)?.error === "email_already_registered") {
+          portalEmail = emailForPortal;
+          portalAlreadyExisted = true;
+        }
+      }
       setRevealed({
         id: data.id ?? null,
         code: data.code,
@@ -353,6 +372,9 @@ export default function GerenteClaude() {
         customerName: customerName.trim(),
         customerWhatsapp: customerWhatsapp.replace(/\D+/g, ""),
         customerEmail: customerEmail.trim() || undefined,
+        portalEmail,
+        portalTempPassword,
+        portalAlreadyExisted,
       });
       const cost = plans.find((p) => p.plan_code === selected)?.cost_cents ?? 0;
       const entry: Issued = {
@@ -396,6 +418,21 @@ export default function GerenteClaude() {
     const nome = revealed.customerName ? `Olá, ${revealed.customerName}!` : "Olá!";
     const plano = PLAN_LABELS[revealed.plan];
     const baseUrl = revealed.providerBaseUrl ?? "https://claude-ss.shardweb.app/";
+    let portalBlock = "";
+    if (portalUrl && revealed.portalEmail) {
+      if (revealed.portalTempPassword) {
+        portalBlock =
+          `\n\n🧭 *Portal do cliente:* ${portalUrl}\n` +
+          `📧 *E-mail:* ${revealed.portalEmail}\n` +
+          `🔒 *Senha temporária:* ${revealed.portalTempPassword}\n` +
+          `No primeiro acesso o sistema pedirá para você trocar a senha.`;
+      } else if (revealed.portalAlreadyExisted) {
+        portalBlock =
+          `\n\n🧭 *Portal do cliente:* ${portalUrl}\n` +
+          `📧 *E-mail:* ${revealed.portalEmail}\n` +
+          `Você já tem conta no portal. Use sua senha atual — se não lembrar, clique em *"Esqueci minha senha"*.`;
+      }
+    }
     if (revealed.apiKey) {
       return `${nome} Aqui estão suas credenciais do plano *${plano}*:
 
@@ -405,11 +442,14 @@ ${revealed.apiKey}
 🌐 *Base URL (ANTHROPIC_BASE_URL):*
 ${baseUrl}
 
-Use no Cursor, Cline ou Claude Code definindo essas duas variáveis. Qualquer dúvida, é só chamar!`;
+Use no Cursor, Cline ou Claude Code definindo essas duas variáveis.${portalBlock}
+
+Qualquer dúvida, é só chamar!`;
     }
     return `${nome} Aqui está sua chave do plano *${plano}*:
 
 🔑 ${revealed.code}
+${portalBlock}
 
 Qualquer dúvida, é só chamar!`;
   };
