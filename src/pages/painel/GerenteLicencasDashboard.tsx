@@ -22,6 +22,7 @@ type Method = "flow" | "lovax";
 const METHOD_KEY = "licencas.delivery.method";
 const MAINT_KEY = "licencas.delivery.maintenance";
 const SETTING_KEY = "licencas.delivery.method";
+const MAINT_SETTING_KEY = "licencas.delivery.maintenance";
 
 export default function GerenteLicencasDashboard() {
   const [method, setMethod] = useState<Method>("flow");
@@ -31,19 +32,26 @@ export default function GerenteLicencasDashboard() {
   useEffect(() => {
     const m = localStorage.getItem(METHOD_KEY) as Method | null;
     if (m === "flow" || m === "lovax") setMethod(m);
-    setMaintenance(localStorage.getItem(MAINT_KEY) === "1");
     // Sincroniza com a configuração compartilhada (visível pelos revendedores)
     (async () => {
-      const { data } = await supabase
+      const { data: methodRow } = await supabase
         .from("app_settings")
         .select("value")
         .eq("key", SETTING_KEY)
         .maybeSingle();
-      const v = (data?.value as any)?.method;
+      const v = (methodRow?.value as any)?.method;
       if (v === "flow" || v === "lovax") {
         setMethod(v);
         localStorage.setItem(METHOD_KEY, v);
       }
+      const { data: maintRow } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", MAINT_SETTING_KEY)
+        .maybeSingle();
+      const enabled = (maintRow?.value as any)?.enabled === true;
+      setMaintenance(enabled);
+      localStorage.setItem(MAINT_KEY, enabled ? "1" : "0");
     })();
   }, []);
 
@@ -70,12 +78,25 @@ export default function GerenteLicencasDashboard() {
     })();
   };
 
-  const toggleMaintenance = () => {
+  const toggleMaintenance = async () => {
     const next = !maintenance;
     setMaintenance(next);
     localStorage.setItem(MAINT_KEY, next ? "1" : "0");
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert(
+        { key: MAINT_SETTING_KEY, value: { enabled: next } as any },
+        { onConflict: "key" },
+      );
+    if (error) {
+      // rollback UI
+      setMaintenance(!next);
+      localStorage.setItem(MAINT_KEY, !next ? "1" : "0");
+      toast.error(`Falha ao salvar: ${error.message}`);
+      return;
+    }
     toast[next ? "warning" : "success"](
-      next ? "Entrega em manutenção" : "Entrega reativada"
+      next ? "Entrega em manutenção — revendedores notificados" : "Entrega reativada",
     );
   };
 
