@@ -277,18 +277,6 @@ export default function CheckoutClaude() {
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Aguardando confirmação do pagamento…
               </div>
-              {isTestReseller && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-2 border-dashed"
-                  onClick={releaseTestPix}
-                  disabled={releasing}
-                >
-                  {releasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                  Liberar PIX (conta de testes)
-                </Button>
-              )}
             </CardContent>
           </Card>
         ) : (
