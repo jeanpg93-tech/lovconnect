@@ -11,9 +11,6 @@ import { alphaHex, normalizeHexColor, readableTextOnHex, storefrontThemeVars } f
 
 type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d" | "api_500k_30d" | "api_25m_30d" | "api_10m_30d";
 
-// ID da conta de testes (revendedor Jean Gomes / jeanpg.93).
-// Só nesse revendedor o botão "Liberar PIX (teste)" aparece.
-const TEST_RESELLER_ID = "68fddcfb-5e1f-492c-be75-9a8a3d2a63fa";
 
 const PLANS: { code: PlanCode; label: string; desc: string }[] = [
   { code: "pro_30d", label: "Pro — 30 dias", desc: "500K tokens · 30 dias" },
