@@ -109,6 +109,9 @@ export default function RevendedorClaude() {
     providerBaseUrl?: string | null;
     customerName?: string;
     customerWhatsapp?: string;
+    portalEmail?: string | null;
+    portalTempPassword?: string | null;
+    portalAlreadyExisted?: boolean;
   } | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<PlanCode>("20x_30d");
   const [copied, setCopied] = useState(false);
@@ -232,6 +235,30 @@ export default function RevendedorClaude() {
       return toast.error(friendly, { duration: 8000 });
     }
     if (data?.code) {
+      // Se o revendedor tem loja/portal habilitado e temos e-mail do cliente,
+      // provisiona a conta do portal com senha temporária para incluir na mensagem.
+      let portalEmail: string | null = null;
+      let portalTempPassword: string | null = null;
+      let portalAlreadyExisted = false;
+      const emailForPortal = customerEmail.trim();
+      if (portalUrl && emailForPortal && data.order_id) {
+        const { data: prov, error: provErr } = await invokeAuthenticatedFunction<any>(
+          "claude-reseller-provision-portal",
+          {
+            method: "POST",
+            body: { order_id: data.order_id, action: "provision" },
+          },
+        );
+        if (!provErr && prov?.ok) {
+          portalEmail = prov.email ?? emailForPortal;
+          portalTempPassword = prov.temp_password ?? null;
+          portalAlreadyExisted = !!prov.already_existed;
+        } else if ((prov as any)?.error === "email_already_registered") {
+          // Cliente já tem portal em outra loja: informa sem senha temporária.
+          portalEmail = emailForPortal;
+          portalAlreadyExisted = true;
+        }
+      }
       setRevealed({
         code: data.code,
         plan,
@@ -240,6 +267,9 @@ export default function RevendedorClaude() {
         providerBaseUrl: data.provider_base_url ?? null,
         customerName: customerName.trim(),
         customerWhatsapp: customerWhatsapp.replace(/\D+/g, ""),
+        portalEmail,
+        portalTempPassword,
+        portalAlreadyExisted,
       });
       setCustomerName("");
       setCustomerWhatsapp("");
@@ -337,9 +367,21 @@ export default function RevendedorClaude() {
     const nome = revealed.customerName ? `Olá, ${revealed.customerName}!` : "Olá!";
     const plano = PLAN_LABELS[revealed.plan];
     const baseUrl = revealed.providerBaseUrl ?? "https://claude-ss.shardweb.app/";
-    const portalBlock = portalUrl
-      ? `\n\n🧭 *Portal do cliente:* ${portalUrl}\nAcesse com seu e-mail. No primeiro acesso, clique em *"Esqueci minha senha / primeiro acesso"* para criar sua senha.`
-      : "";
+    let portalBlock = "";
+    if (portalUrl && revealed.portalEmail) {
+      if (revealed.portalTempPassword) {
+        portalBlock =
+          `\n\n🧭 *Portal do cliente:* ${portalUrl}\n` +
+          `📧 *E-mail:* ${revealed.portalEmail}\n` +
+          `🔒 *Senha temporária:* ${revealed.portalTempPassword}\n` +
+          `No primeiro acesso o sistema pedirá para você trocar a senha.`;
+      } else if (revealed.portalAlreadyExisted) {
+        portalBlock =
+          `\n\n🧭 *Portal do cliente:* ${portalUrl}\n` +
+          `📧 *E-mail:* ${revealed.portalEmail}\n` +
+          `Você já tem conta no portal. Use sua senha atual — se não lembrar, clique em *"Esqueci minha senha"*.`;
+      }
+    }
     if (revealed.apiKey) {
       return (
 `${nome} Aqui estão suas credenciais do plano *${plano}*:
