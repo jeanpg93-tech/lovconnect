@@ -416,18 +416,6 @@ export default function CheckoutClaude() {
                 </span>
               </button>
 
-              {isTestReseller && (
-                <button
-                  type="button"
-                  onClick={runTestFlow}
-                  disabled={submitting || !currentPrice}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border bg-card/70 px-6 py-3 text-sm font-medium text-foreground/80 transition-all hover:bg-card/90 hover:text-foreground disabled:opacity-50"
-                  style={{ borderColor: `${accent}26` }}
-                >
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" style={{ color: accent }} />}
-                  Gerar + <span style={{ color: accent }}>Liberar</span> PIX (conta de testes)
-                </button>
-              )}
             </div>
 
             <p className="mt-6 text-center text-muted-foreground text-[11px] leading-relaxed max-w-[80%] mx-auto">
