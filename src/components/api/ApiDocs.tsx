@@ -177,8 +177,8 @@ POST para a URL configurada na chave:
 {
   "event": "claude.key.issued",
   "pedido_id": "uuid",
-  "plano": "pro_30d",
-  "preco_centavos": 5200,
+  "plano": "api_25m_30d",
+  "preco_centavos": 9217,
   "codigo": "QL-CLAUDE-...",
   "api_key": "sk-ant-...",
   "base_url": "https://claude-ss.shardweb.app/",
