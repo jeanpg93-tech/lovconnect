@@ -10,12 +10,12 @@ const CLAUDE_BASE_URL = (Deno.env.get('CLAUDE_RESELLER_API_BASE_URL') ?? '').rep
 const PLAN_CODES = new Set(['pro_30d', '5x_7d', '5x_30d', '20x_30d', 'api_500k_30d', 'api_25m_30d', 'api_10m_30d']);
 const PLAN_LABELS: Record<string, string> = {
   'pro_30d': 'Pro · 30 dias',
-  '5x_7d':   '5x · 7 dias',
-  '5x_30d':  '5x · 30 dias',
-  '20x_30d': '20x · 30 dias',
-  'api_500k_30d': 'API 500K · 30 dias',
-  'api_25m_30d': 'API 2,5M · 30 dias',
-  'api_10m_30d': 'API 10M · 30 dias',
+  '5x_7d':   'Max 5X · 7 dias',
+  '5x_30d':  'Max 5X · 30 dias',
+  '20x_30d': 'Max 20X · 30 dias',
+  'api_500k_30d': 'Pro · 30 dias',
+  'api_25m_30d': 'Max 5X · 30 dias',
+  'api_10m_30d': 'Max 20X · 30 dias',
 };
 
 const json = (data: unknown, status = 200) =>

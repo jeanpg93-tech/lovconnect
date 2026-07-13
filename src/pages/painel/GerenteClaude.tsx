@@ -20,11 +20,11 @@ type PlanCode = "pro_30d" | "5x_30d" | "20x_30d" | "api_500k_30d" | "api_25m_30d
 
 const PLAN_LABELS: Record<PlanCode, string> = {
   pro_30d: "Pro · 30 dias",
-  "5x_30d": "5x · 30 dias",
-  "20x_30d": "20x · 30 dias",
-  "api_500k_30d": "API 500K · 30 dias",
-  "api_25m_30d": "API 2,5M · 30 dias",
-  "api_10m_30d": "API 10M · 30 dias",
+  "5x_30d": "Max 5X · 30 dias",
+  "20x_30d": "Max 20X · 30 dias",
+  "api_500k_30d": "Pro · 30 dias",
+  "api_25m_30d": "Max 5X · 30 dias",
+  "api_10m_30d": "Max 20X · 30 dias",
 };
 const planLabel = (code: string) =>
   code === "trial_15m_50msg"
@@ -148,6 +148,9 @@ export default function GerenteClaude() {
     customerName?: string;
     customerWhatsapp?: string;
     customerEmail?: string;
+    portalEmail?: string | null;
+    portalTempPassword?: string | null;
+    portalAlreadyExisted?: boolean;
   } | null>(null);
   const [copied, setCopied] = useState(false);
   const [trialOpen, setTrialOpen] = useState(false);
@@ -155,6 +158,7 @@ export default function GerenteClaude() {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [history, setHistory] = useState<Issued[]>([]);
+  const [portalUrl, setPortalUrl] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "issued" | "redeemed" | "expired" | "cancelled">("all");
@@ -181,6 +185,18 @@ export default function GerenteClaude() {
       if (rows.length && !rows.some((r) => r.plan_code === selected)) {
         setSelected(rows[0].plan_code);
       }
+      // Descobre a loja padrão do gerente para portal do cliente
+      try {
+        const { data: setting } = await supabase
+          .from("app_settings").select("value").eq("key", "manager_reseller_id").maybeSingle();
+        const rid = String((setting as any)?.value ?? "").trim();
+        if (rid) {
+          const { data: r } = await supabase
+            .from("resellers").select("slug").eq("id", rid).maybeSingle();
+          const slug = (r as any)?.slug;
+          if (slug) setPortalUrl(`${window.location.origin}/cliente-claude/login?loja=${slug}`);
+        }
+      } catch { /* noop */ }
       try {
         const raw = localStorage.getItem(HISTORY_KEY);
         if (raw) setHistory(JSON.parse(raw));
@@ -327,6 +343,25 @@ export default function GerenteClaude() {
       return toast.error(friendly, { duration: 8000 });
     }
     if (data?.code) {
+      // Provisiona portal do cliente na loja padrão do gerente (se configurada e houver e-mail)
+      let portalEmail: string | null = null;
+      let portalTempPassword: string | null = null;
+      let portalAlreadyExisted = false;
+      const emailForPortal = customerEmail.trim();
+      if (portalUrl && emailForPortal && data.id) {
+        const { data: prov, error: provErr } = await invokeAuthenticatedFunction<any>(
+          "claude-manager-provision-portal",
+          { method: "POST", body: { order_id: data.id, action: "provision" } },
+        );
+        if (!provErr && prov?.ok) {
+          portalEmail = prov.email ?? emailForPortal;
+          portalTempPassword = prov.temp_password ?? null;
+          portalAlreadyExisted = !!prov.already_existed;
+        } else if ((prov as any)?.error === "email_already_registered") {
+          portalEmail = emailForPortal;
+          portalAlreadyExisted = true;
+        }
+      }
       setRevealed({
         id: data.id ?? null,
         code: data.code,
@@ -337,6 +372,9 @@ export default function GerenteClaude() {
         customerName: customerName.trim(),
         customerWhatsapp: customerWhatsapp.replace(/\D+/g, ""),
         customerEmail: customerEmail.trim() || undefined,
+        portalEmail,
+        portalTempPassword,
+        portalAlreadyExisted,
       });
       const cost = plans.find((p) => p.plan_code === selected)?.cost_cents ?? 0;
       const entry: Issued = {
@@ -380,6 +418,21 @@ export default function GerenteClaude() {
     const nome = revealed.customerName ? `Olá, ${revealed.customerName}!` : "Olá!";
     const plano = PLAN_LABELS[revealed.plan];
     const baseUrl = revealed.providerBaseUrl ?? "https://claude-ss.shardweb.app/";
+    let portalBlock = "";
+    if (portalUrl && revealed.portalEmail) {
+      if (revealed.portalTempPassword) {
+        portalBlock =
+          `\n\n🧭 *Portal do cliente:* ${portalUrl}\n` +
+          `📧 *E-mail:* ${revealed.portalEmail}\n` +
+          `🔒 *Senha temporária:* ${revealed.portalTempPassword}\n` +
+          `No primeiro acesso o sistema pedirá para você trocar a senha.`;
+      } else if (revealed.portalAlreadyExisted) {
+        portalBlock =
+          `\n\n🧭 *Portal do cliente:* ${portalUrl}\n` +
+          `📧 *E-mail:* ${revealed.portalEmail}\n` +
+          `Você já tem conta no portal. Use sua senha atual — se não lembrar, clique em *"Esqueci minha senha"*.`;
+      }
+    }
     if (revealed.apiKey) {
       return `${nome} Aqui estão suas credenciais do plano *${plano}*:
 
@@ -389,11 +442,14 @@ ${revealed.apiKey}
 🌐 *Base URL (ANTHROPIC_BASE_URL):*
 ${baseUrl}
 
-Use no Cursor, Cline ou Claude Code definindo essas duas variáveis. Qualquer dúvida, é só chamar!`;
+Use no Cursor, Cline ou Claude Code definindo essas duas variáveis.${portalBlock}
+
+Qualquer dúvida, é só chamar!`;
     }
     return `${nome} Aqui está sua chave do plano *${plano}*:
 
 🔑 ${revealed.code}
+${portalBlock}
 
 Qualquer dúvida, é só chamar!`;
   };
