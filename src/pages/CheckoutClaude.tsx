@@ -129,64 +129,6 @@ export default function CheckoutClaude() {
     toast.success("Copiado!");
   };
 
-  const [releasing, setReleasing] = useState(false);
-  const releaseTestPix = async () => {
-    if (!pix?.order_id) return;
-    setReleasing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("dev-release-pix", {
-        body: { kind: "claude", id: pix.order_id },
-      });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("PIX liberado (teste)!");
-      setStatus("issued");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao liberar PIX");
-    } finally {
-      setReleasing(false);
-    }
-  };
-
-  const isTestReseller = reseller?.id === TEST_RESELLER_ID;
-
-  const runTestFlow = async () => {
-    if (!reseller) return;
-    setSubmitting(true);
-    try {
-      const testName = name || "Teste Jean";
-      const testEmail = email || `teste+${Date.now()}@jeanpg.dev`;
-      const testWhats = whatsapp || "(11) 99999-0000";
-      setName(testName); setEmail(testEmail); setWhatsapp(testWhats);
-      const { data, error } = await supabase.functions.invoke("claude-public-checkout", {
-        body: {
-          reseller_slug: slug,
-          plan_code: plan,
-          name: testName,
-          email: testEmail,
-          whatsapp: testWhats,
-          payer_document: document_,
-        },
-      });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      const pixData = data as any;
-      setPix(pixData);
-      setStatus("awaiting_payment");
-      // Libera imediatamente
-      const { data: rel, error: relErr } = await supabase.functions.invoke("dev-release-pix", {
-        body: { kind: "claude", id: pixData.order_id },
-      });
-      if (relErr) throw relErr;
-      if ((rel as any)?.error) throw new Error((rel as any).error);
-      setStatus("issued");
-      toast.success("PIX gerado e liberado (teste)!");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Falha no fluxo de teste");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   if (loading) {
     return (
