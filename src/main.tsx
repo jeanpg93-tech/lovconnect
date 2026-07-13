@@ -33,5 +33,23 @@ primeAudioOnFirstGesture();
 
 window.setTimeout(resetChunkReloadAttempts, 10_000);
 
+// Kill-switch: unregister any legacy service worker and clear caches
+// left over from a previous PWA install so devices don't stay stuck
+// on stale assets. Runs only in the browser and only over http(s).
+if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+  const isPreview = /lovable(project)?\.app$/i.test(window.location.hostname) &&
+    window.location.hostname.includes("preview");
+  if (!isPreview) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        if (regs.length > 0) {
+          // Register the kill-switch so it activates and unregisters.
+          navigator.serviceWorker.register("/sw.js").catch(() => {});
+        }
+      }).catch(() => {});
+    });
+  }
+}
+
 createRoot(document.getElementById("root")!).render(<App />);
 
