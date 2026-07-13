@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     // para que o teste apareça no histórico "Minhas chaves Claude" do painel do revendedor.
     const { data: reseller } = await admin
       .from('resellers')
-      .select('id, claude_enabled')
+      .select('id, claude_enabled, display_name, slug')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -129,8 +129,12 @@ Deno.serve(async (req) => {
 
     // Telegram
     try {
+      const resellerLabel = reseller
+        ? `${reseller.display_name ?? '—'}${reseller.slug ? ` (@${reseller.slug})` : ''}`
+        : '—';
       const txt =
         `🤖 <b>Teste Claude (${managerManual ? 'Gerente' : 'Revendedor'} · Painel)</b>\n` +
+        `👨‍💼 Revendedor: ${resellerLabel}\n` +
         `👤 Cliente: ${customerName ?? '—'}${customerWhatsapp ? ` · 📱 ${customerWhatsapp}` : ''}\n` +
         `📧 ${email}\n` +
         `👥 User ID: <code>${providerUserId ?? '—'}</code>\n` +
