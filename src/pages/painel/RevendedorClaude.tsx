@@ -32,7 +32,7 @@ const PLAN_LABELS: Record<PlanCode, string> = {
   "api_25m_30d": "Max 5X · 30 dias",
   "api_10m_30d": "Max 20X · 30 dias",
 };
-const PLAN_ORDER: PlanCode[] = ["pro_30d", "5x_7d", "5x_30d", "20x_30d", "api_500k_30d", "api_25m_30d", "api_10m_30d"];
+const PLAN_ORDER: PlanCode[] = ["pro_30d", "5x_30d", "20x_30d", "api_500k_30d", "api_25m_30d", "api_10m_30d"];
 
 const PLAN_LIMITS: Record<PlanCode, string> = {
   "pro_30d": "500 mil tokens / 12h",

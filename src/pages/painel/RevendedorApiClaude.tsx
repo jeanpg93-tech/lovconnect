@@ -256,9 +256,8 @@ function TabInicio() {
             <tbody className="divide-y divide-border">
               {[
                 ["pro_30d", "Pro · 30 dias · 500K tokens"],
-                ["5x_7d", "5x · 7 dias · ~600K tokens"],
-                ["5x_30d", "5x · 30 dias · 2,5M tokens"],
-                ["20x_30d", "20x · 30 dias · 10M tokens"],
+                ["5x_30d", "Max 5X · 30 dias · 2,5M tokens"],
+                ["20x_30d", "Max 20X · 30 dias · 10M tokens"],
                 ["trial_15m_50msg", "Teste GRÁTIS · 15 minutos OU 50 mensagens (via POST /teste)"],
               ].map(([k, v]) => (
                 <tr key={k}>
