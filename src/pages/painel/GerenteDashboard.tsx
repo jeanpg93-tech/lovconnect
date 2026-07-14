@@ -249,6 +249,19 @@ export default function GerenteDashboard() {
       }
     } catch {}
 
+    // Saldo do provedor Claude (apenas gerente)
+    try {
+      const { data: claudeData } = await invokeAuthenticatedFunction("claude-api", { method: "GET" });
+      const cd: any = claudeData ?? {};
+      if (!cd?.error) {
+        const payload: any = cd?.data && typeof cd.data === "object" ? cd.data : cd;
+        const cents = Number(
+          payload?.balance ?? payload?.available_balance ?? payload?.availableBalance ?? NaN,
+        );
+        if (Number.isFinite(cents)) setClaudeProviderBalance(cents);
+      }
+    } catch {}
+
     // Mensalistas geram licenças com price_cents=0 (sem débito), então não aparecem
     // em balance_transactions. Buscamos separadamente para mesclar no feed.
     const { data: subOrdersData } = await supabase
