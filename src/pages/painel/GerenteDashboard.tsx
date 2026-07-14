@@ -7,6 +7,7 @@ import OnlineUsersCard from "@/components/painel/OnlineUsersCard";
 import ManagerStockAlertBanner from "@/components/painel/ManagerStockAlertBanner";
 import { useProviderCommitments } from "@/hooks/useProviderCommitments";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
+import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import {
   Package,
   Store,
@@ -155,6 +156,7 @@ export default function GerenteDashboard() {
   const [gatewayBalance, setGatewayBalance] = useState<string>("R$ 0,00");
   const [todayRecharge, setTodayRecharge] = useState<{ cents: number; count: number }>({ cents: 0, count: 0 });
   const [lovaxStock, setLovaxStock] = useState<{ used: number; limit: number } | null>(null);
+  const [claudeProviderBalance, setClaudeProviderBalance] = useState<number | null>(null);
   const commitments = useProviderCommitments(true);
   const [creditMovements, setCreditMovements] = useState<{
     id: string;
@@ -244,6 +246,19 @@ export default function GerenteDashboard() {
         const used = Number(ld?.used ?? 0);
         const limit = Number(ld?.limit ?? ld?.max ?? used + remaining);
         setLovaxStock({ used, limit });
+      }
+    } catch {}
+
+    // Saldo do provedor Claude (apenas gerente)
+    try {
+      const { data: claudeData } = await invokeAuthenticatedFunction("claude-api", { method: "GET" });
+      const cd: any = claudeData ?? {};
+      if (!cd?.error) {
+        const payload: any = cd?.data && typeof cd.data === "object" ? cd.data : cd;
+        const cents = Number(
+          payload?.balance ?? payload?.available_balance ?? payload?.availableBalance ?? NaN,
+        );
+        if (Number.isFinite(cents)) setClaudeProviderBalance(cents);
       }
     } catch {}
 
@@ -1047,6 +1062,17 @@ export default function GerenteDashboard() {
           />
           <OnlineUsersCard />
           <FallbackMetricCard days={30} />
+          <StatCard
+            label="Provedor Claude"
+            value={
+              claudeProviderBalance != null
+                ? (claudeProviderBalance / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                : "—"
+            }
+            hint="saldo disponível no provedor"
+            icon={ClaudeIcon as any}
+            accent="amber"
+          />
         </div>
       </div>
 

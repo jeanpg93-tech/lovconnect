@@ -212,6 +212,8 @@ export function AppSidebar() {
   const [activeMethod, setActiveMethod] = useState<"flow" | "lovax">("flow");
   const [gatewayBalance, setGatewayBalance] = useState<string | null>(null);
   const [gatewayLoading, setGatewayLoading] = useState(false);
+  const [claudeBalance, setClaudeBalance] = useState<number | null>(null);
+  const [claudeLoading, setClaudeLoading] = useState(false);
   const [resellerBalance, setResellerBalance] = useState<number>(0);
   const [tier, setTier] = useState<{ name: string; color: string; slug: string } | null>(null);
   const [storeEnabled, setStoreEnabled] = useState<boolean | null>(null);
@@ -332,6 +334,27 @@ export function AppSidebar() {
 
     fetchBalance();
     fetchGatewayBalance();
+    const fetchClaudeBalance = async () => {
+      setClaudeLoading(true);
+      try {
+        const { data, error } = await invokeAuthenticatedFunction("claude-api", { method: "GET" });
+        if (cancelled) return;
+        if (error || (data as any)?.error) {
+          setClaudeBalance(null);
+        } else {
+          const payload: any = (data as any)?.data && typeof (data as any).data === "object" ? (data as any).data : data;
+          const cents = Number(
+            payload?.balance ?? payload?.available_balance ?? payload?.availableBalance ?? NaN,
+          );
+          setClaudeBalance(Number.isFinite(cents) ? cents : null);
+        }
+      } catch {
+        if (!cancelled) setClaudeBalance(null);
+      } finally {
+        if (!cancelled) setClaudeLoading(false);
+      }
+    };
+    fetchClaudeBalance();
     const fetchLovax = async () => {
       setLovaxLoading(true);
       try {
@@ -354,6 +377,7 @@ export function AppSidebar() {
     const id = setInterval(() => {
       fetchBalance();
       fetchGatewayBalance();
+      fetchClaudeBalance();
       fetchLovax();
     }, 60_000);
 
@@ -663,6 +687,28 @@ export function AppSidebar() {
               </button>
             </NavLink>
 
+            <NavLink
+              to="/painel/gerente/api-claude"
+              className="group relative flex items-center gap-2.5 overflow-hidden rounded-xl border border-border bg-card p-2 transition-all hover:border-orange-500/40 hover:shadow-sm"
+            >
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-orange-500/20 bg-orange-500/10 text-orange-500 transition-transform group-hover:scale-110">
+                <ClaudeIcon className="h-3.5 w-3.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
+                  Provedor Claude
+                </div>
+                <div className="mt-1 font-display text-xs font-bold text-foreground leading-none tabular-nums">
+                  {claudeLoading && claudeBalance === null
+                    ? "—"
+                    : claudeBalance != null
+                    ? (claudeBalance / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                    : "—"}
+                </div>
+                <div className="mt-0.5 text-[9px] text-muted-foreground/80 leading-none">saldo disponível</div>
+              </div>
+            </NavLink>
+
             {/* Comprometido em Packs (somente método ativo) */}
             {(() => {
               const methodRemaining =
@@ -735,6 +781,13 @@ export function AppSidebar() {
               title={gatewayBalance ? `Saldo Gateway (MisticPay): R$ ${Number(gatewayBalance).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Saldo no Gateway"}
             >
               <CreditCard className="h-4 w-4" />
+            </NavLink>
+            <NavLink
+              to="/painel/gerente/api-claude"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-orange-500/30 bg-orange-500/10 text-orange-500"
+              title={claudeBalance != null ? `Provedor Claude: ${(claudeBalance / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Provedor Claude"}
+            >
+              <ClaudeIcon className="h-4 w-4" />
             </NavLink>
           </div>
         )}
