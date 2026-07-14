@@ -782,6 +782,13 @@ export function AppSidebar() {
             >
               <CreditCard className="h-4 w-4" />
             </NavLink>
+            <NavLink
+              to="/painel/gerente/claude-api"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-orange-500/30 bg-orange-500/10 text-orange-500"
+              title={claudeBalance != null ? `Provedor Claude: ${(claudeBalance / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "Provedor Claude"}
+            >
+              <ClaudeIcon className="h-4 w-4" />
+            </NavLink>
           </div>
         )}
 
