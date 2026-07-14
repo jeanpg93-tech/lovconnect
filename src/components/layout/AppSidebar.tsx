@@ -344,7 +344,7 @@ export function AppSidebar() {
         } else {
           const payload: any = (data as any)?.data && typeof (data as any).data === "object" ? (data as any).data : data;
           const cents = Number(
-            payload?.balance ?? payload?.available_balance ?? payload?.availableBalance ?? NaN,
+            payload?.balanceCents ?? payload?.balance_cents ?? payload?.balance ?? payload?.available_balance ?? payload?.availableBalance ?? NaN,
           );
           setClaudeBalance(Number.isFinite(cents) ? cents : null);
         }

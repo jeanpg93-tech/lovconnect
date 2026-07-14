@@ -256,7 +256,7 @@ export default function GerenteDashboard() {
       if (!cd?.error) {
         const payload: any = cd?.data && typeof cd.data === "object" ? cd.data : cd;
         const cents = Number(
-          payload?.balance ?? payload?.available_balance ?? payload?.availableBalance ?? NaN,
+          payload?.balanceCents ?? payload?.balance_cents ?? payload?.balance ?? payload?.available_balance ?? payload?.availableBalance ?? NaN,
         );
         if (Number.isFinite(cents)) setClaudeProviderBalance(cents);
       }
