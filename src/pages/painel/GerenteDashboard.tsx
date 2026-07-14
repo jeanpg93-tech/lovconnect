@@ -1062,6 +1062,17 @@ export default function GerenteDashboard() {
           />
           <OnlineUsersCard />
           <FallbackMetricCard days={30} />
+          <StatCard
+            label="Provedor Claude"
+            value={
+              claudeProviderBalance != null
+                ? (claudeProviderBalance / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                : "—"
+            }
+            hint="saldo disponível no provedor"
+            icon={ClaudeIcon as any}
+            accent="amber"
+          />
         </div>
       </div>
 
