@@ -212,6 +212,8 @@ export function AppSidebar() {
   const [activeMethod, setActiveMethod] = useState<"flow" | "lovax">("flow");
   const [gatewayBalance, setGatewayBalance] = useState<string | null>(null);
   const [gatewayLoading, setGatewayLoading] = useState(false);
+  const [claudeBalance, setClaudeBalance] = useState<number | null>(null);
+  const [claudeLoading, setClaudeLoading] = useState(false);
   const [resellerBalance, setResellerBalance] = useState<number>(0);
   const [tier, setTier] = useState<{ name: string; color: string; slug: string } | null>(null);
   const [storeEnabled, setStoreEnabled] = useState<boolean | null>(null);
@@ -332,6 +334,27 @@ export function AppSidebar() {
 
     fetchBalance();
     fetchGatewayBalance();
+    const fetchClaudeBalance = async () => {
+      setClaudeLoading(true);
+      try {
+        const { data, error } = await invokeAuthenticatedFunction("claude-api", { method: "GET" });
+        if (cancelled) return;
+        if (error || (data as any)?.error) {
+          setClaudeBalance(null);
+        } else {
+          const payload: any = (data as any)?.data && typeof (data as any).data === "object" ? (data as any).data : data;
+          const cents = Number(
+            payload?.balance ?? payload?.available_balance ?? payload?.availableBalance ?? NaN,
+          );
+          setClaudeBalance(Number.isFinite(cents) ? cents : null);
+        }
+      } catch {
+        if (!cancelled) setClaudeBalance(null);
+      } finally {
+        if (!cancelled) setClaudeLoading(false);
+      }
+    };
+    fetchClaudeBalance();
     const fetchLovax = async () => {
       setLovaxLoading(true);
       try {
@@ -354,6 +377,7 @@ export function AppSidebar() {
     const id = setInterval(() => {
       fetchBalance();
       fetchGatewayBalance();
+      fetchClaudeBalance();
       fetchLovax();
     }, 60_000);
 
