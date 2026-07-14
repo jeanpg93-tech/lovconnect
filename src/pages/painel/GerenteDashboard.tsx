@@ -7,6 +7,7 @@ import OnlineUsersCard from "@/components/painel/OnlineUsersCard";
 import ManagerStockAlertBanner from "@/components/painel/ManagerStockAlertBanner";
 import { useProviderCommitments } from "@/hooks/useProviderCommitments";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
+import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import {
   Package,
   Store,
