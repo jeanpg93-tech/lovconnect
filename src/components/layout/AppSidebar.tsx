@@ -687,6 +687,28 @@ export function AppSidebar() {
               </button>
             </NavLink>
 
+            <NavLink
+              to="/painel/gerente/claude-api"
+              className="group relative flex items-center gap-2.5 overflow-hidden rounded-xl border border-border bg-card p-2 transition-all hover:border-orange-500/40 hover:shadow-sm"
+            >
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-orange-500/20 bg-orange-500/10 text-orange-500 transition-transform group-hover:scale-110">
+                <ClaudeIcon className="h-3.5 w-3.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground leading-none">
+                  Provedor Claude
+                </div>
+                <div className="mt-1 font-display text-xs font-bold text-foreground leading-none tabular-nums">
+                  {claudeLoading && claudeBalance === null
+                    ? "—"
+                    : claudeBalance != null
+                    ? (claudeBalance / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                    : "—"}
+                </div>
+                <div className="mt-0.5 text-[9px] text-muted-foreground/80 leading-none">saldo disponível</div>
+              </div>
+            </NavLink>
+
             {/* Comprometido em Packs (somente método ativo) */}
             {(() => {
               const methodRemaining =
