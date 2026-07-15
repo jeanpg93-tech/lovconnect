@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.dev-release-pix]
 verify_jwt = false
+
+[functions.lovabase-secrets-bridge]
+verify_jwt = false
