@@ -108,6 +108,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Gerenciar Recargas", url: "/painel/gerente/recargas", icon: Coins },
       { title: "Gerenciar Licenças", url: "/painel/gerente/todas-licencas", icon: KeyRound },
       { title: "Licenças Claude", url: "/painel/gerente/claude-vendas", icon: ClaudeIcon as any },
+      { title: "Exportar Chaves Claude", url: "/painel/gerente/claude-exportar", icon: KeyRound },
       { title: "Packs", url: "/painel/gerente/pacotes", icon: Package },
     ]},
   ],
