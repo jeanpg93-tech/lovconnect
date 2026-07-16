@@ -383,21 +383,7 @@ export default function GerenteClaudeVendas() {
                         <div className="text-[10px] uppercase text-muted-foreground/70 flex items-center gap-1">
                           <KeyRound className="h-3 w-3" /> Código ACT
                         </div>
-                        <div className="flex items-center gap-2 rounded-md border bg-background/50 px-2 py-1.5">
-                          <code className="flex-1 text-xs font-mono truncate">{o.code}</code>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 shrink-0"
-                            onClick={() => copy(`code-${o.id}`, o.code)}
-                          >
-                            {copiedId === `code-${o.id}` ? (
-                              <Check className="h-3 w-3 text-emerald-500" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </div>
+                        <ActCodeReveal value={o.code} />
                       </div>
                       <div className="space-y-2">
                         <div className="text-[10px] uppercase text-muted-foreground/70">API Key</div>
