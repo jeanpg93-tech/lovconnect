@@ -110,6 +110,7 @@ const ROUTES: PanelRoute[] = [
   { key: "/painel/gerente/api-claude", match: exact("/painel/gerente/api-claude"), render: () => <RoleRoute allow={["gerente"]}><GerenteClaudeApi /></RoleRoute> },
   { key: "/painel/gerente/claude", match: exact("/painel/gerente/claude"), render: () => <RoleRoute allow={["gerente"]}><GerenteClaude /></RoleRoute> },
   { key: "/painel/gerente/claude-vendas", match: exact("/painel/gerente/claude-vendas"), render: () => <RoleRoute allow={["gerente"]}><GerenteClaudeVendas /></RoleRoute> },
+  { key: "/painel/gerente/claude-exportar", match: exact("/painel/gerente/claude-exportar"), render: () => <RoleRoute allow={["gerente"]}><GerenteClaudeExportar /></RoleRoute> },
   { key: "/painel/gerente/api-recargas", match: exact("/painel/gerente/api-recargas"), render: () => <RoleRoute allow={["gerente"]}><GerenteApiRecargas /></RoleRoute> },
   { key: "/painel/gerente/acompanhar-recargas", match: exact("/painel/gerente/acompanhar-recargas"), render: () => <RoleRoute allow={["gerente"]}><GerenteAcompanharRecargas /></RoleRoute> },
   { key: "/painel/gerente/recargas-dashboard", match: exact("/painel/gerente/recargas-dashboard"), render: () => <RoleRoute allow={["gerente"]}><GerenteRecargasDashboard /></RoleRoute> },
