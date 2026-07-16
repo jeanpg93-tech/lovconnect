@@ -1157,7 +1157,7 @@ export default function PublicStorefront() {
                   {selLic === "trial"
                     ? systemMaintenance.enabled ? "Em manutenção" : "Gerar Chave Teste Grátis"
                     : systemMaintenance.enabled ? "PIX bloqueado — manutenção"
-                    : `Pagar ${selLic
+                      : `Pagar ${selLic
                         ? formatBRL(priceFor(selLic))
                         : selPlan
                           ? formatBRL(sellablePlans.find(p => p.plan_id === selPlan)?.sale_price_cents ?? 0)
