@@ -13,6 +13,7 @@ const GerenteApiProvedor = lazy(() => import("@/pages/painel/GerenteApiProvedor"
 const GerenteClaudeApi = lazy(() => import("@/pages/painel/GerenteClaudeApi"));
 const GerenteClaude = lazy(() => import("@/pages/painel/GerenteClaude"));
 const GerenteClaudeVendas = lazy(() => import("@/pages/painel/GerenteClaudeVendas"));
+const GerenteClaudeExportar = lazy(() => import("@/pages/painel/GerenteClaudeExportar"));
 const GerenteApiRecargas = lazy(() => import("@/pages/painel/GerenteApiRecargas"));
 const GerenteAcompanharRecargas = lazy(() => import("@/pages/painel/GerenteAcompanharRecargas"));
 const GerenteRecargasDashboard = lazy(() => import("@/pages/painel/GerenteRecargasDashboard"));
