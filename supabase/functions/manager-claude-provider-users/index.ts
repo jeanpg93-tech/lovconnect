@@ -58,13 +58,21 @@ Deno.serve(async (req) => {
     if (!CLAUDE_BASE_URL) return json({ error: 'provider_not_configured' }, 500);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { data: orders } = await admin
+    let scope: string = 'manual';
+    try {
+      if (req.method === 'POST') {
+        const body = await req.clone().json().catch(() => ({}));
+        if (body && typeof body === 'object' && body.scope) scope = String(body.scope);
+      }
+    } catch { /* noop */ }
+    let ordersQuery = admin
       .from('claude_orders')
-      .select('id, code, customer_email, provider_key_id, provider_user_id, status, redeemed_at, expired_at')
-      .eq('is_manager_manual', true)
+      .select('id, code, customer_email, provider_key_id, provider_user_id, status, redeemed_at, expired_at, is_manager_manual')
       .not('code', 'is', null)
       .order('created_at', { ascending: false })
-      .limit(300);
+      .limit(scope === 'all' ? 1000 : 300);
+    if (scope !== 'all') ordersQuery = ordersQuery.eq('is_manager_manual', true);
+    const { data: orders } = await ordersQuery;
 
     const r = await fetchWithBackoff(`${CLAUDE_BASE_URL}/api/rsl/users`, {
       headers: { Authorization: `Bearer ${CLAUDE_API_KEY}`, Accept: 'application/json' },
