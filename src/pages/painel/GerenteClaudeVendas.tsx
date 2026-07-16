@@ -10,7 +10,7 @@ import {
 import ApiKeyReveal from "@/components/painel/ApiKeyReveal";
 import {
   Copy, Check, RefreshCw, Search, Loader2, Store, User, KeyRound,
-  ChevronDown, ChevronRight, Activity, Mail, Phone, Calendar, Zap,
+  ChevronDown, ChevronRight, Activity, Mail, Phone, Calendar, Zap, Eye, EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
@@ -383,21 +383,7 @@ export default function GerenteClaudeVendas() {
                         <div className="text-[10px] uppercase text-muted-foreground/70 flex items-center gap-1">
                           <KeyRound className="h-3 w-3" /> Código ACT
                         </div>
-                        <div className="flex items-center gap-2 rounded-md border bg-background/50 px-2 py-1.5">
-                          <code className="flex-1 text-xs font-mono truncate">{o.code}</code>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 shrink-0"
-                            onClick={() => copy(`code-${o.id}`, o.code)}
-                          >
-                            {copiedId === `code-${o.id}` ? (
-                              <Check className="h-3 w-3 text-emerald-500" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </div>
+                        <ActCodeReveal value={o.code} />
                       </div>
                       <div className="space-y-2">
                         <div className="text-[10px] uppercase text-muted-foreground/70">API Key</div>
@@ -489,6 +475,53 @@ function UsageStat({ label, value, suffix, highlight }: { label: string; value: 
       <div className="text-[10px] uppercase text-muted-foreground/70">{label}</div>
       <div className={cn("text-sm font-semibold", highlight && "text-primary")}>{value}</div>
       {suffix && <div className="text-[10px] text-muted-foreground truncate">{suffix}</div>}
+    </div>
+  );
+}
+
+function maskCode(v: string) {
+  if (!v) return "••••••••";
+  const tail = v.slice(-4);
+  return `${"•".repeat(Math.max(4, Math.min(16, v.length - 4)))}${tail}`;
+}
+
+function ActCodeReveal({ value }: { value: string }) {
+  const [revealed, setRevealed] = useState(false);
+  const [copied, setCopied] = useState(false);
+  if (!value) return <span className="text-xs text-muted-foreground">—</span>;
+  return (
+    <div className="flex items-center gap-1.5 rounded-md border bg-background/50 px-2 py-1.5">
+      <code className={cn("flex-1 text-xs font-mono truncate", revealed && "select-all")}>
+        {revealed ? value : maskCode(value)}
+      </code>
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className="h-6 w-6 shrink-0"
+        onClick={() => setRevealed((r) => !r)}
+        title={revealed ? "Ocultar" : "Revelar"}
+      >
+        {revealed ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+      </Button>
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className="h-6 w-6 shrink-0"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(value);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+          } catch {
+            toast.error("Não foi possível copiar");
+          }
+        }}
+        title="Copiar código"
+      >
+        {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+      </Button>
     </div>
   );
 }
