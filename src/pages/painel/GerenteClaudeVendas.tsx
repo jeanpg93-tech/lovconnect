@@ -10,7 +10,7 @@ import {
 import ApiKeyReveal from "@/components/painel/ApiKeyReveal";
 import {
   Copy, Check, RefreshCw, Search, Loader2, Store, User, KeyRound,
-  ChevronDown, ChevronRight, Activity, Mail, Phone, Calendar, Zap,
+  ChevronDown, ChevronRight, Activity, Mail, Phone, Calendar, Zap, Eye, EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
