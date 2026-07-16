@@ -1,89 +1,114 @@
-# Modo Manutenção Global
+# Plano — Exportação segura das API Keys Claude
 
-Kill-switch único que **bloqueia toda emissão/venda** para revendedores, mas mantém **consultas** (saldo, licenças, clientes, histórico) 100% funcionais. Gerente continua com acesso total para poder desligar.
+## Objetivo
+Criar uma única edge function `claude-export-keys` que permita ao **gerente** exportar as licenças de `claude_orders` para outro projeto Supabase, com as `provider_api_key` **criptografadas** por RSA-OAEP usando a chave pública do projeto de destino. Nada em texto simples sai do backend.
 
-## Como funciona (visão do usuário)
+## Fluxo
 
-**Gerente** (nova aba em `GerenteAcoesEspeciais` ou card no `GerenteDashboard`):
-- Toggle "Ativar manutenção global"
-- Campo de mensagem customizável (ex.: "Sistema em manutenção até 22h")
-- Badge de status + preview de como o revendedor verá
-
-**Revendedor** (quando ativo):
-- Banner fixo no topo do `AppLayout` (vermelho/âmbar, com mensagem do gerente)
-- Toast na transição off→on (realtime)
-- Botões de emissão desabilitados com tooltip "Sistema em manutenção"
-- Tentativas via API pública retornam `503` com JSON `{ error: "maintenance", message }`
-- Consultas (dashboard, saldo, listagens, relatórios, clientes, extensões instaladas etc.) **continuam funcionando normal**
-
-## O que é bloqueado vs. liberado
-
-**Bloqueado (emissão / mutação de saldo do cliente final):**
-- Gerar chave de extensão (`RevendedorGerarChave`)
-- Vender plano (`GerarVendaPlanoDialog`)
-- Emitir recarga manual (`RevendedorRecarga`)
-- Compra via loja pública (`PublicStorefront`, `PublicRecharge`, `PublicExtension`, `PublicPlano`)
-- Emissão de trial Claude / venda Claude
-- API do Revendedor: endpoints de emissão (gerar chave, criar recarga, criar venda)
-
-**Liberado:**
-- Todo o painel de leitura (dashboards, listagens, filtros, relatórios)
-- Consulta de saldo, licenças ativas, clientes, histórico, transações
-- Ajustes de conta, personalização de loja (edição sem publicação de nova venda)
-- Painel do gerente (inteiro)
-- Fluxos do cliente-final que já têm licença ativa (portal Claude, etc.)
-
-## Arquitetura técnica
-
-### 1. Fonte da verdade (sem migration nova)
-Usar `app_settings` (já existe) com chave `system.maintenance`:
-```json
-{
-  "enabled": true,
-  "message": "Sistema em manutenção...",
-  "started_at": "2026-07-16T18:00:00Z",
-  "started_by": "<uuid do gerente>"
-}
+```
+Gerente (painel)
+   │  invoca claude-export-keys  (Authorization: Bearer <JWT>)
+   │  body: { public_key_pem, confirm_token }
+   ▼
+Edge Function (verify_jwt padrão + checagem has_role('gerente'))
+   │  1. Valida JWT + role gerente
+   │  2. Valida one-shot token em claude_export_tokens (usado=false, não expirado)
+   │  3. Importa chave pública RSA-OAEP (SPKI PEM)
+   │  4. Gera AES-GCM 256 por linha, cifra provider_api_key
+   │     e envelopa a chave AES com RSA-OAEP-SHA256
+   │  5. Marca token como usado (single-use) + grava auditoria
+   │  6. Retorna JSON com envelopes cifrados
+   ▼
+Frontend
+   │  faz download do JSON e entrega ao projeto destino
 ```
 
-### 2. RPC de checagem (security definer)
-Nova função `public.is_system_in_maintenance() returns boolean` — usada tanto por RLS quanto por edge functions, evita ler `app_settings` em todo lugar.
+Nenhum log imprime chave, envelope, IV, token ou PEM. Erros retornam apenas códigos genéricos.
 
-### 3. Bloqueio no banco (defesa em profundidade)
-Adicionar cláusula `AND NOT public.is_system_in_maintenance()` (ou trigger `BEFORE INSERT`) nas policies de INSERT das tabelas de emissão para role `revendedor`:
-- `orders`, `direct_sales`, `storefront_orders`
-- `client_extensions` (quando criado pelo revendedor)
-- `recharge_intents`, `reseller_credit_purchases`
-- `claude_orders`
-- `pending_storefront_charges`
+## Componentes
 
-Gerente/service_role passam direto.
+### 1. Tabelas novas (migration)
 
-### 4. Bloqueio nas Edge Functions de emissão
-As functions de emissão (gerar-chave, criar-venda, api-revendedor-*, storefront-order etc.) checam a flag no início e retornam 503 com a mensagem.
+- `claude_export_tokens` — token único de confirmação
+  - `token_hash` (sha256 do token, nunca o token em claro)
+  - `created_by` (uuid do gerente)
+  - `expires_at` (default now() + 15 min)
+  - `used_at`, `used_by`
+  - RLS: apenas gerente vê seus próprios; INSERT/UPDATE só via edge function (service_role)
 
-### 5. Frontend
-- **Hook novo** `useSystemMaintenance()` — lê `app_settings` + subscreve realtime na chave `system.maintenance`. Reaproveita padrão do `LicenseMaintenanceBanner`.
-- **Componente** `<SystemMaintenanceBanner />` montado no `AppLayout` (só aparece para role `revendedor` quando `enabled`).
-- **HOC/helper** `disabledByMaintenance` para desabilitar botões de emissão com tooltip padronizado nos pontos citados acima.
-- **Card do gerente** `<SystemMaintenanceCard />` — toggle + textarea + confirmação (AlertDialog) antes de ligar, igual ao padrão do `RechargeSettingsCard`.
+- `claude_export_audit` — auditoria sem segredos
+  - `operation_id` (uuid)
+  - `manager_id`, `manager_email`
+  - `licenses_exported` (int)
+  - `public_key_fingerprint` (sha256 do SPKI)
+  - `created_at`
+  - RLS: SELECT para gerente
 
-### 6. Realtime
-`app_settings` já tem realtime configurada nas outras chaves de manutenção (`LicenseMaintenanceBanner` já usa `postgres_changes`). Mesmo padrão aqui.
+Ambas com GRANTs (`authenticated` SELECT quando aplicável, `service_role` ALL).
 
-## Entregáveis
+### 2. Edge function `claude-export-keys` (nova)
 
-1. RPC `is_system_in_maintenance()` (migration)
-2. Policies/triggers de bloqueio nas tabelas de emissão (migration)
-3. `useSystemMaintenance` hook + `SystemMaintenanceBanner` no `AppLayout`
-4. Guards visuais nos botões de emissão do painel do revendedor
-5. Checagem 503 nas edge functions de emissão
-6. Card de controle no painel do gerente (com log em `admin_audit_logs`)
+- `verify_jwt = true` (padrão)
+- Passos:
+  1. `getClaims(token)` → `user_id`
+  2. `has_role(user_id, 'gerente')` via SQL — se falso, 403 genérico
+  3. Body validado com Zod: `public_key_pem` (string PEM SPKI), `confirm_token` (string)
+  4. Verifica `claude_export_tokens` por `token_hash`, não usado, não expirado → marca usado (transação)
+  5. `crypto.subtle.importKey('spki', der, {name:'RSA-OAEP', hash:'SHA-256'}, false, ['encrypt'])`
+  6. Para cada linha (select em lotes): AES-GCM 256 aleatório + IV, cifra `provider_api_key`, envelopa a chave AES com RSA-OAEP
+  7. Grava auditoria (sem chaves, sem envelopes)
+  8. Retorna:
+     ```json
+     {
+       "operation_id": "...",
+       "algo": { "wrap": "RSA-OAEP-SHA256", "data": "AES-GCM-256" },
+       "public_key_fingerprint": "sha256:...",
+       "count": N,
+       "items": [
+         { "id","code","provider_key_id","provider_user_id",
+           "customer_email","reseller_id","status",
+           "encrypted_key": { "iv","ciphertext","wrapped_key" } }
+       ]
+     }
+     ```
 
-## Fora do escopo
+### 3. Edge function auxiliar `claude-export-token-issue` (nova)
 
-- Pausar manutenções específicas (licenças/recargas) — continuam existindo em paralelo
-- Agendamento futuro ("ligar às 22h") — pode virar v2
-- Mensagens diferentes por canal — mensagem única
+- Gerente clica "Gerar token de exportação" → devolve o token em claro **uma vez** (não é secret, é nonce curto). Armazena apenas o hash.
+- Sem esta função o gerente não conseguiria obter o `confirm_token` de forma segura.
 
-Confirma o escopo e eu implemento?
+### 4. Frontend — `GerenteClaudeExportar.tsx` (nova página)
+
+- Rota `/painel/gerente/claude-exportar` (protegida por `RoleRoute gerente`).
+- UI:
+  1. Botão "Gerar token" → chama `claude-export-token-issue` e mostra o token uma vez.
+  2. Textarea para colar a **chave pública RSA (PEM SPKI)** do projeto destino.
+  3. Botão "Exportar" → chama `claude-export-keys` e faz download de `claude-export-<operation_id>.json`.
+- Nunca guarda o token/pacote no `localStorage`, nunca faz `console.log` do conteúdo.
+- Link no `AppSidebar` (grupo gerente).
+
+### 5. Documentação no `MIGRATION.md`
+
+Adicionar seção "Migração das API Keys Claude" explicando:
+- Como gerar par RSA-OAEP no projeto destino (openssl)
+- Passo a passo do gerente
+- Como o destino desembrulha (AES-GCM + RSA-OAEP)
+
+## Secrets necessários
+
+**Nenhum secret novo.** A função usa:
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (já disponíveis no runtime da edge function — service_role fica só no backend, jamais vai ao frontend).
+
+A chave pública RSA vem no request body (não é secret — é pública). A chave privada correspondente fica **apenas no projeto de destino**; nós nunca a vemos.
+
+## Garantias de segurança
+
+- `provider_api_key` nunca é retornada em claro.
+- Token de confirmação é single-use e expira em 15 min; armazenado como hash.
+- `service_role` usado apenas dentro da edge function.
+- Sem `console.log` de qualquer valor sensível; erros são mensagens genéricas.
+- Auditoria registra só metadados (gerente, hora, quantidade, fingerprint da chave pública, operation_id).
+- Zero mutação em `claude_orders`; nenhuma chave é revogada ou regenerada.
+- Endpoint exige JWT válido + role gerente + token single-use → não é endpoint público nem permanente.
+
+Confirma para eu implementar?
