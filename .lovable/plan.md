@@ -1,95 +1,89 @@
-# Adaptação à nova API do fornecedor Claude
+# Modo Manutenção Global
 
-Plano completo de mudanças mapeadas a partir da doc oficial (`https://claude-ss.shardweb.app/docs/api`). Organizado por prioridade — cada fase pode ser executada e testada de forma independente.
+Kill-switch único que **bloqueia toda emissão/venda** para revendedores, mas mantém **consultas** (saldo, licenças, clientes, histórico) 100% funcionais. Gerente continua com acesso total para poder desligar.
 
----
+## Como funciona (visão do usuário)
 
-## FASE 0 — Já executado ✅
+**Gerente** (nova aba em `GerenteAcoesEspeciais` ou card no `GerenteDashboard`):
+- Toggle "Ativar manutenção global"
+- Campo de mensagem customizável (ex.: "Sistema em manutenção até 22h")
+- Badge de status + preview de como o revendedor verá
 
-- Substituição de `claude-ss.ia.br` por `claude-ss.shardweb.app` em ~25 arquivos (código + edge functions)
-- Confirmação do secret `CLAUDE_RESELLER_API_BASE_URL`
+**Revendedor** (quando ativo):
+- Banner fixo no topo do `AppLayout` (vermelho/âmbar, com mensagem do gerente)
+- Toast na transição off→on (realtime)
+- Botões de emissão desabilitados com tooltip "Sistema em manutenção"
+- Tentativas via API pública retornam `503` com JSON `{ error: "maintenance", message }`
+- Consultas (dashboard, saldo, listagens, relatórios, clientes, extensões instaladas etc.) **continuam funcionando normal**
 
----
+## O que é bloqueado vs. liberado
 
-## FASE 1 — Novos planos API-only ✅
+**Bloqueado (emissão / mutação de saldo do cliente final):**
+- Gerar chave de extensão (`RevendedorGerarChave`)
+- Vender plano (`GerarVendaPlanoDialog`)
+- Emitir recarga manual (`RevendedorRecarga`)
+- Compra via loja pública (`PublicStorefront`, `PublicRecharge`, `PublicExtension`, `PublicPlano`)
+- Emissão de trial Claude / venda Claude
+- API do Revendedor: endpoints de emissão (gerar chave, criar recarga, criar venda)
 
-Cadastrar 3 novos planos `api_*` que não existiam antes.
+**Liberado:**
+- Todo o painel de leitura (dashboards, listagens, filtros, relatórios)
+- Consulta de saldo, licenças ativas, clientes, histórico, transações
+- Ajustes de conta, personalização de loja (edição sem publicação de nova venda)
+- Painel do gerente (inteiro)
+- Fluxos do cliente-final que já têm licença ativa (portal Claude, etc.)
 
-- ✅ Migration em `claude_plan_prices` e `tier_claude_prices` (custos + 12 linhas por tier)
-- ✅ `PLAN_CODES` / `PLAN_LABELS` atualizados em 17 arquivos (edge functions + UI)
-- ✅ Type `PlanCode` estendido, `PLAN_ORDER` estendido, `API_KEY_MAP` completo
+## Arquitetura técnica
 
----
-
-## FASE 2 — Bugs críticos ✅
-
-- ✅ **2.1** Débito nas issue functions já acontece DEPOIS do provider call (verificado). Nenhum estorno necessário. Adicionadas mensagens 409 amigáveis em `claude-issue-key` (`email_already_registered`), 402 e 429. `claude-issue-trial`, `claude-storefront-issue-trial` e `manager-claude-issue-key` já tratavam.
-- ✅ **2.2** `claude-cancel-key` já validava 7 dias (`REFUND_WINDOW_DAYS`). Agora retorna `account_blocked` no response quando o provedor bloqueou a conta. Dialog de cancelamento em `RevendedorMeusClientesClaude` mostra aviso vermelho para chaves `redeemed` e toast atualizado.
-
----
-
-## FASE 3 — Webhooks ✅ (já estava implementado)
-
-- ✅ `claude-provider-webhook` já existe: HMAC-SHA256, dedupe atômico, todos os 5 eventos roteados, notificações Telegram/WhatsApp, encaminhamento para webhook do revendedor.
-- ✅ Tabela `claude_provider_webhook_events` já ativa.
-- ⏳ **Pendente:** função `claude-webhook-register` (gerente registra URL no provedor) + UI. Só falta esse passo administrativo para o provedor começar a enviar os eventos.
-
----
-
-## FASE 4 — Telemetria de clientes (`GET /api/rsl/users`) ✅
-
-- ✅ `claude-customers-usage` (revendedor) e `manager-claude-provider-users` (gerente) já consomem `/api/rsl/users`, reconciliam status e devolvem `dailyPercentUsed`, `weeklyTokensInWindow`, `weeklyTokenLimit`, `accountExpiresAt`, `tokensConsumed/tokenLimit`, `percentRemaining`.
-- ✅ `RevendedorMeusClientesClaude.tsx` já renderiza barra de uso diário, janela semanal, total consumido e badge de expiração.
-- ✅ Painel do gerente (`manager-claude-provider-users`) já traz status consolidado por email/keyId/code.
-
----
-
-## FASE 5 — Endpoint de renovação (`POST /api/rsl/renew`) ✅
-
-- ✅ `reseller-claude-api` já implementa renovação in-place chamando `POST /api/rsl/renew`, cria registro `is_renewal=true`, debita via `debit_reseller_balance` e dispara webhook `claude.key.renewed`.
-- ✅ Fluxos de cliente final (`claude-customer-request-renewal`, `claude-customer-checkout-renewal`) já plugados.
-
----
-
-## FASE 6 — Contas de teste do provedor (`POST /api/rsl/test`) ✅
-
-- ✅ `claude-issue-trial` (revendedor) e `claude-storefront-issue-trial` (loja pública) já chamam `POST /api/rsl/test` sem débito.
-
----
-
-## FASE 7 — Robustez e observabilidade ✅
-
-**7.1 Sync automático de preços via `/api/rsl/me`** ✅ — edge function `claude-price-sync` compara `prices[kind]` do provedor com `claude_plan_prices.cost_cents`, envia alerta no Telegram (`telegram_outbox`) com cooldown de 12h e hash de divergência (evita spam). Falta agendar cron (diário) apontando para `claude-price-sync`.
-
-**7.2 Auditoria de UI** ✅ — emissão manual reforça e-mail obrigatório/entrega direta e identifica vendas antigas “só código” como sem telemetria completa.
-
-**7.3 Rate limit awareness** ✅ — retry com backoff em `/me` e `/users`, respeito a `retry-after` e remoção do polling automático de 60s na tela de clientes Claude.
-
----
-
-## Fora de escopo (por enquanto)
-
-- Plano `api_30d` (R$ 120) — não pediu para ativar
-- Reativar `5x_7d` — segue inativo
-- Substituir tabela local de preços por leitura online do `/me` — mantemos local por performance, com sync como fallback
-
----
-
-## Ordem de execução recomendada
-
-```text
-FASE 1  →  FASE 2  →  FASE 3  →  FASE 4  →  FASE 5  →  FASE 6  →  FASE 7
-   1d       0.5d      1.5d       1d         1d         0.5d       0.5d
-(baixa)   (crítica) (média)    (média)   (média)    (baixa)   (baixa)
+### 1. Fonte da verdade (sem migration nova)
+Usar `app_settings` (já existe) com chave `system.maintenance`:
+```json
+{
+  "enabled": true,
+  "message": "Sistema em manutenção...",
+  "started_at": "2026-07-16T18:00:00Z",
+  "started_by": "<uuid do gerente>"
+}
 ```
 
-Cada fase é independente e pode ser deployada isolada. Se algo quebrar, dá pra fazer rollback só daquela fase sem afetar o resto.
+### 2. RPC de checagem (security definer)
+Nova função `public.is_system_in_maintenance() returns boolean` — usada tanto por RLS quanto por edge functions, evita ler `app_settings` em todo lugar.
 
-## Detalhes técnicos (para referência do dev)
+### 3. Bloqueio no banco (defesa em profundidade)
+Adicionar cláusula `AND NOT public.is_system_in_maintenance()` (ou trigger `BEFORE INSERT`) nas policies de INSERT das tabelas de emissão para role `revendedor`:
+- `orders`, `direct_sales`, `storefront_orders`
+- `client_extensions` (quando criado pelo revendedor)
+- `recharge_intents`, `reseller_credit_purchases`
+- `claude_orders`
+- `pending_storefront_charges`
 
-- Todas as edge functions usam `Authorization: Bearer ${CLAUDE_RESELLER_API_KEY}` no upstream
-- `BASE_URL` vem do secret `CLAUDE_RESELLER_API_BASE_URL` (agora `https://claude-ss.shardweb.app`)
-- Débito de saldo continua atômico via RPC `debit_reseller_balance`
-- Reembolso deve usar `credit_reseller_balance` (verificar se existe; se não, criar)
-- Custo por tier resolvido via RPC `get_reseller_claude_cost` (já existe)
-- Promoção "Inauguração Claude" aplicada em `claude_discount_by_tier` (JSON) e resolvida em runtime
+Gerente/service_role passam direto.
+
+### 4. Bloqueio nas Edge Functions de emissão
+As functions de emissão (gerar-chave, criar-venda, api-revendedor-*, storefront-order etc.) checam a flag no início e retornam 503 com a mensagem.
+
+### 5. Frontend
+- **Hook novo** `useSystemMaintenance()` — lê `app_settings` + subscreve realtime na chave `system.maintenance`. Reaproveita padrão do `LicenseMaintenanceBanner`.
+- **Componente** `<SystemMaintenanceBanner />` montado no `AppLayout` (só aparece para role `revendedor` quando `enabled`).
+- **HOC/helper** `disabledByMaintenance` para desabilitar botões de emissão com tooltip padronizado nos pontos citados acima.
+- **Card do gerente** `<SystemMaintenanceCard />` — toggle + textarea + confirmação (AlertDialog) antes de ligar, igual ao padrão do `RechargeSettingsCard`.
+
+### 6. Realtime
+`app_settings` já tem realtime configurada nas outras chaves de manutenção (`LicenseMaintenanceBanner` já usa `postgres_changes`). Mesmo padrão aqui.
+
+## Entregáveis
+
+1. RPC `is_system_in_maintenance()` (migration)
+2. Policies/triggers de bloqueio nas tabelas de emissão (migration)
+3. `useSystemMaintenance` hook + `SystemMaintenanceBanner` no `AppLayout`
+4. Guards visuais nos botões de emissão do painel do revendedor
+5. Checagem 503 nas edge functions de emissão
+6. Card de controle no painel do gerente (com log em `admin_audit_logs`)
+
+## Fora do escopo
+
+- Pausar manutenções específicas (licenças/recargas) — continuam existindo em paralelo
+- Agendamento futuro ("ligar às 22h") — pode virar v2
+- Mensagens diferentes por canal — mensagem única
+
+Confirma o escopo e eu implemento?
