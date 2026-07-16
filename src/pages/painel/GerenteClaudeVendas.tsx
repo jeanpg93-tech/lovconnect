@@ -335,7 +335,7 @@ export default function GerenteClaudeVendas() {
                     </TableCell>
                     <TableCell>
                       {o.provider_api_key ? (
-                        <ApiKeyReveal apiKey={o.provider_api_key} />
+                        <ApiKeyReveal value={o.provider_api_key} claudeOrderId={o.id} />
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
