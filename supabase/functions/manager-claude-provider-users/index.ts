@@ -133,7 +133,9 @@ Deno.serve(async (req) => {
       if (!match) continue;
       usageByOrderId[o.id] = match;
 
-      // Sincroniza status a partir do provedor (webhook pode não estar chegando)
+      // Sincroniza status a partir do provedor (apenas para chaves manuais do gerente;
+      // para revendedores, o webhook é a fonte de verdade)
+      if (!(o as any).is_manager_manual) continue;
       if ((o as any).status === 'cancelled') continue;
       const patch: Record<string, any> = {};
       const providerStatus = String((match as any).status ?? '').toLowerCase();
