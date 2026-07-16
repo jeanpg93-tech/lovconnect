@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Copy, Check, ExternalLink, Sparkles } from "lucide-react";
+import { useMaintenanceGuard } from "@/hooks/useMaintenanceGuard";
 
 type Props = {
   open: boolean;
@@ -43,6 +44,7 @@ export default function GerarVendaPlanoDialog({
   const [creating, setCreating] = useState(false);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const maint = useMaintenanceGuard();
 
   useEffect(() => {
     if (!open) {
@@ -63,6 +65,7 @@ export default function GerarVendaPlanoDialog({
 
   const create = async () => {
     if (!canSubmit) return;
+    if (maint.blocked()) return;
     setCreating(true);
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -174,9 +177,9 @@ export default function GerarVendaPlanoDialog({
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button onClick={create} disabled={!canSubmit || creating}>
+              <Button onClick={create} disabled={!canSubmit || creating || maint.disabled} title={maint.tooltip}>
                 {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Criar pedido
+                {maint.disabled ? "Emissões pausadas" : "Criar pedido"}
               </Button>
             </DialogFooter>
           </div>

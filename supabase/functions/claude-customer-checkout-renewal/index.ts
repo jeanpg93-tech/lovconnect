@@ -3,6 +3,7 @@
 // MisticPay do PRÓPRIO revendedor (mesmas creds da loja pública) para gerar o QR.
 // O misticpay-webhook confirma o pagamento e chama a emissão da chave.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { maintenanceGuard } from "../_shared/maintenance.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +36,11 @@ function computeSalePrice(cost: number, mode: string, value: number) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+    {
+      const _maintClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const _maintResp = await maintenanceGuard(_maintClient, corsHeaders);
+      if (_maintResp) return _maintResp;
+    }
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {

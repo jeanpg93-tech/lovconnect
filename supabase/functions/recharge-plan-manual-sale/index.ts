@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { maintenanceGuard } from "../_shared/maintenance.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,11 @@ const json = (body: unknown, status = 200) =>
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+    {
+      const _maintClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const _maintResp = await maintenanceGuard(_maintClient, corsHeaders);
+      if (_maintResp) return _maintResp;
+    }
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {

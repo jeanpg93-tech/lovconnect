@@ -9,6 +9,7 @@ import {
 import { Loader2, Copy, Check, Info, Sparkles, Mail, User, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { alphaHex, normalizeHexColor, readableTextOnHex, storefrontThemeVars } from "@/lib/storefrontTheme";
+import { useMaintenanceGuard } from "@/hooks/useMaintenanceGuard";
 
 type Mode = "manager" | "reseller" | "storefront";
 
@@ -36,6 +37,8 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrialResult | null>(null);
   const [copied, setCopied] = useState<"key" | "user" | "msg" | null>(null);
+  const maint = useMaintenanceGuard();
+  const shouldGuard = mode === "reseller";
 
   const reset = () => {
     setEmail(""); setName(""); setWhatsapp("");
@@ -43,6 +46,7 @@ export default function IssueClaudeTrialDialog({ open, onOpenChange, mode, store
   };
 
   const submit = async () => {
+    if (shouldGuard && maint.blocked()) return;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       toast.error("Informe um e-mail válido");
       return;
@@ -235,8 +239,8 @@ Use no Cursor, Cline ou Claude Code definindo essas duas variáveis. Após o tes
           {!result ? (
             <>
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>Cancelar</Button>
-                <Button onClick={submit} disabled={loading} style={accent ? { background: accent, color: accentText } : undefined}>
-                {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Emitindo...</> : "Emitir teste grátis"}
+                <Button onClick={submit} disabled={loading || (shouldGuard && maint.disabled)} title={shouldGuard ? maint.tooltip : undefined} style={accent ? { background: accent, color: accentText } : undefined}>
+                {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Emitindo...</> : (shouldGuard && maint.disabled ? "Emissões pausadas" : "Emitir teste grátis")}
               </Button>
             </>
           ) : (

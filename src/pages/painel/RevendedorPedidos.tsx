@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { usePendingStorefrontCharges } from "@/hooks/usePendingStorefrontCharges";
 import { CancelSaleDialog, type CancelSaleTarget } from "@/components/painel/CancelSaleDialog";
 import OriginBadge, { readOriginFromNotes, readOriginFromRow } from "@/components/painel/OriginBadge";
+import { useMaintenanceGuard } from "@/hooks/useMaintenanceGuard";
 
 type Plan = { license_type: string; label: string; price_cents: number; cost_cents: number; min_price_cents?: number; is_active: boolean };
 type MethodId = "flow" | "lovax";
@@ -124,6 +125,7 @@ export default function RevendedorPedidos() {
   const [submitting, setSubmitting] = useState(false);
   const [matchedCustomer, setMatchedCustomer] = useState<{ display_name: string } | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
+  const maint = useMaintenanceGuard();
 
   const openOrder = (p: Plan, test: boolean) => {
     setIsTest(test);
@@ -513,6 +515,7 @@ export default function RevendedorPedidos() {
 
   const submit = async () => {
     if (!open) return;
+    if (maint.blocked()) return;
     const name = displayName.trim();
     const wa = onlyDigits(whatsapp);
     if (name.length < 2) {
@@ -1609,8 +1612,13 @@ export default function RevendedorPedidos() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(null)}>Cancelar</Button>
-            <Button onClick={submit} disabled={submitting} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (isTest ? "Gerar teste grátis" : "Confirmar pedido")}
+            <Button
+              onClick={submit}
+              disabled={submitting || maint.disabled}
+              title={maint.tooltip}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (maint.disabled ? "Emissões pausadas" : (isTest ? "Gerar teste grátis" : "Confirmar pedido"))}
             </Button>
           </DialogFooter>
         </DialogContent>
