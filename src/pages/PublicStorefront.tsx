@@ -16,6 +16,7 @@ import { StorefrontVisualEffects, type VisualEffect } from "@/components/storefr
 import { ReportStoreDialog } from "@/components/storefront/ReportStoreDialog";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import IssueClaudeTrialDialog from "@/components/painel/IssueClaudeTrialDialog";
+import { useSystemMaintenance } from "@/hooks/useSystemMaintenance";
 import { alphaHex, normalizeHexColor, readableTextOnHex, storefrontThemeVars } from "@/lib/storefrontTheme";
 import {
   AlertDialog,
@@ -215,6 +216,7 @@ export default function PublicStorefront() {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [securityNoticeOpen, setSecurityConfirmOpen] = useState(false);
   const pollRef = useRef<number | null>(null);
+  const systemMaintenance = useSystemMaintenance(false);
 
   // Chave para guardar o pedido em andamento (ou recém-concluído) por loja.
   // Sem isso, se o cliente fechar a aba após pagar o PIX (caso comum quando
@@ -544,6 +546,12 @@ export default function PublicStorefront() {
 
   const submit = async () => {
     if ((!selLic && !selRec && !selPlan) || !slug) return;
+    if (systemMaintenance.enabled) {
+      toast.warning("PIX temporariamente bloqueado", {
+        description: systemMaintenance.message,
+      });
+      return;
+    }
     if (buyerName.trim().length < 2) return toast.error("Informe seu nome");
     const wa = buyerWa.replace(/\D+/g, "");
     const isTrial = selLic === "trial";
@@ -737,6 +745,23 @@ export default function PublicStorefront() {
       )}
 
       <div className="relative z-10 min-h-screen flex flex-col items-center px-4 py-10 sm:py-16">
+        {systemMaintenance.enabled && (
+          <div className="w-full max-w-3xl mb-6 rounded-2xl border border-amber-500/50 bg-amber-500/10 p-4 shadow-lg backdrop-blur">
+            <div className="flex items-start gap-3 text-left">
+              <div className="mt-0.5 rounded-xl bg-amber-500/15 p-2 text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  Loja em manutenção
+                </div>
+                <p className="mt-1 text-sm leading-relaxed text-foreground/90">
+                  {systemMaintenance.message || "PIX temporariamente bloqueado. A loja segue online para consulta, mas novas vendas não estão disponíveis agora."}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Hero centralizado */}
         <header className="w-full max-w-3xl text-center flex flex-col items-center gap-4 mb-10">
           <div
@@ -1119,7 +1144,7 @@ export default function PublicStorefront() {
                 <Button
                   className="w-full h-12 font-bold"
                   onClick={submit}
-                  disabled={submitting}
+                  disabled={submitting || systemMaintenance.enabled}
                   style={{ background: color, borderColor: color }}
                 >
                   {submitting ? (
@@ -1130,7 +1155,8 @@ export default function PublicStorefront() {
                     <ShieldCheck className="h-4 w-4 mr-2" />
                   )}
                   {selLic === "trial"
-                    ? "Gerar Chave Teste Grátis"
+                    ? systemMaintenance.enabled ? "Em manutenção" : "Gerar Chave Teste Grátis"
+                    : systemMaintenance.enabled ? "PIX bloqueado — manutenção"
                     : `Pagar ${selLic
                         ? formatBRL(priceFor(selLic))
                         : selPlan
