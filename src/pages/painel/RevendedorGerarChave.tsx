@@ -41,6 +41,7 @@ export default function RevendedorGerarChave() {
   const [genType, setGenType] = useState<TypeDef["key"]>("30d");
   const [genName, setGenName] = useState("");
   const [genWhatsapp, setGenWhatsapp] = useState("");
+  const maint = useMaintenanceGuard();
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
   const [lastGenerated, setLastGenerated] = useState<
@@ -341,12 +342,15 @@ export default function RevendedorGerarChave() {
 
             <Button
               onClick={generate}
-              disabled={generating || !activeMethod}
+              disabled={generating || !activeMethod || maint.disabled}
+              title={maint.tooltip}
               size="lg"
               className="relative overflow-hidden bg-gradient-to-r from-primary to-primary/80 text-primary-foreground transition-all hover:shadow-lg hover:shadow-primary/25"
             >
               {generating ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</>
+              ) : maint.disabled ? (
+                <>Emissões pausadas</>
               ) : (
                 <><Sparkles className="mr-2 h-4 w-4" /> Gerar chave {selected.label}</>
               )}
