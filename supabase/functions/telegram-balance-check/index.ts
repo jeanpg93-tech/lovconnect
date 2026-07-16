@@ -36,11 +36,24 @@ function brl(c: number) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Internal cron-only endpoint. Require the service-role bearer token
+  // (the same guard used by recharge-plan-cron, subscription-cron-tick,
+  // expire-pending-storefront-orders). Without this, anonymous callers could
+  // scrape the platform's live provider balance from the response body.
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (authHeader !== `Bearer ${serviceRoleKey}`) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   // Cron-triggered balance check. No user input; only reads provider balances
   // and inserts an alert into telegram_outbox when below threshold.
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    serviceRoleKey,
   );
 
   const { data: s } = await supabase.from("telegram_settings").select("*").eq("id", 1).maybeSingle();
@@ -104,11 +117,10 @@ Deno.serve(async (req) => {
     await supabase.from("telegram_settings").update(updates).eq("id", 1);
   }
 
+  // Do not leak the live provider balance in the HTTP response. Only report
+  // whether alerts were dispatched.
   return new Response(JSON.stringify({
     ok: true,
-    provider_cents: prov,
-    threshold_cents: threshold,
-    critical_threshold_cents: criticalThreshold,
     alerts_sent: messages.length,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
