@@ -5,14 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import ApiKeyReveal from "@/components/painel/ApiKeyReveal";
-import { Copy, Check, RefreshCw, Search, Loader2, Store, User, KeyRound } from "lucide-react";
+import {
+  Copy, Check, RefreshCw, Search, Loader2, Store, User, KeyRound,
+  ChevronDown, ChevronRight, Activity, Mail, Phone, Calendar, Zap,
+} from "lucide-react";
 import { toast } from "sonner";
+import { invokeAuthenticatedFunction } from "@/lib/authenticated-functions";
+import { cn } from "@/lib/utils";
 
 type Order = {
   id: string;
@@ -32,6 +34,19 @@ type Order = {
   cancelled_at: string | null;
   redeemed_at: string | null;
   expired_at: string | null;
+};
+
+type UsageInfo = {
+  email?: string;
+  status?: string | null;
+  tokensConsumed?: number | null;
+  tokenLimit?: number | null;
+  tokensInWindow?: number | null;
+  tokenWindowHours?: number | null;
+  percentRemaining?: number | null;
+  weeklyTokensInWindow?: number | null;
+  weeklyTokenLimit?: number | null;
+  accountExpiresAt?: string | null;
 };
 
 const PLAN_LABELS: Record<string, string> = {
@@ -66,6 +81,14 @@ const fmtBRL = (c: number | null | undefined) =>
 const fmtDate = (s: string) =>
   new Date(s).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
+const fmtTokens = (n: number | null | undefined) => {
+  if (n == null || !isFinite(Number(n))) return "—";
+  const v = Number(n);
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
+  return String(v);
+};
+
 const norm = (v: unknown) =>
   String(v ?? "").toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -78,6 +101,9 @@ export default function GerenteClaudeVendas() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [resellerFilter, setResellerFilter] = useState<string>("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [usageByOrderId, setUsageByOrderId] = useState<Record<string, UsageInfo>>({});
+  const [usageLoading, setUsageLoading] = useState(false);
 
   const load = async () => {
     setRefreshing(true);
@@ -112,8 +138,20 @@ export default function GerenteClaudeVendas() {
     setLoading(false);
   };
 
+  const loadUsage = async () => {
+    setUsageLoading(true);
+    const { data, error } = await invokeAuthenticatedFunction<any>(
+      "manager-claude-provider-users",
+      { method: "POST", body: { scope: "all" } },
+    );
+    setUsageLoading(false);
+    if (error) return;
+    setUsageByOrderId((data?.usage_by_order_id ?? {}) as Record<string, UsageInfo>);
+  };
+
   useEffect(() => {
     load();
+    loadUsage();
     const channel = supabase
       .channel("gerente-claude-vendas")
       .on(
@@ -181,6 +219,14 @@ export default function GerenteClaudeVendas() {
     }
   };
 
+  const toggleExpand = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   return (
     <PageContainer className="space-y-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -190,8 +236,8 @@ export default function GerenteClaudeVendas() {
             Visão global de todas as licenças Claude emitidas pelos revendedores e pelo gerente.
           </p>
         </div>
-        <Button variant="outline" onClick={load} disabled={refreshing}>
-          {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+        <Button variant="outline" onClick={() => { load(); loadUsage(); }} disabled={refreshing || usageLoading}>
+          {(refreshing || usageLoading) ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           <span className="ml-2">Atualizar</span>
         </Button>
       </div>
@@ -251,108 +297,182 @@ export default function GerenteClaudeVendas() {
         </Select>
       </div>
 
-      <div className="rounded-lg border bg-card overflow-x-auto">
-        {loading ? (
-          <div className="flex items-center justify-center py-12 text-muted-foreground">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Carregando…
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-12 text-center text-muted-foreground">Nenhuma licença encontrada.</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Revendedor</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Plano</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Código ACT</TableHead>
-                <TableHead>API Key</TableHead>
-                <TableHead className="text-right">Venda</TableHead>
-                <TableHead className="text-right">Custo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((o) => {
-                const rname = o.is_manager_manual
-                  ? "Gerente (manual)"
-                  : (o.reseller_id ? (resellerNames[o.reseller_id] ?? "—") : "—");
-                return (
-                  <TableRow key={o.id}>
-                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                      {fmtDate(o.created_at)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Store className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-sm">{rname}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-start gap-2">
-                        <User className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium">{o.customer_name ?? "—"}</div>
-                          <div className="truncate text-xs text-muted-foreground">
-                            {o.customer_email ?? o.customer_whatsapp ?? ""}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm">{PLAN_LABELS[o.plan_code] ?? o.plan_code}</span>
+      {loading ? (
+        <div className="rounded-lg border bg-card flex items-center justify-center py-12 text-muted-foreground">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Carregando…
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-lg border bg-card py-12 text-center text-muted-foreground">
+          Nenhuma licença encontrada.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((o) => {
+            const rname = o.is_manager_manual
+              ? "Gerente (manual)"
+              : (o.reseller_id ? (resellerNames[o.reseller_id] ?? "—") : "—");
+            const isOpen = expanded.has(o.id);
+            const usage = usageByOrderId[o.id];
+            return (
+              <div
+                key={o.id}
+                className={cn(
+                  "rounded-lg border bg-card transition-colors",
+                  isOpen && "ring-1 ring-primary/30",
+                )}
+              >
+                <div className="grid grid-cols-12 gap-3 p-3 items-center">
+                  <button
+                    type="button"
+                    onClick={() => toggleExpand(o.id)}
+                    className="col-span-12 md:col-span-4 flex items-start gap-2 text-left min-w-0"
+                  >
+                    {isOpen ? <ChevronDown className="h-4 w-4 mt-1 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 mt-1 shrink-0 text-muted-foreground" />}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold truncate">{o.customer_name ?? "—"}</span>
+                        <Badge variant="outline" className={cn("text-[10px] py-0 h-5", STATUS_STYLES[o.status] ?? "")}>
+                          {STATUS_LABELS[o.status] ?? o.status}
+                        </Badge>
                         {o.is_trial ? (
-                          <Badge variant="outline" className="border-purple-500/30 bg-purple-500/10 text-purple-500">
+                          <Badge variant="outline" className="border-purple-500/30 bg-purple-500/10 text-purple-500 text-[10px] py-0 h-5">
                             Trial
                           </Badge>
                         ) : null}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={STATUS_STYLES[o.status] ?? ""}>
-                        {STATUS_LABELS[o.status] ?? o.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
-                        <code className="text-xs">{o.code}</code>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={() => copy(`code-${o.id}`, o.code)}
-                        >
-                          {copiedId === `code-${o.id}` ? (
-                            <Check className="h-3 w-3 text-emerald-500" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {o.customer_email ?? o.customer_whatsapp ?? "—"}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {o.provider_api_key ? (
-                        <ApiKeyReveal value={o.provider_api_key} claudeOrderId={o.id} />
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                    </div>
+                  </button>
+
+                  <div className="col-span-6 md:col-span-2 min-w-0">
+                    <div className="text-[10px] uppercase text-muted-foreground/70">Revendedor</div>
+                    <div className="flex items-center gap-1.5 text-sm truncate">
+                      <Store className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className="truncate">{rname}</span>
+                    </div>
+                  </div>
+
+                  <div className="col-span-6 md:col-span-2 min-w-0">
+                    <div className="text-[10px] uppercase text-muted-foreground/70">Plano</div>
+                    <div className="text-sm truncate">{PLAN_LABELS[o.plan_code] ?? o.plan_code}</div>
+                  </div>
+
+                  <div className="col-span-6 md:col-span-2 min-w-0 text-right md:text-left">
+                    <div className="text-[10px] uppercase text-muted-foreground/70">Venda / Custo</div>
+                    <div className="text-sm font-medium">{fmtBRL(o.sale_price_cents)}</div>
+                    <div className="text-[11px] text-muted-foreground">{fmtBRL(o.cost_cents)}</div>
+                  </div>
+
+                  <div className="col-span-6 md:col-span-2 min-w-0 text-right">
+                    <div className="text-[10px] uppercase text-muted-foreground/70">Data</div>
+                    <div className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(o.created_at)}</div>
+                  </div>
+                </div>
+
+                {isOpen && (
+                  <div className="border-t bg-muted/20 px-4 py-4 space-y-4">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <div className="text-[10px] uppercase text-muted-foreground/70 flex items-center gap-1">
+                          <KeyRound className="h-3 w-3" /> Código ACT
+                        </div>
+                        <div className="flex items-center gap-2 rounded-md border bg-background/50 px-2 py-1.5">
+                          <code className="flex-1 text-xs font-mono truncate">{o.code}</code>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 shrink-0"
+                            onClick={() => copy(`code-${o.id}`, o.code)}
+                          >
+                            {copiedId === `code-${o.id}` ? (
+                              <Check className="h-3 w-3 text-emerald-500" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-[10px] uppercase text-muted-foreground/70">API Key</div>
+                        {o.provider_api_key ? (
+                          <ApiKeyReveal value={o.provider_api_key} claudeOrderId={o.id} />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-3 text-xs">
+                      {o.customer_email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>{o.customer_email}</span>
+                        </div>
                       )}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-right text-sm">
-                      {fmtBRL(o.sale_price_cents)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-right text-sm text-muted-foreground">
-                      {fmtBRL(o.cost_cents)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+                      {o.customer_whatsapp && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>{o.customer_whatsapp}</span>
+                        </div>
+                      )}
+                      {o.redeemed_at && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>Resgatada em {fmtDate(o.redeemed_at)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-md border bg-background/40 p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Activity className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-xs font-semibold uppercase tracking-wide">Consumo de tokens</span>
+                        {usageLoading && !usage && (
+                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                        )}
+                      </div>
+                      {!usage ? (
+                        <div className="text-xs text-muted-foreground">
+                          {usageLoading ? "Consultando provedor…" : "Sem dados de consumo para esta chave."}
+                        </div>
+                      ) : (
+                        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+                          <UsageStat label="Consumidos" value={fmtTokens(usage.tokensConsumed)} />
+                          <UsageStat label="Na janela" value={fmtTokens(usage.tokensInWindow)} suffix={usage.tokenWindowHours ? `/ ${fmtTokens(usage.tokenLimit)} · ${usage.tokenWindowHours}h` : usage.tokenLimit ? `/ ${fmtTokens(usage.tokenLimit)}` : undefined} />
+                          <UsageStat label="Semanal" value={fmtTokens(usage.weeklyTokensInWindow)} suffix={usage.weeklyTokenLimit ? `/ ${fmtTokens(usage.weeklyTokenLimit)}` : undefined} />
+                          <UsageStat
+                            label="Restante"
+                            value={usage.percentRemaining != null ? `${Math.round(Number(usage.percentRemaining))}%` : "—"}
+                            highlight
+                          />
+                        </div>
+                      )}
+                      {usage?.accountExpiresAt && (
+                        <div className="mt-2 text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Zap className="h-3 w-3" />
+                          Expira em {fmtDate(usage.accountExpiresAt)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </PageContainer>
+  );
+}
+
+function UsageStat({ label, value, suffix, highlight }: { label: string; value: string; suffix?: string; highlight?: boolean }) {
+  return (
+    <div className="rounded-md border bg-card p-2">
+      <div className="text-[10px] uppercase text-muted-foreground/70">{label}</div>
+      <div className={cn("text-sm font-semibold", highlight && "text-primary")}>{value}</div>
+      {suffix && <div className="text-[10px] text-muted-foreground truncate">{suffix}</div>}
+    </div>
   );
 }
