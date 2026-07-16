@@ -465,6 +465,66 @@ export type Database = {
           },
         ]
       }
+      claude_export_audit: {
+        Row: {
+          created_at: string
+          id: string
+          licenses_exported: number
+          manager_email: string | null
+          manager_id: string
+          operation_id: string
+          public_key_fingerprint: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          licenses_exported?: number
+          manager_email?: string | null
+          manager_id: string
+          operation_id?: string
+          public_key_fingerprint: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          licenses_exported?: number
+          manager_email?: string | null
+          manager_id?: string
+          operation_id?: string
+          public_key_fingerprint?: string
+        }
+        Relationships: []
+      }
+      claude_export_tokens: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          token_hash: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at?: string
+          id?: string
+          token_hash: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          token_hash?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
       claude_orders: {
         Row: {
           cancel_attempts: Json
