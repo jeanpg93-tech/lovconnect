@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 import { computeDiscount } from "../_shared/promotion.ts";
+import { isSystemInMaintenance } from "../_shared/maintenance.ts";
 
 const DEFAULT_PROVIDER_BASE = "https://ynvrijkuampxpsmshftm.supabase.co/functions/v1/reseller-api";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
