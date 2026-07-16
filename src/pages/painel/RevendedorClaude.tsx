@@ -19,6 +19,7 @@ import ApiKeyReveal from "@/components/painel/ApiKeyReveal";
 import IssueClaudeTrialDialog from "@/components/painel/IssueClaudeTrialDialog";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useMaintenanceGuard } from "@/hooks/useMaintenanceGuard";
 
 type PlanCode = "pro_30d" | "5x_7d" | "5x_30d" | "20x_30d" | "api_500k_30d" | "api_25m_30d" | "api_10m_30d";
 type MarkupMode = "percent" | "fixed_add" | "final";
@@ -101,6 +102,7 @@ export default function RevendedorClaude() {
   const [loading, setLoading] = useState(true);
   const [prices, setPrices] = useState<PriceRow[]>([]);
   const [issuing, setIssuing] = useState<PlanCode | null>(null);
+  const maint = useMaintenanceGuard();
   const [revealed, setRevealed] = useState<{
     code: string;
     plan: PlanCode;
@@ -323,6 +325,7 @@ export default function RevendedorClaude() {
   };
 
   const openConfirm = () => {
+    if (maint.blocked()) return;
     if (!selected?.is_active) return;
     if (customerName.trim().length < 2) return toast.error("Informe o nome do cliente");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
@@ -604,12 +607,15 @@ Qualquer dúvida, é só chamar!`
 
           <Button
             onClick={openConfirm}
-            disabled={!selected?.is_active || issuing !== null}
+            disabled={!selected?.is_active || issuing !== null || maint.disabled}
+            title={maint.tooltip}
             size="lg"
             className="w-full relative overflow-hidden bg-gradient-to-r from-primary to-primary/80 text-primary-foreground transition-all hover:shadow-lg hover:shadow-primary/25"
           >
             {issuing ? (
               <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</>
+            ) : maint.disabled ? (
+              <>Emissões pausadas</>
             ) : (
               <><KeyRound className="mr-2 h-4 w-4" /> Gerar chave {selected && PLAN_LABELS[selected.plan_code]}</>
             )}
