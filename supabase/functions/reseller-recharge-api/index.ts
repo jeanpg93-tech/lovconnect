@@ -106,7 +106,7 @@ async function callProvider(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    {
+    if (req.method !== "GET") {
       const _maintClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       const _maintResp = await maintenanceGuard(_maintClient, corsHeaders);
       if (_maintResp) return _maintResp;

@@ -149,7 +149,7 @@ async function resolveResellerClaudeCost(svc: any, resellerId: string, planCode:
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-    {
+    if (req.method !== "GET") {
       const _maintClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       const _maintResp = await maintenanceGuard(_maintClient, corsHeaders);
       if (_maintResp) return _maintResp;
