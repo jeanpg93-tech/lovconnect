@@ -948,6 +948,32 @@ Deno.serve(async (req) => {
           return json({ ok: false, reason: "unverified_transaction" }, 403);
         }
 
+        // Sistema em manutenção — pagamento aceito, emissão pausada.
+        {
+          const _m = await isSystemInMaintenance(admin);
+          if (_m.enabled) {
+            await admin.from("claude_orders").update({
+              status: "awaiting_balance",
+              paid_at: paidAt,
+              provider_response: payload,
+              error_message: "system_maintenance",
+            }).eq("id", (claudeOrder as any).id);
+            try {
+              const { data: r } = await admin.from("resellers").select("user_id").eq("id", (claudeOrder as any).reseller_id).maybeSingle();
+              if ((r as any)?.user_id) {
+                await admin.from("notifications").insert({
+                  user_id: (r as any).user_id,
+                  type: "claude_awaiting_maintenance",
+                  title: "Emissão Claude pausada (manutenção)",
+                  body: `Cliente pagou renovação (${(claudeOrder as any).plan_code}), mas o sistema está em manutenção. A chave será emitida quando a manutenção terminar.`,
+                  metadata: { order_id: (claudeOrder as any).id, reason: "system_maintenance" },
+                });
+              }
+            } catch (_) {}
+            return json({ ok: true, kind: "claude_order_awaiting_maintenance" });
+          }
+        }
+
         await admin.from("claude_orders").update({
           paid_at: paidAt,
           provider_response: payload,
