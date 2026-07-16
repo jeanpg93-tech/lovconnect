@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/useRole";
+import { useMaintenanceGuard } from "@/hooks/useMaintenanceGuard";
 
 type TypeDef = {
   key: "trial" | "1d" | "7d" | "30d" | "lifetime";
@@ -101,6 +102,7 @@ export default function RevendedorGerarChave() {
   };
 
   const generate = async () => {
+    if (maint.blocked()) return;
     const isTrial = genType === "trial";
     const name = genName.trim();
     const whatsappDigits = genWhatsapp.replace(/\D+/g, "");
