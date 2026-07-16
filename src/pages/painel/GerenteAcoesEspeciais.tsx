@@ -27,6 +27,7 @@ import {
   Rocket,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SystemMaintenanceCard } from "@/components/painel/SystemMaintenanceCard";
 
 type Promotion = {
   id: string;
@@ -266,6 +267,9 @@ export default function GerenteAcoesEspeciais() {
           <Plus className="h-4 w-4" /> Nova promoção
         </Button>
       </div>
+
+      {/* === MODO MANUTENÇÃO GLOBAL === */}
+      <SystemMaintenanceCard />
 
       {/* === PREÇO BASE DE ADESÃO === */}
       <Card className="border-primary/30">

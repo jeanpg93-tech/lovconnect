@@ -5756,6 +5756,7 @@ export type Database = {
         Returns: undefined
       }
       is_reseller_active: { Args: { _user_id: string }; Returns: boolean }
+      is_system_in_maintenance: { Args: never; Returns: boolean }
       lookup_affiliate_code: { Args: { _code: string }; Returns: Json }
       manager_list_claude_manual_orders: {
         Args: { _limit?: number }

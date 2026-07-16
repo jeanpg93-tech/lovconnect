@@ -10,6 +10,7 @@ import { usePresenceTracker } from "@/hooks/usePresenceTracker";
 import { MobileNav } from "./MobileNav";
 import { PendingBalanceBanner } from "@/components/painel/PendingBalanceBanner";
 import { LicenseMaintenanceBanner } from "@/components/painel/LicenseMaintenanceBanner";
+import { SystemMaintenanceBanner } from "@/components/painel/SystemMaintenanceBanner";
 import { LovMainLogo } from "@/components/LovMainLogo";
 import { Button } from "@/components/ui/button";
 import { Clock, ShieldCheck, Sparkles, LogOut, MessageCircle } from "lucide-react";
@@ -171,6 +172,7 @@ export default function AppLayout() {
               {needsActivation && <ActivationBanner status={activationStatus!} />}
               <DemoBanner />
               {primaryRole === "revendedor" && <PendingBalanceBanner />}
+              {primaryRole === "revendedor" && <SystemMaintenanceBanner />}
               {primaryRole === "revendedor" && <LicenseMaintenanceBanner />}
               <div className="relative">
                 <div
