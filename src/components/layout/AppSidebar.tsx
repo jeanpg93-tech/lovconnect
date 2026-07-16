@@ -86,7 +86,7 @@ const groupsByRole: Record<AppRole, Group[]> = {
       { title: "Aprovações", url: "/painel/gerente/aprovacoes", icon: UserCheck },
       { title: "Ativações", url: "/painel/gerente/ativacoes", icon: ShieldCheck },
       { title: "Avisos", url: "/painel/gerente/avisos", icon: Megaphone },
-      { title: "Promoções", url: "/painel/gerente/acoes-especiais", icon: Sparkles },
+      { title: "Ações Especiais", url: "/painel/gerente/acoes-especiais", icon: Sparkles },
       { title: "Contas demo", url: "/painel/gerente/contas-demo", icon: UserCheck },
       { title: "Bot Telegram", url: "/painel/gerente/telegram", icon: Send },
       { title: "WhatsApp do Sistema", url: "/painel/gerente/whatsapp-sistema", icon: MessageCircle },
