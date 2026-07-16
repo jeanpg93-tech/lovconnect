@@ -1318,39 +1318,29 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Sistema em manutenção — pagamento aceito, mas emissão/entrega da loja pausada.
-    // Marca como aguardando liberação manual e registra em pending_storefront_charges.
+    // Sistema em manutenção — não gera venda nem fila de entrega.
+    // A loja pode ficar online, mas PIX/venda devem permanecer bloqueados.
     {
       const _m = await isSystemInMaintenance(admin);
       if (_m.enabled) {
         await admin.from("storefront_orders").update({
-          status: "awaiting_balance",
-          paid_at: paidAt,
+          status: "failed",
           raw_response: payload,
-          error_message: "system_maintenance",
+          error_message: "system_maintenance_pix_blocked",
         }).eq("id", storeOrder.id);
-        try {
-          await admin.from("pending_storefront_charges").upsert({
-            order_id: storeOrder.id,
-            reseller_id: storeOrder.reseller_id,
-            cost_cents: Number(storeOrder.cost_cents ?? 0),
-            product_type: String(storeOrder.product_type ?? "license"),
-            last_error: "system_maintenance",
-          }, { onConflict: "order_id" });
-        } catch (_) {}
         try {
           const { data: r } = await admin.from("resellers").select("user_id").eq("id", storeOrder.reseller_id).maybeSingle();
           if ((r as any)?.user_id) {
             await admin.from("notifications").insert({
               user_id: (r as any).user_id,
-              type: "storefront_awaiting_maintenance",
-              title: "Venda da loja pausada (manutenção)",
-              body: `Um cliente pagou uma venda na sua loja, mas o sistema está em manutenção. A entrega será liberada ao término.`,
-              metadata: { order_id: storeOrder.id, reason: "system_maintenance" },
+              type: "storefront_pix_blocked_maintenance",
+              title: "PIX bloqueado pela manutenção",
+              body: `Uma tentativa de pagamento na loja foi bloqueada porque o sistema está em manutenção. Nenhuma venda ou entrega foi gerada.`,
+              metadata: { order_id: storeOrder.id, reason: "system_maintenance_pix_blocked" },
             });
           }
         } catch (_) {}
-        return json({ ok: true, kind: "storefront_order_awaiting_maintenance" });
+        return json({ ok: true, kind: "storefront_pix_blocked_maintenance" });
       }
     }
 
