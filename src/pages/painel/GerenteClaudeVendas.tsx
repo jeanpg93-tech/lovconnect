@@ -104,6 +104,7 @@ export default function GerenteClaudeVendas() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [usageByOrderId, setUsageByOrderId] = useState<Record<string, UsageInfo>>({});
   const [usageLoading, setUsageLoading] = useState(false);
+  const [usageLoaded, setUsageLoaded] = useState(false);
 
   const load = async () => {
     setRefreshing(true);
@@ -145,8 +146,12 @@ export default function GerenteClaudeVendas() {
       { method: "POST", body: { scope: "all" } },
     );
     setUsageLoading(false);
-    if (error) return;
+    if (error) {
+      toast.error("Falha ao carregar consumo do provedor");
+      return;
+    }
     setUsageByOrderId((data?.usage_by_order_id ?? {}) as Record<string, UsageInfo>);
+    setUsageLoaded(true);
   };
 
   useEffect(() => {
@@ -429,13 +434,24 @@ export default function GerenteClaudeVendas() {
                       <div className="flex items-center gap-2 mb-2">
                         <Activity className="h-3.5 w-3.5 text-primary" />
                         <span className="text-xs font-semibold uppercase tracking-wide">Consumo de tokens</span>
-                        {usageLoading && !usage && (
+                        {usageLoading && (
                           <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                         )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 ml-auto text-[10px]"
+                          onClick={loadUsage}
+                          disabled={usageLoading}
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1" /> Atualizar
+                        </Button>
                       </div>
-                      {!usage ? (
+                      {!usageLoaded || usageLoading ? (
+                        <div className="text-xs text-muted-foreground">Consultando provedor…</div>
+                      ) : !usage ? (
                         <div className="text-xs text-muted-foreground">
-                          {usageLoading ? "Consultando provedor…" : "Sem dados de consumo para esta chave."}
+                          Sem dados de consumo para esta chave (chave ainda não resgatada, expirada ou removida no provedor).
                         </div>
                       ) : (
                         <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
